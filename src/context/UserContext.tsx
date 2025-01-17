@@ -1,6 +1,6 @@
 import { useEffect, useState, createContext, ReactNode } from "react";
 import { jwtDecode } from "jwt-decode";
-import Cookies from 'js-cookie';
+import Cookies from "js-cookie";
 
 interface User {
   email: string;
@@ -32,17 +32,17 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     // localStorage.removeItem("email");
     // localStorage.removeItem("role");
 
-
     const token = Cookies.get("token"); // Lấy token từ cookies
     if (token) {
       const decoded: any = jwtDecode(token);
+      const roles =
+        decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+      console.log("User roles:", roles);
       setUser({
         email: decoded.email,
         userId: decoded.userid,
         userName: decoded.username,
-        role: decoded[
-          "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-        ],
+        role: roles,
         auth: true,
       });
     }
@@ -50,26 +50,32 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 
   const loginContext = (email: string, token: string) => {
     const decoded: any = jwtDecode(token);
+    const roles =
+      decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+    console.log("User roles after login:", roles);
     setUser({
       email: decoded.email,
       userId: decoded.userid,
       userName: decoded.username,
-      role: decoded[
-        "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-      ],
+      role: roles,
       auth: true,
     });
 
     // Lưu token vào cookie thay vì localStorage
     Cookies.set("token", token, { expires: 1 }); // expires: 1 là thời gian sống của cookie (1 ngày)
     Cookies.set("email", email, { expires: 1 });
-    Cookies.set("role", JSON.stringify(decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]), { expires: 1 });
+    Cookies.set("role", JSON.stringify(roles), { expires: 1 });
   };
 
   const logout = () => {
-    Cookies.remove("token"); // Xóa token khỏi cookies
-    Cookies.remove("email");
-    Cookies.remove("role");
+    const token = Cookies.get("token");
+    const email = Cookies.get("email");
+    const role = Cookies.get("role");
+
+    if (token) Cookies.remove("token");
+    if (email) Cookies.remove("email");
+    if (role) Cookies.remove("role");
+
     setUser({
       email: "",
       userId: "",

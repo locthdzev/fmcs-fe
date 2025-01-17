@@ -25,8 +25,13 @@
     "format": "prettier '*/**/*.{ts,tsx}' --write"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
+    "@heroui/dropdown": "^2.3.9",
+    "@heroui/react": "^2.6.13",
+    "@mui/material": "^6.4.0",
     "@react-oauth/google": "^0.12.1",
     "axios": "^1.7.9",
     "fmcs-fe": "file:",
