@@ -1,0 +1,59 @@
+import { useDashboardContext } from "./Provider";
+import { IoSearch } from "react-icons/io5";
+import { IoShareSocialOutline } from "react-icons/io5";
+import { IoAddCircleOutline } from "react-icons/io5";
+import { IoNotificationsOutline } from "react-icons/io5";
+
+export function TopBar() {
+  const { openSidebar } = useDashboardContext();
+  return (
+    <header className="relative z-10 h-20 items-center bg-gray-100 shadow-lg shadow-gray-200">
+      <div className="relative z-10 mx-auto flex h-full flex-col justify-center px-3 text-white">
+        <div className="relative flex w-full items-center pl-1 sm:ml-0 sm:pr-2">
+          <div className="group relative flex h-full w-12 items-center">
+            <button
+              type="button"
+              aria-expanded="false"
+              aria-label="Toggle sidenav"
+              onClick={openSidebar}
+              className="text-4xl text-black hover:text-gray-600 hover:scale-110 transition-all duration-200 focus:outline-none active:scale-95"
+            >
+              ≡
+            </button>{" "}
+          </div>
+          <div className="container relative left-0 flex w-3/4">
+            <div className="group relative ml-8 hidden w-full items-center md:flex lg:w-72">
+              <div className="absolute flex h-10 w-auto cursor-pointer items-center justify-center p-3 pr-2 text-sm uppercase text-gray-100 sm:hidden">
+                <IoSearch className="relative h-5 w-5 text-black" />
+              </div>
+              <IoSearch className="pointer-events-none absolute left-0 ml-4 hidden h-4 w-4 text-black group-hover:text-gray-400 sm:block" />
+              <input
+                type="text"
+                className="block w-full rounded-2xl bg-gray-200 py-1.5 pl-10 pr-4 leading-normal text-black opacity-100 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Search"
+              />
+            </div>
+          </div>
+          <div className="relative ml-5 flex w-full items-center justify-end p-1 sm:right-auto sm:mr-0">
+            <a href="#" className="block pr-5">
+              <IoShareSocialOutline className="h-6 w-6 text-black" />
+            </a>
+            <a href="#" className="block pr-5">
+              <IoAddCircleOutline className="h-6 w-6 text-black" />
+            </a>
+            <a href="#" className="relative block pr-5">
+              <IoNotificationsOutline className="h-6 w-6 text-black" />
+            </a>
+            <a href="#" className="relative block">
+              <img
+                alt="Maurice Lokumba"
+                src="/images/1.jpg"
+                className="mx-auto h-10 w-10 rounded-full object-cover"
+              />
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}

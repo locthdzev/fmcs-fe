@@ -1,0 +1,49 @@
+import axios from "axios";
+import Cookies from "js-cookie"; // Import thư viện js-cookie
+
+const instance = axios.create({
+  baseURL: "http://localhost:5104/api", // Cập nhật base URL của API
+});
+
+interface ErrorResponse {
+  data?: any;
+  status?: number;
+  headers?: any;
+}
+
+// Add a request interceptor to include the token in headers
+instance.interceptors.request.use(
+  (config) => {
+    // Lấy token từ cookies thay vì localStorage
+    const token = Cookies.get("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`; // Thêm token vào headers
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add a response interceptor for handling errors
+instance.interceptors.response.use(
+  function (response) {
+    return response;
+  },
+  function (error) {
+    const res: ErrorResponse = {};
+    if (error.response) {
+      res.data = error.response.data;
+      res.status = error.response.status;
+      res.headers = error.response.headers;
+    } else if (error.request) {
+      console.log(error.request);
+    } else {
+      console.log("Error", error.message);
+    }
+    return res;
+  }
+);
+
+export default instance;

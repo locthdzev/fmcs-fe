@@ -1,0 +1,60 @@
+{
+  "name": "fmcs-fe",
+  "version": "1.0.0",
+  "private": true,
+  "author": {
+    "name": "SEP490_06"
+  },
+  "license": "MIT",
+  "keywords": [
+    "ui",
+    "react",
+    "components",
+    "dashboard",
+    "admin",
+    "tailwindcss",
+    "next",
+    "Next.js",
+    "layout"
+  ],
+  "scripts": {
+    "dev": "next dev --turbopack -p 3333",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint && eslint '*/**/*.{ts,tsx}' --fix",
+    "format": "prettier '*/**/*.{ts,tsx}' --write"
+  },
+  "dependencies": {
+    "@headlessui/react": "^2.2.0",
+    "@heroicons/react": "^2.2.0",
+    "@react-oauth/google": "^0.12.1",
+    "axios": "^1.7.9",
+    "fmcs-fe": "file:",
+    "js-cookie": "^3.0.5",
+    "jwt-decode": "^4.0.0",
+    "next": "^15.1.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-icons": "^5.4.0",
+    "react-otp-input": "^3.1.1",
+    "react-router-dom": "^7.1.1",
+    "react-toastify": "^10.0.6"
+  },
+  "devDependencies": {
+    "@types/js-cookie": "^3.0.6",
+    "@types/node": "20.3.1",
+    "@types/react": "18.2.12",
+    "@types/react-dom": "18.2.5",
+    "autoprefixer": "^10.4.20",
+    "eslint": "8.43.0",
+    "eslint-config-next": "^13.4.10",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-tailwindcss": "^3.12.1",
+    "eslint-plugin-unused-imports": "^2.0.0",
+    "postcss": "^8.5.1",
+    "prettier": "^2.8.8",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3"
+  }
+}
