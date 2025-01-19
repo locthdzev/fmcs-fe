@@ -25,11 +25,18 @@
     "format": "prettier '*/**/*.{ts,tsx}' --write"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
+    "@heroui/dropdown": "^2.3.9",
+    "@heroui/react": "^2.6.13",
+    "@mui/material": "^6.4.0",
     "@react-oauth/google": "^0.12.1",
     "axios": "^1.7.9",
+    "clsx": "^2.1.1",
     "fmcs-fe": "file:",
+    "framer-motion": "^11.18.1",
     "js-cookie": "^3.0.5",
     "jwt-decode": "^4.0.0",
     "next": "^15.1.4",
@@ -38,7 +45,9 @@
     "react-icons": "^5.4.0",
     "react-otp-input": "^3.1.1",
     "react-router-dom": "^7.1.1",
-    "react-toastify": "^10.0.6"
+    "react-toastify": "^10.0.6",
+    "react-tooltip": "^5.28.0",
+    "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
     "@types/js-cookie": "^3.0.6",
