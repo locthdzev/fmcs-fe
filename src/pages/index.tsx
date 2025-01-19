@@ -5,6 +5,8 @@ import { login, loginWithGoogle } from "@/api/auth";
 import { toast } from "react-toastify";
 import { UserContext } from "@/context/UserContext";
 import Cookies from "js-cookie";
+import { ImagesSlider } from "@/components/ui/images-slider";
+import { motion } from "framer-motion";
 
 export default function Login() {
   console.log("Login");
@@ -71,91 +73,52 @@ export default function Login() {
     setShowPassword(!showPassword);
   };
 
+  const focusUsernameInput = () => {
+    const usernameInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+    if (usernameInput) {
+      usernameInput.focus();
+    }
+  };
+
+  const images = [
+    "../fpt-ct-campus1.jpg",
+    "../fpt-ct-campus2.jpg",
+    "../fpt-ct-campus3.jpg",
+    "../fpt-ct-campus4.jpg",
+  ];
+
   return (
     <div className="flex flex-col md:flex-row h-screen">
       {/* Left section with slideshow */}
       <div className="hidden md:flex w-2/3 h-full relative overflow-hidden">
-        <div className="animate-slideshow absolute w-full h-full">
-          <img
-            src="../fpt-ct-campus1.jpg"
-            alt="FPT Campus 1"
-            className="slide-img"
-          />
-          <img
-            src="../fpt-ct-campus2.jpg"
-            alt="FPT Campus 2"
-            className="slide-img"
-          />
-          <img
-            src="../fpt-ct-campus3.jpg"
-            alt="FPT Campus 3"
-            className="slide-img"
-          />
-          <img
-            src="../fpt-ct-campus4.jpg"
-            alt="FPT Campus 4"
-            className="slide-img"
-          />
-        </div>
-        <style jsx>{`
-          @keyframes slideshow {
-            0% {
-              opacity: 0;
-              transform: scale(1.2);
-            }
-            10% {
-              opacity: 1;
-              transform: scale(1);
-            }
-            25% {
-              opacity: 1;
-              transform: scale(1);
-            }
-            35% {
-              opacity: 0;
-              transform: scale(0.8);
-            }
-            100% {
-              opacity: 0;
-              transform: scale(0.8);
-            }
-          }
-
-          .animate-slideshow {
-            position: relative;
-            width: 100%;
-            height: 100%;
-          }
-
-          .slide-img {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            animation: slideshow 24s infinite;
-            opacity: 0;
-          }
-
-          .slide-img:nth-child(1) {
-            animation-delay: 0s;
-          }
-
-          .slide-img:nth-child(2) {
-            animation-delay: 6s;
-          }
-
-          .slide-img:nth-child(3) {
-            animation-delay: 12s;
-          }
-
-          .slide-img:nth-child(4) {
-            animation-delay: 18s;
-          }
-        `}</style>
+        <ImagesSlider className="h-full w-full" images={images}>
+          <motion.div
+            initial={{
+              opacity: 0,
+              y: -80,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
+            transition={{
+              duration: 0.6,
+            }}
+            className="z-50 flex flex-col justify-center items-center"
+          >
+            <motion.p className="font-bold text-xl md:text-6xl text-center bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400 py-4">
+              The hero section slideshow <br /> nobody asked for
+            </motion.p>
+            <button 
+              className="px-4 py-2 backdrop-blur-sm border bg-emerald-300/10 border-emerald-500/20 text-white mx-auto text-center rounded-full relative mt-4"
+              onClick={focusUsernameInput}
+            >
+              <span>Join now →</span>
+              <div className="absolute inset-x-0  h-px -bottom-px bg-gradient-to-r w-3/4 mx-auto from-transparent via-emerald-500 to-transparent" />
+            </button>
+          </motion.div>
+        </ImagesSlider>
       </div>
-
       {/* Right section with form */}
       <div className="flex flex-1 justify-center items-center bg-white">
         <div className="w-full max-w-md p-8">
