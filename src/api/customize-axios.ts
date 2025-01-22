@@ -14,10 +14,12 @@ interface ErrorResponse {
 // Add a request interceptor to include the token in headers
 instance.interceptors.request.use(
   (config) => {
-    // Lấy token từ cookies thay vì localStorage
     const token = Cookies.get("token");
+    console.log("Token being sent in request:", token);
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`; // Thêm token vào headers
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn("No token found in cookies.");
     }
     return config;
   },
