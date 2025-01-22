@@ -1,6 +1,7 @@
 import { useEffect, useState, createContext, ReactNode } from "react";
 import { jwtDecode } from "jwt-decode";
 import Cookies from "js-cookie";
+import router from "next/router";
 
 interface User {
   email: string;
@@ -83,6 +84,7 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
       role: [],
       auth: false,
     });
+    router.replace("/");
   };
 
   return (

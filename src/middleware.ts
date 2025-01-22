@@ -18,5 +18,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/home", "/dashboard", "/admin", "/profile", "/settings"], // Danh sách các route cần bảo vệ
+  matcher: ["/home", "/dashboard", "/admin", "/user/me", "/settings"], // Danh sách các route cần bảo vệ
 };
