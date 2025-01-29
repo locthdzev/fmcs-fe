@@ -1,16 +1,26 @@
 import { useEffect, useState } from "react";
 import { getUserProfile, UserProfile, updateUser } from "@/api/user";
+import { changePassword } from "@/api/auth"; // Import changePassword function
 import { toast } from "react-toastify";
 import router from "next/router";
 import Cookies from "js-cookie";
 import { Button } from "@heroui/react";
-import { FaLock } from "react-icons/fa";
+import { FaLock, FaEye, FaEyeSlash } from "react-icons/fa"; // Import eye icons
+import { LockIcon } from "./icons/LockIcon";
 
 export default function UserProfilePage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [formValues, setFormValues] = useState<Partial<UserProfile>>({});
+  const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false); // State for change password form
+  const [oldPassword, setOldPassword] = useState<string>(""); // State for old password
+  const [newPassword, setNewPassword] = useState<string>(""); // State for new password
+  const [confirmPassword, setConfirmPassword] = useState<string>(""); // State for confirm new password
+  const [showOldPassword, setShowOldPassword] = useState<boolean>(false); // State for showing old password
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false); // State for showing new password
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false); // State for showing confirm password
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -24,7 +34,7 @@ export default function UserProfilePage() {
         const data = await getUserProfile();
         const formattedData = {
           ...data,
-          dob: new Date(data.dob).toISOString().split("T")[0], // Format thành `YYYY-MM-DD`
+          dob: new Date(data.dob).toISOString().split("T")[0],
         };
         setUserProfile(data);
         setFormValues(formattedData);
@@ -55,6 +65,32 @@ export default function UserProfilePage() {
       setIsEditing(false);
     } catch (error) {
       toast.error("Failed to update user information.");
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast.error("New password and confirm password do not match.");
+      return;
+    }
+
+    try {
+      const result = await changePassword({ oldPassword, newPassword });
+
+      // Kiểm tra phản hồi từ API (tuỳ thuộc vào API trả về)
+      if (result?.isSuccess) {
+        toast.success("Password changed successfully.");
+        setIsChangingPassword(false);
+        setOldPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        toast.error(result?.message || "Failed to change password.");
+      }
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "Failed to change password."
+      );
     }
   };
 
@@ -170,12 +206,12 @@ export default function UserProfilePage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
-              { label: "Full name", value: userProfile.fullName },
+              { label: "Full Name", value: userProfile.fullName },
               { label: "Username", value: userProfile.userName || "N/A" },
               { label: "Email", value: userProfile.email },
               { label: "Gender", value: userProfile.gender },
               {
-                label: "Date of birth",
+                label: "Date of Birth",
                 value: new Date(userProfile.dob).toLocaleDateString("vi-VN"),
               },
               { label: "Address", value: userProfile.address },
@@ -208,7 +244,9 @@ export default function UserProfilePage() {
               <Button
                 className="bg-gradient-to-tr from-gray-500 to-gray-300 text-white shadow-lg"
                 radius="full"
-                onClick={() => setIsEditing(false)}
+                onClick={() => {
+                  setIsEditing(false);
+                }}
               >
                 Cancel
               </Button>
@@ -227,13 +265,25 @@ export default function UserProfilePage() {
           <h3 className="text-xl font-semibold mb-4">Account & Security</h3>
           <div className="flex items-center">
             <span className="mr-2">
-              <FaLock />
+              <LockIcon />
             </span>
             <span className="mr-2">Change account password</span>
             <div className="ml-auto">
               <Button
                 className="bg-gradient-to-tr from-green-400 to-blue-400 text-white shadow-lg"
                 radius="full"
+                onClick={() => {
+                  setIsChangingPassword(!isChangingPassword); // Toggle change password form
+                  if (isChangingPassword) {
+                    // Clear form if closing
+                    setOldPassword("");
+                    setNewPassword("");
+                    setConfirmPassword("");
+                    setShowOldPassword(false); // Clear show password state
+                    setShowNewPassword(false); // Clear show password state
+                    setShowConfirmPassword(false); // Clear show password state
+                  }
+                }}
               >
                 Change password
               </Button>
@@ -242,6 +292,79 @@ export default function UserProfilePage() {
           <div className="text-gray-500 mt-2">
             Use strong passwords for security!
           </div>
+          {isChangingPassword && (
+            <div className="mt-4 p-4 border border-gray-300 rounded-lg shadow-md">
+              <div className="relative">
+                <input
+                  type={showOldPassword ? "text" : "password"}
+                  placeholder="Old Password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  className="mt-1 w-full border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer"
+                  onClick={() => setShowOldPassword(!showOldPassword)}
+                >
+                  {showOldPassword ? <FaEyeSlash /> : <FaEye />}
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="New Password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="mt-2 w-full border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? <FaEyeSlash /> : <FaEye />}
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm New Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="mt-2 w-full border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                </span>
+              </div>
+              <div className="mt-2 flex justify-end">
+                <Button
+                  className="bg-gradient-to-tr from-blue-600 to-blue-300 text-white shadow-lg mr-2"
+                  radius="full"
+                  onClick={handleChangePassword}
+                >
+                  Submit
+                </Button>
+                <Button
+                  className="bg-gradient-to-tr from-gray-500 to-gray-300 text-white shadow-lg"
+                  radius="full"
+                  onClick={() => {
+                    setIsChangingPassword(false); // Cancel change password
+                    setOldPassword("");
+                    setNewPassword("");
+                    setConfirmPassword(""); // Clear form
+                    setShowOldPassword(false); // Clear show password state
+                    setShowNewPassword(false); // Clear show password state
+                    setShowConfirmPassword(false); // Clear show password state
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}{" "}
         </div>
       </div>
     </div>
