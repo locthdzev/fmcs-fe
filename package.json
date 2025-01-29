@@ -32,6 +32,8 @@
     "@heroui/dropdown": "^2.3.9",
     "@heroui/react": "^2.6.13",
     "@mui/material": "^6.4.0",
+    "@progress/kendo-react-dateinputs": "^9.3.1",
+    "@progress/kendo-theme-default": "^10.1.0",
     "@react-oauth/google": "^0.12.1",
     "axios": "^1.7.9",
     "clsx": "^2.1.1",
