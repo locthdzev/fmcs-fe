@@ -36,3 +36,18 @@ export const getUserProfile = async (): Promise<UserProfile> => {
     throw error;
   }
 };
+
+export const updateUser = async (
+  userId: string,
+  userUpdateData: Partial<UserProfile>
+) => {
+  try {
+    const response = await api.put(
+      `/user-management/users?userId=${userId}`,
+      userUpdateData
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
