@@ -19,6 +19,11 @@ interface ChangePasswordRequest {
   newPassword: string;
 }
 
+interface ChangePasswordRequestDTO {
+  oldPassword: string;
+  newPassword: string;
+}
+
 interface LoginResponse {
   isSuccess: boolean;
   code: number;
@@ -71,7 +76,7 @@ interface ResetPasswordResponse {
 }
 
 interface ChangePasswordResponse {
-  isSuccess: boolean;
+  isSuccess: boolean; // Corrected from 'success' to 'isSuccess'
   code: number;
   message?: string;
   responseFailed?: string;
@@ -143,4 +148,21 @@ export const changePassword = async (
 
 export const logout = (): void => {
   localStorage.removeItem("token");
+};
+
+export const changePasswordDTO = async (
+  changeRequest: ChangePasswordRequestDTO
+): Promise<ChangePasswordResponse> => {
+  try {
+    const response = await api.post<ChangePasswordResponse>(
+      "/auth/change-password",
+      changeRequest
+    );
+    return response.data;
+  } catch (error) {
+    const err = error as any;
+    throw new Error(
+      err.response?.data?.message || "An error occurred with the API"
+    );
+  }
 };
