@@ -3,7 +3,7 @@ import api from "./customize-axios";
 export const getUsers = async () => {
   try {
     const response = await api.get("/user-management/users");
-    return response.data;
+    return response.data.data; // Adjusted to return the user profiles from the response
   } catch (error) {
     throw error;
   }

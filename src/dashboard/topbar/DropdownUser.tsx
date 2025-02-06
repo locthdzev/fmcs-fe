@@ -1,19 +1,47 @@
 import Link from "next/link";
 import { UserContext } from "@/context/UserContext";
 import router from "next/router";
-import {
-  FaChevronDown,
-  FaUser,
-  FaAddressBook,
-  FaCog,
-  FaSignOutAlt,
-} from "react-icons/fa";
-import { useDashboardContext } from "../Provider";
-import { useContext } from "react";
+import { FaChevronDown, FaCog, FaSignOutAlt } from "react-icons/fa";
+import { useContext, useState, useRef, useEffect } from "react";
+import { ProfileIcon } from "./icons/ProfileIcon";
+import { SettingsProfileIcon } from "./icons/SettingsProfileIcon";
+
+const style = {
+  dropdownOpen:
+    "absolute right-0 mt-2 bg-white rounded-lg p-2 z-50 w-[180px] shadow-lg",
+  dropdownItem:
+    "flex items-center text-sm py-2 px-4 hover:bg-gray-100 rounded-lg transition-colors duration-200 text-gray-800 hover:text-black",
+  dropdownIcon: "mr-3 text-lg",
+};
 
 const DropdownUser = () => {
-  const { dropdownOpen, toggleDropdown, closeDropdown } = useDashboardContext();
   const userContext = useContext(UserContext);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const handleToggleDropdown = () => {
+    setIsOpen((prev) => !prev);
+  };
+
+  const handleClickOutside = (event: MouseEvent) => {
+    if (
+      dropdownRef.current &&
+      !dropdownRef.current.contains(event.target as Node)
+    ) {
+      setIsOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
 
   const handleLogout = () => {
     if (userContext) {
@@ -33,13 +61,13 @@ const DropdownUser = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
-        onClick={toggleDropdown}
+        onClick={handleToggleDropdown}
         className="flex items-center gap-4 hover:opacity-90 transition-all duration-300"
       >
         <span className="text-right lg:block">
-          <span className="block text-base font-medium text-black dark:text-black">
+          <span className="block text-base font-medium text-black">
             {userContext?.user.userName || "Guest"}
           </span>
           {userContext?.user.role && getHighestRole(userContext.user.role) && (
@@ -56,79 +84,41 @@ const DropdownUser = () => {
           />
         </div>
         <FaChevronDown
-          className={`hidden fill-current text-black sm:block transition-transform duration-300 ease-in-out ${
-            dropdownOpen ? "rotate-180" : ""
+          className={`hidden fill-current text-black sm:block transition-transform duration-300 ${
+            isOpen ? "rotate-180" : ""
           }`}
           size={12}
         />
       </button>
-      {dropdownOpen && (
-        <div
-          className="absolute right-0 mt-4 flex w-40 flex-col rounded-xl border border-gray-100 bg-white shadow-2xl transform opacity-0 scale-95 animate-dropdown dark:border-gray-700 dark:bg-boxdark overflow-hidden"
-          onMouseLeave={closeDropdown}
-          style={{
-            animation: "dropdownFade 0.2s ease forwards",
-          }}
-        >
-          <ul className="flex flex-col gap-1 border-b border-gray-100 p-3 dark:border-gray-700">
+
+      {isOpen && (
+        <div className={style.dropdownOpen}>
+          <ul className="flex flex-col">
             <li>
-              <Link
-                href="/user/me"
-                className="flex items-center gap-3 text-sm font-medium !text-black hover:text-blue-500 hover:bg-blue-50/50 dark:text-gray-200 dark:hover:bg-blue-800/30 rounded-lg px-3 py-2.5 transition-all duration-300 w-full"
-              >
-                <FaUser
-                  className="text-black group-hover:text-blue-500"
-                  size={16}
-                />
-                My Profile
-              </Link>
-            </li>{" "}
-            <li>
-              <Link
-                href="#"
-                className="flex items-center gap-3 text-sm font-medium !text-black hover:text-blue-500 hover:bg-blue-50/50 dark:text-gray-200 dark:hover:bg-blue-800/30 rounded-lg px-3 py-2.5 transition-all duration-300 w-full"
-              >
-                <FaAddressBook
-                  className="text-black group-hover:text-blue-500"
-                  size={16}
-                />
-                My Contacts
+              <Link href="/user/me" className={style.dropdownItem}>
+                <ProfileIcon />
+                <span className="ml-3">My Profile</span>
               </Link>
             </li>
             <li>
-              <Link
-                href="/settings"
-                className="flex items-center gap-3 text-sm font-medium !text-black hover:text-blue-500 hover:bg-blue-50/50 dark:text-gray-200 dark:hover:bg-blue-800/30 rounded-lg px-3 py-2.5 transition-all duration-300 w-full"
-              >
-                <FaCog
-                  className="text-black group-hover:text-blue-500"
-                  size={16}
-                />
-                Settings
+              <Link href="/settings" className={style.dropdownItem}>
+                <SettingsProfileIcon />
+                <span className="ml-3">Settings</span>
               </Link>
             </li>
-          </ul>{" "}
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-center gap-3 px-6 py-4 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-300 w-full"
-          >
-            <FaSignOutAlt className="text-red-500" size={16} />
-            Log Out
-          </button>
+          </ul>
+          <hr className="my-2" />
+          <div className="flex justify-center">
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-center text-sm text-red-600 py-2 px-4 hover:bg-red-50 rounded-lg transition-all duration-200"
+            >
+              <FaSignOutAlt className="mr-3 text-lg text-red-500" />
+              Log Out
+            </button>
+          </div>
         </div>
       )}
-      <style jsx>{`
-        @keyframes dropdownFade {
-          from {
-            opacity: 0;
-            transform: scale(0.95) translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-      `}</style>
     </div>
   );
 };
