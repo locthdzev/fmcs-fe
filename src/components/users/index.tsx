@@ -1,4 +1,10 @@
-import React, { SVGProps, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import {
+  PlusIcon,
+  VerticalDotsIcon,
+  SearchIcon,
+  ChevronDownIcon,
+} from "./Icons";
 import { getUsers } from "@/api/user";
 import {
   Table,
@@ -21,139 +27,22 @@ import {
   SortDescriptor,
 } from "@heroui/react";
 
-export type IconSvgProps = SVGProps<SVGSVGElement> & {
-  size?: number;
-};
-
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 }
-
-export const PlusIcon = ({
-  size = 24,
-  width,
-  height,
-  ...props
-}: IconSvgProps) => {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      focusable="false"
-      height={size || height}
-      role="presentation"
-      viewBox="0 0 24 24"
-      width={size || width}
-      {...props}
-    >
-      <g
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-      >
-        <path d="M6 12h12" />
-        <path d="M12 18V6" />
-      </g>
-    </svg>
-  );
-};
-
-export const VerticalDotsIcon = ({
-  size = 24,
-  width,
-  height,
-  ...props
-}: IconSvgProps) => {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      focusable="false"
-      height={size || height}
-      role="presentation"
-      viewBox="0 0 24 24"
-      width={size || width}
-      {...props}
-    >
-      <path
-        d="M12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-};
-
-export const SearchIcon = (props: IconSvgProps) => {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      focusable="false"
-      height="1em"
-      role="presentation"
-      viewBox="0 0 24 24"
-      width="1em"
-      {...props}
-    >
-      <path
-        d="M11.5 21C16.7467 21 21 16.7467 21 11.5C21 6.25329 16.7467 2 11.5 2C6.25329 2 2 6.25329 2 11.5C2 16.7467 6.25329 21 11.5 21Z"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-      <path
-        d="M22 22L20 20"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  );
-};
-
-export const ChevronDownIcon = ({
-  strokeWidth = 1.5,
-  ...otherProps
-}: IconSvgProps) => {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      focusable="false"
-      height="1em"
-      role="presentation"
-      viewBox="0 0 24 24"
-      width="1em"
-      {...otherProps}
-    >
-      <path
-        d="m19.92 8.95-6.52 6.52c-.77.77-2.03.77-2.8 0L4.08 8.95"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeMiterlimit={10}
-        strokeWidth={strokeWidth}
-      />
-    </svg>
-  );
-};
 
 export const columns = [
   //   { name: "ID", uid: "id", sortable: true },
   { name: "NAME", uid: "fullName", sortable: true },
   { name: "USERNAME", uid: "userName", sortable: true },
-  { name: "EMAIL", uid: "email" },
+  { name: "EMAIL", uid: "email", sortable: true },
   { name: "ROLE", uid: "roles" },
   { name: "GENDER", uid: "gender" },
-  { name: "DOB", uid: "dob" },
+  { name: "DOB", uid: "dob", sortable: true },
   { name: "ADDRESS", uid: "address" },
   { name: "PHONE", uid: "phone" },
   { name: "CREATED AT", uid: "createdAt", sortable: true },
-  { name: "STATUS", uid: "status", sortable: true },
+  { name: "STATUS", uid: "status" },
   { name: "ACTIONS", uid: "actions" },
 ];
 
@@ -287,7 +176,7 @@ export function Users() {
   const ROLE_PRIORITY = ["Admin", "Manager", "Staff", "User"];
 
   const getHighestRole = (roles: string[]) => {
-    if (!roles || roles.length === 0) return "Unknown"; // Nếu không có role, trả về Unknown
+    if (!roles || roles.length === 0) return "Unknown";
 
     return (
       roles
@@ -296,6 +185,10 @@ export function Users() {
           (a, b) => ROLE_PRIORITY.indexOf(a) - ROLE_PRIORITY.indexOf(b)
         )[0] || "Unknown"
     );
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
   const renderCell = React.useCallback((user: User, columnKey: React.Key) => {
@@ -333,6 +226,10 @@ export function Users() {
             {cellValue as string}
           </Chip>
         );
+      case "dob":
+        return formatDate(user.dob);
+      case "createdAt":
+        return formatDate(user.createdAt);
       case "actions":
         return (
           <div className="relative flex justify-end items-center gap-2">
@@ -524,11 +421,6 @@ export function Users() {
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
 
   return (
-    // <div className="max-w-full rounded-tl-3xl bg-white py-8 text-white">
-    //   {" "}
-    //   <h2 className="mb-10 pl-5 text-3xl font-medium text-black">
-    //     Documentation
-    //   </h2>{" "}
     <Table
       isHeaderSticky
       aria-label="Example table with custom cells, pagination and sorting"
@@ -566,6 +458,5 @@ export function Users() {
         )}
       </TableBody>
     </Table>
-    // </div>
   );
 }
