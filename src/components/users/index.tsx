@@ -27,6 +27,7 @@ import {
   SortDescriptor,
 } from "@heroui/react";
 import { UserDetails } from "./UserDetails";
+import { EditUserForm } from "./EditUserForm";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -89,6 +90,7 @@ type User = {
 };
 export function Users() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
@@ -108,11 +110,12 @@ export function Users() {
 
   const [users, setUsers] = React.useState<User[]>([]);
 
+  const fetchUsers = async () => {
+    const userData = await getUsers();
+    setUsers(userData);
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      const userData = await getUsers();
-      setUsers(userData);
-    };
     fetchUsers();
   }, []);
 
@@ -249,7 +252,9 @@ export function Users() {
                 <DropdownItem key="view" onClick={() => setSelectedUser(user)}>
                   View
                 </DropdownItem>
-                <DropdownItem key="edit">Edit</DropdownItem>
+                <DropdownItem key="edit" onClick={() => setEditingUser(user)}>
+                  Edit
+                </DropdownItem>
                 <DropdownItem key="delete">Delete</DropdownItem>
               </DropdownMenu>
             </Dropdown>
@@ -437,7 +442,7 @@ export function Users() {
         bottomContent={bottomContent}
         bottomContentPlacement="outside"
         classNames={{
-          wrapper: "max-h-[382px]",
+          wrapper: "max-h-[382px] overflow-visible", // dam bao cac number cua pagination khong bi nam de len form details va edit
         }}
         selectedKeys={selectedKeys}
         selectionMode="multiple"
@@ -472,6 +477,16 @@ export function Users() {
         <UserDetails
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
+        />
+      )}
+      {editingUser && (
+        <EditUserForm
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onUpdate={() => {
+            setEditingUser(null);
+            fetchUsers(); // Refresh user list
+          }}
         />
       )}
     </>
