@@ -5,6 +5,7 @@ import {
   VerticalDotsIcon,
   SearchIcon,
   ChevronDownIcon,
+  UsersIcon,
 } from "./Icons";
 import { getUsers, updateAccountsStatus } from "@/api/user";
 import {
@@ -498,7 +499,10 @@ export function Users() {
 
   return (
     <>
-      <h3 className="text-2xl font-bold mb-4 ml-4">User Management</h3>
+      <div className="flex items-center gap-2 mb-4 ml-4">
+        <UsersIcon />
+        <h3 className="text-2xl font-bold">Users Management</h3>
+      </div>{" "}
       <Table
         isHeaderSticky
         aria-label="Example table with custom cells, pagination and sorting"

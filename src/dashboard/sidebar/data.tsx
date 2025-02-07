@@ -5,6 +5,10 @@ import { CreditIcon } from "./icons/CreditIcon";
 import { ArchiveIcon } from "./icons/ArchiveIcon";
 import { SettingsIcon } from "./icons/SettingsIcon";
 import { UsersIcon } from "./icons/UsersIcon";
+import { DrugIcon } from "./icons/DrugIcon";
+import { DrugGroupIcon } from "./icons/DrugGroupIcon";
+import { DrugOrderIcon } from "./icons/DrugOrderIcon";
+import { DrugSupplierIcon } from "./icons/DrugSupplier";
 
 export const data = [
   {
@@ -18,6 +22,28 @@ export const data = [
     groupTitle: "Management",
     items: [
       { title: "Users", icon: <UsersIcon />, link: "/user/management" },
+      {
+        title: "Drugs",
+        icon: <DrugIcon />,
+        // link: "/admin/settings",
+        submenu: [
+          {
+            title: "DrugGruops",
+            icon: <DrugGroupIcon />,
+            link: "/drug/drug-group",
+          },
+          {
+            title: "DrugOrders",
+            icon: <DrugOrderIcon />,
+            link: "/admin/settings/general",
+          },
+          {
+            title: "DrugSuppliers",
+            icon: <DrugSupplierIcon />,
+            link: "/drug/drug-supplier",
+          },
+        ],
+      },
       { title: "Archives", icon: <ArchiveIcon />, link: "/admin/archives" },
       { title: "Credits", icon: <CreditIcon />, link: "/admin/credits" },
     ],
