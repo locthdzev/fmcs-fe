@@ -36,6 +36,11 @@ export interface UserCreateRequest {
   status?: string;
 }
 
+export interface UpdateAccountsStatusRequest {
+  userId: string[];
+  status: string;
+}
+
 export const createUser = async (userCreateData: UserCreateRequest) => {
   try {
     const response = await api.post("/user-management/users", userCreateData);
@@ -68,6 +73,15 @@ export const updateUser = async (
       `/user-management/users?userId=${userId}`,
       userUpdateData
     );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateAccountsStatus = async (updateStatusData: UpdateAccountsStatusRequest) => {
+  try {
+    const response = await api.put("/user-management/users/status", updateStatusData);
     return response.data;
   } catch (error) {
     throw error;

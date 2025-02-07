@@ -26,15 +26,37 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
 }) => {
   const [formData, setFormData] = useState(initialFormState);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
+    if (!formData.userName.trim()) newErrors.userName = "Username is required";
+    if (!formData.email.trim()) newErrors.email = "Email is required";
+    if (!formData.password.trim()) newErrors.password = "Password is required";
+    if (!formData.dob) newErrors.dob = "Date of birth is required";
+    if (!formData.phone.trim()) newErrors.phone = "Phone is required";
+    if (!formData.address.trim()) newErrors.address = "Address is required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: "" });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
     setLoading(true);
     try {
       await createUser(formData);
@@ -128,15 +150,20 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
                     ))}
                   </select>
                 ) : (
-                  <input
-                    type={field.type}
-                    id={field.name}
-                    name={field.name}
-                    value={formData[field.name as keyof typeof formData] || ""}
-                    onChange={handleChange}
-                    className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-                    placeholder={field.placeholder}
-                  />
+                  <div>
+                    <input
+                      type={field.type}
+                      id={field.name}
+                      name={field.name}
+                      value={formData[field.name as keyof typeof formData] || ""}
+                      onChange={handleChange}
+                      className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+                      placeholder={field.placeholder}
+                    />
+                    {errors[field.name] && (
+                      <p className="text-red-500 text-xs mt-1">{errors[field.name]}</p>
+                    )}
+                  </div>
                 )}
               </label>
             ))}

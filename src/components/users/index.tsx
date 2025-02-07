@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import {
   PlusIcon,
   VerticalDotsIcon,
   SearchIcon,
   ChevronDownIcon,
 } from "./Icons";
-import { getUsers } from "@/api/user";
+import { getUsers, updateAccountsStatus } from "@/api/user";
 import {
   Table,
   TableHeader,
@@ -90,6 +91,11 @@ type User = {
   status?: string;
 };
 export function Users() {
+  const [confirmingStatusUpdate, setConfirmingStatusUpdate] = useState<{
+    status: string;
+    count: number;
+  } | null>(null);
+
   const [creatingUser, setCreatingUser] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -198,6 +204,35 @@ export function Users() {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
+  const handleBulkStatusUpdate = async (newStatus: string) => {
+    if (
+      selectedKeys === "all" ||
+      (selectedKeys instanceof Set && selectedKeys.size === 0)
+    )
+      return;
+
+    const selectedUserIds = Array.from(selectedKeys as Set<string>);
+
+    // Hiển thị xác nhận thay vì gọi API ngay
+    setConfirmingStatusUpdate({
+      status: newStatus,
+      count: selectedUserIds.length,
+    });
+  };
+
+  const getBulkActionLabel = () => {
+    const selectedUsersArray = users.filter(
+      (user) =>
+        selectedKeys !== "all" && (selectedKeys as Set<string>).has(user.id)
+    );
+
+    const allInactive = selectedUsersArray.every(
+      (user) => user.status === "Inactive"
+    );
+
+    return allInactive ? "Activate Selected" : "Deactivate Selected";
+  };
+
   const renderCell = React.useCallback((user: User, columnKey: React.Key) => {
     const cellValue = user[columnKey as keyof User];
 
@@ -257,7 +292,7 @@ export function Users() {
                 <DropdownItem key="edit" onClick={() => setEditingUser(user)}>
                   Edit
                 </DropdownItem>
-                <DropdownItem key="delete">Delete</DropdownItem>
+                {/* <DropdownItem key="delete">Delete</DropdownItem> */}
               </DropdownMenu>
             </Dropdown>
           </div>
@@ -305,7 +340,7 @@ export function Users() {
   const topContent = React.useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex justify-between gap-3 items-end">
+        <div className="flex justify-between gap-3 items-end ml-4">
           <Input
             isClearable
             className="w-full sm:max-w-[44%]"
@@ -316,6 +351,21 @@ export function Users() {
             onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
+            {selectedKeys !== "all" &&
+              (selectedKeys as Set<string>).size > 0 && (
+                <Button
+                  color="warning"
+                  onClick={() =>
+                    handleBulkStatusUpdate(
+                      getBulkActionLabel() === "Activate Selected"
+                        ? "Active"
+                        : "Inactive"
+                    )
+                  }
+                >
+                  {getBulkActionLabel()}
+                </Button>
+              )}
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -340,6 +390,7 @@ export function Users() {
                 ))}
               </DropdownMenu>
             </Dropdown>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -374,7 +425,7 @@ export function Users() {
           </div>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-default-400 text-small">
+          <span className="text-default-400 text-small ml-4">
             Total {users.length} users
           </span>
           <label className="flex items-center text-default-400 text-small">
@@ -399,15 +450,20 @@ export function Users() {
     onRowsPerPageChange,
     users.length,
     hasSearchFilter,
+    selectedKeys,
+    getBulkActionLabel,
+    handleBulkStatusUpdate,
   ]);
 
   const bottomContent = React.useMemo(() => {
     return (
       <div className="py-2 px-2 flex justify-between items-center">
-        <span className="w-[30%] text-small text-default-400">
+        <span className="w-[30%] text-small text-default-400 ml-4">
           {selectedKeys === "all"
             ? "All items selected"
-            : `${selectedKeys.size} of ${filteredItems.length} selected`}
+            : `${(selectedKeys as Set<string>).size} of ${
+                filteredItems.length
+              } selected`}
         </span>
         <Pagination
           isCompact
@@ -442,13 +498,14 @@ export function Users() {
 
   return (
     <>
+      <h3 className="text-2xl font-bold mb-4 ml-4">User Management</h3>
       <Table
         isHeaderSticky
         aria-label="Example table with custom cells, pagination and sorting"
         bottomContent={bottomContent}
         bottomContentPlacement="outside"
         classNames={{
-          wrapper: "max-h-[382px] overflow-visible", // dam bao cac number cua pagination khong bi nam de len form details va edit
+          wrapper: "max-h-[382px] ml-2",
         }}
         selectedKeys={selectedKeys}
         selectionMode="multiple"
@@ -491,7 +548,7 @@ export function Users() {
           onClose={() => setEditingUser(null)}
           onUpdate={() => {
             setEditingUser(null);
-            fetchUsers(); // Refresh user list
+            fetchUsers();
           }}
         />
       )}
@@ -500,6 +557,63 @@ export function Users() {
           onClose={() => setCreatingUser(false)}
           onCreate={fetchUsers}
         />
+      )}
+      {confirmingStatusUpdate && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded shadow-lg">
+            <h2 className="text-lg font-semibold mb-4">Confirm Action</h2>
+            <p>
+              Are you sure you want to{" "}
+              {confirmingStatusUpdate.status === "Active"
+                ? "activate"
+                : "deactivate"}{" "}
+              {confirmingStatusUpdate.count} user(s)?
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setConfirmingStatusUpdate(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                color={
+                  confirmingStatusUpdate.status === "Active"
+                    ? "success"
+                    : "danger"
+                }
+                onClick={async () => {
+                  const selectedUserIds = Array.from(
+                    selectedKeys as Set<string>
+                  );
+                  try {
+                    await updateAccountsStatus({
+                      userId: selectedUserIds,
+                      status: confirmingStatusUpdate.status,
+                    });
+                    fetchUsers();
+                    setSelectedKeys(new Set());
+                    toast.success(
+                      `Successfully ${
+                        confirmingStatusUpdate.status === "Active"
+                          ? "activated"
+                          : "deactivated"
+                      } ${selectedUserIds.length} user(s).`
+                    );
+                  } catch (error) {
+                    toast.error(
+                      "Failed to update user status. Please try again."
+                    );
+                  } finally {
+                    setConfirmingStatusUpdate(null);
+                  }
+                }}
+              >
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
