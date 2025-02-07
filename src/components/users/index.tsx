@@ -28,6 +28,7 @@ import {
 } from "@heroui/react";
 import { UserDetails } from "./UserDetails";
 import { EditUserForm } from "./EditUserForm";
+import { CreateUserForm } from "./CreateUserForm";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -89,6 +90,7 @@ type User = {
   status?: string;
 };
 export function Users() {
+  const [creatingUser, setCreatingUser] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [filterValue, setFilterValue] = React.useState("");
@@ -362,7 +364,11 @@ export function Users() {
                 ))}
               </DropdownMenu>
             </Dropdown>
-            <Button color="primary" endContent={<PlusIcon />}>
+            <Button
+              color="primary"
+              endContent={<PlusIcon />}
+              onClick={() => setCreatingUser(true)}
+            >
               Add New
             </Button>
           </div>
@@ -487,6 +493,12 @@ export function Users() {
             setEditingUser(null);
             fetchUsers(); // Refresh user list
           }}
+        />
+      )}
+      {creatingUser && (
+        <CreateUserForm
+          onClose={() => setCreatingUser(false)}
+          onCreate={fetchUsers}
         />
       )}
     </>

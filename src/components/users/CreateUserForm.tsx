@@ -1,39 +1,31 @@
 import React, { useState } from "react";
-import { updateUser } from "@/api/user";
+import { createUser } from "@/api/user";
 import { toast } from "react-toastify";
 
-type User = {
-  id: string;
-  fullName: string;
-  userName: string;
-  email: string;
-  roles: string[];
-  gender: string;
-  dob: string;
-  address: string;
-  phone: string;
-  createdAt: string;
-  status?: string;
-};
-
-interface EditUserFormProps {
-  user: User;
+interface CreateUserFormProps {
   onClose: () => void;
-  onUpdate: () => void;
+  onCreate: () => void;
 }
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("vi-VN");
+const initialFormState = {
+  fullName: "",
+  userName: "",
+  email: "",
+  password: "",
+  gender: "Male",
+  dob: "",
+  address: "",
+  phone: "",
+  createdAt: new Date().toISOString(),
+  status: "Active",
 };
 
-export const EditUserForm: React.FC<EditUserFormProps> = ({
-  user,
+export const CreateUserForm: React.FC<CreateUserFormProps> = ({
   onClose,
-  onUpdate,
+  onCreate,
 }) => {
-  const [formData, setFormData] = useState({ ...user });
+  const [formData, setFormData] = useState(initialFormState);
   const [loading, setLoading] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -43,36 +35,31 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowConfirm(true);
-  };
-
-  const handleConfirm = async () => {
     setLoading(true);
     try {
-      await updateUser(user.id, formData);
-      toast.success("User information updated successfully.");
-      onUpdate();
+      await createUser(formData);
+      toast.success("User created successfully.");
+      onCreate();
       onClose();
     } catch (error) {
-      console.error("Failed to update user", error);
-      toast.error("Failed to update user information.");
+      console.error("Failed to create user", error);
+      toast.error("Failed to create user.");
     } finally {
       setLoading(false);
-      setShowConfirm(false);
     }
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50">
       <div className="w-full lg:w-8/12 bg-white rounded-3xl shadow-xl p-8">
-        <h3 className="text-3xl font-bold mb-6">Edit User</h3>
+        <h3 className="text-3xl font-bold mb-6">Create User</h3>
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               {
                 label: "Full Name",
                 name: "fullName",
-                placeholder: "Daisy",
+                placeholder: "Enter full name",
                 type: "text",
               },
               {
@@ -84,20 +71,25 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
               {
                 label: "Email",
                 name: "email",
-                placeholder: "daisy@site.com",
+                placeholder: "example@fpt.edu.vn",
                 type: "email",
+              },
+              {
+                label: "Password",
+                name: "password",
+                placeholder: "Password",
+                type: "password",
               },
               {
                 label: "Gender",
                 name: "gender",
-                placeholder: "Gender",
                 type: "select",
                 options: ["Male", "Female"],
               },
               {
                 label: "Date of Birth",
                 name: "dob",
-                placeholder: "Date of Birth",
+                placeholder: "YYYY-MM-DD",
                 type: "date",
               },
               {
@@ -106,11 +98,17 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
                 placeholder: "Phone",
                 type: "text",
               },
+              {
+                label: "Address",
+                name: "address",
+                placeholder: "Address",
+                type: "text",
+              },
             ].map((field, index) => (
               <label
                 key={index}
                 htmlFor={field.name}
-                className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600"
+                className="block rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600"
               >
                 <span className="text-xs font-medium text-gray-700">
                   {field.label}
@@ -119,7 +117,7 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
                   <select
                     id={field.name}
                     name={field.name}
-                    value={formData[field.name as keyof User] || ""}
+                    value={formData[field.name as keyof typeof formData] || ""}
                     onChange={handleChange}
                     className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
                   >
@@ -134,14 +132,7 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
                     type={field.type}
                     id={field.name}
                     name={field.name}
-                    value={
-                      field.type === "date" &&
-                      formData[field.name as keyof User]
-                        ? (formData[field.name as keyof User] as string).split(
-                            "T"
-                          )[0]
-                        : formData[field.name as keyof User] || ""
-                    }
+                    value={formData[field.name as keyof typeof formData] || ""}
                     onChange={handleChange}
                     className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
                     placeholder={field.placeholder}
@@ -149,21 +140,6 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
                 )}
               </label>
             ))}
-            <label
-              htmlFor="address"
-              className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 md:col-span-2"
-            >
-              <span className="text-xs font-medium text-gray-700">Address</span>
-              <input
-                type="text"
-                id="address"
-                name="address"
-                value={formData.address || ""}
-                onChange={handleChange}
-                className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-                placeholder="Address"
-              />
-            </label>
           </div>
           <div className="mt-6 flex justify-end">
             <button
@@ -171,7 +147,7 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
               className="bg-gradient-to-tr from-blue-600 to-blue-300 text-white shadow-lg rounded-full px-4 py-2 mr-2"
               disabled={loading}
             >
-              {loading ? "Updating..." : "Save"}
+              {loading ? "Creating..." : "Create"}
             </button>
             <button
               type="button"
@@ -183,32 +159,6 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
           </div>
         </form>
       </div>
-
-      {showConfirm && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h4 className="text-lg font-semibold mb-4">Confirm Update</h4>
-            <p className="mb-6">
-              Are you sure you want to update this user's information?
-            </p>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => setShowConfirm(false)}
-                className="bg-gray-500 text-white px-4 py-2 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirm}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-                disabled={loading}
-              >
-                {loading ? "Updating..." : "Confirm"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

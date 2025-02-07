@@ -50,7 +50,7 @@ const getHighestRole = (roles: string[]) => {
 
 export const UserDetails: React.FC<Props> = ({ user, onClose }) => {
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50">
       <div className="w-full lg:w-6/12 bg-white rounded-3xl shadow-xl p-6">
         <h3 className="text-2xl font-bold mb-4">User Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

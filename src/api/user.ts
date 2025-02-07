@@ -23,6 +23,28 @@ export interface UserProfile {
   roles: string[];
 }
 
+export interface UserCreateRequest {
+  fullName: string;
+  userName?: string;
+  email: string;
+  password?: string;
+  gender: string;
+  dob: string;
+  address: string;
+  phone: string;
+  createdAt: string;
+  status?: string;
+}
+
+export const createUser = async (userCreateData: UserCreateRequest) => {
+  try {
+    const response = await api.post("/user-management/users", userCreateData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const getUserProfile = async (): Promise<UserProfile> => {
   try {
     const response = await api.get<{ isSuccess: boolean; data: UserProfile }>(
