@@ -40,7 +40,7 @@ export const data = [
           {
             title: "DrugSuppliers",
             icon: <DrugSupplierIcon />,
-            link: "/admin/settings/general",
+            link: "/drug/drug-supplier",
           },
         ],
       },
