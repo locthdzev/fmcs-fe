@@ -6,7 +6,7 @@ import router from "next/router";
 import Cookies from "js-cookie";
 import { Button } from "@heroui/react";
 import { FaLock, FaEye, FaEyeSlash } from "react-icons/fa"; // Import eye icons
-import { LockIcon } from "./icons/LockIcon";
+import { LockIcon } from "@/components/users/Icons";
 
 export default function UserProfilePage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
