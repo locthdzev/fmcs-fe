@@ -4,240 +4,133 @@ import { FileIcon, FolderIcon, JSXIcon } from "./Icons";
 export function Docs() {
   return (
     <div className="max-w-full rounded-tl-3xl bg-[#1f2937] py-8 text-white">
-      <h2 className="mb-10 pl-5 text-3xl font-medium">Documentation</h2>
+      <h2 className="mb-10 pl-5 text-3xl font-medium">PROJECT DESCRIPTION</h2>
       <section className="mb-16 px-3 py-8 md:px-8">
-        <h2 className="text-2xl font-medium">Features</h2>
+        <h2 className="text-2xl font-medium">Project Name</h2>
+        <p className="mt-4">FPT Medical Care System (FMCS) - Healthcare Management System for FPT University Medical Department</p>
+        <p className="mt-2">Project code: FMCS</p>
+      </section>
+
+      <section className="mb-16 px-3 py-8 md:px-8">
+        <h2 className="text-2xl font-medium">Project Overview</h2>
+        <p className="mt-4">
+          FMCS is a comprehensive platform designed to manage healthcare activities at FPT University. The system provides features for managing medical records, treatment history tracking, appointment scheduling, medication management, and healthcare staff administration, aimed at improving healthcare quality for students, lecturers, and staff members.
+        </p>
+      </section>
+
+      <section className="mb-16 px-3 py-8 md:px-8">
+        <h2 className="text-2xl font-medium">System Actors</h2>
         <ul className="mt-4 list-disc pl-6">
-          <li className="mb-4">
-            Support of the active route (styled by default).
-          </li>
-          <li className="mb-4">
-            Fully customizable and without external dependencies.
-          </li>
-          <li className="mb-4">
-            No vendor lock-in, you can export it and integrate it in your
-            project.
-          </li>
-          <li>
-            Sidebar can be aligned left or right according to your preferences
-            (on mobile).
-          </li>
+          <li className="mb-4">Admin: System administrator responsible for managing and maintaining system operations.</li>
+          <li className="mb-4">Manager: Healthcare manager overseeing medical activities and personnel management.</li>
+          <li className="mb-4">Staff: Medical staff directly responsible for medical examinations, medication dispensing, and healthcare services.</li>
+          <li>User: System users (students, lecturers, and staff members).</li>
         </ul>
       </section>
 
       <section className="mb-16 px-3 py-8 md:px-8">
-        <h2 className="mb-3 text-2xl font-medium">File Structure</h2>
-        <div className="pl-2">
-          <div className="mb-3 flex pl-5">
-            <FolderIcon className="h-6 w-6" />
-            <span className="pl-2">dashboard</span>
-          </div>
-          <div className="mb-3 flex pl-11">
-            <FolderIcon />
-            <span className="pl-2">sidebar</span>
-          </div>
-          <div className="mb-3 flex pl-16">
-            <FolderIcon />
-            <span className="pl-2">icons</span>
-          </div>
-          <div className="mb-3 flex pl-16">
-            <JSXIcon />
-            <span className="pl-2">data.tsx</span>
-          </div>
-          <div className="mb-3 flex pl-16">
-            <JSXIcon />
-            <span className="pl-2">Sidebar.tsx</span>
-          </div>
-          <div className="mb-3 flex pl-16">
-            <JSXIcon />
-            <span className="pl-2">SidebarHeader.tsx</span>
-          </div>
-          <div className="mb-3 flex pl-16">
-            <JSXIcon />
-            <span className="pl-2">SidebarItems.tsx</span>
-          </div>
-          <div className="mb-3 flex pl-11">
-            <JSXIcon />
-            <span className="pl-2">Layout.tsx</span>
-          </div>
-          <div className="mb-3 flex pl-11">
-            <JSXIcon />
-            <span className="pl-2">Overlay.tsx</span>
-          </div>
-          <div className="mb-3 flex pl-11">
-            <JSXIcon />
-            <span className="pl-2">Provider.tsx</span>
-          </div>
-          <div className="mb-3 flex pl-11">
-            <JSXIcon />
-            <span className="pl-2">TopBar.tsx</span>
-          </div>
-          <div className="mb-3 flex pl-11">
-            <FileIcon className="h-6 w-6" />
-            <span className="pl-2">style.module.css</span>
-          </div>
-        </div>
-      </section>
-
-      <section className="mb-16 px-3 py-8 md:px-8">
-        <h2 className="text-2xl font-medium">File Structure explained</h2>
-
-        <div className="mb-8 mt-4">
-          <div className="flex">
-            <FolderIcon /> <strong className="px-1">sidebar</strong>
-          </div>
-          <div className="mt-4 flex flex-wrap pl-6 md:flex-nowrap">
-            <FolderIcon className="h-7 w-7" />
-            <span className="px-2 font-medium">icons</span> :
-            <p className="pl-1">
-              Icons used for each sidebar-item. You don't need this folder if
-              you can provide your own icons.
-            </p>
-          </div>
-          <div className="mt-6 flex flex-wrap pl-6 md:flex-nowrap">
-            <JSXIcon /> <span className="px-2 font-medium">data.tsx</span> :
-            <p className="pl-1">
-              It's in this file that you will add routes for each sidebar-item.
-              it is an array of objects.
-            </p>
-          </div>
-          <div className="mt-8 flex flex-wrap pl-8">
-            <div className="md:w-4/12">
-              <Snippet />
-            </div>
-            <ul className="pt-8 md:pl-4 md:pt-20">
-              <li className="mb-2">
-                <span className="px-1">title :</span> Label for the route
-              </li>
-              <li className="mb-2">
-                <span className="px-1">icon :</span> icon used, imported from
-                <strong className="px-1">icons</strong> folder or from your
-                library
-              </li>
-            </ul>
-          </div>
-          <div className="mt-6 flex flex-wrap pl-6 md:flex-nowrap">
-            <JSXIcon /> <span className="px-2 font-medium">Sidebar.tsx</span> :
-            <p className="pl-1">responsable of the sidebar.</p>
-            <p className="pl-1">
-              compose <strong>SidebarHeader</strong> and{" "}
-              <strong>SidebarItems</strong> components.
-            </p>
-          </div>
-          <div className="mt-6 flex flex-wrap pl-6 md:flex-nowrap">
-            <JSXIcon />{" "}
-            <span className="px-2 font-medium">SidebarHeader.tsx</span> :
-            <p className="pl-1">
-              contains the logo displayed on top of the sidebar
-            </p>
-          </div>
-          <div className="mt-6 flex flex-wrap pl-6 md:flex-nowrap">
-            <JSXIcon />{" "}
-            <span className="px-2 font-medium">SidebarItems.tsx</span> :
-            <p className="pl-1">
-              automatically generates each sidebar-item according to your routes
-              defined in
-              <strong className="px-1">data.tsx</strong>
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <div className="mt-8 flex flex-wrap md:flex-nowrap">
-            <JSXIcon /> <span className="px-1 font-medium">Layout.tsx :</span>{" "}
-            contains the
-            <strong className="px-1">DashboardLayout</strong>
-            component used as the layout of the application
-          </div>
-        </div>
-
-        <div>
-          <div className="mt-8 flex flex-wrap md:flex-nowrap">
-            <JSXIcon /> <span className="px-1 font-medium">Overlay.tsx :</span>{" "}
-            displays an overlay that will only be visible on small screens to
-            emphasize the focus on sidebar when it is open. it's also used to
-            close sidebar on click outside
-          </div>
-        </div>
-
-        <div>
-          <div className="mt-8 flex flex-wrap md:flex-nowrap">
-            <JSXIcon /> <span className="px-1 font-medium">Provider.tsx :</span>{" "}
-            contains the <strong className="px-1">DashboardProvider</strong>{" "}
-            component where all the dashboard logic is placed. this will then be
-            reused in other components. it handles opening and closing of the
-            sidebar.
-          </div>
-        </div>
-
-        <div>
-          <div className="mt-8 flex flex-wrap md:flex-nowrap">
-            <JSXIcon /> <span className="px-1 font-medium">TopBar.tsx :</span>
-            You can customize it or replace it with your own TopBar but don't
-            forget to add a button to toggle sidebar on mobile
-          </div>
-        </div>
-
-        <div className="mt-8 flex flex-wrap md:flex-nowrap">
-          <FileIcon className="h-5 w-5  md:h-7" />
-          <span className="px-1 font-medium">style.module.css</span> :
-          <p className="pl-1">
-            This style sheet is used to make the scrollbar invisible for the
-            sidebar and to apply some filters.
-          </p>
-        </div>
-      </section>
-
-      <section className="mb-16 px-3 py-8 md:px-8">
-        <h2 className="text-2xl font-medium">Export</h2>
+        <h2 className="text-2xl font-medium">1. Medical Records Management</h2>
         <p className="mt-4">
-          As there is no vendor lock-in, if you already have a dashboard, you
-          can copy the
-          <strong className="px-1">dashboard</strong>folder into your project
+          Medical records management includes detailed health information of students, lecturers, and staff, enabling medical personnel to track individual medical histories and treatments.
         </p>
-        <div className="mt-8">
-          <ul className="mt-4 list-disc pl-6">
-            <li className="mb-3">
-              Add your routes in the
-              <strong className="px-1">dashboard/sidebar/data.tsx</strong>
-              file
-            </li>
-            <li className="mb-3">
-              Replace your layout by the
-              <strong className="px-1">DashboardLayout</strong>component
-            </li>
+        <h3 className="mt-4 text-xl">Key Information Management:</h3>
+        <ul className="mt-4 list-disc pl-6">
+          <li className="mb-3">Personal Information: Name, age, gender, student ID, emergency contacts, etc.</li>
+          <li className="mb-3">Medical History: Information about past illnesses and current health conditions.</li>
+          <li className="mb-3">Treatment History: List of medical examinations, diagnoses, and results.</li>
+          <li className="mb-3">Prescriptions: Record of dispensed medications.</li>
+          <li className="mb-3">Vaccination Records: Documentation of vaccines and immunization dates.</li>
+          <li className="mb-3">Health Insurance Information: Details about insurance coverage and medical benefits.</li>
+          <li>Regular Health Check Results: Summary of periodic health examinations and outcomes.</li>
+        </ul>
+      </section>
+
+      <section className="mb-16 px-3 py-8 md:px-8">
+        <h2 className="text-2xl font-medium">2. System Roles and Functions</h2>
+        <h3 className="mt-4 text-xl">Web Platform Roles</h3>
+        
+        <div className="mt-4">
+          <h4 className="text-lg font-medium">Administrator</h4>
+          <ul className="mt-2 list-disc pl-6">
+            <li className="mb-2">Manage system user accounts</li>
+            <li className="mb-2">Role assignment and activity monitoring</li>
+            <li className="mb-2">Medical facility and service management</li>
+            <li className="mb-2">Medication database and supplier management</li>
+            <li className="mb-2">View comprehensive reports and healthcare activity statistics</li>
+            <li>System security and stability maintenance</li>
+          </ul>
+        </div>
+
+        <div className="mt-4">
+          <h4 className="text-lg font-medium">Healthcare Manager</h4>
+          <ul className="mt-2 list-disc pl-6">
+            <li className="mb-2">Manage all user medical records</li>
+            <li className="mb-2">Schedule medical staff work shifts</li>
+            <li className="mb-2">Pharmacy inventory management</li>
+            <li className="mb-2">Access treatment and medication usage reports</li>
+            <li>Monitor medical staff performance</li>
+          </ul>
+        </div>
+
+        <div className="mt-4">
+          <h4 className="text-lg font-medium">Medical Staff</h4>
+          <ul className="mt-2 list-disc pl-6">
+            <li className="mb-2">Update patient examination and treatment information</li>
+            <li className="mb-2">Schedule medical appointments for users</li>
+            <li className="mb-2">Access medical history and treatment reports</li>
+            <li className="mb-2">Dispense medications and update inventory</li>
+            <li>Monitor and record patient health status post-treatment</li>
+          </ul>
+        </div>
+
+        <div className="mt-4">
+          <h4 className="text-lg font-medium">End User</h4>
+          <ul className="mt-2 list-disc pl-6">
+            <li className="mb-2">Login with university-provided email</li>
+            <li className="mb-2">Manage personal health profile</li>
+            <li className="mb-2">Schedule medical appointments</li>
+            <li className="mb-2">Receive appointment and medication reminders</li>
+            <li className="mb-2">Access prescribed medication information and usage guidelines</li>
+            <li>Track medical history and diagnosis results</li>
+          </ul>
+        </div>
+
+        <h3 className="mt-8 text-xl">Mobile Platform Roles</h3>
+        <div className="mt-4">
+          <h4 className="text-lg font-medium">Healthcare Manager</h4>
+          <ul className="mt-2 list-disc pl-6">
+            <li className="mb-2">View and manage medical records and treatment history</li>
+            <li className="mb-2">Monitor pharmacy inventory and medication reports</li>
+            <li>Track staff schedules and appointment management</li>
+          </ul>
+        </div>
+
+        <div className="mt-4">
+          <h4 className="text-lg font-medium">Medical Staff</h4>
+          <ul className="mt-2 list-disc pl-6">
+            <li className="mb-2">Access and manage medical records and treatment history</li>
+            <li className="mb-2">Update medical information and manage user appointments</li>
+            <li className="mb-2">Record post-treatment health status</li>
+            <li>Dispense medication and monitor inventory levels</li>
+          </ul>
+        </div>
+
+        <div className="mt-4">
+          <h4 className="text-lg font-medium">End User</h4>
+          <ul className="mt-2 list-disc pl-6">
+            <li className="mb-2">Login, manage personal profile, and access medical history</li>
+            <li>Schedule appointments and receive medical notifications</li>
           </ul>
         </div>
       </section>
 
       <section className="mb-16 px-3 py-8 md:px-8">
-        <h2 className="text-2xl font-medium">Customization</h2>
-        <p className="mt-5">
-          You can customize everything according to your preferences if it
-          doesn't suit you. What we have done is just provide a solid structure
-          for better scalability and readability of the code.
-        </p>
-        <p className="mt-5">
-          The sidebar scrollbar is hidden by default but you can still scroll
-          with the keyboards if you have several sidebar-items. You can always
-          change its style in the
-          <strong className="px-1">style.module.css</strong>file.
-        </p>
-        <p className="mt-5">
-          In the <strong> dashboard/Layout.tsx</strong> file,
-          <strong className="pl-1">Sidebar</strong> component has as prop
-          <strong className="pl-1">mobileOrientation</strong>, which indicates
-          the orientation of the sidebar on small devices (viewport {"<"}{" "}
-          1024px).
-        </p>
-        <p className="pt-5">That prop can have two possible values :</p>
+        <h2 className="text-2xl font-medium">3. Technology Stack</h2>
         <ul className="mt-4 list-disc pl-6">
-          <li className="mb-3">
-            <strong>start :</strong> sidebar will be aligned to the left
-          </li>
-          <li>
-            <strong>end :</strong> sidebar will be aligned to the right
-          </li>
+          <li className="mb-2">Frontend: ReactJS (Web), Flutter (Mobile)</li>
+          <li className="mb-2">Backend: ASP.NET Core Web API</li>
+          <li className="mb-2">Database: SQL Server</li>
+          <li>Deployment: VPS</li>
         </ul>
       </section>
     </div>

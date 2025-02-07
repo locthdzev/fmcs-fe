@@ -155,13 +155,17 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
                       type={field.type}
                       id={field.name}
                       name={field.name}
-                      value={formData[field.name as keyof typeof formData] || ""}
+                      value={
+                        formData[field.name as keyof typeof formData] || ""
+                      }
                       onChange={handleChange}
                       className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
                       placeholder={field.placeholder}
                     />
                     {errors[field.name] && (
-                      <p className="text-red-500 text-xs mt-1">{errors[field.name]}</p>
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors[field.name]}
+                      </p>
                     )}
                   </div>
                 )}
