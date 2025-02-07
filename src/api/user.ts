@@ -23,6 +23,33 @@ export interface UserProfile {
   roles: string[];
 }
 
+export interface UserCreateRequest {
+  fullName: string;
+  userName?: string;
+  email: string;
+  password?: string;
+  gender: string;
+  dob: string;
+  address: string;
+  phone: string;
+  createdAt: string;
+  status?: string;
+}
+
+export interface UpdateAccountsStatusRequest {
+  userId: string[];
+  status: string;
+}
+
+export const createUser = async (userCreateData: UserCreateRequest) => {
+  try {
+    const response = await api.post("/user-management/users", userCreateData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const getUserProfile = async (): Promise<UserProfile> => {
   try {
     const response = await api.get<{ isSuccess: boolean; data: UserProfile }>(
@@ -46,6 +73,15 @@ export const updateUser = async (
       `/user-management/users?userId=${userId}`,
       userUpdateData
     );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateAccountsStatus = async (updateStatusData: UpdateAccountsStatusRequest) => {
+  try {
+    const response = await api.put("/user-management/users/status", updateStatusData);
     return response.data;
   } catch (error) {
     throw error;
