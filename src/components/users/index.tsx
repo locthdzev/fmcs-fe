@@ -120,8 +120,18 @@ export function Users() {
   const [users, setUsers] = React.useState<User[]>([]);
 
   const fetchUsers = async () => {
-    const userData = await getUsers();
-    setUsers(userData);
+    try {
+      const userData = await getUsers();
+      if (!userData || !Array.isArray(userData)) {
+        console.error("Invalid data received:", userData);
+        setUsers([]); // Đảm bảo state luôn là mảng
+        return;
+      }
+      setUsers(userData);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      setUsers([]); // Đảm bảo state không bị `null` hoặc `undefined`
+    }
   };
 
   useEffect(() => {
