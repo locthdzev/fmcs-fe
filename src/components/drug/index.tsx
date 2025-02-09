@@ -32,7 +32,13 @@ import {
   Selection,
   ChipProps,
   SortDescriptor,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from "@heroui/react";
+import { CreateDrugForm } from "./CreateDrugForm";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -72,6 +78,7 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function Drugs() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
@@ -317,7 +324,11 @@ export function Drugs() {
                 ))}
               </DropdownMenu>
             </Dropdown>
-            <Button color="primary" endContent={<PlusIcon />}>
+            <Button
+              color="primary"
+              endContent={<PlusIcon />}
+              onClick={() => setIsModalOpen(true)}
+            >
               Add New
             </Button>
           </div>
@@ -344,6 +355,7 @@ export function Drugs() {
     filterValue,
     statusFilter,
     visibleColumns,
+    selectedKeys,
     onSearchChange,
     onRowsPerPageChange,
     drugs.length,
@@ -396,6 +408,21 @@ export function Drugs() {
         <DrugIcon />
         <h3 className="text-2xl font-bold">Drug Management</h3>
       </div>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <ModalContent className="max-w-[800px]">
+          <ModalHeader>Create New Drug</ModalHeader>
+          <ModalBody>
+            <CreateDrugForm
+              onSuccess={() => {
+                fetchDrugs(); // Gọi lại danh sách thuốc
+                setIsModalOpen(false); // Đóng modal sau khi thêm thành công
+              }}
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
       <Table
         isHeaderSticky
         aria-label="Drugs table"

@@ -63,19 +63,13 @@ export const getDrugById = async (id: string) => {
   }
 };
 
-export const createDrug = async (drugData: DrugCreateRequest) => {
-  try {
-    const formData = new FormData();
-    Object.entries(drugData).forEach(([key, value]) => {
-      if (value !== undefined) {
-        formData.append(key, value);
-      }
-    });
-    const response = await api.post("/drug-management/drugs", formData);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+export const createDrug = async (drugData: FormData) => {
+    try {
+        const response = await api.post("/drug-management/drugs", drugData);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
 };
 
 export const updateDrug = async (id: string, drugData: DrugUpdateRequest) => {
