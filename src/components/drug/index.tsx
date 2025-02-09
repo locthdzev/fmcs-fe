@@ -13,6 +13,7 @@ import {
   updateDrug,
   deleteDrug,
   DrugResponse,
+  getDrugById,
 } from "@/api/drug";
 import {
   Table,
@@ -39,6 +40,7 @@ import {
   ModalFooter,
 } from "@heroui/react";
 import { CreateDrugForm } from "./CreateDrugForm";
+import DrugDetailsModal from "./DrugDetails";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -78,6 +80,8 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function Drugs() {
+  const [selectedDrug, setSelectedDrug] = useState<DrugResponse | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
@@ -164,6 +168,16 @@ export function Drugs() {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
+  const handleOpenDetails = async (id: string) => {
+    try {
+      const drug = await getDrugById(id);
+      setSelectedDrug(drug);
+      setIsDetailsModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load drug details");
+    }
+  };
+
   const renderCell = React.useCallback(
     (drug: DrugResponse, columnKey: React.Key) => {
       const cellValue = drug[columnKey as keyof DrugResponse];
@@ -178,7 +192,10 @@ export function Drugs() {
                   alt={drug.name}
                   className="w-8 h-8 mr-2 rounded"
                 />
-                <p className="text-bold text-small capitalize text-primary cursor-pointer hover:underline">
+                <p
+                  className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+                  onClick={() => handleOpenDetails(drug.id)}
+                >
                   {cellValue as string}
                 </p>
               </div>
@@ -409,19 +426,27 @@ export function Drugs() {
         <h3 className="text-2xl font-bold">Drug Management</h3>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <ModalContent className="max-w-[800px]">
-          <ModalHeader>Create New Drug</ModalHeader>
-          <ModalBody>
-            <CreateDrugForm
-              onSuccess={() => {
-                fetchDrugs(); // Gọi lại danh sách thuốc
-                setIsModalOpen(false); // Đóng modal sau khi thêm thành công
-              }}
-            />
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+      {isModalOpen && (
+        <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
+          <ModalContent className="max-w-[800px]">
+            <ModalHeader>Add New Drug</ModalHeader>
+            <ModalBody>
+              <CreateDrugForm
+                onClose={() => {
+                  setIsModalOpen(false);
+                }}
+                onCreate={fetchDrugs}
+              />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
+      <DrugDetailsModal
+        drug={selectedDrug}
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+      />
 
       <Table
         isHeaderSticky

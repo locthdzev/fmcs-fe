@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Button, Input, Select, SelectItem, Textarea } from "@heroui/react";
-import { DrugCreateRequest, createDrug } from "@/api/drug";
+import { createDrug } from "@/api/drug";
 import { getDrugGroups } from "@/api/druggroup";
 import { toast } from "react-toastify";
 import { FileUpload } from "../ui/file-upload";
@@ -12,23 +12,33 @@ interface DrugGroup {
 }
 
 interface CreateDrugFormProps {
-  onSuccess?: () => void; // Nhận callback khi tạo thuốc thành công
+  onClose: () => void;
+  onCreate: () => void;
 }
 
-export function CreateDrugForm({ onSuccess }: CreateDrugFormProps) {
-  const [drugGroups, setDrugGroups] = useState<DrugGroup[]>([]); // 🔹 State lưu danh sách nhóm thuốc
-  const [formData, setFormData] = useState<DrugCreateRequest>({
-    drugCode: "",
-    name: "",
-    unit: "",
-    price: 0,
-    drugGroupId: "", // 🔹 Chọn nhóm thuốc từ Select
-    description: "",
-    manufacturer: "",
-    createdAt: new Date().toISOString(),
-    status: "Active",
-    imageUrl: "",
-  });
+const initialFormState = {
+  drugCode: "",
+  name: "",
+  unit: "",
+  price: 0,
+  drugGroupId: "",
+  description: "",
+  manufacturer: "",
+  createdAt: new Date().toISOString(),
+  status: "Active",
+  imageUrl: "",
+};
+
+export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
+  onClose,
+  onCreate,
+}) => {
+  const [drugGroups, setDrugGroups] = useState<DrugGroup[]>([]);
+  const [formData, setFormData] = useState(initialFormState);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  //   const [resetTrigger, setResetTrigger] = useState(false); // reset file trong form
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchDrugGroups = async () => {
@@ -42,17 +52,6 @@ export function CreateDrugForm({ onSuccess }: CreateDrugFormProps) {
     fetchDrugGroups();
   }, []);
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // 🔹 Xử lý khi chọn Drug Group từ dropdown
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setFormData((prev) => ({
       ...prev,
@@ -60,10 +59,12 @@ export function CreateDrugForm({ onSuccess }: CreateDrugFormProps) {
     }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setImageFile(e.target.files[0]);
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,45 +80,44 @@ export function CreateDrugForm({ onSuccess }: CreateDrugFormProps) {
       if (imageFile) {
         formDataToSend.append("imageFile", imageFile);
       }
-
-      await createDrug(formDataToSend);
-      toast.success("Drug created successfully");
-
-      // Reset form
-      setFormData({
-        drugCode: "",
-        name: "",
-        unit: "",
-        price: 0,
-        drugGroupId: "",
-        description: "",
-        manufacturer: "",
-        createdAt: new Date().toISOString(),
-        status: "Active",
-        imageUrl: "",
-      });
-      setImageFile(null);
-
-      // 🔹 Gọi callback cập nhật danh sách thuốc
-      if (onSuccess) {
-        onSuccess();
+      setLoading(true);
+      try {
+        await createDrug(formDataToSend);
+        toast.success("Drug created successfully");
+        onCreate();
+        onClose();
+      } catch (error) {
+        toast.error("Failed to create drug");
       }
     } catch (error) {
       toast.error("Failed to create drug");
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleReset = () => {
+    setFormData(initialFormState);
+    setImageFile(null);
+  };
+
+  //   const handleReset = () => {
+  //     setFormData(initialFormState);
+  //     setImageFile(null);
+  //     setResetTrigger((prev) => !prev); // reset file trong form
+  //   };
 
   return (
     <form onSubmit={handleSubmit}>
       <div className="grid grid-cols-2 gap-4">
         <Select
+          isRequired
           className="w-full"
           label="Drug Group"
           id="drugGroupId"
           name="drugGroupId"
           value={formData.drugGroupId}
           onChange={handleSelectChange}
-          required
         >
           {drugGroups
             .filter((group) => group.status === "Active")
@@ -154,15 +154,16 @@ export function CreateDrugForm({ onSuccess }: CreateDrugFormProps) {
           name="price"
           value={formData.price.toString()}
           onChange={handleInputChange}
-          required
+          isRequired
         />
         <Input
           label="Manufacturer"
           name="manufacturer"
           value={formData.manufacturer || ""}
           onChange={handleInputChange}
+          required
         />
-        {/* 🔹 Description full width */}
+
         <div className="col-span-2">
           <Textarea
             label="Description"
@@ -171,17 +172,18 @@ export function CreateDrugForm({ onSuccess }: CreateDrugFormProps) {
             onChange={handleInputChange}
           />
         </div>
-        {/* 🔹 File Upload xuống dưới và nhỏ lại */}
+
         <div className="col-span-2 flex justify-center">
           <div>
             <FileUpload onChange={(files) => setImageFile(files[0])} />
+            {/* <FileUpload onChange={(files) => setImageFile(files[0])} resetTrigger={resetTrigger} /> // reset file trong form */}
           </div>
         </div>
       </div>
 
       <div className="flex justify-end gap-2 mt-6">
-        <Button type="button" variant="flat">
-          Cancel
+        <Button type="button" variant="flat" onClick={handleReset}>
+          Reset
         </Button>
         <Button type="submit" color="primary">
           Create Drug
@@ -189,4 +191,4 @@ export function CreateDrugForm({ onSuccess }: CreateDrugFormProps) {
       </div>
     </form>
   );
-}
+};

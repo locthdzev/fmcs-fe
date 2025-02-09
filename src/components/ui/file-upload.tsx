@@ -1,7 +1,7 @@
 import { cn } from "@/libs/utils";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { IconUpload } from "@tabler/icons-react";
+import { IconUpload, IconX } from "@tabler/icons-react";
 import { useDropzone } from "react-dropzone";
 
 const mainVariant = {
@@ -27,19 +27,38 @@ const secondaryVariant = {
 
 export const FileUpload = ({
   onChange,
-}: {
+}: //   resetTrigger, // reset file trong form
+{
   onChange?: (files: File[]) => void;
+  //   resetTrigger?: boolean; // reset file trong form
 }) => {
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  //   useEffect(() => {
+  //     setFiles([]);
+  //   }, [resetTrigger]); // reset file trong form
+
+  //   const handleFileChange = (newFiles: File[]) => {
+  //     setFiles((prevFiles) => [...prevFiles, ...newFiles]);
+  //     onChange && onChange(newFiles);
+  //   };
+
   const handleFileChange = (newFiles: File[]) => {
-    setFiles((prevFiles) => [...prevFiles, ...newFiles]);
-    onChange && onChange(newFiles);
+    setFiles(newFiles); // Chỉ giữ file mới
+    onChange && onChange(newFiles); // reset file trong form
   };
 
   const handleClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleRemoveFile = () => {
+    setFiles([]);
+    onChange && onChange([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""; // Reset input file
+    }
   };
 
   const { getRootProps, isDragActive } = useDropzone({
@@ -95,14 +114,23 @@ export const FileUpload = ({
                     >
                       {file.name}
                     </motion.p>
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      layout
-                      className="rounded-lg px-2 py-0.5 w-fit flex-shrink-0 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-white shadow-input"
-                    >
-                      {(file.size / (1024 * 1024)).toFixed(2)} MB
-                    </motion.p>
+                    <div className="flex items-center gap-2">
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        layout
+                        className="rounded-lg px-2 py-0.5 w-fit flex-shrink-0 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-white shadow-input"
+                      >
+                        {(file.size / (1024 * 1024)).toFixed(2)} MB
+                      </motion.p>
+                      <IconX
+                        className="h-4 w-4 cursor-pointer text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveFile();
+                        }}
+                      />
+                    </div>
                   </div>
 
                   <div className="flex text-xs md:flex-row flex-col items-start md:items-center w-full mt-1 justify-between text-neutral-600 dark:text-neutral-400">
