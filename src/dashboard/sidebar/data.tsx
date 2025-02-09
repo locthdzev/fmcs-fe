@@ -34,6 +34,11 @@ export const data = [
         // link: "/admin/settings",
         submenu: [
           {
+            title: "Drugs",
+            icon: <DrugIcon />,
+            link: "/drug/management",
+          },
+          {
             title: "DrugGruops",
             icon: <DrugGroupIcon />,
             link: "/drug/drug-group",
