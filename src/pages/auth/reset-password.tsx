@@ -51,11 +51,12 @@ export default function ResetPassword() {
           <h1 className="text-4xl font-bold text-orange-600 mb-2">
             Reset Password
           </h1>
-          <p className="text-gray-600 text-lg">
-            Enter your new password
-          </p>
+          <p className="text-gray-600 text-lg">Enter your new password</p>
         </div>
-        <form onSubmit={handleResetPassword} className="space-y-6 backdrop-blur-sm">
+        <form
+          onSubmit={handleResetPassword}
+          className="space-y-6 backdrop-blur-sm"
+        >
           <div className="relative">
             <input
               type="password"

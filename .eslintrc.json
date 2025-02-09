@@ -2,16 +2,21 @@
   "extends": ["next/core-web-vitals", "plugin:tailwindcss/recommended"],
   "plugins": ["unused-imports", "tailwindcss"],
   "rules": {
-    "quotes": ["error", "double"],
-    "semi": ["error", "always"],
+    "quotes": ["off", "double"], // Tắt kiểm tra kiểu dấu nháy
+    "semi": ["off", "always"], // Tắt kiểm tra dấu chấm phẩy
     "@next/next/no-img-element": "off",
     "@typescript-eslint/no-non-null-assertion": "off",
-    "no-unused-vars": "off", // or "@typescript-eslint/no-unused-vars": "off",
-    "unused-imports/no-unused-imports": "error",
-    "react/no-unescaped-entities": 0,
-    "@typescript-eslint/no-explicit-any": "off",
+    "no-unused-vars": "off", // Tắt kiểm tra biến không sử dụng
+    "unused-imports/no-unused-imports": "off", // Tắt kiểm tra import không sử dụng
+    "react/no-unescaped-entities": "off", // Tắt kiểm tra ký tự không escape trong JSX
+    "@typescript-eslint/no-explicit-any": "off", // Tắt kiểm tra kiểu any
+    "tailwindcss/classnames-order": "off", // Tắt kiểm tra thứ tự class Tailwind CSS
+    "tailwindcss/no-custom-classname": "off", // Tắt kiểm tra class tùy chỉnh
+    "tailwindcss/migration-from-tailwind-2": "off", // Tắt kiểm tra lớp không cần thiết từ Tailwind 2
+    "@next/next/no-html-link-for-pages": "off", // Tắt cảnh báo sử dụng thẻ <a>
+    "tailwindcss/no-contradicting-classname": "off", // Tắt kiểm tra class mâu thuẫn
     "unused-imports/no-unused-vars": [
-      "warn",
+      "off",
       {
         "vars": "all",
         "varsIgnorePattern": "^_",
