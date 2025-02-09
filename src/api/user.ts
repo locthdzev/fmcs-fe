@@ -79,10 +79,46 @@ export const updateUser = async (
   }
 };
 
-export const updateAccountsStatus = async (updateStatusData: UpdateAccountsStatusRequest) => {
+export const updateAccountsStatus = async (
+  updateStatusData: UpdateAccountsStatusRequest
+) => {
   try {
-    const response = await api.put("/user-management/users/status", updateStatusData);
+    const response = await api.put(
+      "/user-management/users/status",
+      updateStatusData
+    );
     return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const assignRoleToUser = async (userId: string, roleId: string) => {
+  try {
+    const response = await api.post(
+      `/user-management/users/assign-role?userId=${userId}&roleId=${roleId}`
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const unassignRoleFromUser = async (userId: string, roleId: string) => {
+  try {
+    const response = await api.post(
+      `/user-management/users/unassign-role?userId=${userId}&roleId=${roleId}`
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getAllRoles = async () => {
+  try {
+    const response = await api.get("/role-management/roles");
+    return response.data.data;
   } catch (error) {
     throw error;
   }

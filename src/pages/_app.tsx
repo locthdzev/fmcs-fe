@@ -48,7 +48,7 @@ function MyApp({ Component, pageProps }: AppProps) {
               return (
                 <>
                   <Head>
-                    <title>FMCS@2025</title>
+                    <title>FMCS</title>
                   </Head>
                   {highestRole === "Admin" ? (
                     <DashboardLayout>
