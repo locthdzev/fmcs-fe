@@ -89,3 +89,12 @@ export const deleteDrug = async (id: string) => {
     throw error;
   }
 };
+
+export const updateDrugsStatus = async (drugIds: string[]) => {
+  try {
+    const response = await api.put("/drug-management/drugs/status", drugIds);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};

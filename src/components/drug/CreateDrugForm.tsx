@@ -166,7 +166,7 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           />
         </div>
 
-        <div className="col-span-2 flex justify-center">
+        <div className="col-span-2">
           <div>
             <FileUpload onChange={(files) => setImageFile(files[0])} />
           </div>

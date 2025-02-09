@@ -172,25 +172,30 @@ export const EditDrugForm: React.FC<EditDrugFormProps> = ({
             onChange={handleInputChange}
           />
         </div>
-
         <div className="col-span-2">
-          <div className="flex gap-4">
-            <p className="text-sm text-gray-500 mb-2 text-left">Current Image:</p>
-            {formData.imageUrl && (
-              <img
-                src={formData.imageUrl}
-                alt="Drug"
-                className="w-24 h-24 rounded"
-              />
-            )}
+          <div className="col-span-5">
+            <div className="flex gap-4">
+              <p className="text-sm text-gray-500 text-left underline">
+                Current Drug Image:
+              </p>
+              <div className="flex items-center justify-center">
+                {formData.imageUrl && (
+                  <img
+                    src={formData.imageUrl}
+                    alt="Drug"
+                    className="w-24 h-24 rounded"
+                  />
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        </div>{" "}
         <div className="col-span-2">
           <FileUpload onChange={(files) => setImageFile(files[0])} />
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 mt-6">
+      <div className="flex justify-end gap-2 mt-4">
         <Button type="button" variant="flat" onClick={onClose}>
           Cancel
         </Button>

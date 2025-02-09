@@ -42,6 +42,7 @@ import {
 import { CreateDrugForm } from "./CreateDrugForm";
 import DrugDetailsModal from "./DrugDetails";
 import { EditDrugForm } from "./EditDrugForm";
+import ConfirmDeleteDrugModal from "./ConfirmDelete";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -81,6 +82,8 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function Drugs() {
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingDrug, setDeletingDrug] = useState<DrugResponse | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingDrugId, setEditingDrugId] = useState<string>("");
   const [selectedDrug, setSelectedDrug] = useState<DrugResponse | null>(null);
@@ -192,6 +195,30 @@ export function Drugs() {
     setEditingDrugId("");
   };
 
+  const handleOpenDeleteModal = async (id: string) => {
+    try {
+      const drug = await getDrugById(id);
+      setDeletingDrug(drug);
+      setIsDeleteModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load drug details for deletion");
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingDrug) return;
+    try {
+      await deleteDrug(deletingDrug.id);
+      toast.success("Drug deleted successfully");
+      await fetchDrugs();
+      setSelectedKeys(new Set());
+      setIsDeleteModalOpen(false);
+      setDeletingDrug(null);
+    } catch (error) {
+      toast.error("Failed to delete drug");
+    }
+  };
+
   const renderCell = React.useCallback(
     (drug: DrugResponse, columnKey: React.Key) => {
       const cellValue = drug[columnKey as keyof DrugResponse];
@@ -249,7 +276,13 @@ export function Drugs() {
                   >
                     Edit
                   </DropdownItem>
-                  <DropdownItem key="delete">Delete</DropdownItem>
+                  <DropdownItem
+                    key="delete"
+                    className="text-danger"
+                    onClick={() => handleOpenDeleteModal(drug.id)}
+                  >
+                    Delete
+                  </DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             </div>
@@ -469,7 +502,7 @@ export function Drugs() {
 
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent>
+          <ModalContent className="max-w-[800px]">
             <ModalHeader>Edit Drug</ModalHeader>
             <ModalBody>
               <EditDrugForm
@@ -481,6 +514,13 @@ export function Drugs() {
           </ModalContent>
         </Modal>
       )}
+
+      <ConfirmDeleteDrugModal
+        drug={deletingDrug}
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirmDelete={handleConfirmDelete}
+      />
 
       <Table
         isHeaderSticky
