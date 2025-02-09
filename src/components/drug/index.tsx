@@ -409,19 +409,21 @@ export function Drugs() {
         <h3 className="text-2xl font-bold">Drug Management</h3>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <ModalContent className="max-w-[800px]">
-          <ModalHeader>Create New Drug</ModalHeader>
-          <ModalBody>
-            <CreateDrugForm
-              onSuccess={() => {
-                fetchDrugs(); // Gọi lại danh sách thuốc
-                setIsModalOpen(false); // Đóng modal sau khi thêm thành công
-              }}
-            />
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+      {isModalOpen && (
+        <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
+          <ModalContent className="max-w-[800px]">
+            <ModalHeader>Add New Drug</ModalHeader>
+            <ModalBody>
+              <CreateDrugForm
+                onClose={() => {
+                  setIsModalOpen(false);
+                }}
+                onCreate={fetchDrugs}
+              />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
 
       <Table
         isHeaderSticky
