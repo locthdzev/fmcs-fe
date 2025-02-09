@@ -41,6 +41,7 @@ import {
 } from "@heroui/react";
 import { CreateDrugForm } from "./CreateDrugForm";
 import DrugDetailsModal from "./DrugDetails";
+import { EditDrugForm } from "./EditDrugForm";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -80,6 +81,8 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function Drugs() {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingDrugId, setEditingDrugId] = useState<string>("");
   const [selectedDrug, setSelectedDrug] = useState<DrugResponse | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -178,6 +181,17 @@ export function Drugs() {
     }
   };
 
+  const handleOpenEditModal = (id: string) => {
+    setEditingDrugId(id);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateSuccess = () => {
+    fetchDrugs();
+    setIsEditModalOpen(false);
+    setEditingDrugId("");
+  };
+
   const renderCell = React.useCallback(
     (drug: DrugResponse, columnKey: React.Key) => {
       const cellValue = drug[columnKey as keyof DrugResponse];
@@ -229,7 +243,12 @@ export function Drugs() {
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu>
-                  <DropdownItem key="edit">Edit</DropdownItem>
+                  <DropdownItem
+                    key="edit"
+                    onClick={() => handleOpenEditModal(drug.id)}
+                  >
+                    Edit
+                  </DropdownItem>
                   <DropdownItem key="delete">Delete</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
@@ -447,6 +466,21 @@ export function Drugs() {
         isOpen={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
       />
+
+      {isEditModalOpen && (
+        <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <ModalContent>
+            <ModalHeader>Edit Drug</ModalHeader>
+            <ModalBody>
+              <EditDrugForm
+                drugId={editingDrugId}
+                onClose={() => setIsEditModalOpen(false)}
+                onUpdate={handleUpdateSuccess}
+              />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
 
       <Table
         isHeaderSticky
