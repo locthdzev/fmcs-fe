@@ -9,9 +9,6 @@ import {
 } from "./Icons";
 import {
   getDrugGroups,
-  createDrugGroup,
-  updateDrugGroup,
-  deleteDrugGroup,
   DrugGroupResponse,
 } from "@/api/druggroup";
 import {
