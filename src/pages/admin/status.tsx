@@ -1,5 +1,5 @@
-import { Content } from "../../components/Content";
+import { Status } from "@/components/status";
 
 export default function StatusPage() {
-  return <Content title="Status" />;
+  return <Status title="Status" />;
 }
