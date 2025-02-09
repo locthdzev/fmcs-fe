@@ -1,21 +1,46 @@
-import React, { useState } from "react";
-import { Button, Input, Select, SelectItem } from "@heroui/react";
+import React, { useEffect, useState } from "react";
+import { Button, Input, Select, SelectItem, Textarea } from "@heroui/react";
 import { DrugCreateRequest, createDrug } from "@/api/drug";
+import { getDrugGroups } from "@/api/druggroup";
 import { toast } from "react-toastify";
+import { FileUpload } from "../ui/file-upload";
 
-export function CreateDrugForm() {
+interface DrugGroup {
+  id: string;
+  groupName: string;
+  status: string;
+}
+
+interface CreateDrugFormProps {
+  onSuccess?: () => void; // Nhận callback khi tạo thuốc thành công
+}
+
+export function CreateDrugForm({ onSuccess }: CreateDrugFormProps) {
+  const [drugGroups, setDrugGroups] = useState<DrugGroup[]>([]); // 🔹 State lưu danh sách nhóm thuốc
   const [formData, setFormData] = useState<DrugCreateRequest>({
     drugCode: "",
     name: "",
     unit: "",
     price: 0,
-    drugGroupId: "",
+    drugGroupId: "", // 🔹 Chọn nhóm thuốc từ Select
     description: "",
     manufacturer: "",
     createdAt: new Date().toISOString(),
     status: "Active",
     imageUrl: "",
   });
+
+  useEffect(() => {
+    const fetchDrugGroups = async () => {
+      try {
+        const data = await getDrugGroups();
+        setDrugGroups(data);
+      } catch (error) {
+        toast.error("Failed to load drug groups");
+      }
+    };
+    fetchDrugGroups();
+  }, []);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -24,6 +49,14 @@ export function CreateDrugForm() {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  // 🔹 Xử lý khi chọn Drug Group từ dropdown
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      drugGroupId: e.target.value,
     }));
   };
 
@@ -47,10 +80,10 @@ export function CreateDrugForm() {
         formDataToSend.append("imageFile", imageFile);
       }
 
-      const response = await createDrug(formDataToSend);
-      console.log(response); // Debug API response
-
+      await createDrug(formDataToSend);
       toast.success("Drug created successfully");
+
+      // Reset form
       setFormData({
         drugCode: "",
         name: "",
@@ -62,16 +95,38 @@ export function CreateDrugForm() {
         createdAt: new Date().toISOString(),
         status: "Active",
         imageUrl: "",
-      }); // Reset form
+      });
       setImageFile(null);
+
+      // 🔹 Gọi callback cập nhật danh sách thuốc
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
       toast.error("Failed to create drug");
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-4">
+    <form onSubmit={handleSubmit}>
       <div className="grid grid-cols-2 gap-4">
+        <Select
+          className="w-full"
+          label="Drug Group"
+          id="drugGroupId"
+          name="drugGroupId"
+          value={formData.drugGroupId}
+          onChange={handleSelectChange}
+          required
+        >
+          {drugGroups
+            .filter((group) => group.status === "Active")
+            .map((group) => (
+              <SelectItem key={group.id} value={group.id}>
+                {group.groupName}
+              </SelectItem>
+            ))}
+        </Select>
         <Input
           label="Drug Code"
           name="drugCode"
@@ -102,32 +157,29 @@ export function CreateDrugForm() {
           required
         />
         <Input
-          label="Drug Group ID"
-          name="drugGroupId"
-          value={formData.drugGroupId}
-          onChange={handleInputChange}
-        />
-        <Input
           label="Manufacturer"
           name="manufacturer"
           value={formData.manufacturer || ""}
           onChange={handleInputChange}
         />
-        <Input
-          label="Description"
-          name="description"
-          value={formData.description || ""}
-          onChange={handleInputChange}
-        />
-        <Input
-          type="file"
-          label="Image"
-          accept="image/*"
-          onChange={handleImageChange}
-        />
+        {/* 🔹 Description full width */}
+        <div className="col-span-2">
+          <Textarea
+            label="Description"
+            name="description"
+            value={formData.description || ""}
+            onChange={handleInputChange}
+          />
+        </div>
+        {/* 🔹 File Upload xuống dưới và nhỏ lại */}
+        <div className="col-span-2 flex justify-center">
+          <div>
+            <FileUpload onChange={(files) => setImageFile(files[0])} />
+          </div>
+        </div>
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 mt-6">
         <Button type="button" variant="flat">
           Cancel
         </Button>

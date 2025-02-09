@@ -355,6 +355,7 @@ export function Drugs() {
     filterValue,
     statusFilter,
     visibleColumns,
+    selectedKeys,
     onSearchChange,
     onRowsPerPageChange,
     drugs.length,
@@ -409,19 +410,19 @@ export function Drugs() {
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <ModalContent>
+        <ModalContent className="max-w-[800px]">
           <ModalHeader>Create New Drug</ModalHeader>
           <ModalBody>
-            <CreateDrugForm />
+            <CreateDrugForm
+              onSuccess={() => {
+                fetchDrugs(); // Gọi lại danh sách thuốc
+                setIsModalOpen(false); // Đóng modal sau khi thêm thành công
+              }}
+            />
           </ModalBody>
-          <ModalFooter>
-            <Button variant="flat" onClick={() => setIsModalOpen(false)}>
-              Close
-            </Button>
-          </ModalFooter>
         </ModalContent>
       </Modal>
-      
+
       <Table
         isHeaderSticky
         aria-label="Drugs table"
