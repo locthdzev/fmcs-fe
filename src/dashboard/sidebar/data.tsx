@@ -15,6 +15,7 @@ import { CanteenInspection } from "./icons/CanteenInspection";
 import { CanteenOrder } from "./icons/CanteenOrder";
 import { HealthInsuranceIcon } from "./icons/HealthInsuranceIcon";
 import { PeriodicHealthCheckupsIcon } from "./icons/PeriodicHealthCheckupsIcon";
+import { TrucksIcon } from "./icons/TruckIcon";
 
 export const data = [
   {
@@ -74,6 +75,11 @@ export const data = [
             title: "CanteenOrders",
             icon: <CanteenOrder />,
             link: "/drug/drug-supplier",
+          },
+          {
+            title: "Trucks",
+            icon: <TrucksIcon />,
+            link: "/truck/management",
           },
         ],
       },
