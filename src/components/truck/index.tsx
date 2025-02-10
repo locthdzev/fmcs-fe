@@ -14,6 +14,8 @@ import {
   deleteTruck,
   TruckResponse,
   getTruckById,
+  activateTrucks,
+  deactivateTrucks,
 } from "@/api/truck";
 import {
   Table,
@@ -42,6 +44,7 @@ import {
 import { CreateTruckForm } from "./CreateTruckForm";
 import TruckDetailsModal from "./TruckDetails";
 import { EditTruckForm } from "./EditTruckForm";
+import ConfirmDeleteTruckModal from "./ConfirmDelete";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -80,9 +83,22 @@ export function Trucks() {
   const [selectedTruck, setSelectedTruck] = useState<TruckResponse | null>(
     null
   );
+  const [deletingTruck, setDeletingTruck] = useState<TruckResponse | null>(
+    null
+  );
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<
+    "activate" | "deactivate" | null
+  >(null);
+  const [selectedTrucks, setSelectedTrucks] = useState<TruckResponse[]>([]);
+
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterValue, setFilterValue] = React.useState("");
+  const [showActivate, setShowActivate] = useState(false);
+  const [showDeactivate, setShowDeactivate] = useState(false);
+
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
@@ -107,6 +123,26 @@ export function Trucks() {
   useEffect(() => {
     fetchTrucks();
   }, []);
+
+  useEffect(() => {
+    let selected: TruckResponse[] = [];
+
+    if (selectedKeys === "all") {
+      selected = trucks; // Nếu chọn "all", lấy toàn bộ danh sách thuốc
+    } else {
+      selected = trucks.filter((truck) =>
+        (selectedKeys as Set<string>).has(truck.id)
+      );
+    }
+
+    setSelectedTrucks(selected);
+
+    const hasActive = selected.some((truck) => truck.status === "Active");
+    const hasInactive = selected.some((truck) => truck.status === "Inactive");
+
+    setShowActivate(hasInactive);
+    setShowDeactivate(hasActive);
+  }, [selectedKeys, trucks]);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -188,6 +224,86 @@ export function Trucks() {
     setEditingTruckId("");
   };
 
+  const handleOpenDeleteModal = async (id: string) => {
+    try {
+      const drug = await getTruckById(id);
+      setDeletingTruck(drug);
+      setIsDeleteModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load drug details for deletion");
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingTruck) return;
+    try {
+      const response = await deleteTruck(deletingTruck.id);
+      if (!response.isSuccess) {
+        toast.error(response.message);
+        return;
+      }
+      
+      toast.success("Truck deleted successfully");
+      await fetchTrucks();
+      setSelectedKeys(new Set());
+      setIsDeleteModalOpen(false);
+      setDeletingTruck(null);
+    } catch (error: any) {
+      toast.error("Failed to delete truck");
+    }
+  };
+  
+
+  const handleActivate = async () => {
+    const ids = selectedTrucks
+      .filter((d) => d.status === "Inactive")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await activateTrucks(ids);
+      toast.success("Trucks activated successfully");
+      fetchTrucks();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to activate trucks");
+    }
+  };
+  const handleDeactivate = async () => {
+    const ids = selectedTrucks
+      .filter((d) => d.status === "Active")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await deactivateTrucks(ids);
+      toast.success("Trucks deactivated successfully");
+      fetchTrucks();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to deactivate trucks");
+    }
+  };
+
+  const handleConfirmActivate = () => {
+    setConfirmAction("activate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDeactivate = () => {
+    setConfirmAction("deactivate");
+    setIsConfirmModalOpen(true);
+  };
+  const handleConfirmAction = async () => {
+    if (confirmAction === "activate") {
+      await handleActivate();
+    } else if (confirmAction === "deactivate") {
+      await handleDeactivate();
+    }
+    setIsConfirmModalOpen(false);
+    setConfirmAction(null);
+  };
+
   const renderCell = React.useCallback(
     (truck: TruckResponse, columnKey: React.Key) => {
       const cellValue = truck[columnKey as keyof TruckResponse];
@@ -243,7 +359,13 @@ export function Trucks() {
                   >
                     Edit
                   </DropdownItem>
-                  <DropdownItem key="delete">Delete</DropdownItem>
+                  <DropdownItem
+                    key="delete"
+                    className="text-danger"
+                    onClick={() => handleOpenDeleteModal(truck.id)}
+                  >
+                    Delete
+                  </DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             </div>
@@ -305,6 +427,19 @@ export function Trucks() {
             onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
+            <div className="flex gap-2">
+              {showActivate && (
+                <Button color="success" onClick={handleConfirmActivate}>
+                  Activate Selected
+                </Button>
+              )}
+              {showDeactivate && (
+                <Button color="danger" onClick={handleConfirmDeactivate}>
+                  Deactivate Selected
+                </Button>
+              )}
+            </div>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -329,30 +464,30 @@ export function Trucks() {
                 ))}
               </DropdownMenu>
             </Dropdown>
-                <Dropdown>
-                              <DropdownTrigger className="hidden sm:flex">
-                                <Button
-                                  endContent={<ChevronDownIcon className="text-small" />}
-                                  variant="flat"
-                                >
-                                  Columns
-                                </Button>
-                              </DropdownTrigger>
-                              <DropdownMenu
-                                disallowEmptySelection
-                                aria-label="Table Columns"
-                                closeOnSelect={false}
-                                selectedKeys={visibleColumns}
-                                selectionMode="multiple"
-                                onSelectionChange={setVisibleColumns}
-                              >
-                                {columns.map((column) => (
-                                  <DropdownItem key={column.uid} className="capitalize">
-                                    {capitalize(column.name)}
-                                  </DropdownItem>
-                                ))}
-                              </DropdownMenu>
-                            </Dropdown>
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Columns
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={visibleColumns}
+                selectionMode="multiple"
+                onSelectionChange={setVisibleColumns}
+              >
+                {columns.map((column) => (
+                  <DropdownItem key={column.uid} className="capitalize">
+                    {capitalize(column.name)}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
 
             <Button
               color="primary"
@@ -362,6 +497,22 @@ export function Trucks() {
               Add New Truck
             </Button>
           </div>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-default-400 text-small ml-4">
+            Total {trucks.length} drugs
+          </span>
+          <label className="flex items-center text-default-400 text-small">
+            Rows per page:
+            <select
+              className="bg-transparent outline-none text-default-400 text-small"
+              onChange={onRowsPerPageChange}
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label>
         </div>
       </div>
     );
@@ -373,11 +524,20 @@ export function Trucks() {
     onSearchChange,
     onRowsPerPageChange,
     trucks.length,
+    showActivate,    
+    showDeactivate,
   ]);
 
   const bottomContent = React.useMemo(() => {
     return (
       <div className="py-2 px-2 flex justify-between items-center">
+        <span className="w-[30%] text-small text-default-400 ml-4">
+          {selectedKeys === "all"
+            ? "All items selected"
+            : `${(selectedKeys as Set<string>).size} of ${
+                filteredItems.length
+              } selected`}
+        </span>
         <Pagination
           isCompact
           showControls
@@ -440,7 +600,7 @@ export function Trucks() {
 
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent>
+          <ModalContent className="max-w-[800px]">
             <ModalHeader>Edit Truck</ModalHeader>
             <ModalBody>
               <EditTruckForm
@@ -452,6 +612,38 @@ export function Trucks() {
           </ModalContent>
         </Modal>
       )}
+
+      <ConfirmDeleteTruckModal
+        truck={deletingTruck}
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirmDelete={handleConfirmDelete}
+      />
+
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+      >
+        <ModalContent>
+          <ModalHeader>Confirm Action</ModalHeader>
+          <ModalBody>
+            Are you sure you want to{" "}
+            {confirmAction === "activate" ? "activate" : "deactivate"} the
+            selected drugs?
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="flat" onClick={() => setIsConfirmModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              color={confirmAction === "activate" ? "success" : "danger"}
+              onClick={handleConfirmAction}
+            >
+              Confirm
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       <Table
         isHeaderSticky

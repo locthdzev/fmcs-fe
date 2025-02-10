@@ -29,61 +29,67 @@ const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
   if (!truck) return null;
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-3xl">
-      <ModalContent>
-        <ModalHeader className="text-xl font-semibold text-gray-800">
+    <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
+      <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
+        <ModalHeader className="text-xl font-semibold text-gray-800 border-b pb-3">
           Truck Details
         </ModalHeader>
-        <ModalBody>
-          <div className="grid grid-cols-12 gap-6 p-4">
-            {/* Hình ảnh */}
-            <div className="col-span-5">
-              <div className="rounded-lg overflow-hidden shadow-md w-full">
+        <ModalBody className="p-6">
+          <div className="grid grid-cols-12 gap-6 items-start">
+            {/* Truck Image */}
+            <div className="col-span-5 flex justify-center">
+              <div className="w-48 h-48 rounded-lg overflow-hidden shadow-md border">
                 <img
                   src={truck.truckImage}
                   alt={truck.licensePlate}
-                  className="w-full h-64 transition-transform duration-300 hover:scale-105" // Thêm object-cover để giữ tỉ lệ hình ảnh
+                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 />
               </div>
             </div>
 
-            {/* Thông tin */}
-            <div className="col-span-7 space-y-3 text-gray-700">
-              <p>
-                <span className="font-semibold text-gray-900">License Plate:</span>{" "}
-                {truck.licensePlate}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Driver Name:</span>{" "}
-                {truck.driverName || "-"}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Driver Contact:</span>{" "}
-                {truck.driverContact || "-"}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Description:</span>
-              </p>
-              <p className="text-sm text-gray-600 italic">
-                {truck.description || "No description available."}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Created At:</span>{" "}
-                {truck.createdAt
-                  ? new Date(truck.createdAt).toLocaleDateString("vi-VN")
-                  : "-"}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Updated At:</span>{" "}
-                {truck.updatedAt
-                  ? new Date(truck.updatedAt).toLocaleDateString("vi-VN")
-                  : "-"}
-              </p>
+            {/* Truck Information */}
+            <div className="col-span-7 space-y-2 text-gray-700">
+              <div className="grid grid-cols-2 gap-3">
+                <p>
+                  <span className="font-semibold text-gray-900">License Plate:</span>{" "}
+                  {truck.licensePlate}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-900">Driver Name:</span>{" "}
+                  {truck.driverName || "-"}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-900">Driver Contact:</span>{" "}
+                  {truck.driverContact || "-"}
+                </p>
+              </div>
 
-              <p>
-                <span className="font-semibold text-gray-900">Status:</span>{" "}
+              <div>
+                <p className="font-semibold text-gray-900">Description:</p>
+                <p className="text-sm text-gray-600 italic">
+                  {truck.description || "No description available."}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <p>
+                  <span className="font-semibold text-gray-900">Created At:</span>{" "}
+                  {truck.createdAt
+                    ? new Date(truck.createdAt).toLocaleDateString("vi-VN")
+                    : "-"}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-900">Updated At:</span>{" "}
+                  {truck.updatedAt
+                    ? new Date(truck.updatedAt).toLocaleDateString("vi-VN")
+                    : "-"}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-900">Status:</span>
                 <Chip
-                  className="capitalize"
+                  className="capitalize px-2 py-1 text-sm font-medium"
                   color={
                     truck.status && statusColorMap[truck.status]
                       ? statusColorMap[truck.status]
@@ -94,10 +100,17 @@ const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
                 >
                   {truck.status}
                 </Chip>
-              </p>
+              </div>
             </div>
           </div>
         </ModalBody>
+
+        {/* Footer */}
+        <ModalFooter className="border-t pt-3 flex justify-end">
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );
