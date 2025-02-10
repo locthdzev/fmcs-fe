@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Modal,
   ModalContent,
@@ -26,98 +26,123 @@ const DrugDetailsModal: React.FC<DrugDetailsModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
   if (!drug) return null;
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
-      <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
-        <ModalHeader className="border-b pb-3">
-          Drug Details
-        </ModalHeader>
-        <ModalBody className="p-6">
-          <div className="grid grid-cols-12 gap-6 items-start">
-            {/* Hình ảnh thuốc */}
-            <div className="col-span-5 flex justify-center items-center">
-              <img
-                src={drug.imageUrl}
-                alt={drug.name}
-                className="w-64 h-64 object-contain bg-white p-2 transition-transform duration-300 hover:scale-105"
-              />
-            </div>
-
-            {/* Thông tin thuốc */}
-            <div className="col-span-7 space-y-4 text-gray-700">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { label: "Drug Code", value: drug.drugCode },
-                  { label: "Name", value: drug.name },
-                  { label: "Drug Group", value: drug.drugGroup?.groupName || "-" },
-                  { label: "Unit", value: drug.unit },
-                  { label: "Price", value: drug.price },
-                  { label: "Manufacturer", value: drug.manufacturer || "-" },
-                  {
-                    label: "Created At",
-                    value: drug.createdAt
-                      ? new Date(drug.createdAt).toLocaleDateString("vi-VN")
-                      : "-",
-                  },
-                  {
-                    label: "Updated At",
-                    value: drug.updatedAt
-                      ? new Date(drug.updatedAt).toLocaleDateString("vi-VN")
-                      : "-",
-                  },
-                ].map((field, index) => (
-                  <label
-                    key={index}
-                    className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm"
-                  >
-                    <span className="text-xs font-medium text-gray-700">
-                      {field.label}
-                    </span>
-                    <div className="mt-1 w-full border-none p-0 sm:text-sm">
-                      {field.value}
-                    </div>
-                  </label>
-                ))}
+    <>
+      <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
+        <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
+          <ModalHeader className="border-b pb-3">Drug Details</ModalHeader>
+          <ModalBody className="p-6">
+            <div className="grid grid-cols-12 gap-6 items-start">
+              {/* Hình ảnh thuốc */}
+              <div className="col-span-5 flex justify-center items-center">
+                <img
+                  src={drug.imageUrl}
+                  alt={drug.name}
+                  className="w-64 h-64 object-contain bg-white p-2 transition-transform duration-300 hover:scale-105 cursor-pointer"
+                  onClick={() => setIsImageModalOpen(true)} // Khi click vào mở modal ảnh lớn
+                />
               </div>
 
-              <label className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                <span className="text-xs font-medium text-gray-700">
-                  Description
-                </span>
-                <div className="mt-1 w-full border-none p-0 sm:text-sm text-gray-600 italic">
-                  {drug.description || "No description available."}
+              {/* Thông tin thuốc */}
+              <div className="col-span-7 space-y-4 text-gray-700">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { label: "Drug Code", value: drug.drugCode },
+                    { label: "Name", value: drug.name },
+                    {
+                      label: "Drug Group",
+                      value: drug.drugGroup?.groupName || "-",
+                    },
+                    { label: "Unit", value: drug.unit },
+                    { label: "Price", value: drug.price },
+                    { label: "Manufacturer", value: drug.manufacturer || "-" },
+                    {
+                      label: "Created At",
+                      value: drug.createdAt
+                        ? new Date(drug.createdAt).toLocaleDateString("vi-VN")
+                        : "-",
+                    },
+                    {
+                      label: "Updated At",
+                      value: drug.updatedAt
+                        ? new Date(drug.updatedAt).toLocaleDateString("vi-VN")
+                        : "-",
+                    },
+                  ].map((field, index) => (
+                    <label
+                      key={index}
+                      className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm"
+                    >
+                      <span className="text-xs font-medium text-gray-700">
+                        {field.label}
+                      </span>
+                      <div className="mt-1 w-full border-none p-0 sm:text-sm">
+                        {field.value}
+                      </div>
+                    </label>
+                  ))}
                 </div>
-              </label>
 
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-900 underline">Status:</span>
-                <Chip
-                  className="capitalize px-2 py-1 text-sm font-medium"
-                  color={
-                    drug.status && statusColorMap[drug.status]
-                      ? statusColorMap[drug.status]
-                      : "default"
-                  }
-                  size="sm"
-                  variant="flat"
-                >
-                  {drug.status}
-                </Chip>
+                <label className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                  <span className="text-xs font-medium text-gray-700">
+                    Description
+                  </span>
+                  <div className="mt-1 w-full border-none p-0 sm:text-sm text-gray-600 italic">
+                    {drug.description || "No description available."}
+                  </div>
+                </label>
+
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-gray-900 underline">
+                    Status:
+                  </span>
+                  <Chip
+                    className="capitalize px-2 py-1 text-sm font-medium"
+                    color={
+                      drug.status && statusColorMap[drug.status]
+                        ? statusColorMap[drug.status]
+                        : "default"
+                    }
+                    size="sm"
+                    variant="flat"
+                  >
+                    {drug.status}
+                  </Chip>
+                </div>
               </div>
             </div>
-          </div>
-        </ModalBody>
+          </ModalBody>
 
-        {/* Footer */}
-        <ModalFooter className="border-t pt-3">
-          <Button variant="ghost" onClick={onClose}>
-            Close
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+          {/* Footer */}
+          <ModalFooter className="border-t pt-3">
+            <Button variant="ghost" onClick={onClose}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Modal hiển thị ảnh lớn hơn */}
+      <Modal
+        isOpen={isImageModalOpen}
+        onOpenChange={() => setIsImageModalOpen(false)}
+        size="2xl"
+      >
+        <ModalContent className="bg-white shadow-lg p-4">
+          <ModalBody className="flex justify-center items-center p-6">
+            <img
+              src={drug.imageUrl}
+              alt={drug.name}
+              className="max-w-full max-h-[80vh] rounded-md object-contain"
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </>
   );
 };
 
