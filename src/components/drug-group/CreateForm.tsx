@@ -34,12 +34,22 @@ export const CreateDrugGroupForm: React.FC<CreateDrugGroupFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData) return;
+
     try {
       setLoading(true);
-      await createDrugGroup(formData);
-      toast.success("Drug group created successfully");
-      onCreate();
-      onClose();
+      const response = await createDrugGroup(formData);
+      if (response.isSuccess) {
+        toast.success(response.message || "Drug group created successfully");
+        onCreate();
+        onClose();
+      } else {
+        if (response.code === 409) {
+          toast.error("Drug Group name already exists");
+        } else {
+          toast.error(response.message || "Failed to create drug group");
+        }
+      }
     } catch (error) {
       toast.error("Failed to create drug group");
     } finally {

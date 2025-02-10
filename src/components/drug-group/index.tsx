@@ -32,6 +32,7 @@ import {
   ModalBody,
 } from "@heroui/react";
 import { CreateDrugGroupForm } from "./CreateForm";
+import { EditDrugGroupForm } from "./EditForm";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -65,6 +66,8 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function DrugGroups() {
+  const [editingDrugGroupId, setEditingDrugGroupId] = useState<string>("");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
@@ -151,9 +154,20 @@ export function DrugGroups() {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
+  const handleOpenEditModal = (id: string) => {
+    setEditingDrugGroupId(id);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateSuccess = () => {
+    fetchDrugGroups();
+    setIsEditModalOpen(false);
+    setEditingDrugGroupId("");
+  };
+
   const renderCell = React.useCallback(
-    (group: DrugGroupResponse, columnKey: React.Key) => {
-      const cellValue = group[columnKey as keyof DrugGroupResponse];
+    (drugGroup: DrugGroupResponse, columnKey: React.Key) => {
+      const cellValue = drugGroup[columnKey as keyof DrugGroupResponse];
 
       switch (columnKey) {
         case "groupName":
@@ -169,7 +183,7 @@ export function DrugGroups() {
             <Chip
               className="capitalize"
               color={
-                statusColorMap[group.status as keyof typeof statusColorMap]
+                statusColorMap[drugGroup.status as keyof typeof statusColorMap]
               }
               size="sm"
               variant="flat"
@@ -190,8 +204,13 @@ export function DrugGroups() {
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu>
-                  <DropdownItem key="edit">Edit</DropdownItem>
-                  <DropdownItem key="delete">Delete</DropdownItem>
+                  <DropdownItem
+                    key="edit"
+                    onClick={() => handleOpenEditModal(drugGroup.id)}
+                  >
+                    Edit
+                  </DropdownItem>
+                  {/* <DropdownItem key="delete">Delete</DropdownItem> */}
                 </DropdownMenu>
               </Dropdown>
             </div>
@@ -387,14 +406,29 @@ export function DrugGroups() {
 
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[800px]">
-            <ModalHeader>Add New Drug</ModalHeader>
+          <ModalContent className="max-w-[500px]">
+            <ModalHeader>Add New Drug Group</ModalHeader>
             <ModalBody>
               <CreateDrugGroupForm
                 onClose={() => {
                   setIsModalOpen(false);
                 }}
                 onCreate={fetchDrugGroups}
+              />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {isEditModalOpen && (
+        <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <ModalContent className="max-w-[500px]">
+            <ModalHeader>Edit Drug</ModalHeader>
+            <ModalBody>
+              <EditDrugGroupForm
+                drugGroupId={editingDrugGroupId}
+                onClose={() => setIsEditModalOpen(false)}
+                onUpdate={handleUpdateSuccess}
               />
             </ModalBody>
           </ModalContent>
