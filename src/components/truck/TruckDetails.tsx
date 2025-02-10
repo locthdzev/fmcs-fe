@@ -8,10 +8,10 @@ import {
   Button,
   Chip,
 } from "@heroui/react";
-import { DrugResponse } from "@/api/drug";
+import { TruckResponse } from "@/api/truck";
 
-interface DrugDetailsModalProps {
-  drug: DrugResponse | null;
+interface TruckDetailsModalProps {
+  truck: TruckResponse | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -21,89 +21,67 @@ const statusColorMap: Record<string, any> = {
   Inactive: "danger",
 };
 
-const DrugDetailsModal: React.FC<DrugDetailsModalProps> = ({
-  drug,
+const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
+  truck,
   isOpen,
   onClose,
 }) => {
-  if (!drug) return null;
+  if (!truck) return null;
 
   return (
     <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
       <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
         <ModalHeader className="text-xl font-semibold text-gray-800 border-b pb-3">
-          Drug Details
+          Truck Details
         </ModalHeader>
         <ModalBody className="p-6">
           <div className="grid grid-cols-12 gap-6 items-start">
-            {/* Hình ảnh thuốc */}
+            {/* Truck Image */}
             <div className="col-span-5 flex justify-center">
               <div className="w-48 h-48 rounded-lg overflow-hidden shadow-md border">
                 <img
-                  src={drug.imageUrl}
-                  alt={drug.name}
+                  src={truck.truckImage}
+                  alt={truck.licensePlate}
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 />
               </div>
             </div>
 
-            {/* Thông tin thuốc */}
+            {/* Truck Information */}
             <div className="col-span-7 space-y-2 text-gray-700">
               <div className="grid grid-cols-2 gap-3">
                 <p>
-                  <span className="font-semibold text-gray-900">
-                    Drug Code:
-                  </span>{" "}
-                  {drug.drugCode}
+                  <span className="font-semibold text-gray-900">License Plate:</span>{" "}
+                  {truck.licensePlate}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-900">Name:</span>{" "}
-                  {drug.name}
+                  <span className="font-semibold text-gray-900">Driver Name:</span>{" "}
+                  {truck.driverName || "-"}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-900">
-                    Drug Group:
-                  </span>{" "}
-                  {drug.drugGroup?.groupName || "-"}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-900">Unit:</span>{" "}
-                  {drug.unit}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-900">Price:</span>{" "}
-                  {drug.price}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-900">
-                    Manufacturer:
-                  </span>{" "}
-                  {drug.manufacturer || "-"}
+                  <span className="font-semibold text-gray-900">Driver Contact:</span>{" "}
+                  {truck.driverContact || "-"}
                 </p>
               </div>
 
               <div>
                 <p className="font-semibold text-gray-900">Description:</p>
                 <p className="text-sm text-gray-600 italic">
-                  {drug.description || "No description available."}
+                  {truck.description || "No description available."}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <p>
-                  <span className="font-semibold text-gray-900">
-                    Created At:
-                  </span>{" "}
-                  {drug.createdAt
-                    ? new Date(drug.createdAt).toLocaleDateString("vi-VN")
+                  <span className="font-semibold text-gray-900">Created At:</span>{" "}
+                  {truck.createdAt
+                    ? new Date(truck.createdAt).toLocaleDateString("vi-VN")
                     : "-"}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-900">
-                    Updated At:
-                  </span>{" "}
-                  {drug.updatedAt
-                    ? new Date(drug.updatedAt).toLocaleDateString("vi-VN")
+                  <span className="font-semibold text-gray-900">Updated At:</span>{" "}
+                  {truck.updatedAt
+                    ? new Date(truck.updatedAt).toLocaleDateString("vi-VN")
                     : "-"}
                 </p>
               </div>
@@ -113,14 +91,14 @@ const DrugDetailsModal: React.FC<DrugDetailsModalProps> = ({
                 <Chip
                   className="capitalize px-2 py-1 text-sm font-medium"
                   color={
-                    drug.status && statusColorMap[drug.status]
-                      ? statusColorMap[drug.status]
+                    truck.status && statusColorMap[truck.status]
+                      ? statusColorMap[truck.status]
                       : "default"
                   }
                   size="sm"
                   variant="flat"
                 >
-                  {drug.status}
+                  {truck.status}
                 </Chip>
               </div>
             </div>
@@ -138,4 +116,4 @@ const DrugDetailsModal: React.FC<DrugDetailsModalProps> = ({
   );
 };
 
-export default DrugDetailsModal;
+export default TruckDetailsModal;

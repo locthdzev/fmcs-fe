@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Button, Input, Select, SelectItem, Textarea } from "@heroui/react";
-import { createDrug } from "@/api/drug";
+import { updateDrug, getDrugById, DrugUpdateRequest } from "@/api/drug";
 import { getDrugGroups } from "@/api/druggroup";
 import { toast } from "react-toastify";
 import { FileUpload } from "../ui/file-upload";
@@ -11,35 +11,44 @@ interface DrugGroup {
   status: string;
 }
 
-interface CreateDrugFormProps {
+interface EditDrugFormProps {
+  drugId: string;
   onClose: () => void;
-  onCreate: () => void;
+  onUpdate: () => void;
 }
 
-const initialFormState = {
-  drugCode: "",
-  name: "",
-  unit: "",
-  price: 0,
-  drugGroupId: "",
-  description: "",
-  manufacturer: "",
-  createdAt: new Date().toISOString(),
-  status: "Active",
-  imageUrl: "",
-};
-
-export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
+export const EditDrugForm: React.FC<EditDrugFormProps> = ({
+  drugId,
   onClose,
-  onCreate,
+  onUpdate,
 }) => {
   const [drugGroups, setDrugGroups] = useState<DrugGroup[]>([]);
-  const [formData, setFormData] = useState(initialFormState);
+  const [formData, setFormData] = useState<DrugUpdateRequest | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const drugData = await getDrugById(drugId);
+        setFormData({
+          drugGroupId: drugData.drugGroup?.id || "",
+          drugCode: drugData.drugCode,
+          name: drugData.name,
+          unit: drugData.unit,
+          price: drugData.price,
+          description: drugData.description || "",
+          manufacturer: drugData.manufacturer || "",
+          createdAt: drugData.createdAt,
+          updatedAt: new Date().toISOString(),
+          status: drugData.status || "Active",
+          imageUrl: drugData.imageUrl || "",
+        });
+      } catch (error) {
+        toast.error("Failed to load drug details");
+      }
+    };
+
     const fetchDrugGroups = async () => {
       try {
         const data = await getDrugGroups();
@@ -48,26 +57,28 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
         toast.error("Failed to load drug groups");
       }
     };
+
+    fetchData();
     fetchDrugGroups();
-  }, []);
+  }, [drugId]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      drugGroupId: e.target.value,
-    }));
+    setFormData((prev) =>
+      prev ? { ...prev, drugGroupId: e.target.value } : null
+    );
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => (prev ? { ...prev, [name]: value } : null));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData) return;
+
     try {
       const formDataToSend = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
@@ -79,26 +90,22 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
       if (imageFile) {
         formDataToSend.append("imageFile", imageFile);
       }
+
       setLoading(true);
-      try {
-        await createDrug(formDataToSend);
-        toast.success("Drug created successfully");
-        onCreate();
-        onClose();
-      } catch (error) {
-        toast.error("Failed to create drug");
-      }
+      await updateDrug(drugId, formDataToSend);
+      toast.success("Drug updated successfully");
+      onUpdate();
+      onClose();
     } catch (error) {
-      toast.error("Failed to create drug");
+      toast.error("Failed to update drug");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReset = () => {
-    setFormData(initialFormState);
-    setImageFile(null);
-  };
+  if (!formData) {
+    return <p>Loading...</p>;
+  }
 
   return (
     <form onSubmit={handleSubmit}>
@@ -109,7 +116,9 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           label="Drug Group"
           id="drugGroupId"
           name="drugGroupId"
-          value={formData.drugGroupId}
+          defaultSelectedKeys={
+            formData.drugGroupId ? [formData.drugGroupId] : undefined
+          }
           onChange={handleSelectChange}
         >
           {drugGroups
@@ -147,38 +156,51 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           name="price"
           value={formData.price.toString()}
           onChange={handleInputChange}
-          isRequired
+          required
         />
         <Input
           label="Manufacturer"
           name="manufacturer"
-          value={formData.manufacturer || ""}
+          value={formData.manufacturer}
           onChange={handleInputChange}
-          required
         />
-
         <div className="col-span-2">
           <Textarea
             label="Description"
             name="description"
-            value={formData.description || ""}
+            value={formData.description}
             onChange={handleInputChange}
           />
         </div>
-
         <div className="col-span-2">
-          <div>
-            <FileUpload onChange={(files) => setImageFile(files[0])} />
+          <div className="col-span-5">
+            <div className="flex gap-4">
+              <p className="text-sm text-gray-500 text-left underline">
+                Current Drug Image:
+              </p>
+              <div className="flex items-center justify-center">
+                {formData.imageUrl && (
+                  <img
+                    src={formData.imageUrl}
+                    alt="Drug"
+                    className="w-24 h-24 rounded"
+                  />
+                )}
+              </div>
+            </div>
           </div>
+        </div>{" "}
+        <div className="col-span-2">
+          <FileUpload onChange={(files) => setImageFile(files[0])} />
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 mt-6">
-        <Button type="button" variant="flat" onClick={handleReset}>
-          Reset
+      <div className="flex justify-end gap-2 mt-4">
+        <Button type="button" variant="flat" onClick={onClose}>
+          Cancel
         </Button>
         <Button type="submit" color="primary" isLoading={loading}>
-          Create Drug
+          Update Drug
         </Button>
       </div>
     </form>

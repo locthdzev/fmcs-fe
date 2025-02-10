@@ -9,10 +9,11 @@ import {
 } from "./Icons";
 import {
   getDrugs,
-  createDrug,
-  updateDrug,
   deleteDrug,
   DrugResponse,
+  getDrugById,
+  activateDrugs,
+  deactivateDrugs,
 } from "@/api/drug";
 import {
   Table,
@@ -39,6 +40,9 @@ import {
   ModalFooter,
 } from "@heroui/react";
 import { CreateDrugForm } from "./CreateDrugForm";
+import DrugDetailsModal from "./DrugDetails";
+import { EditDrugForm } from "./EditDrugForm";
+import ConfirmDeleteDrugModal from "./ConfirmDelete";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -78,8 +82,22 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function Drugs() {
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingDrug, setDeletingDrug] = useState<DrugResponse | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingDrugId, setEditingDrugId] = useState<string>("");
+  const [selectedDrug, setSelectedDrug] = useState<DrugResponse | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterValue, setFilterValue] = React.useState("");
+  const [selectedDrugs, setSelectedDrugs] = useState<DrugResponse[]>([]);
+  const [showActivate, setShowActivate] = useState(false);
+  const [showDeactivate, setShowDeactivate] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<
+    "activate" | "deactivate" | null
+  >(null);
+
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
@@ -104,6 +122,26 @@ export function Drugs() {
   useEffect(() => {
     fetchDrugs();
   }, []);
+
+  useEffect(() => {
+    let selected: DrugResponse[] = [];
+
+    if (selectedKeys === "all") {
+      selected = drugs; // Nếu chọn "all", lấy toàn bộ danh sách thuốc
+    } else {
+      selected = drugs.filter((drug) =>
+        (selectedKeys as Set<string>).has(drug.id)
+      );
+    }
+
+    setSelectedDrugs(selected);
+
+    const hasActive = selected.some((drug) => drug.status === "Active");
+    const hasInactive = selected.some((drug) => drug.status === "Inactive");
+
+    setShowActivate(hasInactive);
+    setShowDeactivate(hasActive);
+  }, [selectedKeys, drugs]);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -164,6 +202,103 @@ export function Drugs() {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
+  const handleOpenDetails = async (id: string) => {
+    try {
+      const drug = await getDrugById(id);
+      setSelectedDrug(drug);
+      setIsDetailsModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load drug details");
+    }
+  };
+
+  const handleOpenEditModal = (id: string) => {
+    setEditingDrugId(id);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateSuccess = () => {
+    fetchDrugs();
+    setIsEditModalOpen(false);
+    setEditingDrugId("");
+  };
+
+  const handleOpenDeleteModal = async (id: string) => {
+    try {
+      const drug = await getDrugById(id);
+      setDeletingDrug(drug);
+      setIsDeleteModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load drug details for deletion");
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingDrug) return;
+    try {
+      await deleteDrug(deletingDrug.id);
+      toast.success("Drug deleted successfully");
+      await fetchDrugs();
+      setSelectedKeys(new Set());
+      setIsDeleteModalOpen(false);
+      setDeletingDrug(null);
+    } catch (error) {
+      toast.error("Failed to delete drug");
+    }
+  };
+
+  const handleActivate = async () => {
+    const ids = selectedDrugs
+      .filter((d) => d.status === "Inactive")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await activateDrugs(ids);
+      toast.success("Drugs activated successfully");
+      fetchDrugs();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to activate drugs");
+    }
+  };
+
+  const handleDeactivate = async () => {
+    const ids = selectedDrugs
+      .filter((d) => d.status === "Active")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await deactivateDrugs(ids);
+      toast.success("Drugs deactivated successfully");
+      fetchDrugs();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to deactivate drugs");
+    }
+  };
+
+  const handleConfirmActivate = () => {
+    setConfirmAction("activate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDeactivate = () => {
+    setConfirmAction("deactivate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (confirmAction === "activate") {
+      await handleActivate();
+    } else if (confirmAction === "deactivate") {
+      await handleDeactivate();
+    }
+    setIsConfirmModalOpen(false);
+    setConfirmAction(null);
+  };
+
   const renderCell = React.useCallback(
     (drug: DrugResponse, columnKey: React.Key) => {
       const cellValue = drug[columnKey as keyof DrugResponse];
@@ -178,7 +313,10 @@ export function Drugs() {
                   alt={drug.name}
                   className="w-8 h-8 mr-2 rounded"
                 />
-                <p className="text-bold text-small capitalize text-primary cursor-pointer hover:underline">
+                <p
+                  className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+                  onClick={() => handleOpenDetails(drug.id)}
+                >
                   {cellValue as string}
                 </p>
               </div>
@@ -212,8 +350,19 @@ export function Drugs() {
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu>
-                  <DropdownItem key="edit">Edit</DropdownItem>
-                  <DropdownItem key="delete">Delete</DropdownItem>
+                  <DropdownItem
+                    key="edit"
+                    onClick={() => handleOpenEditModal(drug.id)}
+                  >
+                    Edit
+                  </DropdownItem>
+                  <DropdownItem
+                    key="delete"
+                    className="text-danger"
+                    onClick={() => handleOpenDeleteModal(drug.id)}
+                  >
+                    Delete
+                  </DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             </div>
@@ -275,6 +424,19 @@ export function Drugs() {
             onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
+            <div className="flex gap-2">
+              {showActivate && (
+                <Button color="success" onClick={handleConfirmActivate}>
+                  Activate Selected
+                </Button>
+              )}
+              {showDeactivate && (
+                <Button color="danger" onClick={handleConfirmDeactivate}>
+                  Deactivate Selected
+                </Button>
+              )}
+            </div>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -352,6 +514,7 @@ export function Drugs() {
       </div>
     );
   }, [
+    selectedDrugs,
     filterValue,
     statusFilter,
     visibleColumns,
@@ -409,17 +572,75 @@ export function Drugs() {
         <h3 className="text-2xl font-bold">Drug Management</h3>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <ModalContent className="max-w-[800px]">
-          <ModalHeader>Create New Drug</ModalHeader>
+      {isModalOpen && (
+        <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
+          <ModalContent className="max-w-[800px]">
+            <ModalHeader>Add New Drug</ModalHeader>
+            <ModalBody>
+              <CreateDrugForm
+                onClose={() => {
+                  setIsModalOpen(false);
+                }}
+                onCreate={fetchDrugs}
+              />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
+      <DrugDetailsModal
+        drug={selectedDrug}
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+      />
+
+      {isEditModalOpen && (
+        <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <ModalContent className="max-w-[800px]">
+            <ModalHeader>Edit Drug</ModalHeader>
+            <ModalBody>
+              <EditDrugForm
+                drugId={editingDrugId}
+                onClose={() => setIsEditModalOpen(false)}
+                onUpdate={handleUpdateSuccess}
+              />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
+      <ConfirmDeleteDrugModal
+        drug={deletingDrug}
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirmDelete={handleConfirmDelete}
+      />
+
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+      >
+        <ModalContent>
+          <ModalHeader>Confirm Action</ModalHeader>
           <ModalBody>
-            <CreateDrugForm
-              onSuccess={() => {
-                fetchDrugs(); // Gọi lại danh sách thuốc
-                setIsModalOpen(false); // Đóng modal sau khi thêm thành công
-              }}
-            />
+            Are you sure you want to{" "}
+            {confirmAction === "activate" ? "activate" : "deactivate"} the
+            selected drugs?
           </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="flat"
+              onClick={() => setIsConfirmModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              color={confirmAction === "activate" ? "success" : "danger"}
+              onClick={handleConfirmAction}
+            >
+              Confirm
+            </Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
 

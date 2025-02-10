@@ -64,23 +64,17 @@ export const getDrugById = async (id: string) => {
 };
 
 export const createDrug = async (drugData: FormData) => {
-    try {
-        const response = await api.post("/drug-management/drugs", drugData);
-        return response.data;
-    } catch (error) {
-        throw error;
-    }
+  try {
+    const response = await api.post("/drug-management/drugs", drugData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
-export const updateDrug = async (id: string, drugData: DrugUpdateRequest) => {
+export const updateDrug = async (id: string, drugData: FormData) => {
   try {
-    const formData = new FormData();
-    Object.entries(drugData).forEach(([key, value]) => {
-      if (value !== undefined) {
-        formData.append(key, value);
-      }
-    });
-    const response = await api.put(`/drug-management/drugs/${id}`, formData);
+    const response = await api.put(`/drug-management/drugs/${id}`, drugData);
     return response.data;
   } catch (error) {
     throw error;
@@ -90,6 +84,27 @@ export const updateDrug = async (id: string, drugData: DrugUpdateRequest) => {
 export const deleteDrug = async (id: string) => {
   try {
     const response = await api.delete(`/drug-management/drugs/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const activateDrugs = async (drugIds: string[]) => {
+  try {
+    const response = await api.put("/drug-management/drugs/activate", drugIds);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deactivateDrugs = async (drugIds: string[]) => {
+  try {
+    const response = await api.put(
+      "/drug-management/drugs/deactivate",
+      drugIds
+    );
     return response.data;
   } catch (error) {
     throw error;

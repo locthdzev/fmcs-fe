@@ -5,14 +5,18 @@ import {
   VerticalDotsIcon,
   SearchIcon,
   ChevronDownIcon,
-  DrugGroupIcon,
+  TrucksIcon,
 } from "./Icons";
 import {
-  getDrugGroups,
-  DrugGroupResponse,
-  activateDrugGroups,
-  deactivateDrugGroups,
-} from "@/api/druggroup";
+  getTrucks,
+  createTruck,
+  updateTruck,
+  deleteTruck,
+  TruckResponse,
+  getTruckById,
+  activateTrucks,
+  deactivateTrucks,
+} from "@/api/truck";
 import {
   Table,
   TableHeader,
@@ -29,27 +33,29 @@ import {
   Chip,
   Pagination,
   Selection,
-  ChipProps,
-  SortDescriptor,
   Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
   ModalFooter,
+  SortDescriptor,
+  ChipProps,
 } from "@heroui/react";
-import { CreateDrugGroupForm } from "./CreateForm";
-import { EditDrugGroupForm } from "./EditForm";
+import { CreateTruckForm } from "./CreateTruckForm";
+import TruckDetailsModal from "./TruckDetails";
+import { EditTruckForm } from "./EditTruckForm";
+import ConfirmDeleteTruckModal from "./ConfirmDelete";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 }
 
 const columns = [
-  { name: "GROUP NAME", uid: "groupName", sortable: true },
-  { name: "DESCRIPTION", uid: "description" },
+  { name: "LICENSE PLATE", uid: "licensePlate", sortable: true },
+  { name: "DRIVER NAME", uid: "driverName", sortable: true },
+  { name: "STATUS", uid: "status" },
   { name: "CREATED AT", uid: "createdAt", sortable: true },
   { name: "UPDATED AT", uid: "updatedAt", sortable: true },
-  { name: "STATUS", uid: "status" },
   { name: "ACTIONS", uid: "actions" },
 ];
 
@@ -64,27 +70,35 @@ const statusColorMap: Record<string, ChipProps["color"]> = {
 };
 
 const INITIAL_VISIBLE_COLUMNS = [
-  "groupName",
-  "description",
+  "licensePlate",
+  "driverName",
   "createdAt",
   "status",
   "actions",
 ];
 
-export function DrugGroups() {
-  const [editingDrugGroupId, setEditingDrugGroupId] = useState<string>("");
+export function Trucks() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [filterValue, setFilterValue] = React.useState("");
-  const [selectedDrugGroups, setSelectedDrugGroups] = useState<
-    DrugGroupResponse[]
-  >([]);
-  const [showActivate, setShowActivate] = useState(false);
-  const [showDeactivate, setShowDeactivate] = useState(false);
+  const [editingTruckId, setEditingTruckId] = useState<string>("");
+  const [selectedTruck, setSelectedTruck] = useState<TruckResponse | null>(
+    null
+  );
+  const [deletingTruck, setDeletingTruck] = useState<TruckResponse | null>(
+    null
+  );
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<
     "activate" | "deactivate" | null
   >(null);
+  const [selectedTrucks, setSelectedTrucks] = useState<TruckResponse[]>([]);
+
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [filterValue, setFilterValue] = React.useState("");
+  const [showActivate, setShowActivate] = useState(false);
+  const [showDeactivate, setShowDeactivate] = useState(false);
+
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
@@ -93,46 +107,42 @@ export function DrugGroups() {
   );
   const [statusFilter, setStatusFilter] = React.useState<Selection>("all");
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
-  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "createdAt",
     direction: "ascending",
   });
 
-  const [page, setPage] = React.useState(1);
-  const [drugGroups, setDrugGroups] = React.useState<DrugGroupResponse[]>([]);
+  const [page, setPage] = useState(1);
+  const [trucks, setTrucks] = useState<TruckResponse[]>([]);
 
-  const fetchDrugGroups = async () => {
-    const data = await getDrugGroups();
-    setDrugGroups(data);
+  const fetchTrucks = async () => {
+    const data = await getTrucks();
+    setTrucks(data);
   };
 
   useEffect(() => {
-    fetchDrugGroups();
+    fetchTrucks();
   }, []);
 
   useEffect(() => {
-    let selected: DrugGroupResponse[] = [];
+    let selected: TruckResponse[] = [];
 
     if (selectedKeys === "all") {
-      selected = drugGroups; // Nếu chọn "all", lấy toàn bộ danh sách thuốc
+      selected = trucks; // Nếu chọn "all", lấy toàn bộ danh sách thuốc
     } else {
-      selected = drugGroups.filter((drugGroup) =>
-        (selectedKeys as Set<string>).has(drugGroup.id)
+      selected = trucks.filter((truck) =>
+        (selectedKeys as Set<string>).has(truck.id)
       );
     }
 
-    setSelectedDrugGroups(selected);
+    setSelectedTrucks(selected);
 
-    const hasActive = selected.some(
-      (drugGroup) => drugGroup.status === "Active"
-    );
-    const hasInactive = selected.some(
-      (drugGroup) => drugGroup.status === "Inactive"
-    );
+    const hasActive = selected.some((truck) => truck.status === "Active");
+    const hasInactive = selected.some((truck) => truck.status === "Inactive");
 
     setShowActivate(hasInactive);
     setShowDeactivate(hasActive);
-  }, [selectedKeys, drugGroups]);
+  }, [selectedKeys, trucks]);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -145,26 +155,26 @@ export function DrugGroups() {
   }, [visibleColumns]);
 
   const filteredItems = React.useMemo(() => {
-    let filteredGroups = [...drugGroups];
+    let filteredTrucks = [...trucks];
 
     if (hasSearchFilter) {
-      filteredGroups = filteredGroups.filter((group) =>
-        group.groupName.toLowerCase().includes(filterValue.toLowerCase())
+      filteredTrucks = filteredTrucks.filter((truck) =>
+        truck.licensePlate.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
     if (
       statusFilter !== "all" &&
       Array.from(statusFilter).length !== statusOptions.length
     ) {
-      filteredGroups = filteredGroups.filter(
-        (group) =>
-          group.status !== undefined &&
-          Array.from(statusFilter).includes(group.status)
+      filteredTrucks = filteredTrucks.filter(
+        (truck) =>
+          truck.status !== undefined &&
+          Array.from(statusFilter).includes(truck.status)
       );
     }
 
-    return filteredGroups;
-  }, [drugGroups, filterValue, statusFilter]);
+    return filteredTrucks;
+  }, [trucks, filterValue, statusFilter]);
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage);
 
@@ -176,9 +186,9 @@ export function DrugGroups() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: DrugGroupResponse, b: DrugGroupResponse) => {
-      const first = a[sortDescriptor.column as keyof DrugGroupResponse];
-      const second = b[sortDescriptor.column as keyof DrugGroupResponse];
+    return [...items].sort((a: TruckResponse, b: TruckResponse) => {
+      const first = a[sortDescriptor.column as keyof TruckResponse];
+      const second = b[sortDescriptor.column as keyof TruckResponse];
 
       let cmp = 0;
       if (typeof first === "string" && typeof second === "string") {
@@ -193,46 +203,85 @@ export function DrugGroups() {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
+  const handleOpenDetails = async (id: string) => {
+    try {
+      const truck = await getTruckById(id);
+      setSelectedTruck(truck);
+      setIsDetailsModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load truck details");
+    }
+  };
+
   const handleOpenEditModal = (id: string) => {
-    setEditingDrugGroupId(id);
+    setEditingTruckId(id);
     setIsEditModalOpen(true);
   };
 
   const handleUpdateSuccess = () => {
-    fetchDrugGroups();
+    fetchTrucks();
     setIsEditModalOpen(false);
-    setEditingDrugGroupId("");
+    setEditingTruckId("");
   };
 
+  const handleOpenDeleteModal = async (id: string) => {
+    try {
+      const drug = await getTruckById(id);
+      setDeletingTruck(drug);
+      setIsDeleteModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load drug details for deletion");
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingTruck) return;
+    try {
+      const response = await deleteTruck(deletingTruck.id);
+      if (!response.isSuccess) {
+        toast.error(response.message);
+        return;
+      }
+      
+      toast.success("Truck deleted successfully");
+      await fetchTrucks();
+      setSelectedKeys(new Set());
+      setIsDeleteModalOpen(false);
+      setDeletingTruck(null);
+    } catch (error: any) {
+      toast.error("Failed to delete truck");
+    }
+  };
+  
+
   const handleActivate = async () => {
-    const ids = selectedDrugGroups
+    const ids = selectedTrucks
       .filter((d) => d.status === "Inactive")
       .map((d) => d.id);
     if (ids.length === 0) return;
 
     try {
-      await activateDrugGroups(ids);
-      toast.success("Drug Groups activated successfully");
-      fetchDrugGroups();
+      await activateTrucks(ids);
+      toast.success("Trucks activated successfully");
+      fetchTrucks();
       setSelectedKeys(new Set());
     } catch (error) {
-      toast.error("Failed to activate drug groups");
+      toast.error("Failed to activate trucks");
     }
   };
-
   const handleDeactivate = async () => {
-    const ids = selectedDrugGroups
+    const ids = selectedTrucks
       .filter((d) => d.status === "Active")
       .map((d) => d.id);
     if (ids.length === 0) return;
 
     try {
-      await deactivateDrugGroups(ids);
-      toast.success("Drug groups deactivated successfully");
-      fetchDrugGroups();
+      await deactivateTrucks(ids);
+      toast.success("Trucks deactivated successfully");
+      fetchTrucks();
       setSelectedKeys(new Set());
     } catch (error) {
-      toast.error("Failed to deactivate drug groups");
+      toast.error("Failed to deactivate trucks");
     }
   };
 
@@ -245,7 +294,6 @@ export function DrugGroups() {
     setConfirmAction("deactivate");
     setIsConfirmModalOpen(true);
   };
-
   const handleConfirmAction = async () => {
     if (confirmAction === "activate") {
       await handleActivate();
@@ -257,16 +305,26 @@ export function DrugGroups() {
   };
 
   const renderCell = React.useCallback(
-    (drugGroup: DrugGroupResponse, columnKey: React.Key) => {
-      const cellValue = drugGroup[columnKey as keyof DrugGroupResponse];
+    (truck: TruckResponse, columnKey: React.Key) => {
+      const cellValue = truck[columnKey as keyof TruckResponse];
 
       switch (columnKey) {
-        case "groupName":
+        case "licensePlate":
           return (
-            <div className="flex flex-col">
-              <p className="text-bold text-small capitalize text-primary">
-                {cellValue as string}
-              </p>
+            <div className="flex flex-col items-start">
+              <div className="flex items-center">
+                <img
+                  src={truck.truckImage}
+                  alt={truck.licensePlate}
+                  className="w-8 h-8 mr-2 rounded"
+                />
+                <p
+                  className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+                  onClick={() => handleOpenDetails(truck.id)}
+                >
+                  {cellValue as string}
+                </p>
+              </div>
             </div>
           );
         case "status":
@@ -274,7 +332,7 @@ export function DrugGroups() {
             <Chip
               className="capitalize"
               color={
-                statusColorMap[drugGroup.status as keyof typeof statusColorMap]
+                statusColorMap[truck.status as keyof typeof statusColorMap]
               }
               size="sm"
               variant="flat"
@@ -297,17 +355,25 @@ export function DrugGroups() {
                 <DropdownMenu>
                   <DropdownItem
                     key="edit"
-                    onClick={() => handleOpenEditModal(drugGroup.id)}
+                    onClick={() => handleOpenEditModal(truck.id)}
                   >
                     Edit
                   </DropdownItem>
-                  {/* <DropdownItem key="delete">Delete</DropdownItem> */}
+                  <DropdownItem
+                    key="delete"
+                    className="text-danger"
+                    onClick={() => handleOpenDeleteModal(truck.id)}
+                  >
+                    Delete
+                  </DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             </div>
           );
         default:
-          return cellValue;
+          return typeof cellValue === "object"
+            ? JSON.stringify(cellValue)
+            : cellValue;
       }
     },
     []
@@ -354,7 +420,7 @@ export function DrugGroups() {
           <Input
             isClearable
             className="w-full sm:max-w-[44%]"
-            placeholder="Search by group name..."
+            placeholder="Search by license plate..."
             startContent={<SearchIcon />}
             value={filterValue}
             onClear={() => onClear()}
@@ -398,7 +464,6 @@ export function DrugGroups() {
                 ))}
               </DropdownMenu>
             </Dropdown>
-
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -423,18 +488,19 @@ export function DrugGroups() {
                 ))}
               </DropdownMenu>
             </Dropdown>
+
             <Button
               color="primary"
               endContent={<PlusIcon />}
               onClick={() => setIsModalOpen(true)}
             >
-              Add New
+              Add New Truck
             </Button>
           </div>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-default-400 text-small ml-4">
-            Total {drugGroups.length} drug groups
+            Total {trucks.length} drugs
           </span>
           <label className="flex items-center text-default-400 text-small">
             Rows per page:
@@ -451,14 +517,15 @@ export function DrugGroups() {
       </div>
     );
   }, [
-    selectedDrugGroups,
     filterValue,
     statusFilter,
     visibleColumns,
     selectedKeys,
     onSearchChange,
     onRowsPerPageChange,
-    drugGroups.length,
+    trucks.length,
+    showActivate,    
+    showDeactivate,
   ]);
 
   const bottomContent = React.useMemo(() => {
@@ -500,38 +567,44 @@ export function DrugGroups() {
         </div>
       </div>
     );
-  }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
+  }, [selectedKeys, items.length, page, pages]);
 
   return (
     <>
       <div className="flex items-center gap-2 mb-4 ml-4">
-        <DrugGroupIcon />
-        <h3 className="text-2xl font-bold">Drug Group Management</h3>
+        <TrucksIcon />
+        <h3 className="text-2xl font-bold">Truck Management</h3>
       </div>
 
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[500px]">
-            <ModalHeader>Add New Drug Group</ModalHeader>
+          <ModalContent className="max-w-[800px]">
+            <ModalHeader>Add New Truck</ModalHeader>
             <ModalBody>
-              <CreateDrugGroupForm
+              <CreateTruckForm
                 onClose={() => {
                   setIsModalOpen(false);
                 }}
-                onCreate={fetchDrugGroups}
+                onCreate={fetchTrucks}
               />
             </ModalBody>
           </ModalContent>
         </Modal>
       )}
 
+      <TruckDetailsModal
+        truck={selectedTruck}
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+      />
+
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent className="max-w-[500px]">
-            <ModalHeader>Edit Drug</ModalHeader>
+          <ModalContent className="max-w-[800px]">
+            <ModalHeader>Edit Truck</ModalHeader>
             <ModalBody>
-              <EditDrugGroupForm
-                drugGroupId={editingDrugGroupId}
+              <EditTruckForm
+                truckId={editingTruckId}
                 onClose={() => setIsEditModalOpen(false)}
                 onUpdate={handleUpdateSuccess}
               />
@@ -539,6 +612,13 @@ export function DrugGroups() {
           </ModalContent>
         </Modal>
       )}
+
+      <ConfirmDeleteTruckModal
+        truck={deletingTruck}
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirmDelete={handleConfirmDelete}
+      />
 
       <Modal
         isOpen={isConfirmModalOpen}
@@ -567,7 +647,7 @@ export function DrugGroups() {
 
       <Table
         isHeaderSticky
-        aria-label="Drug groups table"
+        aria-label="Trucks table"
         bottomContent={bottomContent}
         bottomContentPlacement="outside"
         classNames={{
@@ -592,7 +672,7 @@ export function DrugGroups() {
             </TableColumn>
           )}
         </TableHeader>
-        <TableBody emptyContent={"No drug groups found"} items={sortedItems}>
+        <TableBody emptyContent={"No trucks found"} items={sortedItems}>
           {(item) => (
             <TableRow key={item.id}>
               {(columnKey) => (
