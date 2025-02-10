@@ -76,3 +76,26 @@ export const deleteTruck = async (id: string) => {
     throw error;
   }
 };
+
+export const activateTrucks = async (truckIds: string[]) => {
+  try {
+    const response = await api.put(
+      "/truck-management/trucks/activate",
+      truckIds
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+export const deactivateTrucks = async (truckIds: string[]) => {
+  try {
+    const response = await api.put(
+      "/truck-management/trucks/deactivate",
+      truckIds
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
