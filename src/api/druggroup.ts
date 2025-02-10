@@ -86,7 +86,7 @@ export const updateDrugGroup = async (
 export const activateDrugGroups = async (drugGroupIds: string[]) => {
   try {
     const response = await api.put(
-      "/drug-management/druggroups/activate",
+      "/druggroup-management/druggroups/activate",
       drugGroupIds
     );
     return response.data;
@@ -98,7 +98,7 @@ export const activateDrugGroups = async (drugGroupIds: string[]) => {
 export const deactivateDrugGroups = async (drugGroupIds: string[]) => {
   try {
     const response = await api.put(
-      "/drug-management/druggroups/deactivate",
+      "/druggroup-management/druggroups/deactivate",
       drugGroupIds
     );
     return response.data;
