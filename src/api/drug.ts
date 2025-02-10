@@ -89,3 +89,24 @@ export const deleteDrug = async (id: string) => {
     throw error;
   }
 };
+
+export const activateDrugs = async (drugIds: string[]) => {
+  try {
+    const response = await api.put("/drug-management/drugs/activate", drugIds);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deactivateDrugs = async (drugIds: string[]) => {
+  try {
+    const response = await api.put(
+      "/drug-management/drugs/deactivate",
+      drugIds
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};

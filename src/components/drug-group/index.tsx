@@ -7,10 +7,7 @@ import {
   ChevronDownIcon,
   DrugGroupIcon,
 } from "./Icons";
-import {
-  getDrugGroups,
-  DrugGroupResponse,
-} from "@/api/druggroup";
+import { getDrugGroups, DrugGroupResponse } from "@/api/druggroup";
 import {
   Table,
   TableHeader,
@@ -29,7 +26,12 @@ import {
   Selection,
   ChipProps,
   SortDescriptor,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
 } from "@heroui/react";
+import { CreateDrugGroupForm } from "./CreateForm";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -63,6 +65,7 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function DrugGroups() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
@@ -297,7 +300,11 @@ export function DrugGroups() {
                 ))}
               </DropdownMenu>
             </Dropdown>
-            <Button color="primary" endContent={<PlusIcon />}>
+            <Button
+              color="primary"
+              endContent={<PlusIcon />}
+              onClick={() => setIsModalOpen(true)}
+            >
               Add New
             </Button>
           </div>
@@ -324,6 +331,7 @@ export function DrugGroups() {
     filterValue,
     statusFilter,
     visibleColumns,
+    selectedKeys,
     onSearchChange,
     onRowsPerPageChange,
     drugGroups.length,
@@ -375,7 +383,24 @@ export function DrugGroups() {
       <div className="flex items-center gap-2 mb-4 ml-4">
         <DrugGroupIcon />
         <h3 className="text-2xl font-bold">Drug Group Management</h3>
-      </div>{" "}
+      </div>
+
+      {isModalOpen && (
+        <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
+          <ModalContent className="max-w-[800px]">
+            <ModalHeader>Add New Drug</ModalHeader>
+            <ModalBody>
+              <CreateDrugGroupForm
+                onClose={() => {
+                  setIsModalOpen(false);
+                }}
+                onCreate={fetchDrugGroups}
+              />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
       <Table
         isHeaderSticky
         aria-label="Drug groups table"
