@@ -7,7 +7,12 @@ import {
   ChevronDownIcon,
   DrugGroupIcon,
 } from "./Icons";
-import { getDrugGroups, DrugGroupResponse } from "@/api/druggroup";
+import {
+  getDrugGroups,
+  DrugGroupResponse,
+  activateDrugGroups,
+  deactivateDrugGroups,
+} from "@/api/druggroup";
 import {
   Table,
   TableHeader,
@@ -30,6 +35,7 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
+  ModalFooter,
 } from "@heroui/react";
 import { CreateDrugGroupForm } from "./CreateForm";
 import { EditDrugGroupForm } from "./EditForm";
@@ -70,6 +76,15 @@ export function DrugGroups() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterValue, setFilterValue] = React.useState("");
+  const [selectedDrugGroups, setSelectedDrugGroups] = useState<
+    DrugGroupResponse[]
+  >([]);
+  const [showActivate, setShowActivate] = useState(false);
+  const [showDeactivate, setShowDeactivate] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<
+    "activate" | "deactivate" | null
+  >(null);
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
@@ -94,6 +109,30 @@ export function DrugGroups() {
   useEffect(() => {
     fetchDrugGroups();
   }, []);
+
+  useEffect(() => {
+    let selected: DrugGroupResponse[] = [];
+
+    if (selectedKeys === "all") {
+      selected = drugGroups; // Nếu chọn "all", lấy toàn bộ danh sách thuốc
+    } else {
+      selected = drugGroups.filter((drugGroup) =>
+        (selectedKeys as Set<string>).has(drugGroup.id)
+      );
+    }
+
+    setSelectedDrugGroups(selected);
+
+    const hasActive = selected.some(
+      (drugGroup) => drugGroup.status === "Active"
+    );
+    const hasInactive = selected.some(
+      (drugGroup) => drugGroup.status === "Inactive"
+    );
+
+    setShowActivate(hasInactive);
+    setShowDeactivate(hasActive);
+  }, [selectedKeys, drugGroups]);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -163,6 +202,58 @@ export function DrugGroups() {
     fetchDrugGroups();
     setIsEditModalOpen(false);
     setEditingDrugGroupId("");
+  };
+
+  const handleActivate = async () => {
+    const ids = selectedDrugGroups
+      .filter((d) => d.status === "Inactive")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await activateDrugGroups(ids);
+      toast.success("Drug Groups activated successfully");
+      fetchDrugGroups();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to activate drug groups");
+    }
+  };
+
+  const handleDeactivate = async () => {
+    const ids = selectedDrugGroups
+      .filter((d) => d.status === "Active")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await deactivateDrugGroups(ids);
+      toast.success("Drug groups deactivated successfully");
+      fetchDrugGroups();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to deactivate drug groups");
+    }
+  };
+
+  const handleConfirmActivate = () => {
+    setConfirmAction("activate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDeactivate = () => {
+    setConfirmAction("deactivate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (confirmAction === "activate") {
+      await handleActivate();
+    } else if (confirmAction === "deactivate") {
+      await handleDeactivate();
+    }
+    setIsConfirmModalOpen(false);
+    setConfirmAction(null);
   };
 
   const renderCell = React.useCallback(
@@ -270,6 +361,19 @@ export function DrugGroups() {
             onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
+            <div className="flex gap-2">
+              {showActivate && (
+                <Button color="success" onClick={handleConfirmActivate}>
+                  Activate Selected
+                </Button>
+              )}
+              {showDeactivate && (
+                <Button color="danger" onClick={handleConfirmDeactivate}>
+                  Deactivate Selected
+                </Button>
+              )}
+            </div>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -347,6 +451,7 @@ export function DrugGroups() {
       </div>
     );
   }, [
+    selectedDrugGroups,
     filterValue,
     statusFilter,
     visibleColumns,
@@ -434,6 +539,31 @@ export function DrugGroups() {
           </ModalContent>
         </Modal>
       )}
+
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+      >
+        <ModalContent>
+          <ModalHeader>Confirm Action</ModalHeader>
+          <ModalBody>
+            Are you sure you want to{" "}
+            {confirmAction === "activate" ? "activate" : "deactivate"} the
+            selected drugs?
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="flat" onClick={() => setIsConfirmModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              color={confirmAction === "activate" ? "success" : "danger"}
+              onClick={handleConfirmAction}
+            >
+              Confirm
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       <Table
         isHeaderSticky
