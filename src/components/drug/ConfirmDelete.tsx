@@ -31,59 +31,75 @@ const ConfirmDeleteDrugModal: React.FC<ConfirmDeleteDrugModalProps> = ({
   if (!drug) return null;
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-3xl">
-      <ModalContent>
-        <ModalHeader className="text-xl font-semibold text-gray-800">
-          Confirm Delete
+    <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
+      <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
+        <ModalHeader className="border-b pb-3">
+          <span className="text-red-500">Confirm Delete</span>
         </ModalHeader>
-        <ModalBody>
-          <p className="text-gray-700">
+        <ModalBody className="p-6">
+          <p className="text-gray-700 mb-4">
             Are you sure you want to delete the following drug?
           </p>
-          <div className="grid grid-cols-12 gap-6 p-4">
-            {/* Hình ảnh */}
-            <div className="col-span-5">
-              <div className="rounded-lg overflow-hidden shadow-md w-full">
-                <img
-                  src={drug.imageUrl}
-                  alt={drug.name}
-                  className="w-full h-64 transition-transform duration-300 hover:scale-105"
-                />
-              </div>
+          <div className="grid grid-cols-12 gap-6 items-start">
+            {/* Hình ảnh thuốc */}
+            <div className="col-span-5 flex justify-center items-center">
+              <img
+                src={drug.imageUrl}
+                alt={drug.name}
+                className="w-64 h-64 object-contain bg-white p-2 transition-transform duration-300 hover:scale-105"
+              />
             </div>
 
             {/* Thông tin thuốc */}
-            <div className="col-span-7 space-y-3 text-gray-700">
-              <p>
-                <span className="font-semibold text-gray-900">Drug Code:</span>{" "}
-                {drug.drugCode}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Name:</span>{" "}
-                {drug.name}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Drug Group:</span>{" "}
-                {drug.drugGroup?.groupName || "-"}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Unit:</span>{" "}
-                {drug.unit}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Price:</span>{" "}
-                {drug.price}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">
-                  Manufacturer:
-                </span>{" "}
-                {drug.manufacturer || "-"}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Status:</span>{" "}
+            <div className="col-span-7 space-y-4 text-gray-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { label: "Drug Code", value: drug.drugCode },
+                  { label: "Name", value: drug.name },
+                  { label: "Drug Group", value: drug.drugGroup?.groupName || "-" },
+                  { label: "Unit", value: drug.unit },
+                  { label: "Price", value: drug.price },
+                  { label: "Manufacturer", value: drug.manufacturer || "-" },
+                  {
+                    label: "Created At",
+                    value: drug.createdAt
+                      ? new Date(drug.createdAt).toLocaleDateString("vi-VN")
+                      : "-",
+                  },
+                  {
+                    label: "Updated At",
+                    value: drug.updatedAt
+                      ? new Date(drug.updatedAt).toLocaleDateString("vi-VN")
+                      : "-",
+                  },
+                ].map((field, index) => (
+                  <label
+                    key={index}
+                    className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm"
+                  >
+                    <span className="text-xs font-medium text-gray-700">
+                      {field.label}
+                    </span>
+                    <div className="mt-1 w-full border-none p-0 sm:text-sm">
+                      {field.value}
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              <label className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                <span className="text-xs font-medium text-gray-700">
+                  Description
+                </span>
+                <div className="mt-1 w-full border-none p-0 sm:text-sm text-gray-600 italic">
+                  {drug.description || "No description available."}
+                </div>
+              </label>
+
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-900 underline">Status:</span>
                 <Chip
-                  className="capitalize"
+                  className="capitalize px-2 py-1 text-sm font-medium"
                   color={
                     drug.status && statusColorMap[drug.status]
                       ? statusColorMap[drug.status]
@@ -94,12 +110,12 @@ const ConfirmDeleteDrugModal: React.FC<ConfirmDeleteDrugModalProps> = ({
                 >
                   {drug.status}
                 </Chip>
-              </p>
+              </div>
             </div>
           </div>
         </ModalBody>
-        <ModalFooter>
-          <Button variant="flat" onClick={onClose}>
+        <ModalFooter className="border-t pt-3">
+          <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
           <Button color="danger" onClick={onConfirmDelete}>

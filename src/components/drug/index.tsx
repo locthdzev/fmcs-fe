@@ -342,7 +342,7 @@ export function Drugs() {
             : "-";
         case "actions":
           return (
-            <div className="relative flex justify-end items-center gap-2">
+            <div className="relative flex justify-center">
               <Dropdown>
                 <DropdownTrigger>
                   <Button isIconOnly size="sm" variant="light">
@@ -575,7 +575,7 @@ export function Drugs() {
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
           <ModalContent className="max-w-[800px]">
-            <ModalHeader>Add New Drug</ModalHeader>
+            <ModalHeader className="border-b pb-3">Add New Drug</ModalHeader>
             <ModalBody>
               <CreateDrugForm
                 onClose={() => {
@@ -597,7 +597,7 @@ export function Drugs() {
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <ModalContent className="max-w-[800px]">
-            <ModalHeader>Edit Drug</ModalHeader>
+            <ModalHeader className="border-b pb-3">Edit Drug</ModalHeader>
             <ModalBody>
               <EditDrugForm
                 drugId={editingDrugId}
@@ -621,7 +621,7 @@ export function Drugs() {
         onClose={() => setIsConfirmModalOpen(false)}
       >
         <ModalContent>
-          <ModalHeader>Confirm Action</ModalHeader>
+          <ModalHeader className="border-b pb-3">Confirm Action</ModalHeader>
           <ModalBody>
             Are you sure you want to{" "}
             {confirmAction === "activate" ? "activate" : "deactivate"} the
