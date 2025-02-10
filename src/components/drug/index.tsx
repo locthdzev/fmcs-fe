@@ -9,11 +9,11 @@ import {
 } from "./Icons";
 import {
   getDrugs,
-  createDrug,
-  updateDrug,
   deleteDrug,
   DrugResponse,
   getDrugById,
+  activateDrugs,
+  deactivateDrugs,
 } from "@/api/drug";
 import {
   Table,
@@ -90,6 +90,10 @@ export function Drugs() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterValue, setFilterValue] = React.useState("");
+  const [selectedDrugs, setSelectedDrugs] = useState<DrugResponse[]>([]);
+  const [showActivate, setShowActivate] = useState(false);
+  const [showDeactivate, setShowDeactivate] = useState(false);
+
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
@@ -114,6 +118,26 @@ export function Drugs() {
   useEffect(() => {
     fetchDrugs();
   }, []);
+
+  useEffect(() => {
+    let selected: DrugResponse[] = [];
+
+    if (selectedKeys === "all") {
+      selected = drugs; // Nếu chọn "all", lấy toàn bộ danh sách thuốc
+    } else {
+      selected = drugs.filter((drug) =>
+        (selectedKeys as Set<string>).has(drug.id)
+      );
+    }
+
+    setSelectedDrugs(selected);
+
+    const hasActive = selected.some((drug) => drug.status === "Active");
+    const hasInactive = selected.some((drug) => drug.status === "Inactive");
+
+    setShowActivate(hasInactive);
+    setShowDeactivate(hasActive);
+  }, [selectedKeys, drugs]);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -216,6 +240,38 @@ export function Drugs() {
       setDeletingDrug(null);
     } catch (error) {
       toast.error("Failed to delete drug");
+    }
+  };
+
+  const handleActivate = async () => {
+    const ids = selectedDrugs
+      .filter((d) => d.status === "Inactive")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await activateDrugs(ids);
+      toast.success("Drugs activated successfully");
+      fetchDrugs();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to activate drugs");
+    }
+  };
+
+  const handleDeactivate = async () => {
+    const ids = selectedDrugs
+      .filter((d) => d.status === "Active")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await deactivateDrugs(ids);
+      toast.success("Drugs deactivated successfully");
+      fetchDrugs();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to deactivate drugs");
     }
   };
 
@@ -344,6 +400,19 @@ export function Drugs() {
             onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
+            <div className="flex gap-2">
+              {showActivate && (
+                <Button color="success" onClick={handleActivate}>
+                  Activate Selected
+                </Button>
+              )}
+              {showDeactivate && (
+                <Button color="danger" onClick={handleDeactivate}>
+                  Deactivate Selected
+                </Button>
+              )}
+            </div>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -421,6 +490,7 @@ export function Drugs() {
       </div>
     );
   }, [
+    selectedDrugs,
     filterValue,
     statusFilter,
     visibleColumns,
