@@ -7,10 +7,7 @@ import {
   ChevronDownIcon,
   DrugGroupIcon,
 } from "./Icons";
-import {
-  getDrugGroups,
-  DrugGroupResponse,
-} from "@/api/druggroup";
+import { getDrugGroups, DrugGroupResponse } from "@/api/druggroup";
 import {
   Table,
   TableHeader,

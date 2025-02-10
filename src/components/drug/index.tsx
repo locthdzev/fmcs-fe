@@ -93,6 +93,10 @@ export function Drugs() {
   const [selectedDrugs, setSelectedDrugs] = useState<DrugResponse[]>([]);
   const [showActivate, setShowActivate] = useState(false);
   const [showDeactivate, setShowDeactivate] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<
+    "activate" | "deactivate" | null
+  >(null);
 
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
@@ -275,6 +279,26 @@ export function Drugs() {
     }
   };
 
+  const handleConfirmActivate = () => {
+    setConfirmAction("activate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDeactivate = () => {
+    setConfirmAction("deactivate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (confirmAction === "activate") {
+      await handleActivate();
+    } else if (confirmAction === "deactivate") {
+      await handleDeactivate();
+    }
+    setIsConfirmModalOpen(false);
+    setConfirmAction(null);
+  };
+
   const renderCell = React.useCallback(
     (drug: DrugResponse, columnKey: React.Key) => {
       const cellValue = drug[columnKey as keyof DrugResponse];
@@ -402,12 +426,12 @@ export function Drugs() {
           <div className="flex gap-3">
             <div className="flex gap-2">
               {showActivate && (
-                <Button color="success" onClick={handleActivate}>
+                <Button color="success" onClick={handleConfirmActivate}>
                   Activate Selected
                 </Button>
               )}
               {showDeactivate && (
-                <Button color="danger" onClick={handleDeactivate}>
+                <Button color="danger" onClick={handleConfirmDeactivate}>
                   Deactivate Selected
                 </Button>
               )}
@@ -591,6 +615,34 @@ export function Drugs() {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirmDelete={handleConfirmDelete}
       />
+
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+      >
+        <ModalContent>
+          <ModalHeader>Confirm Action</ModalHeader>
+          <ModalBody>
+            Are you sure you want to{" "}
+            {confirmAction === "activate" ? "activate" : "deactivate"} the
+            selected drugs?
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="flat"
+              onClick={() => setIsConfirmModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              color={confirmAction === "activate" ? "success" : "danger"}
+              onClick={handleConfirmAction}
+            >
+              Confirm
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       <Table
         isHeaderSticky
