@@ -311,7 +311,8 @@ export function Drugs() {
                 <img
                   src={drug.imageUrl}
                   alt={drug.name}
-                  className="w-8 h-8 mr-2 rounded"
+                  className="w-8 h-8 mr-2 rounded cursor-pointer"
+                  onClick={() => handleOpenDetails(drug.id)}
                 />
                 <p
                   className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
@@ -628,10 +629,7 @@ export function Drugs() {
             selected drugs?
           </ModalBody>
           <ModalFooter>
-            <Button
-              variant="flat"
-              onClick={() => setIsConfirmModalOpen(false)}
-            >
+            <Button variant="flat" onClick={() => setIsConfirmModalOpen(false)}>
               Cancel
             </Button>
             <Button
