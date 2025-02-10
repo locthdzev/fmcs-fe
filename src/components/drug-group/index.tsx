@@ -287,7 +287,7 @@ export function DrugGroups() {
           return cellValue ? formatDate(cellValue as string) : "-";
         case "actions":
           return (
-            <div className="relative flex justify-end items-center gap-2">
+            <div className="relative flex justify-center">
               <Dropdown>
                 <DropdownTrigger>
                   <Button isIconOnly size="sm" variant="light">
