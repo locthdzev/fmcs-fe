@@ -53,6 +53,7 @@ export function capitalize(s: string) {
 const columns = [
   { name: "LICENSE PLATE", uid: "licensePlate", sortable: true },
   { name: "DRIVER NAME", uid: "driverName", sortable: true },
+  { name: "DRIVER CONTACT", uid: "driverContact", sortable: true },
   { name: "STATUS", uid: "status" },
   { name: "CREATED AT", uid: "createdAt", sortable: true },
   { name: "UPDATED AT", uid: "updatedAt", sortable: true },
@@ -72,6 +73,7 @@ const statusColorMap: Record<string, ChipProps["color"]> = {
 const INITIAL_VISIBLE_COLUMNS = [
   "licensePlate",
   "driverName",
+  "driverContact",
   "createdAt",
   "status",
   "actions",
@@ -242,7 +244,7 @@ export function Trucks() {
         toast.error(response.message);
         return;
       }
-      
+
       toast.success("Truck deleted successfully");
       await fetchTrucks();
       setSelectedKeys(new Set());
@@ -252,7 +254,6 @@ export function Trucks() {
       toast.error("Failed to delete truck");
     }
   };
-  
 
   const handleActivate = async () => {
     const ids = selectedTrucks
@@ -325,6 +326,14 @@ export function Trucks() {
                   {cellValue as string}
                 </p>
               </div>
+            </div>
+          );
+        case "driverContact":
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">
+                {truck.driverContact || "-"}
+              </p>
             </div>
           );
         case "status":
@@ -524,7 +533,7 @@ export function Trucks() {
     onSearchChange,
     onRowsPerPageChange,
     trucks.length,
-    showActivate,    
+    showActivate,
     showDeactivate,
   ]);
 
