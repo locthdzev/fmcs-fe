@@ -43,6 +43,7 @@ import { CreateDrugForm } from "./CreateDrugForm";
 import DrugDetailsModal from "./DrugDetails";
 import { EditDrugForm } from "./EditDrugForm";
 import ConfirmDeleteDrugModal from "./ConfirmDelete";
+import { useRouter } from "next/router";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -83,6 +84,7 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function Drugs() {
+  const router = useRouter();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingDrug, setDeletingDrug] = useState<DrugResponse | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -122,6 +124,29 @@ export function Drugs() {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     setDrugs(sortedData);
+  };
+
+  // Lấy page từ URL khi component mount
+  useEffect(() => {
+    const queryPage = Number(router.query.page) || 1;
+    setPage(queryPage);
+  }, [router.query.page]);
+
+  // Hàm cập nhật URL khi đổi trang
+  const updatePageInUrl = (newPage: number) => {
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: newPage },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const onPageChange = (newPage: number) => {
+    setPage(newPage);
+    updatePageInUrl(newPage);
   };
 
   useEffect(() => {
@@ -576,7 +601,7 @@ export function Drugs() {
           color="primary"
           page={page}
           total={pages}
-          onChange={setPage}
+          onChange={onPageChange} // biding page lên url nè
         />
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
