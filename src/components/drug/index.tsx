@@ -397,9 +397,20 @@ export function Drugs() {
         case "updatedAt":
           return cellValue ? formatDate(cellValue as string) : "-";
         case "drugGroup":
-          return cellValue && typeof cellValue === "object"
-            ? (cellValue as { groupName: string }).groupName
-            : "-";
+          return cellValue && typeof cellValue === "object" ? (
+            <div
+              className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+              onClick={() =>
+                router.push(
+                  `/drug-group/details?id=${(cellValue as { id: string }).id}`
+                )
+              }
+            >
+              {(cellValue as { groupName: string }).groupName}
+            </div>
+          ) : (
+            "-"
+          );
         case "actions":
           return (
             <div className="relative flex justify-center">
