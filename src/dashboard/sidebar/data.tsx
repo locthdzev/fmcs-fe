@@ -52,7 +52,7 @@ export const data = [
           {
             title: "DrugSuppliers",
             icon: <DrugSupplierIcon />,
-            link: "/drug/drug-supplier",
+            link: "/drug-supplier/management",
           },
         ],
       },
