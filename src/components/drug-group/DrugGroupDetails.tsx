@@ -144,7 +144,7 @@ export function DrugGroupDetails() {
   return (
     <div ref={{ current: null }} className="space-y-6 p-6">
       <button
-        onClick={() => router.push("/drug-group/management")}
+        onClick={() => router.back()}
         className="p-0.5 text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-100 w-6 h-6 flex items-center justify-center mb-0"
       >
         <svg
