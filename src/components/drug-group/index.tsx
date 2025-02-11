@@ -39,6 +39,7 @@ import {
 } from "@heroui/react";
 import { CreateDrugGroupForm } from "./CreateForm";
 import { EditDrugGroupForm } from "./EditForm";
+import { useRouter } from "next/router";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -256,19 +257,22 @@ export function DrugGroups() {
     setConfirmAction(null);
   };
 
+  const router = useRouter(); 
+
   const renderCell = React.useCallback(
     (drugGroup: DrugGroupResponse, columnKey: React.Key) => {
       const cellValue = drugGroup[columnKey as keyof DrugGroupResponse];
 
       switch (columnKey) {
         case "groupName":
-          return (
-            <div className="flex flex-col">
-              <p className="text-bold text-small capitalize text-primary">
-                {cellValue as string}
-              </p>
-            </div>
-          );
+        return (
+          <div
+            className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+            onClick={() => router.push(`/drug-group/details?id=${drugGroup.id}`)}
+          >
+            {cellValue as string}
+          </div>
+        );
         case "status":
           return (
             <Chip
@@ -287,7 +291,7 @@ export function DrugGroups() {
           return cellValue ? formatDate(cellValue as string) : "-";
         case "actions":
           return (
-            <div className="relative flex justify-end items-center gap-2">
+            <div className="relative flex justify-center">
               <Dropdown>
                 <DropdownTrigger>
                   <Button isIconOnly size="sm" variant="light">
@@ -451,6 +455,7 @@ export function DrugGroups() {
       </div>
     );
   }, [
+    router,
     selectedDrugGroups,
     filterValue,
     statusFilter,
@@ -512,7 +517,7 @@ export function DrugGroups() {
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
           <ModalContent className="max-w-[500px]">
-            <ModalHeader>Add New Drug Group</ModalHeader>
+            <ModalHeader className="border-b pb-3">Add New Drug Group</ModalHeader>
             <ModalBody>
               <CreateDrugGroupForm
                 onClose={() => {
@@ -528,7 +533,7 @@ export function DrugGroups() {
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <ModalContent className="max-w-[500px]">
-            <ModalHeader>Edit Drug</ModalHeader>
+            <ModalHeader className="border-b pb-3">Edit Drug</ModalHeader>
             <ModalBody>
               <EditDrugGroupForm
                 drugGroupId={editingDrugGroupId}
