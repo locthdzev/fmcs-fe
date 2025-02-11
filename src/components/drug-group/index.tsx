@@ -265,6 +265,29 @@ export function DrugGroups() {
 
   const router = useRouter();
 
+  // Lấy page từ URL khi component mount
+  useEffect(() => {
+    const queryPage = Number(router.query.page) || 1;
+    setPage(queryPage);
+  }, [router.query.page]);
+
+  // Hàm cập nhật URL khi đổi trang
+  const updatePageInUrl = (newPage: number) => {
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: newPage },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const onPageChange = (newPage: number) => {
+    setPage(newPage);
+    updatePageInUrl(newPage);
+  };
+
   const renderCell = React.useCallback(
     (drugGroup: DrugGroupResponse, columnKey: React.Key) => {
       const cellValue = drugGroup[columnKey as keyof DrugGroupResponse];
@@ -491,7 +514,7 @@ export function DrugGroups() {
           color="primary"
           page={page}
           total={pages}
-          onChange={setPage}
+          onChange={onPageChange}
         />
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
