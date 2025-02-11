@@ -54,6 +54,7 @@ const columns = [
   { name: "DRUG GROUP", uid: "drugGroup", sortable: true },
   { name: "UNIT", uid: "unit" },
   { name: "PRICE", uid: "price", sortable: true },
+  { name: "MANUFACTURER", uid: "manufacturer", sortable: true },
   { name: "CREATED AT", uid: "createdAt", sortable: true },
   { name: "UPDATED AT", uid: "updatedAt", sortable: true },
   { name: "STATUS", uid: "status" },
@@ -108,7 +109,7 @@ export function Drugs() {
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "createdAt",
-    direction: "ascending",
+    direction: "descending",
   });
 
   const [page, setPage] = useState(1);
@@ -116,7 +117,11 @@ export function Drugs() {
 
   const fetchDrugs = async () => {
     const data = await getDrugs();
-    setDrugs(data);
+    const sortedData = data.sort(
+      (a: DrugResponse, b: DrugResponse) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    setDrugs(sortedData);
   };
 
   useEffect(() => {
@@ -153,14 +158,26 @@ export function Drugs() {
     );
   }, [visibleColumns]);
 
+  /**
+   * Search filter
+   */
   const filteredItems = React.useMemo(() => {
     let filteredDrugs = [...drugs];
 
     if (hasSearchFilter) {
-      filteredDrugs = filteredDrugs.filter((drug) =>
-        drug.name.toLowerCase().includes(filterValue.toLowerCase())
+      const lowerFilter = filterValue.toLowerCase();
+
+      filteredDrugs = filteredDrugs.filter(
+        (drug) =>
+          drug.name.toLowerCase().includes(lowerFilter) ||
+          drug.drugCode.toLowerCase().includes(lowerFilter) ||
+          (drug.drugGroup?.groupName?.toLowerCase() || "").includes(
+            lowerFilter
+          ) ||
+          (drug.manufacturer?.toLowerCase() || "").includes(lowerFilter)
       );
     }
+
     if (
       statusFilter !== "all" &&
       Array.from(statusFilter).length !== statusOptions.length
@@ -184,19 +201,36 @@ export function Drugs() {
     return filteredItems.slice(start, end);
   }, [page, filteredItems, rowsPerPage]);
 
+  /**
+   * Sorting descending and ascending
+   */
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: DrugResponse, b: DrugResponse) => {
-      const first = a[sortDescriptor.column as keyof DrugResponse];
-      const second = b[sortDescriptor.column as keyof DrugResponse];
+    return [...filteredItems]
+      .sort((a: DrugResponse, b: DrugResponse) => {
+        const first = a[sortDescriptor.column as keyof DrugResponse];
+        const second = b[sortDescriptor.column as keyof DrugResponse];
 
-      let cmp = 0;
-      if (typeof first === "string" && typeof second === "string") {
-        cmp = first.localeCompare(second);
-      }
+        let cmp = 0;
+        if (sortDescriptor.column === "drugGroup") {
+          const firstGroup = first
+            ? (first as { groupName: string })?.groupName || ""
+            : "";
+          const secondGroup = second
+            ? (second as { groupName: string })?.groupName || ""
+            : "";
+          cmp = firstGroup.localeCompare(secondGroup);
+        } else if (sortDescriptor.column === "price") {
+          cmp =
+            (parseFloat(first as string) || 0) -
+            (parseFloat(second as string) || 0);
+        } else if (typeof first === "string" && typeof second === "string") {
+          cmp = first.localeCompare(second);
+        }
 
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
-  }, [sortDescriptor, items]);
+        return sortDescriptor.direction === "descending" ? -cmp : cmp;
+      })
+      .slice((page - 1) * rowsPerPage, page * rowsPerPage); // Áp dụng phân trang sau khi sắp xếp
+  }, [sortDescriptor, filteredItems, page, rowsPerPage]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN");
