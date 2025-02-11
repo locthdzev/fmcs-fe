@@ -181,18 +181,20 @@ export function DrugGroups() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: DrugGroupResponse, b: DrugGroupResponse) => {
-      const first = a[sortDescriptor.column as keyof DrugGroupResponse];
-      const second = b[sortDescriptor.column as keyof DrugGroupResponse];
+    return [...filteredItems]
+      .sort((a: DrugGroupResponse, b: DrugGroupResponse) => {
+        const first = a[sortDescriptor.column as keyof DrugGroupResponse];
+        const second = b[sortDescriptor.column as keyof DrugGroupResponse];
 
-      let cmp = 0;
-      if (typeof first === "string" && typeof second === "string") {
-        cmp = first.localeCompare(second);
-      }
+        let cmp = 0;
+        if (typeof first === "string" && typeof second === "string") {
+          cmp = first.localeCompare(second);
+        }
 
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
-  }, [sortDescriptor, items]);
+        return sortDescriptor.direction === "descending" ? -cmp : cmp;
+      })
+      .slice((page - 1) * rowsPerPage, page * rowsPerPage); // Áp dụng phân trang sau khi sắp xếp
+  }, [sortDescriptor, filteredItems, page, rowsPerPage]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN");

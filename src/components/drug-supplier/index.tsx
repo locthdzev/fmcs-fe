@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import {
@@ -10,10 +9,10 @@ import {
 } from "./Icons";
 import {
   getDrugSuppliers,
-  createDrugSupplier,
-  updateDrugSupplier,
-  deleteDrugSupplier,
   DrugSupplierResponse,
+  activateDrugSuppliers,
+  deactivateDrugSuppliers,
+  getDrugSupplierById,
 } from "@/api/drugsupplier";
 import {
   Table,
@@ -33,7 +32,16 @@ import {
   Selection,
   ChipProps,
   SortDescriptor,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from "@heroui/react";
+import { CreateDrugSupplierForm } from "./CreateForm";
+import { EditDrugSupplierForm } from "./EditForm";
+import { useRouter } from "next/router";
+import DrugSupplierDetailsModal from "./Details";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -64,48 +72,84 @@ const INITIAL_VISIBLE_COLUMNS = [
   "supplierName",
   "contactNumber",
   "email",
-  "createdAt",
   "status",
   "actions",
 ];
 
 export function DrugSuppliers() {
-  const [filterValue, setFilterValue] = React.useState("");
-  const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set([]));
-  const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
+  const [selectedSupplier, setSelectedSupplier] =
+    useState<DrugSupplierResponse | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [editingSupplierId, setEditingSupplierId] = useState<string>("");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [filterValue, setFilterValue] = useState("");
+  const [selectedSuppliers, setSelectedSuppliers] = useState<
+    DrugSupplierResponse[]
+  >([]);
+  const [showActivate, setShowActivate] = useState(false);
+  const [showDeactivate, setShowDeactivate] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<
+    "activate" | "deactivate" | null
+  >(null);
+  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
+  const [visibleColumns, setVisibleColumns] = useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
-  const [statusFilter, setStatusFilter] = React.useState<Selection>("all");
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
-  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+  const [statusFilter, setStatusFilter] = useState<Selection>("all");
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "createdAt",
-    direction: "ascending",
+    direction: "descending",
   });
-
-  const [page, setPage] = React.useState(1);
-  const [drugSuppliers, setDrugSuppliers] = React.useState<DrugSupplierResponse[]>([]);
+  const [page, setPage] = useState(1);
+  const [suppliers, setSuppliers] = useState<DrugSupplierResponse[]>([]);
 
   const fetchDrugSuppliers = async () => {
     const data = await getDrugSuppliers();
-    setDrugSuppliers(data);
+    const sortedData = data.sort(
+      (a: DrugSupplierResponse, b: DrugSupplierResponse) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    setSuppliers(sortedData);
   };
 
   useEffect(() => {
     fetchDrugSuppliers();
   }, []);
 
+  useEffect(() => {
+    let selected: DrugSupplierResponse[] = [];
+    if (selectedKeys === "all") {
+      selected = suppliers; // If "all" is selected, get all suppliers
+    } else {
+      selected = suppliers.filter((supplier) =>
+        (selectedKeys as Set<string>).has(supplier.id)
+      );
+    }
+
+    setSelectedSuppliers(selected);
+    const hasActive = selected.some((supplier) => supplier.status === "Active");
+    const hasInactive = selected.some(
+      (supplier) => supplier.status === "Inactive"
+    );
+
+    setShowActivate(hasInactive);
+    setShowDeactivate(hasActive);
+  }, [selectedKeys, suppliers]);
+
   const hasSearchFilter = Boolean(filterValue);
 
   const headerColumns = React.useMemo(() => {
     if (visibleColumns === "all") return columns;
-
     return columns.filter((column) =>
       Array.from(visibleColumns).includes(column.uid)
     );
   }, [visibleColumns]);
 
   const filteredItems = React.useMemo(() => {
-    let filteredSuppliers = [...drugSuppliers];
+    let filteredSuppliers = [...suppliers];
 
     if (hasSearchFilter) {
       filteredSuppliers = filteredSuppliers.filter((supplier) =>
@@ -124,7 +168,7 @@ export function DrugSuppliers() {
     }
 
     return filteredSuppliers;
-  }, [drugSuppliers, filterValue, statusFilter]);
+  }, [suppliers, filterValue, statusFilter]);
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage);
 
@@ -136,22 +180,99 @@ export function DrugSuppliers() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: DrugSupplierResponse, b: DrugSupplierResponse) => {
-      const first = a[sortDescriptor.column as keyof DrugSupplierResponse];
-      const second = b[sortDescriptor.column as keyof DrugSupplierResponse];
+    return [...filteredItems]
+      .sort((a: DrugSupplierResponse, b: DrugSupplierResponse) => {
+        const first = a[sortDescriptor.column as keyof DrugSupplierResponse];
+        const second = b[sortDescriptor.column as keyof DrugSupplierResponse];
 
-      let cmp = 0;
-      if (typeof first === "string" && typeof second === "string") {
-        cmp = first.localeCompare(second);
-      }
+        let cmp = 0;
+        if (typeof first === "string" && typeof second === "string") {
+          cmp = first.localeCompare(second);
+        }
 
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
-  }, [sortDescriptor, items]);
+        return sortDescriptor.direction === "descending" ? -cmp : cmp;
+      })
+      .slice((page - 1) * rowsPerPage, page * rowsPerPage); // Apply pagination after sorting
+  }, [sortDescriptor, filteredItems, page, rowsPerPage]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
+
+  const handleOpenDetails = async (id: string) => {
+    try {
+      const supplier = await getDrugSupplierById(id);
+      setSelectedSupplier(supplier); // Đúng hơn là set dữ liệu supplier
+      setIsDetailsModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load drug details");
+    }
+  };
+
+  const handleOpenEditModal = (id: string) => {
+    setEditingSupplierId(id);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateSuccess = () => {
+    fetchDrugSuppliers();
+    setIsEditModalOpen(false);
+    setEditingSupplierId("");
+  };
+
+  const handleActivate = async () => {
+    const ids = selectedSuppliers
+      .filter((s) => s.status === "Inactive")
+      .map((s) => s.id);
+    if (ids.length === 0) return;
+
+    try {
+      await activateDrugSuppliers(ids);
+      toast.success("Drug Suppliers activated successfully");
+      fetchDrugSuppliers();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to activate drug suppliers");
+    }
+  };
+
+  const handleDeactivate = async () => {
+    const ids = selectedSuppliers
+      .filter((s) => s.status === "Active")
+      .map((s) => s.id);
+    if (ids.length === 0) return;
+
+    try {
+      await deactivateDrugSuppliers(ids);
+      toast.success("Drug suppliers deactivated successfully");
+      fetchDrugSuppliers();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to deactivate drug suppliers");
+    }
+  };
+
+  const handleConfirmActivate = () => {
+    setConfirmAction("activate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDeactivate = () => {
+    setConfirmAction("deactivate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (confirmAction === "activate") {
+      await handleActivate();
+    } else if (confirmAction === "deactivate") {
+      await handleDeactivate();
+    }
+    setIsConfirmModalOpen(false);
+    setConfirmAction(null);
+  };
+
+  const router = useRouter();
 
   const renderCell = React.useCallback(
     (supplier: DrugSupplierResponse, columnKey: React.Key) => {
@@ -161,7 +282,10 @@ export function DrugSuppliers() {
         case "supplierName":
           return (
             <div className="flex flex-col">
-              <p className="text-bold text-small capitalize text-primary">
+              <p
+                className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+                onClick={() => handleOpenDetails(supplier.id)}
+              >
                 {cellValue as string}
               </p>
             </div>
@@ -170,7 +294,9 @@ export function DrugSuppliers() {
           return (
             <Chip
               className="capitalize"
-              color={statusColorMap[supplier.status as keyof typeof statusColorMap]}
+              color={
+                statusColorMap[supplier.status as keyof typeof statusColorMap]
+              }
               size="sm"
               variant="flat"
             >
@@ -190,8 +316,12 @@ export function DrugSuppliers() {
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu>
-                  <DropdownItem key="edit">Edit</DropdownItem>
-                  <DropdownItem key="delete">Delete</DropdownItem>
+                  <DropdownItem
+                    key="edit"
+                    onClick={() => handleOpenEditModal(supplier.id)}
+                  >
+                    Edit
+                  </DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             </div>
@@ -251,6 +381,18 @@ export function DrugSuppliers() {
             onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
+            <div className="flex gap-2">
+              {showActivate && (
+                <Button color="success" onClick={handleConfirmActivate}>
+                  Activate Selected
+                </Button>
+              )}
+              {showDeactivate && (
+                <Button color="danger" onClick={handleConfirmDeactivate}>
+                  Deactivate Selected
+                </Button>
+              )}
+            </div>
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -275,7 +417,6 @@ export function DrugSuppliers() {
                 ))}
               </DropdownMenu>
             </Dropdown>
-
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -300,14 +441,18 @@ export function DrugSuppliers() {
                 ))}
               </DropdownMenu>
             </Dropdown>
-            <Button color="primary" endContent={<PlusIcon />}>
+            <Button
+              color="primary"
+              endContent={<PlusIcon />}
+              onClick={() => setIsModalOpen(true)}
+            >
               Add New
             </Button>
           </div>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-default-400 text-small ml-4">
-            Total {drugSuppliers.length} drug suppliers
+            Total {suppliers.length} drug suppliers
           </span>
           <label className="flex items-center text-default-400 text-small">
             Rows per page:
@@ -324,12 +469,14 @@ export function DrugSuppliers() {
       </div>
     );
   }, [
+    selectedSuppliers,
     filterValue,
     statusFilter,
     visibleColumns,
+    selectedKeys,
     onSearchChange,
     onRowsPerPageChange,
-    drugSuppliers.length,
+    suppliers.length,
   ]);
 
   const bottomContent = React.useMemo(() => {
@@ -378,10 +525,75 @@ export function DrugSuppliers() {
       <div className="flex items-center gap-2 mb-4 ml-4">
         <DrugSupplierIcon />
         <h3 className="text-2xl font-bold">Drug Supplier Management</h3>
-      </div>{" "}
+      </div>
+
+      {isModalOpen && (
+        <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
+          <ModalContent className="max-w-[500px]">
+            <ModalHeader className="border-b pb-3">
+              Add New Drug Supplier
+            </ModalHeader>
+            <ModalBody>
+              <CreateDrugSupplierForm
+                onClose={() => {
+                  setIsModalOpen(false);
+                }}
+                onCreate={fetchDrugSuppliers}
+              />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {isEditModalOpen && (
+        <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <ModalContent className="max-w-[500px]">
+            <ModalHeader className="border-b pb-3">Edit Drug</ModalHeader>
+            <ModalBody>
+              <EditDrugSupplierForm
+                drugSupplierId={editingSupplierId}
+                onClose={() => setIsEditModalOpen(false)}
+                onUpdate={handleUpdateSuccess}
+              />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+      >
+        <ModalContent>
+          <ModalHeader>Confirm Action</ModalHeader>
+          <ModalBody>
+            Are you sure you want to{" "}
+            {confirmAction === "activate" ? "activate" : "deactivate"} the
+            selected drugs?
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="flat" onClick={() => setIsConfirmModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              color={confirmAction === "activate" ? "success" : "danger"}
+              onClick={handleConfirmAction}
+            >
+              Confirm
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <DrugSupplierDetailsModal
+        supplier={selectedSupplier}
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+      />
+
       <Table
         isHeaderSticky
-        aria-label="Drug suppliers table"
+        aria-label="Drug supplier table"
         bottomContent={bottomContent}
         bottomContentPlacement="outside"
         classNames={{
@@ -406,7 +618,7 @@ export function DrugSuppliers() {
             </TableColumn>
           )}
         </TableHeader>
-        <TableBody emptyContent={"No drug suppliers found"} items={sortedItems}>
+        <TableBody emptyContent={"No drug supplier found"} items={sortedItems}>
           {(item) => (
             <TableRow key={item.id}>
               {(columnKey) => (

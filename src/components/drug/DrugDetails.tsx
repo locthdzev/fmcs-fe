@@ -34,7 +34,23 @@ const DrugDetailsModal: React.FC<DrugDetailsModalProps> = ({
     <>
       <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
         <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
-          <ModalHeader className="border-b pb-3">Drug Details</ModalHeader>
+          <ModalHeader className="border-b pb-3 flex justify-between items-center">
+            <span>Drug Details</span>
+            <div className="flex items-center">
+              <Chip
+                className="capitalize px-2 py-1 text-sm font-medium mr-4"
+                color={
+                  drug.status && statusColorMap[drug.status]
+                    ? statusColorMap[drug.status]
+                    : "default"
+                }
+                size="sm"
+                variant="flat"
+              >
+                {drug.status}
+              </Chip>
+            </div>
+          </ModalHeader>
           <ModalBody className="p-6">
             <div className="grid grid-cols-12 gap-6 items-start">
               {/* Hình ảnh thuốc */}
@@ -95,24 +111,6 @@ const DrugDetailsModal: React.FC<DrugDetailsModalProps> = ({
                     {drug.description || "No description available."}
                   </div>
                 </label>
-
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-900 underline">
-                    Status:
-                  </span>
-                  <Chip
-                    className="capitalize px-2 py-1 text-sm font-medium"
-                    color={
-                      drug.status && statusColorMap[drug.status]
-                        ? statusColorMap[drug.status]
-                        : "default"
-                    }
-                    size="sm"
-                    variant="flat"
-                  >
-                    {drug.status}
-                  </Chip>
-                </div>
               </div>
             </div>
           </ModalBody>
