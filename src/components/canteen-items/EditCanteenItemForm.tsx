@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Button, Input, Textarea } from "@heroui/react";
+import { Button, Input, Textarea, Checkbox, Select, SelectItem } from "@heroui/react";
 import {
     updateCanteenItem,
     getCanteenItem,
     UpdateCanteenItemsDTO,
-    CanteenItemResponse,
 } from "@/api/canteenitems";
 import { toast } from "react-toastify";
 
@@ -29,8 +28,8 @@ export const EditCanteenItemForm: React.FC<EditCanteenItemFormProps> = ({
                 setFormData({
                     itemName: canteenItemData.itemName,
                     description: canteenItemData.description || "",
-                    unitPrice: canteenItemData.unitPrice,
-                    available: canteenItemData.available,
+                    unitPrice: canteenItemData.unitPrice.toString(),
+                    available: canteenItemData.available.toString(),
                     updatedAt: new Date().toISOString(),
                     status: canteenItemData.status || "Active",
                 });
@@ -42,11 +41,13 @@ export const EditCanteenItemForm: React.FC<EditCanteenItemFormProps> = ({
         fetchData();
     }, [canteenItemId]);
 
-    const handleInputChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-    ) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData((prev) => (prev ? { ...prev, [name]: value } : null));
+        setFormData((prev) => prev ? { ...prev, [name]: value } : null);
+    };
+
+    const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData((prev) => prev ? { ...prev, available: e.target.checked ? "true" : "false" } : null);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -70,28 +71,49 @@ export const EditCanteenItemForm: React.FC<EditCanteenItemFormProps> = ({
         }
     };
 
-    if (!formData) {
-        return <p>Loading...</p>;
-    }
+    if (!formData) return <p>Loading...</p>;
 
     return (
         <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 gap-4">
                 <Input
-                    label="Group Name"
-                    name="groupName"
+                    label="Item Name"
+                    name="itemName"
                     value={formData.itemName}
-                    onChange={handleInputChange}
+                    onChange={handleChange}
                     required
                 />
-                <div className="col-span-1">
-                    <Textarea
-                        label="Description"
-                        name="description"
-                        value={formData.description}
-                        onChange={handleInputChange}
-                    />
-                </div>
+                <Textarea
+                    label="Description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                />
+                <Input
+                    label="Unit Price"
+                    name="unitPrice"
+                    type="text" // ✅ Để dạng text giữ nguyên string
+                    value={formData.unitPrice}
+                    onChange={handleChange}
+                    required
+                />
+                <Checkbox
+                    name="available"
+                    isSelected={formData.available === "true"}
+                    onChange={handleCheckboxChange}
+                >
+                    Available
+                </Checkbox>
+                <Select
+                    label="Status"
+                    name="status"
+                    value={formData.status}
+                    onChange={(e) => setFormData((prev) => prev ? { ...prev, status: e.target.value } : null)}
+                    required
+                >
+                    <SelectItem key="Active" value="Active">Active</SelectItem>
+                    <SelectItem key="Inactive" value="Inactive">Inactive</SelectItem>
+                </Select>
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
@@ -99,7 +121,7 @@ export const EditCanteenItemForm: React.FC<EditCanteenItemFormProps> = ({
                     Cancel
                 </Button>
                 <Button type="submit" color="primary" isLoading={loading}>
-                    Update Drug Group
+                    Update Canteen Item
                 </Button>
             </div>
         </form>

@@ -72,27 +72,35 @@ export const createCanteenItem = async (canteenItemData: CreateCanteenItemsDTO) 
     }
 };
 
-
 export const updateCanteenItem = async (
     id: string,
     canteenItemData: UpdateCanteenItemsDTO
 ) => {
     try {
         const formData = new FormData();
+
         Object.entries(canteenItemData).forEach(([key, value]) => {
             if (value !== undefined) {
-                formData.append(key, value);
+                formData.append(key, value); // ✅ Giữ nguyên string
             }
         });
+
         const response = await api.put(
             `/canteen-items-management/canteen-items/${id}`,
-            formData
+            formData,
+            {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            }
         );
+
         return response.data;
     } catch (error) {
         throw error;
     }
 };
+
 
 export const activateCanteenItems = async (canteenItemIds: string[]) => {
     try {

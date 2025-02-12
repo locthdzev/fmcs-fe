@@ -102,14 +102,15 @@ export function CanteenItems() {
     direction: "ascending",
   });
 
-  const [page, setPage] = React.useState(1);
+  const [page, setPage] = React.useState(2);
   const [canteenItems, setCanteenItems] = React.useState<CanteenItemResponse[]>([]);
 
   const fetchCanteenItems = async () => {
     const data = await getAllCanteenItems();
     setCanteenItems(data);
+    setPage(1);
   };
-
+  
   useEffect(() => {
     fetchCanteenItems();
   }, []);
@@ -289,7 +290,7 @@ export function CanteenItems() {
         case "createdAt":
           return cellValue ? formatDate(cellValue as string) : "-";
         case "available":
-          return cellValue ? "Yes" : "No"; // Vì cellValue đã là boolean, không cần toLowerCase()
+          return cellValue ? "Yes" : "No";
         case "updatedAt":
           return cellValue ? formatDate(cellValue as string) : "-";
         case "actions":
