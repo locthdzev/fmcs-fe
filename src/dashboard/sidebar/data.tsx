@@ -64,7 +64,7 @@ export const data = [
           {
             title: "CanteenItems",
             icon: <CanteenItemIcon />,
-            link: "/drug/drug-group",
+            link: "/canteen/canteen-item",
           },
           {
             title: "CanteenInspections",
