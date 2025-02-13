@@ -5,15 +5,14 @@ import {
   VerticalDotsIcon,
   SearchIcon,
   ChevronDownIcon,
-  DrugSupplierIcon,
+  CanteenItemIcon,
 } from "./Icons";
 import {
-  getDrugSuppliers,
-  DrugSupplierResponse,
-  activateDrugSuppliers,
-  deactivateDrugSuppliers,
-  getDrugSupplierById,
-} from "@/api/drugsupplier";
+  getAllCanteenItems,
+  CanteenItemResponse,
+  activateCanteenItems,
+  deactivateCanteenItems,
+} from "@/api/canteenitems";
 import {
   Table,
   TableHeader,
@@ -38,20 +37,18 @@ import {
   ModalBody,
   ModalFooter,
 } from "@heroui/react";
-import { CreateDrugSupplierForm } from "./CreateForm";
-import { EditDrugSupplierForm } from "./EditForm";
-import { useRouter } from "next/router";
-import DrugSupplierDetailsModal from "./Details";
+import { CreateCanteenItemForm } from "./CreateCanteenItemForm";
+import { EditCanteenItemForm } from "./EditCanteenItemForm";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 }
 
 const columns = [
-  { name: "SUPPLIER NAME", uid: "supplierName", sortable: true },
-  { name: "CONTACT NUMBER", uid: "contactNumber" },
-  { name: "EMAIL", uid: "email" },
-  { name: "ADDRESS", uid: "address" },
+  { name: "ITEM NAME", uid: "itemName", sortable: true },
+  { name: "DESCRIPTION", uid: "description" },
+  { name: "UNIT PRICE", uid: "unitPrice", sortable: true },
+  { name: "AVAILABLE", uid: "available", sortable: true },
   { name: "CREATED AT", uid: "createdAt", sortable: true },
   { name: "UPDATED AT", uid: "updatedAt", sortable: true },
   { name: "STATUS", uid: "status" },
@@ -69,23 +66,22 @@ const statusColorMap: Record<string, ChipProps["color"]> = {
 };
 
 const INITIAL_VISIBLE_COLUMNS = [
-  "supplierName",
-  "contactNumber",
-  "email",
+  "itemName",
+  "description",
+  "unitPrice",
+  "available",
+  "createdAt",
   "status",
   "actions",
 ];
 
-export function DrugSuppliers() {
-  const [selectedSupplier, setSelectedSupplier] =
-    useState<DrugSupplierResponse | null>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [editingSupplierId, setEditingSupplierId] = useState<string>("");
+export function CanteenItems() {
+  const [editingCanteenItemId, setEditingCanteenItemId] = useState<string>("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [filterValue, setFilterValue] = useState("");
-  const [selectedSuppliers, setSelectedSuppliers] = useState<
-    DrugSupplierResponse[]
+  const [filterValue, setFilterValue] = React.useState("");
+  const [selectedCanteenItems, setSelectedCanteenItems] = useState<
+    CanteenItemResponse[]
   >([]);
   const [showActivate, setShowActivate] = useState(false);
   const [showDeactivate, setShowDeactivate] = useState(false);
@@ -93,82 +89,87 @@ export function DrugSuppliers() {
   const [confirmAction, setConfirmAction] = useState<
     "activate" | "deactivate" | null
   >(null);
-  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
-  const [visibleColumns, setVisibleColumns] = useState<Selection>(
+  const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
+    new Set([])
+  );
+  const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
-  const [statusFilter, setStatusFilter] = useState<Selection>("all");
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
+  const [statusFilter, setStatusFilter] = React.useState<Selection>("all");
+  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: "createdAt",
-    direction: "descending",
+    direction: "ascending",
   });
-  const [page, setPage] = useState(1);
-  const [suppliers, setSuppliers] = useState<DrugSupplierResponse[]>([]);
 
-  const fetchDrugSuppliers = async () => {
-    const data = await getDrugSuppliers();
-    const sortedData = data.sort(
-      (a: DrugSupplierResponse, b: DrugSupplierResponse) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    setSuppliers(sortedData);
+  const [page, setPage] = React.useState(2);
+  const [canteenItems, setCanteenItems] = React.useState<CanteenItemResponse[]>([]);
+
+  const fetchCanteenItems = async () => {
+    const data = await getAllCanteenItems();
+    setCanteenItems(data);
+    setPage(1);
   };
-
+  
   useEffect(() => {
-    fetchDrugSuppliers();
+    fetchCanteenItems();
   }, []);
 
   useEffect(() => {
-    let selected: DrugSupplierResponse[] = [];
+    let selected: CanteenItemResponse[] = [];
+
     if (selectedKeys === "all") {
-      selected = suppliers; // If "all" is selected, get all suppliers
+      selected = canteenItems;
     } else {
-      selected = suppliers.filter((supplier) =>
-        (selectedKeys as Set<string>).has(supplier.id)
+      selected = canteenItems.filter((canteenItem) =>
+        (selectedKeys as Set<string>).has(canteenItem.id)
       );
     }
 
-    setSelectedSuppliers(selected);
-    const hasActive = selected.some((supplier) => supplier.status === "Active");
+    setSelectedCanteenItems(selected);
+
+    const hasActive = selected.some(
+      (canteenItem) => canteenItem.status === "Active"
+    );
     const hasInactive = selected.some(
-      (supplier) => supplier.status === "Inactive"
+      (canteenItem) => canteenItem.status === "Inactive"
     );
 
     setShowActivate(hasInactive);
     setShowDeactivate(hasActive);
-  }, [selectedKeys, suppliers]);
+  }, [selectedKeys, canteenItems]);
 
   const hasSearchFilter = Boolean(filterValue);
 
   const headerColumns = React.useMemo(() => {
     if (visibleColumns === "all") return columns;
+
     return columns.filter((column) =>
       Array.from(visibleColumns).includes(column.uid)
     );
   }, [visibleColumns]);
 
   const filteredItems = React.useMemo(() => {
-    let filteredSuppliers = [...suppliers];
+    let filteredCanteenItems = [...canteenItems];
 
     if (hasSearchFilter) {
-      filteredSuppliers = filteredSuppliers.filter((supplier) =>
-        supplier.supplierName.toLowerCase().includes(filterValue.toLowerCase())
+      filteredCanteenItems = filteredCanteenItems.filter((item) =>
+        item.itemName.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
     if (
       statusFilter !== "all" &&
       Array.from(statusFilter).length !== statusOptions.length
     ) {
-      filteredSuppliers = filteredSuppliers.filter(
-        (supplier) =>
-          supplier.status !== undefined &&
-          Array.from(statusFilter).includes(supplier.status)
+      filteredCanteenItems = filteredCanteenItems.filter(
+        (item) =>
+          item.status !== undefined &&
+          Array.from(statusFilter).includes(item.status)
       );
     }
 
-    return filteredSuppliers;
-  }, [suppliers, filterValue, statusFilter]);
+    return filteredCanteenItems;
+  }, [canteenItems, filterValue, statusFilter]);
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage);
 
@@ -180,75 +181,63 @@ export function DrugSuppliers() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...filteredItems]
-      .sort((a: DrugSupplierResponse, b: DrugSupplierResponse) => {
-        const first = a[sortDescriptor.column as keyof DrugSupplierResponse];
-        const second = b[sortDescriptor.column as keyof DrugSupplierResponse];
+    return [...items].sort((a: CanteenItemResponse, b: CanteenItemResponse) => {
+      const first = a[sortDescriptor.column as keyof CanteenItemResponse];
+      const second = b[sortDescriptor.column as keyof CanteenItemResponse];
 
-        let cmp = 0;
-        if (typeof first === "string" && typeof second === "string") {
-          cmp = first.localeCompare(second);
-        }
+      let cmp = 0;
+      if (typeof first === "string" && typeof second === "string") {
+        cmp = first.localeCompare(second);
+      }
 
-        return sortDescriptor.direction === "descending" ? -cmp : cmp;
-      })
-      .slice((page - 1) * rowsPerPage, page * rowsPerPage); // Apply pagination after sorting
-  }, [sortDescriptor, filteredItems, page, rowsPerPage]);
+      return sortDescriptor.direction === "descending" ? -cmp : cmp;
+    });
+  }, [sortDescriptor, items]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
-  const handleOpenDetails = async (id: string) => {
-    try {
-      const supplier = await getDrugSupplierById(id);
-      setSelectedSupplier(supplier); // Đúng hơn là set dữ liệu supplier
-      setIsDetailsModalOpen(true);
-    } catch (error) {
-      toast.error("Failed to load drug details");
-    }
-  };
-
   const handleOpenEditModal = (id: string) => {
-    setEditingSupplierId(id);
+    setEditingCanteenItemId(id);
     setIsEditModalOpen(true);
   };
 
   const handleUpdateSuccess = () => {
-    fetchDrugSuppliers();
+    fetchCanteenItems();
     setIsEditModalOpen(false);
-    setEditingSupplierId("");
+    setEditingCanteenItemId("");
   };
 
   const handleActivate = async () => {
-    const ids = selectedSuppliers
-      .filter((s) => s.status === "Inactive")
-      .map((s) => s.id);
+    const ids = selectedCanteenItems
+      .filter((d) => d.status === "Inactive")
+      .map((d) => d.id);
     if (ids.length === 0) return;
 
     try {
-      await activateDrugSuppliers(ids);
-      toast.success("Drug Suppliers activated successfully");
-      fetchDrugSuppliers();
+      await activateCanteenItems(ids);
+      toast.success("Canteen Items activated successfully");
+      fetchCanteenItems();
       setSelectedKeys(new Set());
     } catch (error) {
-      toast.error("Failed to activate drug suppliers");
+      toast.error("Failed to activate canteen items");
     }
   };
 
   const handleDeactivate = async () => {
-    const ids = selectedSuppliers
-      .filter((s) => s.status === "Active")
-      .map((s) => s.id);
+    const ids = selectedCanteenItems
+      .filter((d) => d.status === "Active")
+      .map((d) => d.id);
     if (ids.length === 0) return;
 
     try {
-      await deactivateDrugSuppliers(ids);
-      toast.success("Drug suppliers deactivated successfully");
-      fetchDrugSuppliers();
+      await deactivateCanteenItems(ids);
+      toast.success("Canteen items deactivated successfully");
+      fetchCanteenItems();
       setSelectedKeys(new Set());
     } catch (error) {
-      toast.error("Failed to deactivate drug suppliers");
+      toast.error("Failed to deactivate canteen items");
     }
   };
 
@@ -272,43 +261,15 @@ export function DrugSuppliers() {
     setConfirmAction(null);
   };
 
-  const router = useRouter();
-
-  // Lấy page từ URL khi component mount
-  useEffect(() => {
-    const queryPage = Number(router.query.page) || 1;
-    setPage(queryPage);
-  }, [router.query.page]);
-
-  // Hàm cập nhật URL khi đổi trang
-  const updatePageInUrl = (newPage: number) => {
-    router.push(
-      {
-        pathname: router.pathname,
-        query: { ...router.query, page: newPage },
-      },
-      undefined,
-      { shallow: true }
-    );
-  };
-
-  const onPageChange = (newPage: number) => {
-    setPage(newPage);
-    updatePageInUrl(newPage);
-  };
-
   const renderCell = React.useCallback(
-    (supplier: DrugSupplierResponse, columnKey: React.Key) => {
-      const cellValue = supplier[columnKey as keyof DrugSupplierResponse];
+    (canteenItem: CanteenItemResponse, columnKey: React.Key) => {
+      const cellValue = canteenItem[columnKey as keyof CanteenItemResponse];
 
       switch (columnKey) {
-        case "supplierName":
+        case "itemName":
           return (
             <div className="flex flex-col">
-              <p
-                className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
-                onClick={() => handleOpenDetails(supplier.id)}
-              >
+              <p className="text-bold text-small capitalize text-primary">
                 {cellValue as string}
               </p>
             </div>
@@ -318,7 +279,7 @@ export function DrugSuppliers() {
             <Chip
               className="capitalize"
               color={
-                statusColorMap[supplier.status as keyof typeof statusColorMap]
+                statusColorMap[canteenItem.status as keyof typeof statusColorMap]
               }
               size="sm"
               variant="flat"
@@ -327,11 +288,14 @@ export function DrugSuppliers() {
             </Chip>
           );
         case "createdAt":
+          return cellValue ? formatDate(cellValue as string) : "-";
+        case "available":
+          return cellValue ? "Yes" : "No";
         case "updatedAt":
           return cellValue ? formatDate(cellValue as string) : "-";
         case "actions":
           return (
-            <div className="relative flex justify-center">
+            <div className="relative flex justify-end items-center gap-2">
               <Dropdown>
                 <DropdownTrigger>
                   <Button isIconOnly size="sm" variant="light">
@@ -341,7 +305,7 @@ export function DrugSuppliers() {
                 <DropdownMenu>
                   <DropdownItem
                     key="edit"
-                    onClick={() => handleOpenEditModal(supplier.id)}
+                    onClick={() => handleOpenEditModal(canteenItem.id)}
                   >
                     Edit
                   </DropdownItem>
@@ -397,7 +361,7 @@ export function DrugSuppliers() {
           <Input
             isClearable
             className="w-full sm:max-w-[44%]"
-            placeholder="Search by supplier name..."
+            placeholder="Search by item name..."
             startContent={<SearchIcon />}
             value={filterValue}
             onClear={() => onClear()}
@@ -416,6 +380,7 @@ export function DrugSuppliers() {
                 </Button>
               )}
             </div>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -440,6 +405,7 @@ export function DrugSuppliers() {
                 ))}
               </DropdownMenu>
             </Dropdown>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -475,7 +441,7 @@ export function DrugSuppliers() {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-default-400 text-small ml-4">
-            Total {suppliers.length} drug suppliers
+            Total {canteenItems.length} canteen items
           </span>
           <label className="flex items-center text-default-400 text-small">
             Rows per page:
@@ -492,14 +458,14 @@ export function DrugSuppliers() {
       </div>
     );
   }, [
-    selectedSuppliers,
+    selectedCanteenItems,
     filterValue,
     statusFilter,
     visibleColumns,
     selectedKeys,
     onSearchChange,
     onRowsPerPageChange,
-    suppliers.length,
+    canteenItems.length,
   ]);
 
   const bottomContent = React.useMemo(() => {
@@ -508,9 +474,8 @@ export function DrugSuppliers() {
         <span className="w-[30%] text-small text-default-400 ml-4">
           {selectedKeys === "all"
             ? "All items selected"
-            : `${(selectedKeys as Set<string>).size} of ${
-                filteredItems.length
-              } selected`}
+            : `${(selectedKeys as Set<string>).size} of ${filteredItems.length
+            } selected`}
         </span>
         <Pagination
           isCompact
@@ -519,7 +484,7 @@ export function DrugSuppliers() {
           color="primary"
           page={page}
           total={pages}
-          onChange={onPageChange}
+          onChange={setPage}
         />
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
@@ -546,22 +511,20 @@ export function DrugSuppliers() {
   return (
     <>
       <div className="flex items-center gap-2 mb-4 ml-4">
-        <DrugSupplierIcon />
-        <h3 className="text-2xl font-bold">Drug Supplier Management</h3>
+        <CanteenItemIcon />
+        <h3 className="text-2xl font-bold">Canteen Items Management</h3>
       </div>
 
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
           <ModalContent className="max-w-[500px]">
-            <ModalHeader className="border-b pb-3">
-              Add New Drug Supplier
-            </ModalHeader>
+            <ModalHeader>Add New Canteen Item</ModalHeader>
             <ModalBody>
-              <CreateDrugSupplierForm
+              <CreateCanteenItemForm
                 onClose={() => {
                   setIsModalOpen(false);
                 }}
-                onCreate={fetchDrugSuppliers}
+                onCreate={fetchCanteenItems}
               />
             </ModalBody>
           </ModalContent>
@@ -571,10 +534,10 @@ export function DrugSuppliers() {
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <ModalContent className="max-w-[500px]">
-            <ModalHeader className="border-b pb-3">Edit Drug</ModalHeader>
+            <ModalHeader>Edit Item</ModalHeader>
             <ModalBody>
-              <EditDrugSupplierForm
-                drugSupplierId={editingSupplierId}
+              <EditCanteenItemForm
+                canteenItemId={editingCanteenItemId}
                 onClose={() => setIsEditModalOpen(false)}
                 onUpdate={handleUpdateSuccess}
               />
@@ -608,15 +571,9 @@ export function DrugSuppliers() {
         </ModalContent>
       </Modal>
 
-      <DrugSupplierDetailsModal
-        supplier={selectedSupplier}
-        isOpen={isDetailsModalOpen}
-        onClose={() => setIsDetailsModalOpen(false)}
-      />
-
       <Table
         isHeaderSticky
-        aria-label="Drug supplier table"
+        aria-label="Drug groups table"
         bottomContent={bottomContent}
         bottomContentPlacement="outside"
         classNames={{
@@ -641,7 +598,7 @@ export function DrugSuppliers() {
             </TableColumn>
           )}
         </TableHeader>
-        <TableBody emptyContent={"No drug supplier found"} items={sortedItems}>
+        <TableBody emptyContent={"No drug groups found"} items={sortedItems}>
           {(item) => (
             <TableRow key={item.id}>
               {(columnKey) => (

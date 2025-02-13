@@ -52,7 +52,7 @@ export const data = [
           {
             title: "DrugSuppliers",
             icon: <DrugSupplierIcon />,
-            link: "/drug/drug-supplier",
+            link: "/drug-supplier/management",
           },
         ],
       },
@@ -64,7 +64,7 @@ export const data = [
           {
             title: "CanteenItems",
             icon: <CanteenItemIcon />,
-            link: "/drug/drug-group",
+            link: "/canteen/canteen-item",
           },
           {
             title: "CanteenInspections",

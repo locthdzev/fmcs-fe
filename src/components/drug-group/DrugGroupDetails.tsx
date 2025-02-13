@@ -12,20 +12,52 @@ import {
   TableCell,
   Chip,
   ChipProps,
+  Input,
+  Button,
+  DropdownTrigger,
+  Dropdown,
+  DropdownMenu,
+  DropdownItem,
+  Selection,
+  SortDescriptor,
 } from "@heroui/react";
 import { getDrugGroupById, DrugGroupResponse } from "@/api/druggroup";
-import { getDrugsByDrugGroupId, DrugResponse } from "@/api/drug";
+import { getDrugsByDrugGroupId, DrugResponse, getDrugById } from "@/api/drug";
+import DrugDetailsModal from "../drug/DrugDetails";
+import { SearchIcon, ChevronDownIcon } from "./Icons";
 
 const statusColorMap: Record<string, ChipProps["color"]> = {
   Active: "success",
   Inactive: "danger",
 };
 
+const columns = [
+  { name: "CODE", uid: "drugCode", sortable: true },
+  { name: "NAME", uid: "name", sortable: true },
+  { name: "UNIT", uid: "unit" },
+  { name: "PRICE", uid: "price", sortable: true },
+  { name: "MANUFACTURER", uid: "manufacturer" },
+  { name: "STATUS", uid: "status" },
+];
+
+const statusOptions = [
+  { name: "Active", uid: "Active" },
+  { name: "Inactive", uid: "Inactive" },
+];
+
 export function DrugGroupDetails() {
   const router = useRouter();
   const { id } = router.query;
   const [drugGroup, setDrugGroup] = useState<DrugGroupResponse | null>(null);
   const [drugs, setDrugs] = useState<DrugResponse[]>([]);
+  const [selectedDrug, setSelectedDrug] = useState<DrugResponse | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [filterValue, setFilterValue] = useState("");
+  const [statusFilter, setStatusFilter] = useState<Selection>("all");
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
+    column: "drugCode",
+    direction: "ascending",
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,10 +67,10 @@ export function DrugGroupDetails() {
           setDrugGroup(groupData);
 
           const drugsData = await getDrugsByDrugGroupId(id);
-          setDrugs(drugsData ?? []); // Nếu drugsData là null, set thành []
+          setDrugs(drugsData ?? []);
         } catch (error) {
           console.error("Error fetching data:", error);
-          setDrugs([]); // Đảm bảo không bị lỗi khi API fail
+          setDrugs([]);
         }
       }
     };
@@ -51,10 +83,68 @@ export function DrugGroupDetails() {
     return date.toLocaleDateString("vi-VN", { timeZone: "UTC" });
   };
 
+  const handleOpenDetails = async (id: string) => {
+    try {
+      const drug = await getDrugById(id);
+      setSelectedDrug(drug);
+      setIsDetailsModalOpen(true);
+    } catch (error) {
+      console.error("Failed to load drug details");
+    }
+  };
+
+  const filteredItems = React.useMemo(() => {
+    let filteredDrugs = [...drugs];
+
+    if (filterValue) {
+      filteredDrugs = filteredDrugs.filter((drug) =>
+        drug.name.toLowerCase().includes(filterValue.toLowerCase())
+      );
+    }
+    if (
+      statusFilter !== "all" &&
+      Array.from(statusFilter).length !== statusOptions.length
+    ) {
+      filteredDrugs = filteredDrugs.filter(
+        (drug) =>
+          drug.status !== undefined &&
+          Array.from(statusFilter).includes(drug.status)
+      );
+    }
+
+    return filteredDrugs;
+  }, [drugs, filterValue, statusFilter]);
+
+  const sortedItems = React.useMemo(() => {
+    return [...filteredItems].sort((a: DrugResponse, b: DrugResponse) => {
+      const first = a[sortDescriptor.column as keyof DrugResponse];
+      const second = b[sortDescriptor.column as keyof DrugResponse];
+
+      let cmp = 0;
+      if (typeof first === "string" && typeof second === "string") {
+        cmp = first.localeCompare(second);
+      }
+
+      return sortDescriptor.direction === "descending" ? -cmp : cmp;
+    });
+  }, [sortDescriptor, filteredItems]);
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value);
+    } else {
+      setFilterValue("");
+    }
+  }, []);
+
+  const onClear = React.useCallback(() => {
+    setFilterValue("");
+  }, []);
+
   return (
     <div ref={{ current: null }} className="space-y-6 p-6">
       <button
-        onClick={() => router.push("/drug-group/management")}
+        onClick={() => router.back()}
         className="p-0.5 text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-100 w-6 h-6 flex items-center justify-center mb-0"
       >
         <svg
@@ -71,7 +161,6 @@ export function DrugGroupDetails() {
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
       </button>
-      {/* Drug Group Details Card */}
       <Card>
         <CardHeader className="flex justify-between items-center">
           <h4 className="text-xl font-bold">Drug Group Details</h4>
@@ -111,26 +200,83 @@ export function DrugGroupDetails() {
           </div>
         </CardBody>
       </Card>
-      {/* Drugs List Card */}
       <Card>
         <CardHeader>
           <h4 className="text-xl font-bold">Drugs in Group</h4>
         </CardHeader>
         <CardBody>
-          <Table aria-label="Drugs table">
+          <div className="flex justify-between items-center mb-4">
+            <Input
+              isClearable
+              className="w-full sm:max-w-[44%]"
+              placeholder="Search by drug name..."
+              startContent={<SearchIcon />}
+              value={filterValue}
+              onClear={() => onClear()}
+              onValueChange={onSearchChange}
+            />
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Status
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={statusFilter}
+                selectionMode="multiple"
+                onSelectionChange={setStatusFilter}
+              >
+                {statusOptions.map((status) => (
+                  <DropdownItem key={status.uid} className="capitalize">
+                    {status.name}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+          <Table
+            aria-label="Drugs table"
+            sortDescriptor={sortDescriptor}
+            onSortChange={setSortDescriptor}
+          >
             <TableHeader>
-              <TableColumn>CODE</TableColumn>
-              <TableColumn>NAME</TableColumn>
-              <TableColumn>UNIT</TableColumn>
-              <TableColumn>PRICE</TableColumn>
-              <TableColumn>MANUFACTURER</TableColumn>
-              <TableColumn>STATUS</TableColumn>
+              {columns.map((column) => (
+                <TableColumn
+                  key={column.uid}
+                  allowsSorting={column.sortable}
+                >
+                  {column.name}
+                </TableColumn>
+              ))}
             </TableHeader>
             <TableBody emptyContent={"No drug in drug group"}>
-              {drugs.map((drug) => (
+              {sortedItems.map((drug) => (
                 <TableRow key={drug.id}>
                   <TableCell>{drug.drugCode}</TableCell>
-                  <TableCell>{drug.name}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col items-start">
+                      <div className="flex items-center">
+                        <img
+                          src={drug.imageUrl}
+                          alt={drug.name}
+                          className="w-8 h-8 mr-2 rounded cursor-pointer"
+                          onClick={() => handleOpenDetails(drug.id)}
+                        />
+                        <p
+                          className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+                          onClick={() => handleOpenDetails(drug.id)}
+                        >
+                          {drug.name}
+                        </p>
+                      </div>
+                    </div>
+                  </TableCell>
                   <TableCell>{drug.unit}</TableCell>
                   <TableCell>{drug.price.toLocaleString()} VND</TableCell>
                   <TableCell>{drug.manufacturer || "-"}</TableCell>
@@ -150,6 +296,12 @@ export function DrugGroupDetails() {
           </Table>
         </CardBody>
       </Card>
+
+      <DrugDetailsModal
+        drug={selectedDrug}
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+      />
     </div>
   );
 }

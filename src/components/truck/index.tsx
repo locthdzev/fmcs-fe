@@ -45,6 +45,7 @@ import { CreateTruckForm } from "./CreateTruckForm";
 import TruckDetailsModal from "./TruckDetails";
 import { EditTruckForm } from "./EditTruckForm";
 import ConfirmDeleteTruckModal from "./ConfirmDelete";
+import { useRouter } from "next/router";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -80,6 +81,7 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function Trucks() {
+  const router = useRouter();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTruckId, setEditingTruckId] = useState<string>("");
   const [selectedTruck, setSelectedTruck] = useState<TruckResponse | null>(
@@ -125,6 +127,29 @@ export function Trucks() {
   useEffect(() => {
     fetchTrucks();
   }, []);
+
+  // Lấy page từ URL khi component mount
+  useEffect(() => {
+    const queryPage = Number(router.query.page) || 1;
+    setPage(queryPage);
+  }, [router.query.page]);
+
+  // Hàm cập nhật URL khi đổi trang
+  const updatePageInUrl = (newPage: number) => {
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: newPage },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const onPageChange = (newPage: number) => {
+    setPage(newPage);
+    updatePageInUrl(newPage);
+  };
 
   useEffect(() => {
     let selected: TruckResponse[] = [];
@@ -554,7 +579,7 @@ export function Trucks() {
           color="primary"
           page={page}
           total={pages}
-          onChange={setPage}
+          onChange={onPageChange}
         />
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
