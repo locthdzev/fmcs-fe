@@ -38,7 +38,7 @@ import {
   ModalBody,
   ModalFooter,
 } from "@heroui/react";
-// import { CreateDrugOrderForm } from "./CreateForm";
+import { CreateDrugOrderForm } from "./CreateForm";
 // import { EditDrugOrderForm } from "./EditForm";
 import { useRouter } from "next/router";
 
@@ -48,10 +48,10 @@ export function capitalize(s: string) {
 
 const columns = [
   { name: "ORDER CODE", uid: "drugOrderCode", sortable: true },
-  { name: "SUPPLIER", uid: "supplier" },
+  { name: "SUPPLIER", uid: "supplier", sortable: true },
   { name: "ORDER DATE", uid: "orderDate", sortable: true },
-  { name: "TOTAL QUANTITY", uid: "totalQuantity" },
-  { name: "TOTAL PRICE", uid: "totalPrice" },
+  { name: "TOTAL QUANTITY", uid: "totalQuantity", sortable: true },
+  { name: "TOTAL PRICE", uid: "totalPrice", sortable: true },
   { name: "CREATED AT", uid: "createdAt", sortable: true },
   { name: "CREATED BY", uid: "createdBy" },
   { name: "STATUS", uid: "status" },
@@ -72,12 +72,21 @@ const statusColorMap: Record<string, ChipProps["color"]> = {
   Completed: "success",
 };
 
+const roleColorMap: Record<string, ChipProps["color"]> = {
+  Admin: "danger",
+  Manager: "warning",
+  Staff: "primary",
+  User: "success",
+  Unknown: "default",
+};
+
 const INITIAL_VISIBLE_COLUMNS = [
   "drugOrderCode",
   "supplier",
   "orderDate",
   "totalQuantity",
   "totalPrice",
+  "createdBy",
   "status",
   "actions",
 ];
@@ -85,7 +94,7 @@ const INITIAL_VISIBLE_COLUMNS = [
 export function DrugOrders() {
   const [editingDrugOrderId, setEditingDrugOrderId] = useState<string>("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedDrugOrders, setSelectedDrugOrders] = useState<
     DrugOrderResponse[]
@@ -199,7 +208,13 @@ export function DrugOrders() {
         const second = b[sortDescriptor.column as keyof DrugOrderResponse];
 
         let cmp = 0;
-        if (typeof first === "string" && typeof second === "string") {
+        if (sortDescriptor.column === "supplier") {
+          cmp = (first as { supplierName: string }).supplierName.localeCompare(
+            (second as { supplierName: string }).supplierName
+          );
+        } else if (typeof first === "number" && typeof second === "number") {
+          cmp = first - second;
+        } else if (typeof first === "string" && typeof second === "string") {
           cmp = first.localeCompare(second);
         }
 
@@ -223,6 +238,16 @@ export function DrugOrders() {
     setEditingDrugOrderId(id);
     setIsEditModalOpen(true);
   };
+
+  const handleCreateSuccess = () => {
+    fetchDrugOrders();
+    setIsCreateModalOpen(false);
+    setSelectedKeys(new Set()); // Reset selected items
+  };
+
+  useEffect(() => {
+    setSelectedKeys(new Set());
+  }, [drugOrders]);
 
   const handleUpdateSuccess = () => {
     fetchDrugOrders();
@@ -346,15 +371,23 @@ export function DrugOrders() {
           );
         case "createdBy":
           return cellValue && typeof cellValue === "object" ? (
-            <div
-              className="text-bold text-small text-primary cursor-pointer hover:underline"
-              //   onClick={() =>
-              //     router.push(
-              //       `/drug-group/details?id=${(cellValue as { id: string }).id}`
-              //     )
-              //   }
-            >
-              {(cellValue as { userName: string }).userName}
+            <div className="flex flex-col gap-1">
+              <span className="text-bold text-small text-primary cursor-pointer hover:underline">
+                {(cellValue as { userName: string }).userName}
+              </span>
+              <Chip
+                className="capitalize"
+                color={
+                  roleColorMap[
+                    (cellValue as { role: string })
+                      .role as keyof typeof roleColorMap
+                  ]
+                }
+                size="sm"
+                variant="flat"
+              >
+                {(cellValue as { role: string }).role}
+              </Chip>
             </div>
           ) : (
             "-"
@@ -543,7 +576,7 @@ export function DrugOrders() {
             <Button
               color="primary"
               endContent={<PlusIcon />}
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => setIsCreateModalOpen(true)}
             >
               Add New
             </Button>
@@ -624,26 +657,14 @@ export function DrugOrders() {
     <>
       <div className="flex items-center gap-2 mb-4 ml-4">
         <DrugOrderIcon />
-        <h3 className="text-2xl font-bold">Drug Group Management</h3>
+        <h3 className="text-2xl font-bold">Drug Order Management</h3>
       </div>
 
-      {/* {isModalOpen && (
-        <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[500px]">
-            <ModalHeader className="border-b pb-3">
-              Add New Drug Group
-            </ModalHeader>
-            <ModalBody>
-              <CreateDrugGroupForm
-                onClose={() => {
-                  setIsModalOpen(false);
-                }}
-                onCreate={fetchDrugGroups}
-              />
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )} */}
+      <CreateDrugOrderForm
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreate={() => handleCreateSuccess()}
+      />
 
       {/* {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
@@ -687,7 +708,7 @@ export function DrugOrders() {
 
       <Table
         isHeaderSticky
-        aria-label="Drug groups table"
+        aria-label="Drug orders table"
         bottomContent={bottomContent}
         bottomContentPlacement="outside"
         classNames={{
@@ -712,7 +733,7 @@ export function DrugOrders() {
             </TableColumn>
           )}
         </TableHeader>
-        <TableBody emptyContent={"No drug groups found"} items={sortedItems}>
+        <TableBody emptyContent={"No drug orders found"} items={sortedItems}>
           {(item) => (
             <TableRow key={item.id}>
               {(columnKey) => (

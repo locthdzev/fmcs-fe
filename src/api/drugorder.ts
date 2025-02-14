@@ -14,11 +14,13 @@ export interface DrugOrderResponse {
   createdBy: {
     id: string;
     userName: string;
+    role: string;
   };
   updatedAt?: string;
   updatedBy?: {
     id: string;
     userName: string;
+    role: string;
   };
   status?: string;
 }
