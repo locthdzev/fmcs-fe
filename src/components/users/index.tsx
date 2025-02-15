@@ -31,6 +31,7 @@ import {
 import { UserDetails } from "./UserDetails";
 import { EditUserForm } from "./EditUserForm";
 import { CreateUserForm } from "./CreateUserForm";
+import { useRouter } from "next/router";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -92,6 +93,7 @@ type User = {
   status?: string;
 };
 export function Users() {
+  const router = useRouter();
   const [confirmingStatusUpdate, setConfirmingStatusUpdate] = useState<{
     status: string;
     count: number;
@@ -137,6 +139,29 @@ export function Users() {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  // Lấy page từ URL khi component mount
+  useEffect(() => {
+    const queryPage = Number(router.query.page) || 1;
+    setPage(queryPage);
+  }, [router.query.page]);
+
+  // Hàm cập nhật URL khi đổi trang
+  const updatePageInUrl = (newPage: number) => {
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: newPage },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const onPageChange = (newPage: number) => {
+    setPage(newPage);
+    updatePageInUrl(newPage);
+  };
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -289,7 +314,7 @@ export function Users() {
         return formatDate(user.createdAt);
       case "actions":
         return (
-          <div className="relative flex justify-end items-center gap-2">
+          <div className="relative flex justify-center">
             <Dropdown>
               <DropdownTrigger>
                 <Button isIconOnly size="sm" variant="light">
@@ -483,7 +508,7 @@ export function Users() {
           color="primary"
           page={page}
           total={pages}
-          onChange={setPage}
+          onChange={onPageChange}
         />
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button

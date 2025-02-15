@@ -43,6 +43,7 @@ import { CreateDrugForm } from "./CreateDrugForm";
 import DrugDetailsModal from "./DrugDetails";
 import { EditDrugForm } from "./EditDrugForm";
 import ConfirmDeleteDrugModal from "./ConfirmDelete";
+import { useRouter } from "next/router";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -54,6 +55,7 @@ const columns = [
   { name: "DRUG GROUP", uid: "drugGroup", sortable: true },
   { name: "UNIT", uid: "unit" },
   { name: "PRICE", uid: "price", sortable: true },
+  { name: "MANUFACTURER", uid: "manufacturer", sortable: true },
   { name: "CREATED AT", uid: "createdAt", sortable: true },
   { name: "UPDATED AT", uid: "updatedAt", sortable: true },
   { name: "STATUS", uid: "status" },
@@ -82,6 +84,7 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function Drugs() {
+  const router = useRouter();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingDrug, setDeletingDrug] = useState<DrugResponse | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -108,7 +111,7 @@ export function Drugs() {
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "createdAt",
-    direction: "ascending",
+    direction: "descending",
   });
 
   const [page, setPage] = useState(1);
@@ -116,7 +119,34 @@ export function Drugs() {
 
   const fetchDrugs = async () => {
     const data = await getDrugs();
-    setDrugs(data);
+    const sortedData = data.sort(
+      (a: DrugResponse, b: DrugResponse) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    setDrugs(sortedData);
+  };
+
+  // Lấy page từ URL khi component mount
+  useEffect(() => {
+    const queryPage = Number(router.query.page) || 1;
+    setPage(queryPage);
+  }, [router.query.page]);
+
+  // Hàm cập nhật URL khi đổi trang
+  const updatePageInUrl = (newPage: number) => {
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: newPage },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const onPageChange = (newPage: number) => {
+    setPage(newPage);
+    updatePageInUrl(newPage);
   };
 
   useEffect(() => {
@@ -153,14 +183,26 @@ export function Drugs() {
     );
   }, [visibleColumns]);
 
+  /**
+   * Search filter
+   */
   const filteredItems = React.useMemo(() => {
     let filteredDrugs = [...drugs];
 
     if (hasSearchFilter) {
-      filteredDrugs = filteredDrugs.filter((drug) =>
-        drug.name.toLowerCase().includes(filterValue.toLowerCase())
+      const lowerFilter = filterValue.toLowerCase();
+
+      filteredDrugs = filteredDrugs.filter(
+        (drug) =>
+          drug.name.toLowerCase().includes(lowerFilter) ||
+          drug.drugCode.toLowerCase().includes(lowerFilter) ||
+          (drug.drugGroup?.groupName?.toLowerCase() || "").includes(
+            lowerFilter
+          ) ||
+          (drug.manufacturer?.toLowerCase() || "").includes(lowerFilter)
       );
     }
+
     if (
       statusFilter !== "all" &&
       Array.from(statusFilter).length !== statusOptions.length
@@ -184,19 +226,36 @@ export function Drugs() {
     return filteredItems.slice(start, end);
   }, [page, filteredItems, rowsPerPage]);
 
+  /**
+   * Sorting descending and ascending
+   */
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: DrugResponse, b: DrugResponse) => {
-      const first = a[sortDescriptor.column as keyof DrugResponse];
-      const second = b[sortDescriptor.column as keyof DrugResponse];
+    return [...filteredItems]
+      .sort((a: DrugResponse, b: DrugResponse) => {
+        const first = a[sortDescriptor.column as keyof DrugResponse];
+        const second = b[sortDescriptor.column as keyof DrugResponse];
 
-      let cmp = 0;
-      if (typeof first === "string" && typeof second === "string") {
-        cmp = first.localeCompare(second);
-      }
+        let cmp = 0;
+        if (sortDescriptor.column === "drugGroup") {
+          const firstGroup = first
+            ? (first as { groupName: string })?.groupName || ""
+            : "";
+          const secondGroup = second
+            ? (second as { groupName: string })?.groupName || ""
+            : "";
+          cmp = firstGroup.localeCompare(secondGroup);
+        } else if (sortDescriptor.column === "price") {
+          cmp =
+            (parseFloat(first as string) || 0) -
+            (parseFloat(second as string) || 0);
+        } else if (typeof first === "string" && typeof second === "string") {
+          cmp = first.localeCompare(second);
+        }
 
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
-  }, [sortDescriptor, items]);
+        return sortDescriptor.direction === "descending" ? -cmp : cmp;
+      })
+      .slice((page - 1) * rowsPerPage, page * rowsPerPage); // Áp dụng phân trang sau khi sắp xếp
+  }, [sortDescriptor, filteredItems, page, rowsPerPage]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN");
@@ -311,7 +370,8 @@ export function Drugs() {
                 <img
                   src={drug.imageUrl}
                   alt={drug.name}
-                  className="w-8 h-8 mr-2 rounded"
+                  className="w-8 h-8 mr-2 rounded cursor-pointer"
+                  onClick={() => handleOpenDetails(drug.id)}
                 />
                 <p
                   className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
@@ -337,12 +397,23 @@ export function Drugs() {
         case "updatedAt":
           return cellValue ? formatDate(cellValue as string) : "-";
         case "drugGroup":
-          return cellValue && typeof cellValue === "object"
-            ? (cellValue as { groupName: string }).groupName
-            : "-";
+          return cellValue && typeof cellValue === "object" ? (
+            <div
+              className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+              onClick={() =>
+                router.push(
+                  `/drug-group/details?id=${(cellValue as { id: string }).id}`
+                )
+              }
+            >
+              {(cellValue as { groupName: string }).groupName}
+            </div>
+          ) : (
+            "-"
+          );
         case "actions":
           return (
-            <div className="relative flex justify-end items-center gap-2">
+            <div className="relative flex justify-center">
               <Dropdown>
                 <DropdownTrigger>
                   <Button isIconOnly size="sm" variant="light">
@@ -541,7 +612,7 @@ export function Drugs() {
           color="primary"
           page={page}
           total={pages}
-          onChange={setPage}
+          onChange={onPageChange} // biding page lên url nè
         />
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
@@ -575,7 +646,7 @@ export function Drugs() {
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
           <ModalContent className="max-w-[800px]">
-            <ModalHeader>Add New Drug</ModalHeader>
+            <ModalHeader className="border-b pb-3">Add New Drug</ModalHeader>
             <ModalBody>
               <CreateDrugForm
                 onClose={() => {
@@ -597,7 +668,7 @@ export function Drugs() {
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <ModalContent className="max-w-[800px]">
-            <ModalHeader>Edit Drug</ModalHeader>
+            <ModalHeader className="border-b pb-3">Edit Drug</ModalHeader>
             <ModalBody>
               <EditDrugForm
                 drugId={editingDrugId}
@@ -621,17 +692,14 @@ export function Drugs() {
         onClose={() => setIsConfirmModalOpen(false)}
       >
         <ModalContent>
-          <ModalHeader>Confirm Action</ModalHeader>
+          <ModalHeader className="border-b pb-3">Confirm Action</ModalHeader>
           <ModalBody>
             Are you sure you want to{" "}
             {confirmAction === "activate" ? "activate" : "deactivate"} the
             selected drugs?
           </ModalBody>
           <ModalFooter>
-            <Button
-              variant="flat"
-              onClick={() => setIsConfirmModalOpen(false)}
-            >
+            <Button variant="flat" onClick={() => setIsConfirmModalOpen(false)}>
               Cancel
             </Button>
             <Button

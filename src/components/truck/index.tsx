@@ -45,6 +45,7 @@ import { CreateTruckForm } from "./CreateTruckForm";
 import TruckDetailsModal from "./TruckDetails";
 import { EditTruckForm } from "./EditTruckForm";
 import ConfirmDeleteTruckModal from "./ConfirmDelete";
+import { useRouter } from "next/router";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -53,6 +54,7 @@ export function capitalize(s: string) {
 const columns = [
   { name: "LICENSE PLATE", uid: "licensePlate", sortable: true },
   { name: "DRIVER NAME", uid: "driverName", sortable: true },
+  { name: "DRIVER CONTACT", uid: "driverContact", sortable: true },
   { name: "STATUS", uid: "status" },
   { name: "CREATED AT", uid: "createdAt", sortable: true },
   { name: "UPDATED AT", uid: "updatedAt", sortable: true },
@@ -72,12 +74,14 @@ const statusColorMap: Record<string, ChipProps["color"]> = {
 const INITIAL_VISIBLE_COLUMNS = [
   "licensePlate",
   "driverName",
+  "driverContact",
   "createdAt",
   "status",
   "actions",
 ];
 
 export function Trucks() {
+  const router = useRouter();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTruckId, setEditingTruckId] = useState<string>("");
   const [selectedTruck, setSelectedTruck] = useState<TruckResponse | null>(
@@ -123,6 +127,29 @@ export function Trucks() {
   useEffect(() => {
     fetchTrucks();
   }, []);
+
+  // Lấy page từ URL khi component mount
+  useEffect(() => {
+    const queryPage = Number(router.query.page) || 1;
+    setPage(queryPage);
+  }, [router.query.page]);
+
+  // Hàm cập nhật URL khi đổi trang
+  const updatePageInUrl = (newPage: number) => {
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: newPage },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const onPageChange = (newPage: number) => {
+    setPage(newPage);
+    updatePageInUrl(newPage);
+  };
 
   useEffect(() => {
     let selected: TruckResponse[] = [];
@@ -242,7 +269,7 @@ export function Trucks() {
         toast.error(response.message);
         return;
       }
-      
+
       toast.success("Truck deleted successfully");
       await fetchTrucks();
       setSelectedKeys(new Set());
@@ -252,7 +279,6 @@ export function Trucks() {
       toast.error("Failed to delete truck");
     }
   };
-  
 
   const handleActivate = async () => {
     const ids = selectedTrucks
@@ -327,6 +353,14 @@ export function Trucks() {
               </div>
             </div>
           );
+        case "driverContact":
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">
+                {truck.driverContact || "-"}
+              </p>
+            </div>
+          );
         case "status":
           return (
             <Chip
@@ -345,7 +379,7 @@ export function Trucks() {
           return cellValue ? formatDate(cellValue as string) : "-";
         case "actions":
           return (
-            <div className="relative flex justify-end items-center gap-2">
+            <div className="relative flex justify-center">
               <Dropdown>
                 <DropdownTrigger>
                   <Button isIconOnly size="sm" variant="light">
@@ -524,7 +558,7 @@ export function Trucks() {
     onSearchChange,
     onRowsPerPageChange,
     trucks.length,
-    showActivate,    
+    showActivate,
     showDeactivate,
   ]);
 
@@ -545,7 +579,7 @@ export function Trucks() {
           color="primary"
           page={page}
           total={pages}
-          onChange={setPage}
+          onChange={onPageChange}
         />
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button

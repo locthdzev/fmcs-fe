@@ -5,15 +5,15 @@ import {
   VerticalDotsIcon,
   SearchIcon,
   ChevronDownIcon,
-  DrugSupplierIcon,
+  DrugOrderIcon,
 } from "./Icons";
 import {
-  getDrugSuppliers,
-  DrugSupplierResponse,
-  activateDrugSuppliers,
-  deactivateDrugSuppliers,
-  getDrugSupplierById,
-} from "@/api/drugsupplier";
+  getDrugOrders,
+  DrugOrderResponse,
+  approveDrugOrders,
+  rejectDrugOrders,
+  completeDrugOrders,
+} from "@/api/drugorder";
 import {
   Table,
   TableHeader,
@@ -38,137 +38,159 @@ import {
   ModalBody,
   ModalFooter,
 } from "@heroui/react";
-import { CreateDrugSupplierForm } from "./CreateForm";
-import { EditDrugSupplierForm } from "./EditForm";
+import { CreateDrugOrderForm } from "./CreateForm";
+// import { EditDrugOrderForm } from "./EditForm";
 import { useRouter } from "next/router";
-import DrugSupplierDetailsModal from "./Details";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 }
 
 const columns = [
-  { name: "SUPPLIER NAME", uid: "supplierName", sortable: true },
-  { name: "CONTACT NUMBER", uid: "contactNumber" },
-  { name: "EMAIL", uid: "email" },
-  { name: "ADDRESS", uid: "address" },
+  { name: "ORDER CODE", uid: "drugOrderCode", sortable: true },
+  { name: "SUPPLIER", uid: "supplier", sortable: true },
+  { name: "ORDER DATE", uid: "orderDate", sortable: true },
+  { name: "TOTAL QUANTITY", uid: "totalQuantity", sortable: true },
+  { name: "TOTAL PRICE", uid: "totalPrice", sortable: true },
   { name: "CREATED AT", uid: "createdAt", sortable: true },
-  { name: "UPDATED AT", uid: "updatedAt", sortable: true },
+  { name: "CREATED BY", uid: "createdBy" },
   { name: "STATUS", uid: "status" },
   { name: "ACTIONS", uid: "actions" },
 ];
 
 const statusOptions = [
-  { name: "Active", uid: "Active" },
-  { name: "Inactive", uid: "Inactive" },
+  { name: "Pending", uid: "Pending" },
+  { name: "Approved", uid: "Approved" },
+  { name: "Rejected", uid: "Rejected" },
+  { name: "Completed", uid: "Completed" },
 ];
 
 const statusColorMap: Record<string, ChipProps["color"]> = {
-  Active: "success",
-  Inactive: "danger",
+  Pending: "warning",
+  Approved: "primary",
+  Rejected: "danger",
+  Completed: "success",
+};
+
+const roleColorMap: Record<string, ChipProps["color"]> = {
+  Admin: "danger",
+  Manager: "warning",
+  Staff: "primary",
+  User: "success",
+  Unknown: "default",
 };
 
 const INITIAL_VISIBLE_COLUMNS = [
-  "supplierName",
-  "contactNumber",
-  "email",
+  "drugOrderCode",
+  "supplier",
+  "orderDate",
+  "totalQuantity",
+  "totalPrice",
+  "createdBy",
   "status",
   "actions",
 ];
 
-export function DrugSuppliers() {
-  const [selectedSupplier, setSelectedSupplier] =
-    useState<DrugSupplierResponse | null>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [editingSupplierId, setEditingSupplierId] = useState<string>("");
+export function DrugOrders() {
+  const [editingDrugOrderId, setEditingDrugOrderId] = useState<string>("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [filterValue, setFilterValue] = useState("");
-  const [selectedSuppliers, setSelectedSuppliers] = useState<
-    DrugSupplierResponse[]
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [filterValue, setFilterValue] = React.useState("");
+  const [selectedDrugOrders, setSelectedDrugOrders] = useState<
+    DrugOrderResponse[]
   >([]);
-  const [showActivate, setShowActivate] = useState(false);
-  const [showDeactivate, setShowDeactivate] = useState(false);
+  const [showApprove, setShowApprove] = useState(false);
+  const [showReject, setShowReject] = useState(false);
+  const [showComplete, setShowComplete] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<
-    "activate" | "deactivate" | null
+    "approve" | "reject" | "complete" | null
   >(null);
-  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
-  const [visibleColumns, setVisibleColumns] = useState<Selection>(
+  const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
+    new Set([])
+  );
+  const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
-  const [statusFilter, setStatusFilter] = useState<Selection>("all");
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
+  const [statusFilter, setStatusFilter] = React.useState<Selection>("all");
+  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: "createdAt",
     direction: "descending",
   });
-  const [page, setPage] = useState(1);
-  const [suppliers, setSuppliers] = useState<DrugSupplierResponse[]>([]);
 
-  const fetchDrugSuppliers = async () => {
-    const data = await getDrugSuppliers();
+  const [page, setPage] = React.useState(1);
+  const [drugOrders, setDrugOrders] = React.useState<DrugOrderResponse[]>([]);
+
+  const fetchDrugOrders = async () => {
+    const data = await getDrugOrders();
     const sortedData = data.sort(
-      (a: DrugSupplierResponse, b: DrugSupplierResponse) =>
+      (a: DrugOrderResponse, b: DrugOrderResponse) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-    setSuppliers(sortedData);
+    setDrugOrders(sortedData);
   };
 
   useEffect(() => {
-    fetchDrugSuppliers();
+    fetchDrugOrders();
   }, []);
 
   useEffect(() => {
-    let selected: DrugSupplierResponse[] = [];
+    let selected: DrugOrderResponse[] = [];
+
     if (selectedKeys === "all") {
-      selected = suppliers; // If "all" is selected, get all suppliers
+      selected = drugOrders;
     } else {
-      selected = suppliers.filter((supplier) =>
-        (selectedKeys as Set<string>).has(supplier.id)
+      selected = drugOrders.filter((drugOrder) =>
+        (selectedKeys as Set<string>).has(drugOrder.id)
       );
     }
 
-    setSelectedSuppliers(selected);
-    const hasActive = selected.some((supplier) => supplier.status === "Active");
-    const hasInactive = selected.some(
-      (supplier) => supplier.status === "Inactive"
+    setSelectedDrugOrders(selected);
+
+    const hasPending = selected.some(
+      (drugOrder) => drugOrder.status === "Pending"
+    );
+    const hasApproved = selected.some(
+      (drugOrder) => drugOrder.status === "Approved"
     );
 
-    setShowActivate(hasInactive);
-    setShowDeactivate(hasActive);
-  }, [selectedKeys, suppliers]);
+    setShowApprove(hasPending);
+    setShowReject(hasPending);
+    setShowComplete(hasApproved);
+  }, [selectedKeys, drugOrders]);
 
   const hasSearchFilter = Boolean(filterValue);
 
   const headerColumns = React.useMemo(() => {
     if (visibleColumns === "all") return columns;
+
     return columns.filter((column) =>
       Array.from(visibleColumns).includes(column.uid)
     );
   }, [visibleColumns]);
 
   const filteredItems = React.useMemo(() => {
-    let filteredSuppliers = [...suppliers];
+    let filteredOrders = [...drugOrders];
 
     if (hasSearchFilter) {
-      filteredSuppliers = filteredSuppliers.filter((supplier) =>
-        supplier.supplierName.toLowerCase().includes(filterValue.toLowerCase())
+      filteredOrders = filteredOrders.filter((order) =>
+        order.drugOrderCode.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
     if (
       statusFilter !== "all" &&
       Array.from(statusFilter).length !== statusOptions.length
     ) {
-      filteredSuppliers = filteredSuppliers.filter(
-        (supplier) =>
-          supplier.status !== undefined &&
-          Array.from(statusFilter).includes(supplier.status)
+      filteredOrders = filteredOrders.filter(
+        (order) =>
+          order.status !== undefined &&
+          Array.from(statusFilter).includes(order.status)
       );
     }
 
-    return filteredSuppliers;
-  }, [suppliers, filterValue, statusFilter]);
+    return filteredOrders;
+  }, [drugOrders, filterValue, statusFilter]);
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage);
 
@@ -181,92 +203,113 @@ export function DrugSuppliers() {
 
   const sortedItems = React.useMemo(() => {
     return [...filteredItems]
-      .sort((a: DrugSupplierResponse, b: DrugSupplierResponse) => {
-        const first = a[sortDescriptor.column as keyof DrugSupplierResponse];
-        const second = b[sortDescriptor.column as keyof DrugSupplierResponse];
+      .sort((a: DrugOrderResponse, b: DrugOrderResponse) => {
+        const first = a[sortDescriptor.column as keyof DrugOrderResponse];
+        const second = b[sortDescriptor.column as keyof DrugOrderResponse];
 
         let cmp = 0;
-        if (typeof first === "string" && typeof second === "string") {
+        if (sortDescriptor.column === "supplier") {
+          cmp = (first as { supplierName: string }).supplierName.localeCompare(
+            (second as { supplierName: string }).supplierName
+          );
+        } else if (typeof first === "number" && typeof second === "number") {
+          cmp = first - second;
+        } else if (typeof first === "string" && typeof second === "string") {
           cmp = first.localeCompare(second);
         }
 
         return sortDescriptor.direction === "descending" ? -cmp : cmp;
       })
-      .slice((page - 1) * rowsPerPage, page * rowsPerPage); // Apply pagination after sorting
+      .slice((page - 1) * rowsPerPage, page * rowsPerPage);
   }, [sortDescriptor, filteredItems, page, rowsPerPage]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
-  const handleOpenDetails = async (id: string) => {
-    try {
-      const supplier = await getDrugSupplierById(id);
-      setSelectedSupplier(supplier); // Đúng hơn là set dữ liệu supplier
-      setIsDetailsModalOpen(true);
-    } catch (error) {
-      toast.error("Failed to load drug details");
-    }
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(price);
   };
 
   const handleOpenEditModal = (id: string) => {
-    setEditingSupplierId(id);
+    setEditingDrugOrderId(id);
     setIsEditModalOpen(true);
   };
 
+  const handleCreateSuccess = () => {
+    fetchDrugOrders();
+    setIsCreateModalOpen(false);
+    setSelectedKeys(new Set()); // Reset selected items
+  };
+
+  useEffect(() => {
+    setSelectedKeys(new Set());
+  }, [drugOrders]);
+
   const handleUpdateSuccess = () => {
-    fetchDrugSuppliers();
+    fetchDrugOrders();
     setIsEditModalOpen(false);
-    setEditingSupplierId("");
+    setEditingDrugOrderId("");
   };
 
-  const handleActivate = async () => {
-    const ids = selectedSuppliers
-      .filter((s) => s.status === "Inactive")
-      .map((s) => s.id);
+  const handleApprove = async () => {
+    const ids = selectedDrugOrders
+      .filter((d) => d.status === "Pending")
+      .map((d) => d.id);
     if (ids.length === 0) return;
 
     try {
-      await activateDrugSuppliers(ids);
-      toast.success("Drug Suppliers activated successfully");
-      fetchDrugSuppliers();
+      await approveDrugOrders(ids);
+      toast.success("Drug Orders approved successfully");
+      fetchDrugOrders();
       setSelectedKeys(new Set());
     } catch (error) {
-      toast.error("Failed to activate drug suppliers");
+      toast.error("Failed to approve drug orders");
     }
   };
 
-  const handleDeactivate = async () => {
-    const ids = selectedSuppliers
-      .filter((s) => s.status === "Active")
-      .map((s) => s.id);
+  const handleReject = async () => {
+    const ids = selectedDrugOrders
+      .filter((d) => d.status === "Pending")
+      .map((d) => d.id);
     if (ids.length === 0) return;
 
     try {
-      await deactivateDrugSuppliers(ids);
-      toast.success("Drug suppliers deactivated successfully");
-      fetchDrugSuppliers();
+      await rejectDrugOrders(ids);
+      toast.success("Drug orders rejected successfully");
+      fetchDrugOrders();
       setSelectedKeys(new Set());
     } catch (error) {
-      toast.error("Failed to deactivate drug suppliers");
+      toast.error("Failed to reject drug orders");
     }
   };
 
-  const handleConfirmActivate = () => {
-    setConfirmAction("activate");
-    setIsConfirmModalOpen(true);
-  };
+  const handleComplete = async () => {
+    const ids = selectedDrugOrders
+      .filter((d) => d.status === "Approved")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
 
-  const handleConfirmDeactivate = () => {
-    setConfirmAction("deactivate");
-    setIsConfirmModalOpen(true);
+    try {
+      await completeDrugOrders(ids);
+      toast.success("Drug orders completed successfully");
+      fetchDrugOrders();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to complete drug orders");
+    }
   };
 
   const handleConfirmAction = async () => {
-    if (confirmAction === "activate") {
-      await handleActivate();
-    } else if (confirmAction === "deactivate") {
-      await handleDeactivate();
+    if (confirmAction === "approve") {
+      await handleApprove();
+    } else if (confirmAction === "reject") {
+      await handleReject();
+    } else if (confirmAction === "complete") {
+      await handleComplete();
     }
     setIsConfirmModalOpen(false);
     setConfirmAction(null);
@@ -274,13 +317,11 @@ export function DrugSuppliers() {
 
   const router = useRouter();
 
-  // Lấy page từ URL khi component mount
   useEffect(() => {
     const queryPage = Number(router.query.page) || 1;
     setPage(queryPage);
   }, [router.query.page]);
 
-  // Hàm cập nhật URL khi đổi trang
   const updatePageInUrl = (newPage: number) => {
     router.push(
       {
@@ -298,27 +339,65 @@ export function DrugSuppliers() {
   };
 
   const renderCell = React.useCallback(
-    (supplier: DrugSupplierResponse, columnKey: React.Key) => {
-      const cellValue = supplier[columnKey as keyof DrugSupplierResponse];
+    (drugOrder: DrugOrderResponse, columnKey: React.Key) => {
+      const cellValue = drugOrder[columnKey as keyof DrugOrderResponse];
 
       switch (columnKey) {
-        case "supplierName":
+        case "drugOrderCode":
           return (
-            <div className="flex flex-col">
-              <p
-                className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
-                onClick={() => handleOpenDetails(supplier.id)}
-              >
-                {cellValue as string}
-              </p>
+            <div
+              className="text-bold text-small text-primary cursor-pointer hover:underline"
+              onClick={() =>
+                router.push(`/drug-order/details?id=${drugOrder.id}`)
+              }
+            >
+              {cellValue as string}
             </div>
+          );
+        case "supplier":
+          return cellValue && typeof cellValue === "object" ? (
+            <div
+              className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+              //   onClick={() =>
+              //     router.push(
+              //       `/drug-group/details?id=${(cellValue as { id: string }).id}`
+              //     )
+              //   }
+            >
+              {(cellValue as { supplierName: string }).supplierName}
+            </div>
+          ) : (
+            "-"
+          );
+        case "createdBy":
+          return cellValue && typeof cellValue === "object" ? (
+            <div className="flex flex-col gap-1">
+              <span className="text-bold text-small text-primary cursor-pointer hover:underline">
+                {(cellValue as { userName: string }).userName}
+              </span>
+              <Chip
+                className="capitalize"
+                color={
+                  roleColorMap[
+                    (cellValue as { role: string })
+                      .role as keyof typeof roleColorMap
+                  ]
+                }
+                size="sm"
+                variant="flat"
+              >
+                {(cellValue as { role: string }).role}
+              </Chip>
+            </div>
+          ) : (
+            "-"
           );
         case "status":
           return (
             <Chip
               className="capitalize"
               color={
-                statusColorMap[supplier.status as keyof typeof statusColorMap]
+                statusColorMap[drugOrder.status as keyof typeof statusColorMap]
               }
               size="sm"
               variant="flat"
@@ -326,6 +405,9 @@ export function DrugSuppliers() {
               {cellValue as string}
             </Chip>
           );
+        case "totalPrice":
+          return formatPrice(cellValue as number);
+        case "orderDate":
         case "createdAt":
         case "updatedAt":
           return cellValue ? formatDate(cellValue as string) : "-";
@@ -341,7 +423,7 @@ export function DrugSuppliers() {
                 <DropdownMenu>
                   <DropdownItem
                     key="edit"
-                    onClick={() => handleOpenEditModal(supplier.id)}
+                    onClick={() => handleOpenEditModal(drugOrder.id)}
                   >
                     Edit
                   </DropdownItem>
@@ -350,7 +432,9 @@ export function DrugSuppliers() {
             </div>
           );
         default:
-          return cellValue;
+          return typeof cellValue === "object"
+            ? JSON.stringify(cellValue)
+            : cellValue;
       }
     },
     []
@@ -397,7 +481,7 @@ export function DrugSuppliers() {
           <Input
             isClearable
             className="w-full sm:max-w-[44%]"
-            placeholder="Search by supplier name..."
+            placeholder="Search by order code..."
             startContent={<SearchIcon />}
             value={filterValue}
             onClear={() => onClear()}
@@ -405,17 +489,41 @@ export function DrugSuppliers() {
           />
           <div className="flex gap-3">
             <div className="flex gap-2">
-              {showActivate && (
-                <Button color="success" onClick={handleConfirmActivate}>
-                  Activate Selected
+              {showApprove && (
+                <Button
+                  color="primary"
+                  onClick={() => {
+                    setConfirmAction("approve");
+                    setIsConfirmModalOpen(true);
+                  }}
+                >
+                  Approve Selected
                 </Button>
               )}
-              {showDeactivate && (
-                <Button color="danger" onClick={handleConfirmDeactivate}>
-                  Deactivate Selected
+              {showReject && (
+                <Button
+                  color="danger"
+                  onClick={() => {
+                    setConfirmAction("reject");
+                    setIsConfirmModalOpen(true);
+                  }}
+                >
+                  Reject Selected
+                </Button>
+              )}
+              {showComplete && (
+                <Button
+                  color="success"
+                  onClick={() => {
+                    setConfirmAction("complete");
+                    setIsConfirmModalOpen(true);
+                  }}
+                >
+                  Complete Selected
                 </Button>
               )}
             </div>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -440,6 +548,7 @@ export function DrugSuppliers() {
                 ))}
               </DropdownMenu>
             </Dropdown>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -467,7 +576,7 @@ export function DrugSuppliers() {
             <Button
               color="primary"
               endContent={<PlusIcon />}
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => setIsCreateModalOpen(true)}
             >
               Add New
             </Button>
@@ -475,7 +584,7 @@ export function DrugSuppliers() {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-default-400 text-small ml-4">
-            Total {suppliers.length} drug suppliers
+            Total {drugOrders.length} drug orders
           </span>
           <label className="flex items-center text-default-400 text-small">
             Rows per page:
@@ -492,14 +601,15 @@ export function DrugSuppliers() {
       </div>
     );
   }, [
-    selectedSuppliers,
     filterValue,
     statusFilter,
     visibleColumns,
-    selectedKeys,
     onSearchChange,
     onRowsPerPageChange,
-    suppliers.length,
+    drugOrders.length,
+    showApprove,
+    showReject,
+    showComplete,
   ]);
 
   const bottomContent = React.useMemo(() => {
@@ -546,44 +656,32 @@ export function DrugSuppliers() {
   return (
     <>
       <div className="flex items-center gap-2 mb-4 ml-4">
-        <DrugSupplierIcon />
-        <h3 className="text-2xl font-bold">Drug Supplier Management</h3>
+        <DrugOrderIcon />
+        <h3 className="text-2xl font-bold">Drug Order Management</h3>
       </div>
 
-      {isModalOpen && (
-        <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[500px]">
-            <ModalHeader className="border-b pb-3">
-              Add New Drug Supplier
-            </ModalHeader>
-            <ModalBody>
-              <CreateDrugSupplierForm
-                onClose={() => {
-                  setIsModalOpen(false);
-                }}
-                onCreate={fetchDrugSuppliers}
-              />
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )}
+      <CreateDrugOrderForm
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreate={() => handleCreateSuccess()}
+      />
 
-      {isEditModalOpen && (
+      {/* {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <ModalContent className="max-w-[500px]">
             <ModalHeader className="border-b pb-3">Edit Drug</ModalHeader>
             <ModalBody>
-              <EditDrugSupplierForm
-                drugSupplierId={editingSupplierId}
+              <EditDrugGroupForm
+                drugGroupId={editingDrugGroupId}
                 onClose={() => setIsEditModalOpen(false)}
                 onUpdate={handleUpdateSuccess}
               />
             </ModalBody>
           </ModalContent>
         </Modal>
-      )}
+      )} */}
 
-      <Modal
+      {/* <Modal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
       >
@@ -606,17 +704,11 @@ export function DrugSuppliers() {
             </Button>
           </ModalFooter>
         </ModalContent>
-      </Modal>
-
-      <DrugSupplierDetailsModal
-        supplier={selectedSupplier}
-        isOpen={isDetailsModalOpen}
-        onClose={() => setIsDetailsModalOpen(false)}
-      />
+      </Modal> */}
 
       <Table
         isHeaderSticky
-        aria-label="Drug supplier table"
+        aria-label="Drug orders table"
         bottomContent={bottomContent}
         bottomContentPlacement="outside"
         classNames={{
@@ -641,7 +733,7 @@ export function DrugSuppliers() {
             </TableColumn>
           )}
         </TableHeader>
-        <TableBody emptyContent={"No drug supplier found"} items={sortedItems}>
+        <TableBody emptyContent={"No drug orders found"} items={sortedItems}>
           {(item) => (
             <TableRow key={item.id}>
               {(columnKey) => (

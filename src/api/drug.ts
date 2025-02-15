@@ -63,6 +63,15 @@ export const getDrugById = async (id: string) => {
   }
 };
 
+export const getDrugsByDrugGroupId = async (drugGroupId: string) => {
+  try {
+    const response = await api.get(`/drug-management/drugs/by-group/${drugGroupId}`);
+    return response.data.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const createDrug = async (drugData: FormData) => {
   try {
     const response = await api.post("/drug-management/drugs", drugData);

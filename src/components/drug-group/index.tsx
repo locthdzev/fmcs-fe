@@ -39,6 +39,7 @@ import {
 } from "@heroui/react";
 import { CreateDrugGroupForm } from "./CreateForm";
 import { EditDrugGroupForm } from "./EditForm";
+import { useRouter } from "next/router";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -95,7 +96,7 @@ export function DrugGroups() {
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: "createdAt",
-    direction: "ascending",
+    direction: "descending",
   });
 
   const [page, setPage] = React.useState(1);
@@ -103,7 +104,11 @@ export function DrugGroups() {
 
   const fetchDrugGroups = async () => {
     const data = await getDrugGroups();
-    setDrugGroups(data);
+    const sortedData = data.sort(
+      (a: DrugGroupResponse, b: DrugGroupResponse) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    setDrugGroups(sortedData);
   };
 
   useEffect(() => {
@@ -176,18 +181,20 @@ export function DrugGroups() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: DrugGroupResponse, b: DrugGroupResponse) => {
-      const first = a[sortDescriptor.column as keyof DrugGroupResponse];
-      const second = b[sortDescriptor.column as keyof DrugGroupResponse];
+    return [...filteredItems]
+      .sort((a: DrugGroupResponse, b: DrugGroupResponse) => {
+        const first = a[sortDescriptor.column as keyof DrugGroupResponse];
+        const second = b[sortDescriptor.column as keyof DrugGroupResponse];
 
-      let cmp = 0;
-      if (typeof first === "string" && typeof second === "string") {
-        cmp = first.localeCompare(second);
-      }
+        let cmp = 0;
+        if (typeof first === "string" && typeof second === "string") {
+          cmp = first.localeCompare(second);
+        }
 
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
-  }, [sortDescriptor, items]);
+        return sortDescriptor.direction === "descending" ? -cmp : cmp;
+      })
+      .slice((page - 1) * rowsPerPage, page * rowsPerPage); // Áp dụng phân trang sau khi sắp xếp
+  }, [sortDescriptor, filteredItems, page, rowsPerPage]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN");
@@ -256,6 +263,31 @@ export function DrugGroups() {
     setConfirmAction(null);
   };
 
+  const router = useRouter();
+
+  // Lấy page từ URL khi component mount
+  useEffect(() => {
+    const queryPage = Number(router.query.page) || 1;
+    setPage(queryPage);
+  }, [router.query.page]);
+
+  // Hàm cập nhật URL khi đổi trang
+  const updatePageInUrl = (newPage: number) => {
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: newPage },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const onPageChange = (newPage: number) => {
+    setPage(newPage);
+    updatePageInUrl(newPage);
+  };
+
   const renderCell = React.useCallback(
     (drugGroup: DrugGroupResponse, columnKey: React.Key) => {
       const cellValue = drugGroup[columnKey as keyof DrugGroupResponse];
@@ -263,10 +295,13 @@ export function DrugGroups() {
       switch (columnKey) {
         case "groupName":
           return (
-            <div className="flex flex-col">
-              <p className="text-bold text-small capitalize text-primary">
-                {cellValue as string}
-              </p>
+            <div
+              className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+              onClick={() =>
+                router.push(`/drug-group/details?id=${drugGroup.id}`)
+              }
+            >
+              {cellValue as string}
             </div>
           );
         case "status":
@@ -287,7 +322,7 @@ export function DrugGroups() {
           return cellValue ? formatDate(cellValue as string) : "-";
         case "actions":
           return (
-            <div className="relative flex justify-end items-center gap-2">
+            <div className="relative flex justify-center">
               <Dropdown>
                 <DropdownTrigger>
                   <Button isIconOnly size="sm" variant="light">
@@ -451,6 +486,7 @@ export function DrugGroups() {
       </div>
     );
   }, [
+    router,
     selectedDrugGroups,
     filterValue,
     statusFilter,
@@ -478,7 +514,7 @@ export function DrugGroups() {
           color="primary"
           page={page}
           total={pages}
-          onChange={setPage}
+          onChange={onPageChange}
         />
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
@@ -512,7 +548,9 @@ export function DrugGroups() {
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
           <ModalContent className="max-w-[500px]">
-            <ModalHeader>Add New Drug Group</ModalHeader>
+            <ModalHeader className="border-b pb-3">
+              Add New Drug Group
+            </ModalHeader>
             <ModalBody>
               <CreateDrugGroupForm
                 onClose={() => {
@@ -528,7 +566,7 @@ export function DrugGroups() {
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <ModalContent className="max-w-[500px]">
-            <ModalHeader>Edit Drug</ModalHeader>
+            <ModalHeader className="border-b pb-3">Edit Drug</ModalHeader>
             <ModalBody>
               <EditDrugGroupForm
                 drugGroupId={editingDrugGroupId}

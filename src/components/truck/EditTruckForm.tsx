@@ -59,7 +59,7 @@ export const EditTruckForm: React.FC<EditTruckFormProps> = ({
       });
 
       if (imageFile) {
-        formDataToSend.append("truckImage", imageFile);
+        formDataToSend.append("imageFile", imageFile);
       }
 
       setLoading(true);
