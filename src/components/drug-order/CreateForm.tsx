@@ -14,6 +14,7 @@ import { getDrugs, DrugResponse } from "@/api/drug";
 import { getDrugSuppliers, DrugSupplierResponse } from "@/api/drugsupplier";
 import { toast } from "react-toastify";
 import { BinIcon } from "./Icons";
+import { ConfirmCreateOrder } from "./ConfirmCreate";
 
 interface CreateDrugOrderFormProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
   const selectedDrugIds = new Set(
     formData.drugOrderDetails.map((detail) => detail.drugId)
   );
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchDrugs = async () => {
@@ -172,6 +174,23 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
       return;
     }
 
+    // Kiểm tra từng chi tiết đơn hàng
+    for (const detail of formData.drugOrderDetails) {
+      if (!detail.drugId) {
+        toast.error("Please select a drug for each order detail");
+        return;
+      }
+      if (!detail.quantity || detail.quantity <= 0) {
+        toast.error("Quantity must be greater than 0");
+        return;
+      }
+    }
+
+    // Hiển thị Modal xác nhận
+    setIsConfirmationModalOpen(true);
+  };
+
+  const handleConfirmOrder = async () => {
     try {
       setLoading(true);
       const response = await createDrugOrder({
@@ -195,9 +214,9 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
       toast.error("Failed to create drug order");
     } finally {
       setLoading(false);
+      setIsConfirmationModalOpen(false);
     }
   };
-
   const handleReset = () => {
     setFormData(initialFormState);
   };
@@ -222,173 +241,184 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
     }));
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <ModalContent className="max-w-[1000px] min-h-[700px] max-h-[90vh]">
-        <ModalHeader className="border-b pb-3">Add New Drug Order</ModalHeader>
-        <ModalBody className="max-h-[80vh] overflow-y-auto">
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 gap-6">
-              <div className="bg-gray-50 p-4 rounded-lg">   
-                <h3 className="text-lg font-semibold mb-4">
-                  Supplier Information
-                </h3>
-                <Select
-                  showSearch
-                  style={{ width: "100%" }}
-                  placeholder="Search to Select Supplier"
-                  optionFilterProp="label"
-                  value={formData.supplierId || undefined}
-                  onChange={handleInputChange}
-                  filterSort={(optionA, optionB) =>
-                    (optionA?.label ?? "")
-                      .toLowerCase()
-                      .localeCompare((optionB?.label ?? "").toLowerCase())
-                  }
-                  options={supplierOptions}
-                  dropdownStyle={{ zIndex: 9999 }}
-                  getPopupContainer={(trigger) => trigger.parentElement!}
-                />
+    <>
+      <Modal isOpen={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <ModalContent className="max-w-[1000px] min-h-[700px] max-h-[90vh]">
+          <ModalHeader className="border-b pb-3">
+            Add New Drug Order
+          </ModalHeader>
+          <ModalBody className="max-h-[80vh] overflow-y-auto">
+            <form onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 gap-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-4">
+                    Supplier Information
+                  </h3>
+                  <Select
+                    showSearch
+                    style={{ width: "100%" }}
+                    placeholder="Search to Select Supplier"
+                    optionFilterProp="label"
+                    value={formData.supplierId || undefined}
+                    onChange={handleInputChange}
+                    filterSort={(optionA, optionB) =>
+                      (optionA?.label ?? "")
+                        .toLowerCase()
+                        .localeCompare((optionB?.label ?? "").toLowerCase())
+                    }
+                    options={supplierOptions}
+                    dropdownStyle={{ zIndex: 9999 }}
+                    getPopupContainer={(trigger) => trigger.parentElement!}
+                  />
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-4">
+                    Add Drugs To Order
+                  </h3>
+                  {formData.drugOrderDetails.map((detail, index) => (
+                    <div
+                      key={index}
+                      className="mb-6 p-4 border border-gray-200 rounded-lg bg-white"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_40px] gap-4 items-end">
+                        <div className="col-span-1 lg:col-span-1">
+                          <Select
+                            showSearch
+                            style={{ width: "100%", height: "56px" }}
+                            placeholder="Search to Select Drug"
+                            optionFilterProp="children"
+                            value={detail.drugId || undefined}
+                            onChange={(value) =>
+                              handleDrugDetailChange(index, "drugId", value)
+                            }
+                            onSearch={(value) => handleDrugSearch(index, value)}
+                            filterOption={false}
+                            options={getFilteredDrugs(detail.searchDrug).map(
+                              (drug) => ({
+                                value: drug.id,
+                                label: (
+                                  <div className="flex items-center gap-4">
+                                    <img
+                                      src={drug.imageUrl || "/placeholder.png"}
+                                      alt={drug.name}
+                                      className="w-12 h-12 object-cover rounded-md"
+                                    />
+                                    <div className="flex flex-col flex-1">
+                                      <span>{`${drug.drugCode} - ${drug.name}`}</span>
+                                    </div>
+                                    <div className="text-right">
+                                      <span>{`${drug.price} VND`}</span>
+                                    </div>
+                                  </div>
+                                ),
+                                disabled: selectedDrugIds.has(drug.id),
+                              })
+                            )}
+                            getPopupContainer={(trigger) =>
+                              trigger.parentElement!
+                            }
+                          />
+                        </div>
+                        <Input
+                          label="Quantity"
+                          type="number"
+                          value={detail.quantity.toString()}
+                          onChange={(e) =>
+                            handleDrugDetailChange(
+                              index,
+                              "quantity",
+                              parseInt(e.target.value, 10)
+                            )
+                          }
+                          min="1"
+                          required
+                          className="w-full"
+                        />
+                        <Input
+                          label="Total Price"
+                          type="text"
+                          value={
+                            (detail.quantity * detail.price).toLocaleString() +
+                            " VND"
+                          }
+                          disabled
+                          className="w-full"
+                        />
+                        <Button
+                          type="button"
+                          variant="flat"
+                          color="danger"
+                          onClick={() => removeDrugDetail(index)}
+                          isIconOnly
+                          className="h-10 w-10"
+                        >
+                          <BinIcon />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="flat"
+                    onClick={addDrugDetail}
+                    className="w-full mt-4"
+                  >
+                    + Add New Drug
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </ModalBody>
+          <ModalFooter className="border-t pt-4">
+            <div className="flex items-center justify-between w-full gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-gray-500 text-sm">Total Quantity</span>
+                  <span className="text-xl font-bold text-primary">
+                    {formData.totalQuantity}
+                  </span>
+                </div>
+
+                <div className="h-8 w-px bg-gray-300"></div>
+
+                <div className="flex flex-col items-center">
+                  <span className="text-gray-500 text-sm">Total Price</span>
+                  <span className="text-xl font-bold text-green-600">
+                    {formData.totalPrice.toLocaleString()} VND
+                  </span>
+                </div>
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold mb-4">
-                  Add Drugs To Order
-                </h3>
-                {formData.drugOrderDetails.map((detail, index) => (
-                  <div
-                    key={index}
-                    className="mb-6 p-4 border border-gray-200 rounded-lg bg-white"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_40px] gap-4 items-end">
-                      <div className="col-span-1 lg:col-span-1">
-                        <Select
-                          showSearch
-                          style={{ width: "100%", height: "56px" }}
-                          placeholder="Search to Select Drug"
-                          optionFilterProp="children"
-                          value={detail.drugId || undefined}
-                          onChange={(value) =>
-                            handleDrugDetailChange(index, "drugId", value)
-                          }
-                          onSearch={(value) => handleDrugSearch(index, value)}
-                          filterOption={false}
-                          options={getFilteredDrugs(detail.searchDrug).map(
-                            (drug) => ({
-                              value: drug.id,
-                              label: (
-                                <div className="flex items-center gap-4">
-                                  <img
-                                    src={drug.imageUrl || "/placeholder.png"}
-                                    alt={drug.name}
-                                    className="w-12 h-12 object-cover rounded-md"
-                                  />
-                                  <div className="flex flex-col flex-1">
-                                    <span>{`${drug.drugCode} - ${drug.name}`}</span>
-                                  </div>
-                                  <div className="text-right">
-                                    <span>{`${drug.price} VND`}</span>
-                                  </div>
-                                </div>
-                              ),
-                              disabled: selectedDrugIds.has(drug.id),
-                            })
-                          )}
-                          getPopupContainer={(trigger) =>
-                            trigger.parentElement!
-                          }
-                        />
-                      </div>
-                      <Input
-                        label="Quantity"
-                        type="number"
-                        value={detail.quantity.toString()}
-                        onChange={(e) =>
-                          handleDrugDetailChange(
-                            index,
-                            "quantity",
-                            parseInt(e.target.value, 10)
-                          )
-                        }
-                        required
-                        className="w-full"
-                      />
-                      <Input
-                        label="Total Price"
-                        type="text"
-                        value={
-                          (detail.quantity * detail.price).toLocaleString() +
-                          " VND"
-                        }
-                        disabled
-                        className="w-full"
-                      />
-                      <Button
-                        type="button"
-                        variant="flat"
-                        color="danger"
-                        onClick={() => removeDrugDetail(index)}
-                        isIconOnly
-                        className="h-10 w-10"
-                      >
-                        <BinIcon />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex gap-3">
                 <Button
                   type="button"
                   variant="flat"
-                  onClick={addDrugDetail}
-                  className="w-full mt-4"
+                  onClick={handleReset}
+                  className="px-6"
                 >
-                  + Add New Drug
+                  Reset Form
+                </Button>
+                <Button
+                  type="submit"
+                  color="primary"
+                  isLoading={loading}
+                  className="px-6"
+                  onClick={handleSubmit}
+                >
+                  Create Order
                 </Button>
               </div>
             </div>
-          </form>
-        </ModalBody>
-        <ModalFooter className="border-t pt-4">
-          <div className="flex items-center justify-between w-full gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col items-center">
-                <span className="text-gray-500 text-sm">Total Quantity</span>
-                <span className="text-xl font-bold text-primary">
-                  {formData.totalQuantity}
-                </span>
-              </div>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
-              <div className="h-8 w-px bg-gray-300"></div>
-
-              <div className="flex flex-col items-center">
-                <span className="text-gray-500 text-sm">Total Price</span>
-                <span className="text-xl font-bold text-green-600">
-                  {formData.totalPrice.toLocaleString()} VND
-                </span>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="flat"
-                onClick={handleReset}
-                className="px-6"
-              >
-                Reset Form
-              </Button>
-              <Button
-                type="submit"
-                color="primary"
-                isLoading={loading}
-                className="px-6"
-                onClick={handleSubmit}
-              >
-                Create Order
-              </Button>
-            </div>
-          </div>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+      <ConfirmCreateOrder
+        isOpen={isConfirmationModalOpen}
+        onClose={() => setIsConfirmationModalOpen(false)}
+        onConfirm={handleConfirmOrder}
+      />
+    </>
   );
 };

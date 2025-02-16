@@ -1,5 +1,37 @@
 import api from "./customize-axios";
 
+export interface DrugInfo {
+  id: string;
+  drugCode: string;
+  name: string;
+  unit: string;
+  price: number;
+  createdAt: string;
+  updatedAt?: string;
+  status?: string;
+  imageUrl?: string;
+}
+
+export interface DrugOrderDetailDTO {
+  id: string;
+  drug: DrugInfo;
+  quantity: number;
+  pricePerUnit: number;
+  createdAt: string;
+  createdBy: {
+    id: string;
+    userName: string;
+    role: string;
+  };
+  updatedAt?: string;
+  updatedBy?: {
+    id: string;
+    userName: string;
+    role: string;
+  };
+  status?: string;
+}
+
 export interface DrugOrderResponse {
   id: string;
   drugOrderCode: string;
@@ -23,6 +55,10 @@ export interface DrugOrderResponse {
     role: string;
   };
   status?: string;
+}
+
+export interface DrugOrderIdResponse extends DrugOrderResponse {
+  drugOrderDetails: DrugOrderDetailDTO[];
 }
 
 export interface DrugOrderDetailRequest {
@@ -53,7 +89,7 @@ export const getDrugOrders = async () => {
 export const getDrugOrderById = async (id: string) => {
   try {
     const response = await api.get(`/drugorder-management/drugorders/${id}`);
-    return response.data.data;
+    return response.data.data as DrugOrderIdResponse;
   } catch (error) {
     throw error;
   }
