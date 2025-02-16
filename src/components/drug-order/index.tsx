@@ -39,8 +39,10 @@ import {
   ModalFooter,
 } from "@heroui/react";
 import { CreateDrugOrderForm } from "./CreateForm";
-// import { EditDrugOrderForm } from "./EditForm";
+import { EditDrugOrderForm } from "./EditForm";
 import { useRouter } from "next/router";
+import { DrugSupplierResponse, getDrugSupplierById } from "@/api/drugsupplier";
+import DrugSupplierDetailsModal from "../drug-supplier/Details";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -52,7 +54,6 @@ const columns = [
   { name: "ORDER DATE", uid: "orderDate", sortable: true },
   { name: "TOTAL QUANTITY", uid: "totalQuantity", sortable: true },
   { name: "TOTAL PRICE", uid: "totalPrice", sortable: true },
-  { name: "CREATED AT", uid: "createdAt", sortable: true },
   { name: "CREATED BY", uid: "createdBy" },
   { name: "STATUS", uid: "status" },
   { name: "ACTIONS", uid: "actions" },
@@ -92,6 +93,10 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function DrugOrders() {
+  const [selectedSupplier, setSelectedSupplier] =
+    useState<DrugSupplierResponse | null>(null);
+  const [isSupplierDetailsModalOpen, setIsSupplierDetailsModalOpen] =
+    useState(false);
   const [editingDrugOrderId, setEditingDrugOrderId] = useState<string>("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -148,15 +153,20 @@ export function DrugOrders() {
 
     setSelectedDrugOrders(selected);
 
-    const hasPending = selected.some(
-      (drugOrder) => drugOrder.status === "Pending"
+    const hasPendingOrRejected = selected.some(
+      (drugOrder) =>
+        drugOrder.status === "Pending" || drugOrder.status === "Rejected"
+    );
+    const hasPendingOrApproved = selected.some(
+      (drugOrder) =>
+        drugOrder.status === "Pending" || drugOrder.status === "Approved"
     );
     const hasApproved = selected.some(
       (drugOrder) => drugOrder.status === "Approved"
     );
 
-    setShowApprove(hasPending);
-    setShowReject(hasPending);
+    setShowApprove(hasPendingOrRejected);
+    setShowReject(hasPendingOrApproved);
     setShowComplete(hasApproved);
   }, [selectedKeys, drugOrders]);
 
@@ -224,14 +234,30 @@ export function DrugOrders() {
   }, [sortDescriptor, filteredItems, page, rowsPerPage]);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN");
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
+      date.getMinutes()
+    ).padStart(2, "0")}`;
   };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+      currencyDisplay: "code",
     }).format(price);
+  };
+
+  const handleOpenDetails = async (id: string) => {
+    try {
+      const supplier = await getDrugSupplierById(id);
+      setSelectedSupplier(supplier); // Đúng hơn là set dữ liệu supplier
+      setIsSupplierDetailsModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load drug details");
+    }
   };
 
   const handleOpenEditModal = (id: string) => {
@@ -257,9 +283,12 @@ export function DrugOrders() {
 
   const handleApprove = async () => {
     const ids = selectedDrugOrders
-      .filter((d) => d.status === "Pending")
+      .filter((d) => d.status === "Pending" || d.status === "Rejected")
       .map((d) => d.id);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      toast.error("No valid drug orders found for approval.");
+      return;
+    }
 
     try {
       await approveDrugOrders(ids);
@@ -273,9 +302,12 @@ export function DrugOrders() {
 
   const handleReject = async () => {
     const ids = selectedDrugOrders
-      .filter((d) => d.status === "Pending")
+      .filter((d) => d.status === "Pending" || d.status === "Approved")
       .map((d) => d.id);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      toast.error("No valid drug orders found for rejection.");
+      return;
+    }
 
     try {
       await rejectDrugOrders(ids);
@@ -291,7 +323,10 @@ export function DrugOrders() {
     const ids = selectedDrugOrders
       .filter((d) => d.status === "Approved")
       .map((d) => d.id);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      toast.error("No valid drug orders found for completion.");
+      return;
+    }
 
     try {
       await completeDrugOrders(ids);
@@ -358,11 +393,7 @@ export function DrugOrders() {
           return cellValue && typeof cellValue === "object" ? (
             <div
               className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
-              //   onClick={() =>
-              //     router.push(
-              //       `/drug-group/details?id=${(cellValue as { id: string }).id}`
-              //     )
-              //   }
+              onClick={() => handleOpenDetails(drugOrder.supplier.id)}
             >
               {(cellValue as { supplierName: string }).supplierName}
             </div>
@@ -372,7 +403,8 @@ export function DrugOrders() {
         case "createdBy":
           return cellValue && typeof cellValue === "object" ? (
             <div className="flex flex-col gap-1">
-              <span className="text-bold text-small text-primary cursor-pointer hover:underline">
+              {/* <span className="text-bold text-small text-primary cursor-pointer hover:underline"> */}
+              <span className="text-bold text-small">
                 {(cellValue as { userName: string }).userName}
               </span>
               <Chip
@@ -424,6 +456,7 @@ export function DrugOrders() {
                   <DropdownItem
                     key="edit"
                     onClick={() => handleOpenEditModal(drugOrder.id)}
+                    isDisabled={drugOrder.status === "Completed"}
                   >
                     Edit
                   </DropdownItem>
@@ -666,45 +699,69 @@ export function DrugOrders() {
         onCreate={() => handleCreateSuccess()}
       />
 
-      {/* {isEditModalOpen && (
-        <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent className="max-w-[500px]">
-            <ModalHeader className="border-b pb-3">Edit Drug</ModalHeader>
-            <ModalBody>
-              <EditDrugGroupForm
-                drugGroupId={editingDrugGroupId}
-                onClose={() => setIsEditModalOpen(false)}
-                onUpdate={handleUpdateSuccess}
-              />
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )} */}
+      <EditDrugOrderForm
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onEdit={handleUpdateSuccess}
+        orderId={editingDrugOrderId}
+      />
 
-      {/* <Modal
+      <Modal
         isOpen={isConfirmModalOpen}
-        onClose={() => setIsConfirmModalOpen(false)}
+        onOpenChange={(open) => !open && setIsConfirmModalOpen(false)}
       >
-        <ModalContent>
-          <ModalHeader>Confirm Action</ModalHeader>
+        <ModalContent className="max-w-[500px]">
+          <ModalHeader className="border-b pb-3">Confirm Action</ModalHeader>
           <ModalBody>
-            Are you sure you want to{" "}
-            {confirmAction === "activate" ? "activate" : "deactivate"} the
-            selected drugs?
+            <p className="text-gray-700 mb-2">
+              Please review your action carefully before proceeding.
+            </p>
+            <p className="text-gray-600 text-sm">
+              Are you sure you want to{" "}
+              {confirmAction === "approve"
+                ? "approve"
+                : confirmAction === "reject"
+                ? "reject"
+                : confirmAction === "complete"
+                ? "complete"
+                : "perform this action on"}{" "}
+              the selected drug orders?
+            </p>
           </ModalBody>
-          <ModalFooter>
-            <Button variant="flat" onClick={() => setIsConfirmModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              color={confirmAction === "activate" ? "success" : "danger"}
-              onClick={handleConfirmAction}
-            >
-              Confirm
-            </Button>
+          <ModalFooter className="border-t pt-4">
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="flat"
+                onClick={() => setIsConfirmModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                color={
+                  confirmAction === "approve"
+                    ? "primary"
+                    : confirmAction === "reject"
+                    ? "danger"
+                    : confirmAction === "complete"
+                    ? "success"
+                    : "default"
+                }
+                onClick={handleConfirmAction}
+              >
+                Confirm
+              </Button>
+            </div>
           </ModalFooter>
         </ModalContent>
-      </Modal> */}
+      </Modal>
+
+      <DrugSupplierDetailsModal
+        supplier={selectedSupplier}
+        isOpen={isSupplierDetailsModalOpen}
+        onClose={() => setIsSupplierDetailsModalOpen(false)}
+      />
 
       <Table
         isHeaderSticky

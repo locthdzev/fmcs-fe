@@ -9,17 +9,18 @@ import {
   ModalFooter,
 } from "@heroui/react";
 import { Select } from "antd";
-import { createDrugOrder } from "@/api/drugorder";
+import { updateDrugOrder, getDrugOrderById } from "@/api/drugorder";
 import { getDrugs, DrugResponse } from "@/api/drug";
 import { getDrugSuppliers, DrugSupplierResponse } from "@/api/drugsupplier";
 import { toast } from "react-toastify";
 import { BinIcon } from "./Icons";
 import { ConfirmModal } from "./Confirm";
 
-interface CreateDrugOrderFormProps {
+interface EditDrugOrderFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: () => void;
+  onEdit: () => void;
+  orderId: string;
 }
 
 interface DrugOrderDetail {
@@ -34,12 +35,14 @@ const initialFormState = {
   drugOrderDetails: [] as DrugOrderDetail[],
   totalQuantity: 0,
   totalPrice: 0,
+  drugOrderCode: "",
 };
 
-export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
+export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
   isOpen,
   onClose,
-  onCreate,
+  onEdit,
+  orderId,
 }) => {
   const [formData, setFormData] = useState(initialFormState);
   const [loading, setLoading] = useState(false);
@@ -66,7 +69,6 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
     const fetchSuppliers = async () => {
       try {
         const data = await getDrugSuppliers();
-        console.log("Fetched suppliers:", data);
         setSuppliers(data);
       } catch (error) {
         toast.error("Failed to load suppliers");
@@ -76,14 +78,32 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
   }, []);
 
   useEffect(() => {
-    calculateTotals();
-  }, [formData.drugOrderDetails]);
+    const fetchOrderDetails = async () => {
+      if (orderId && isOpen) {
+        try {
+          const orderData = await getDrugOrderById(orderId);
+          setFormData({
+            supplierId: orderData.supplier.id,
+            drugOrderCode: orderData.drugOrderCode,
+            drugOrderDetails: orderData.drugOrderDetails.map((detail) => ({
+              drugId: detail.drug.id,
+              quantity: detail.quantity,
+              price: detail.pricePerUnit,
+            })),
+            totalQuantity: orderData.totalQuantity,
+            totalPrice: orderData.totalPrice,
+          });
+        } catch (error) {
+          toast.error("Failed to fetch order details");
+        }
+      }
+    };
+    fetchOrderDetails();
+  }, [orderId, isOpen]);
 
   useEffect(() => {
-    if (isOpen) {
-      setFormData(initialFormState);
-    }
-  }, [isOpen]);
+    calculateTotals();
+  }, [formData.drugOrderDetails]);
 
   const calculateTotals = () => {
     const totalQuantity = formData.drugOrderDetails.reduce(
@@ -102,7 +122,6 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
   };
 
   const handleInputChange = (value: string) => {
-    console.log("Selected supplierId:", value);
     setFormData((prev) => ({
       ...prev,
       supplierId: value,
@@ -174,7 +193,6 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
       return;
     }
 
-    // Kiểm tra từng chi tiết đơn hàng
     for (const detail of formData.drugOrderDetails) {
       if (!detail.drugId) {
         toast.error("Please select a drug for each order detail");
@@ -186,14 +204,14 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
       }
     }
 
-    // Hiển thị Modal xác nhận
     setIsConfirmationModalOpen(true);
   };
 
-  const handleConfirmOrder = async () => {
+  const handleConfirmUpdate = async () => {
     try {
       setLoading(true);
-      const response = await createDrugOrder({
+      const response = await updateDrugOrder(orderId, {
+        drugOrderCode: formData.drugOrderCode,
         supplierId: formData.supplierId,
         drugOrderDetails: formData.drugOrderDetails.map(
           ({ drugId, quantity }) => ({
@@ -202,21 +220,22 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
           })
         ),
       });
+
       if (response.isSuccess) {
-        toast.success(response.message || "Drug order created successfully");
-        onCreate();
-        handleReset();
+        toast.success(response.message || "Drug order updated successfully");
+        onEdit();
         onClose();
       } else {
-        toast.error(response.message || "Failed to create drug order");
+        toast.error(response.message || "Failed to update drug order");
       }
     } catch (error) {
-      toast.error("Failed to create drug order");
+      toast.error("Failed to update drug order");
     } finally {
       setLoading(false);
       setIsConfirmationModalOpen(false);
     }
   };
+
   const handleReset = () => {
     setFormData(initialFormState);
   };
@@ -244,9 +263,7 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
     <>
       <Modal isOpen={isOpen} onOpenChange={(open) => !open && onClose()}>
         <ModalContent className="max-w-[1000px] min-h-[700px] max-h-[90vh]">
-          <ModalHeader className="border-b pb-3">
-            Add New Drug Order
-          </ModalHeader>
+          <ModalHeader className="border-b pb-3">Edit Drug Order</ModalHeader>
           <ModalBody className="max-h-[80vh] overflow-y-auto">
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 gap-6">
@@ -274,7 +291,7 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
 
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="text-lg font-semibold mb-4">
-                    Add Drugs To Order
+                    Edit Drugs In Order
                   </h3>
                   {formData.drugOrderDetails.map((detail, index) => (
                     <div
@@ -406,7 +423,7 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
                   className="px-6"
                   onClick={handleSubmit}
                 >
-                  Create Order
+                  Update Order
                 </Button>
               </div>
             </div>
@@ -417,10 +434,10 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
       <ConfirmModal
         isOpen={isConfirmationModalOpen}
         onClose={() => setIsConfirmationModalOpen(false)}
-        onConfirm={handleConfirmOrder}
-        title="Confirm Order"
-        message="Please review your order details carefully before proceeding. Are you sure you want to create this order?"
-        confirmText="Create Order"
+        onConfirm={handleConfirmUpdate}
+        title="Confirm Update"
+        message="Please review your order details carefully before proceeding. Are you sure you want to update this order?"
+        confirmText="Update Order"
         cancelText="Cancel"
       />
     </>
