@@ -39,9 +39,8 @@ import {
   ModalFooter,
 } from "@heroui/react";
 import { CreateDrugOrderForm } from "./CreateForm";
-// import { EditDrugOrderForm } from "./EditForm";
-import { useRouter } from "next/router";
 import { EditDrugOrderForm } from "./EditForm";
+import { useRouter } from "next/router";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -149,15 +148,20 @@ export function DrugOrders() {
 
     setSelectedDrugOrders(selected);
 
-    const hasPending = selected.some(
-      (drugOrder) => drugOrder.status === "Pending"
+    const hasPendingOrRejected = selected.some(
+      (drugOrder) =>
+        drugOrder.status === "Pending" || drugOrder.status === "Rejected"
+    );
+    const hasPendingOrApproved = selected.some(
+      (drugOrder) =>
+        drugOrder.status === "Pending" || drugOrder.status === "Approved"
     );
     const hasApproved = selected.some(
       (drugOrder) => drugOrder.status === "Approved"
     );
 
-    setShowApprove(hasPending);
-    setShowReject(hasPending);
+    setShowApprove(hasPendingOrRejected);
+    setShowReject(hasPendingOrApproved);
     setShowComplete(hasApproved);
   }, [selectedKeys, drugOrders]);
 
@@ -258,9 +262,12 @@ export function DrugOrders() {
 
   const handleApprove = async () => {
     const ids = selectedDrugOrders
-      .filter((d) => d.status === "Pending")
+      .filter((d) => d.status === "Pending" || d.status === "Rejected")
       .map((d) => d.id);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      toast.error("No valid drug orders found for approval.");
+      return;
+    }
 
     try {
       await approveDrugOrders(ids);
@@ -274,9 +281,12 @@ export function DrugOrders() {
 
   const handleReject = async () => {
     const ids = selectedDrugOrders
-      .filter((d) => d.status === "Pending")
+      .filter((d) => d.status === "Pending" || d.status === "Approved")
       .map((d) => d.id);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      toast.error("No valid drug orders found for rejection.");
+      return;
+    }
 
     try {
       await rejectDrugOrders(ids);
@@ -292,7 +302,10 @@ export function DrugOrders() {
     const ids = selectedDrugOrders
       .filter((d) => d.status === "Approved")
       .map((d) => d.id);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      toast.error("No valid drug orders found for completion.");
+      return;
+    }
 
     try {
       await completeDrugOrders(ids);
@@ -425,6 +438,7 @@ export function DrugOrders() {
                   <DropdownItem
                     key="edit"
                     onClick={() => handleOpenEditModal(drugOrder.id)}
+                    isDisabled={drugOrder.status === "Completed"}
                   >
                     Edit
                   </DropdownItem>
@@ -676,39 +690,51 @@ export function DrugOrders() {
 
       <Modal
         isOpen={isConfirmModalOpen}
-        onClose={() => setIsConfirmModalOpen(false)}
+        onOpenChange={(open) => !open && setIsConfirmModalOpen(false)}
       >
-        <ModalContent>
-          <ModalHeader>Confirm Action</ModalHeader>
+        <ModalContent className="max-w-[500px]">
+          <ModalHeader className="border-b pb-3">Confirm Action</ModalHeader>
           <ModalBody>
-            Are you sure you want to{" "}
-            {confirmAction === "approve"
-              ? "approve"
-              : confirmAction === "reject"
-              ? "reject"
-              : confirmAction === "complete"
-              ? "complete"
-              : "perform this action on"}{" "}
-            the selected drug orders?
+            <p className="text-gray-700 mb-2">
+              Please review your action carefully before proceeding.
+            </p>
+            <p className="text-gray-600 text-sm">
+              Are you sure you want to{" "}
+              {confirmAction === "approve"
+                ? "approve"
+                : confirmAction === "reject"
+                ? "reject"
+                : confirmAction === "complete"
+                ? "complete"
+                : "perform this action on"}{" "}
+              the selected drug orders?
+            </p>
           </ModalBody>
-          <ModalFooter>
-            <Button variant="flat" onClick={() => setIsConfirmModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              color={
-                confirmAction === "approve"
-                  ? "success"
-                  : confirmAction === "reject"
-                  ? "danger"
-                  : confirmAction === "complete"
-                  ? "primary"
-                  : "default"
-              }
-              onClick={handleConfirmAction}
-            >
-              Confirm
-            </Button>
+          <ModalFooter className="border-t pt-4">
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="flat"
+                onClick={() => setIsConfirmModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                color={
+                  confirmAction === "approve"
+                    ? "success"
+                    : confirmAction === "reject"
+                    ? "danger"
+                    : confirmAction === "complete"
+                    ? "primary"
+                    : "default"
+                }
+                onClick={handleConfirmAction}
+              >
+                Confirm
+              </Button>
+            </div>
           </ModalFooter>
         </ModalContent>
       </Modal>
