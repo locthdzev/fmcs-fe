@@ -41,6 +41,7 @@ import {
 import { CreateDrugOrderForm } from "./CreateForm";
 // import { EditDrugOrderForm } from "./EditForm";
 import { useRouter } from "next/router";
+import { EditDrugOrderForm } from "./EditForm";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -666,22 +667,14 @@ export function DrugOrders() {
         onCreate={() => handleCreateSuccess()}
       />
 
-      {/* {isEditModalOpen && (
-        <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent className="max-w-[500px]">
-            <ModalHeader className="border-b pb-3">Edit Drug</ModalHeader>
-            <ModalBody>
-              <EditDrugGroupForm
-                drugGroupId={editingDrugGroupId}
-                onClose={() => setIsEditModalOpen(false)}
-                onUpdate={handleUpdateSuccess}
-              />
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )} */}
+      <EditDrugOrderForm
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onEdit={handleUpdateSuccess}
+        orderId={editingDrugOrderId}
+      />
 
-      {/* <Modal
+      <Modal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
       >
@@ -689,22 +682,36 @@ export function DrugOrders() {
           <ModalHeader>Confirm Action</ModalHeader>
           <ModalBody>
             Are you sure you want to{" "}
-            {confirmAction === "activate" ? "activate" : "deactivate"} the
-            selected drugs?
+            {confirmAction === "approve"
+              ? "approve"
+              : confirmAction === "reject"
+              ? "reject"
+              : confirmAction === "complete"
+              ? "complete"
+              : "perform this action on"}{" "}
+            the selected drug orders?
           </ModalBody>
           <ModalFooter>
             <Button variant="flat" onClick={() => setIsConfirmModalOpen(false)}>
               Cancel
             </Button>
             <Button
-              color={confirmAction === "activate" ? "success" : "danger"}
+              color={
+                confirmAction === "approve"
+                  ? "success"
+                  : confirmAction === "reject"
+                  ? "danger"
+                  : confirmAction === "complete"
+                  ? "primary"
+                  : "default"
+              }
               onClick={handleConfirmAction}
             >
               Confirm
             </Button>
           </ModalFooter>
         </ModalContent>
-      </Modal> */}
+      </Modal>
 
       <Table
         isHeaderSticky
