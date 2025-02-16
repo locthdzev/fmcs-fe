@@ -41,6 +41,8 @@ import {
 import { CreateDrugOrderForm } from "./CreateForm";
 import { EditDrugOrderForm } from "./EditForm";
 import { useRouter } from "next/router";
+import { DrugSupplierResponse, getDrugSupplierById } from "@/api/drugsupplier";
+import DrugSupplierDetailsModal from "../drug-supplier/Details";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -52,7 +54,6 @@ const columns = [
   { name: "ORDER DATE", uid: "orderDate", sortable: true },
   { name: "TOTAL QUANTITY", uid: "totalQuantity", sortable: true },
   { name: "TOTAL PRICE", uid: "totalPrice", sortable: true },
-  { name: "CREATED AT", uid: "createdAt", sortable: true },
   { name: "CREATED BY", uid: "createdBy" },
   { name: "STATUS", uid: "status" },
   { name: "ACTIONS", uid: "actions" },
@@ -92,6 +93,10 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function DrugOrders() {
+  const [selectedSupplier, setSelectedSupplier] =
+    useState<DrugSupplierResponse | null>(null);
+  const [isSupplierDetailsModalOpen, setIsSupplierDetailsModalOpen] =
+    useState(false);
   const [editingDrugOrderId, setEditingDrugOrderId] = useState<string>("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -229,14 +234,30 @@ export function DrugOrders() {
   }, [sortDescriptor, filteredItems, page, rowsPerPage]);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN");
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
+      date.getMinutes()
+    ).padStart(2, "0")}`;
   };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+      currencyDisplay: "code",
     }).format(price);
+  };
+
+  const handleOpenDetails = async (id: string) => {
+    try {
+      const supplier = await getDrugSupplierById(id);
+      setSelectedSupplier(supplier); // Đúng hơn là set dữ liệu supplier
+      setIsSupplierDetailsModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load drug details");
+    }
   };
 
   const handleOpenEditModal = (id: string) => {
@@ -372,11 +393,7 @@ export function DrugOrders() {
           return cellValue && typeof cellValue === "object" ? (
             <div
               className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
-              //   onClick={() =>
-              //     router.push(
-              //       `/drug-group/details?id=${(cellValue as { id: string }).id}`
-              //     )
-              //   }
+              onClick={() => handleOpenDetails(drugOrder.supplier.id)}
             >
               {(cellValue as { supplierName: string }).supplierName}
             </div>
@@ -386,7 +403,8 @@ export function DrugOrders() {
         case "createdBy":
           return cellValue && typeof cellValue === "object" ? (
             <div className="flex flex-col gap-1">
-              <span className="text-bold text-small text-primary cursor-pointer hover:underline">
+              {/* <span className="text-bold text-small text-primary cursor-pointer hover:underline"> */}
+              <span className="text-bold text-small">
                 {(cellValue as { userName: string }).userName}
               </span>
               <Chip
@@ -723,11 +741,11 @@ export function DrugOrders() {
                 type="button"
                 color={
                   confirmAction === "approve"
-                    ? "success"
+                    ? "primary"
                     : confirmAction === "reject"
                     ? "danger"
                     : confirmAction === "complete"
-                    ? "primary"
+                    ? "success"
                     : "default"
                 }
                 onClick={handleConfirmAction}
@@ -738,6 +756,12 @@ export function DrugOrders() {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      <DrugSupplierDetailsModal
+        supplier={selectedSupplier}
+        isOpen={isSupplierDetailsModalOpen}
+        onClose={() => setIsSupplierDetailsModalOpen(false)}
+      />
 
       <Table
         isHeaderSticky

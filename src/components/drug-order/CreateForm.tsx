@@ -14,7 +14,7 @@ import { getDrugs, DrugResponse } from "@/api/drug";
 import { getDrugSuppliers, DrugSupplierResponse } from "@/api/drugsupplier";
 import { toast } from "react-toastify";
 import { BinIcon } from "./Icons";
-import { ConfirmCreateOrder } from "./ConfirmCreate";
+import { ConfirmModal } from "./Confirm";
 
 interface CreateDrugOrderFormProps {
   isOpen: boolean;
@@ -414,10 +414,14 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
         </ModalContent>
       </Modal>
 
-      <ConfirmCreateOrder
+      <ConfirmModal
         isOpen={isConfirmationModalOpen}
         onClose={() => setIsConfirmationModalOpen(false)}
         onConfirm={handleConfirmOrder}
+        title="Confirm Order"
+        message="Please review your order details carefully before proceeding. Are you sure you want to create this order?"
+        confirmText="Create Order"
+        cancelText="Cancel"
       />
     </>
   );
