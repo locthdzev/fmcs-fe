@@ -1,43 +1,39 @@
 import React from "react";
-import {
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  Button,
-} from "@heroui/react";
+import { Modal, ModalBody, ModalContent, ModalHeader, ModalFooter, Button } from "@heroui/react";
 
-interface ConfirmCreateOrderModalProps {
+interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  title?: string;
+  message?: string;
+  confirmText?: string;
+  cancelText?: string;
 }
 
-export const ConfirmCreateOrder: React.FC<ConfirmCreateOrderModalProps> = ({
+export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
+  title = "Confirm Action",
+  message = "Are you sure you want to proceed?",
+  confirmText = "Confirm",
+  cancelText = "Cancel",
 }) => {
   return (
     <Modal isOpen={isOpen} onOpenChange={(open) => !open && onClose()}>
       <ModalContent className="max-w-[500px]">
-        <ModalHeader className="border-b pb-3">Confirm Order</ModalHeader>
+        <ModalHeader className="border-b pb-3">{title}</ModalHeader>
         <ModalBody>
-          <p className="text-gray-700 mb-2">
-            Please review your order details carefully before proceeding.
-          </p>
-          <p className="text-gray-600 text-sm">
-            Are you sure you want to create this order?
-          </p>
+          <p className="text-gray-700">{message}</p>
         </ModalBody>
         <ModalFooter className="border-t pt-4">
           <div className="flex justify-end gap-3">
             <Button type="button" variant="flat" onClick={onClose}>
-              Cancel
+              {cancelText}
             </Button>
             <Button type="button" color="primary" onClick={onConfirm}>
-              Confirm
+              {confirmText}
             </Button>
           </div>
         </ModalFooter>
