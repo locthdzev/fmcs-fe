@@ -1,543 +1,277 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import {
-  PlusIcon,
-  VerticalDotsIcon,
-  SearchIcon,
-  ChevronDownIcon,
-  CanteenItemIcon,
-} from "./Icons";
-import {
   getAllCanteenItems,
   CanteenItemResponse,
   activateCanteenItems,
   deactivateCanteenItems,
 } from "@/api/canteenitems";
 import {
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-  Input,
+  Card,
+  CardHeader,
+  CardBody,
+  CardFooter,
+  Image,
   Button,
-  DropdownTrigger,
-  Dropdown,
-  DropdownMenu,
-  DropdownItem,
-  Chip,
+  Input,
   Pagination,
-  Selection,
-  ChipProps,
-  SortDescriptor,
   Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
-  ModalFooter,
+  Dropdown, DropdownTrigger, DropdownMenu, DropdownItem
 } from "@heroui/react";
-import { CreateCanteenItemForm } from "./CreateCanteenItemForm";
 import { EditCanteenItemForm } from "./EditCanteenItemForm";
+import { CreateCanteenItemForm } from "./CreateCanteenItemForm";
+import { PlusIcon, SearchIcon, ChevronDownIcon, CanteenItemIcon } from "./Icons";
 
-export function capitalize(s: string) {
-  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
-}
-
-const columns = [
-  { name: "ITEM NAME", uid: "itemName", sortable: true },
-  { name: "DESCRIPTION", uid: "description" },
-  { name: "UNIT PRICE", uid: "unitPrice", sortable: true },
-  { name: "AVAILABLE", uid: "available", sortable: true },
-  { name: "CREATED AT", uid: "createdAt", sortable: true },
-  { name: "UPDATED AT", uid: "updatedAt", sortable: true },
-  { name: "STATUS", uid: "status" },
-  { name: "ACTIONS", uid: "actions" },
-];
-
-const statusOptions = [
-  { name: "Active", uid: "Active" },
-  { name: "Inactive", uid: "Inactive" },
-];
-
-const statusColorMap: Record<string, ChipProps["color"]> = {
-  Active: "success",
-  Inactive: "danger",
+const statusColorMap: Record<"Active" | "Inactive", string> = {
+  Active: "bg-green-100 text-green-700",
+  Inactive: "bg-gray-100 text-gray-700",
 };
 
-const INITIAL_VISIBLE_COLUMNS = [
-  "itemName",
-  "description",
-  "unitPrice",
-  "available",
-  "createdAt",
-  "status",
-  "actions",
-];
-
 export function CanteenItems() {
-  const [editingCanteenItemId, setEditingCanteenItemId] = useState<string>("");
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [filterValue, setFilterValue] = React.useState("");
-  const [selectedCanteenItems, setSelectedCanteenItems] = useState<
-    CanteenItemResponse[]
-  >([]);
-  const [showActivate, setShowActivate] = useState(false);
-  const [showDeactivate, setShowDeactivate] = useState(false);
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<
-    "activate" | "deactivate" | null
-  >(null);
-  const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
-    new Set([])
-  );
-  const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
-    new Set(INITIAL_VISIBLE_COLUMNS)
-  );
-  const [statusFilter, setStatusFilter] = React.useState<Selection>("all");
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
-  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: "createdAt",
-    direction: "ascending",
-  });
+  const [canteenItems, setCanteenItems] = useState<CanteenItemResponse[]>([]);
+  const [filterValue, setFilterValue] = useState("");
+  const [statusFilter, setStatusFilter] = useState(new Set(["Active"]));
 
-  const [page, setPage] = React.useState(2);
-  const [canteenItems, setCanteenItems] = React.useState<CanteenItemResponse[]>([]);
+  const statusOptions = [
+    { uid: "Active", name: "Active" },
+    { uid: "Inactive", name: "Inactive" },
+  ];
+  const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
+
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(8);
+  const [selectedCanteenItem, setSelectedCanteenItem] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [imgErrorMap, setImgErrorMap] = useState<{ [key: string]: boolean }>({});
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [itemToDeactivate, setItemToDeactivate] = useState<string | null>(null);
+  const [isConfirmActivateModalOpen, setIsConfirmActivateModalOpen] = useState(false);
+  const [itemToActivate, setItemToActivate] = useState<string | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    fetchCanteenItems();
+  }, []);
 
   const fetchCanteenItems = async () => {
-    const data = await getAllCanteenItems();
-    setCanteenItems(data);
-    setPage(1);
+    try {
+      const response = await getAllCanteenItems();
+      setCanteenItems(response || []);
+      setIsReady(true);
+    } catch (error) {
+      toast.error("Failed to fetch canteen items");
+    }
   };
-  
-  useEffect(() => {
-    fetchCanteenItems();
-  }, []);
 
-  useEffect(() => {
-    let selected: CanteenItemResponse[] = [];
-
-    if (selectedKeys === "all") {
-      selected = canteenItems;
-    } else {
-      selected = canteenItems.filter((canteenItem) =>
-        (selectedKeys as Set<string>).has(canteenItem.id)
-      );
-    }
-
-    setSelectedCanteenItems(selected);
-
-    const hasActive = selected.some(
-      (canteenItem) => canteenItem.status === "Active"
+  const handleUpdateSuccess = (updatedItem: CanteenItemResponse) => {
+    setCanteenItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === updatedItem.id ? { ...item, ...updatedItem } : item
+      )
     );
-    const hasInactive = selected.some(
-      (canteenItem) => canteenItem.status === "Inactive"
-    );
+    setIsEditModalOpen(false);
+  };
 
-    setShowActivate(hasInactive);
-    setShowDeactivate(hasActive);
-  }, [selectedKeys, canteenItems]);
+  const handleActivateConfirm = async () => {
+    if (!itemToActivate) return;
 
-  const hasSearchFilter = Boolean(filterValue);
-
-  const headerColumns = React.useMemo(() => {
-    if (visibleColumns === "all") return columns;
-
-    return columns.filter((column) =>
-      Array.from(visibleColumns).includes(column.uid)
-    );
-  }, [visibleColumns]);
-
-  const filteredItems = React.useMemo(() => {
-    let filteredCanteenItems = [...canteenItems];
-
-    if (hasSearchFilter) {
-      filteredCanteenItems = filteredCanteenItems.filter((item) =>
-        item.itemName.toLowerCase().includes(filterValue.toLowerCase())
+    try {
+      await activateCanteenItems([itemToActivate]);
+      toast.success("Item activated successfully");
+      setCanteenItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === itemToActivate ? { ...item, status: "Active" } : item
+        )
       );
+      setIsConfirmActivateModalOpen(false);
+      setItemToActivate(null);
+    } catch (error) {
+      toast.error("Failed to activate item");
     }
-    if (
-      statusFilter !== "all" &&
-      Array.from(statusFilter).length !== statusOptions.length
-    ) {
-      filteredCanteenItems = filteredCanteenItems.filter(
-        (item) =>
-          item.status !== undefined &&
-          Array.from(statusFilter).includes(item.status)
-      );
-    }
+  };
 
-    return filteredCanteenItems;
-  }, [canteenItems, filterValue, statusFilter]);
+  const handleDeactivateConfirm = async () => {
+    if (!itemToDeactivate) return;
+
+    try {
+      await deactivateCanteenItems([itemToDeactivate]);
+      toast.success("Item deactivated successfully");
+      setCanteenItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === itemToDeactivate ? { ...item, status: "Inactive" } : item
+        )
+      );
+      setIsConfirmModalOpen(false);
+      setItemToDeactivate(null);
+    } catch (error) {
+      toast.error("Failed to deactivate item");
+    }
+  };
+
+  const filteredItems = (canteenItems || []).filter((item) => {
+    const statusKeys = Array.from(statusFilter);
+
+    // Nếu item.status là undefined, gán giá trị mặc định là ""
+    const itemStatus = item.status ?? "";
+
+    return (
+      item.itemName.toLowerCase().includes(filterValue.toLowerCase()) &&
+      (statusKeys.includes("All") || statusKeys.includes(itemStatus))
+    );
+  });
+
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage);
-
-  const items = React.useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
-
-    return filteredItems.slice(start, end);
-  }, [page, filteredItems, rowsPerPage]);
-
-  const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: CanteenItemResponse, b: CanteenItemResponse) => {
-      const first = a[sortDescriptor.column as keyof CanteenItemResponse];
-      const second = b[sortDescriptor.column as keyof CanteenItemResponse];
-
-      let cmp = 0;
-      if (typeof first === "string" && typeof second === "string") {
-        cmp = first.localeCompare(second);
-      }
-
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
-  }, [sortDescriptor, items]);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN");
-  };
-
-  const handleOpenEditModal = (id: string) => {
-    setEditingCanteenItemId(id);
-    setIsEditModalOpen(true);
-  };
-
-  const handleUpdateSuccess = () => {
-    fetchCanteenItems();
-    setIsEditModalOpen(false);
-    setEditingCanteenItemId("");
-  };
-
-  const handleActivate = async () => {
-    const ids = selectedCanteenItems
-      .filter((d) => d.status === "Inactive")
-      .map((d) => d.id);
-    if (ids.length === 0) return;
-
-    try {
-      await activateCanteenItems(ids);
-      toast.success("Canteen Items activated successfully");
-      fetchCanteenItems();
-      setSelectedKeys(new Set());
-    } catch (error) {
-      toast.error("Failed to activate canteen items");
-    }
-  };
-
-  const handleDeactivate = async () => {
-    const ids = selectedCanteenItems
-      .filter((d) => d.status === "Active")
-      .map((d) => d.id);
-    if (ids.length === 0) return;
-
-    try {
-      await deactivateCanteenItems(ids);
-      toast.success("Canteen items deactivated successfully");
-      fetchCanteenItems();
-      setSelectedKeys(new Set());
-    } catch (error) {
-      toast.error("Failed to deactivate canteen items");
-    }
-  };
-
-  const handleConfirmActivate = () => {
-    setConfirmAction("activate");
-    setIsConfirmModalOpen(true);
-  };
-
-  const handleConfirmDeactivate = () => {
-    setConfirmAction("deactivate");
-    setIsConfirmModalOpen(true);
-  };
-
-  const handleConfirmAction = async () => {
-    if (confirmAction === "activate") {
-      await handleActivate();
-    } else if (confirmAction === "deactivate") {
-      await handleDeactivate();
-    }
-    setIsConfirmModalOpen(false);
-    setConfirmAction(null);
-  };
-
-  const renderCell = React.useCallback(
-    (canteenItem: CanteenItemResponse, columnKey: React.Key) => {
-      const cellValue = canteenItem[columnKey as keyof CanteenItemResponse];
-
-      switch (columnKey) {
-        case "itemName":
-          return (
-            <div className="flex flex-col">
-              <p className="text-bold text-small capitalize text-primary">
-                {cellValue as string}
-              </p>
-            </div>
-          );
-        case "status":
-          return (
-            <Chip
-              className="capitalize"
-              color={
-                statusColorMap[canteenItem.status as keyof typeof statusColorMap]
-              }
-              size="sm"
-              variant="flat"
-            >
-              {cellValue as string}
-            </Chip>
-          );
-        case "createdAt":
-          return cellValue ? formatDate(cellValue as string) : "-";
-        case "available":
-          return cellValue ? "Yes" : "No";
-        case "updatedAt":
-          return cellValue ? formatDate(cellValue as string) : "-";
-        case "actions":
-          return (
-            <div className="relative flex justify-end items-center gap-2">
-              <Dropdown>
-                <DropdownTrigger>
-                  <Button isIconOnly size="sm" variant="light">
-                    <VerticalDotsIcon className="text-default-300" />
-                  </Button>
-                </DropdownTrigger>
-                <DropdownMenu>
-                  <DropdownItem
-                    key="edit"
-                    onClick={() => handleOpenEditModal(canteenItem.id)}
-                  >
-                    Edit
-                  </DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
-            </div>
-          );
-        default:
-          return cellValue;
-      }
-    },
-    []
+  const displayedItems = filteredItems.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
   );
-
-  const onNextPage = React.useCallback(() => {
-    if (page < pages) {
-      setPage(page + 1);
-    }
-  }, [page, pages]);
-
-  const onPreviousPage = React.useCallback(() => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  }, [page]);
-
-  const onRowsPerPageChange = React.useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      setRowsPerPage(Number(e.target.value));
-      setPage(1);
-    },
-    []
-  );
-
-  const onSearchChange = React.useCallback((value?: string) => {
-    if (value) {
-      setFilterValue(value);
-      setPage(1);
-    } else {
-      setFilterValue("");
-    }
-  }, []);
-
-  const onClear = React.useCallback(() => {
-    setFilterValue("");
-    setPage(1);
-  }, []);
-
-  const topContent = React.useMemo(() => {
-    return (
-      <div className="flex flex-col gap-4">
-        <div className="flex justify-between gap-3 items-end ml-4">
-          <Input
-            isClearable
-            className="w-full sm:max-w-[44%]"
-            placeholder="Search by item name..."
-            startContent={<SearchIcon />}
-            value={filterValue}
-            onClear={() => onClear()}
-            onValueChange={onSearchChange}
-          />
-          <div className="flex gap-3">
-            <div className="flex gap-2">
-              {showActivate && (
-                <Button color="success" onClick={handleConfirmActivate}>
-                  Activate Selected
-                </Button>
-              )}
-              {showDeactivate && (
-                <Button color="danger" onClick={handleConfirmDeactivate}>
-                  Deactivate Selected
-                </Button>
-              )}
-            </div>
-
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
-                >
-                  Status
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={statusFilter}
-                selectionMode="multiple"
-                onSelectionChange={setStatusFilter}
-              >
-                {statusOptions.map((status) => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {capitalize(status.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
-                >
-                  Columns
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={visibleColumns}
-                selectionMode="multiple"
-                onSelectionChange={setVisibleColumns}
-              >
-                {columns.map((column) => (
-                  <DropdownItem key={column.uid} className="capitalize">
-                    {capitalize(column.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-            <Button
-              color="primary"
-              endContent={<PlusIcon />}
-              onClick={() => setIsModalOpen(true)}
-            >
-              Add New
-            </Button>
-          </div>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-default-400 text-small ml-4">
-            Total {canteenItems.length} canteen items
-          </span>
-          <label className="flex items-center text-default-400 text-small">
-            Rows per page:
-            <select
-              className="bg-transparent outline-none text-default-400 text-small"
-              onChange={onRowsPerPageChange}
-            >
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="15">15</option>
-            </select>
-          </label>
-        </div>
-      </div>
-    );
-  }, [
-    selectedCanteenItems,
-    filterValue,
-    statusFilter,
-    visibleColumns,
-    selectedKeys,
-    onSearchChange,
-    onRowsPerPageChange,
-    canteenItems.length,
-  ]);
-
-  const bottomContent = React.useMemo(() => {
-    return (
-      <div className="py-2 px-2 flex justify-between items-center">
-        <span className="w-[30%] text-small text-default-400 ml-4">
-          {selectedKeys === "all"
-            ? "All items selected"
-            : `${(selectedKeys as Set<string>).size} of ${filteredItems.length
-            } selected`}
-        </span>
-        <Pagination
-          isCompact
-          showControls
-          showShadow
-          color="primary"
-          page={page}
-          total={pages}
-          onChange={setPage}
-        />
-        <div className="hidden sm:flex w-[30%] justify-end gap-2">
-          <Button
-            isDisabled={pages === 1}
-            size="sm"
-            variant="flat"
-            onPress={onPreviousPage}
-          >
-            Previous
-          </Button>
-          <Button
-            isDisabled={pages === 1}
-            size="sm"
-            variant="flat"
-            onPress={onNextPage}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-    );
-  }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
 
   return (
     <>
-      <div className="flex items-center gap-2 mb-4 ml-4">
-        <CanteenItemIcon />
-        <h3 className="text-2xl font-bold">Canteen Items Management</h3>
+          <div className="flex items-center gap-2 mb-4 ml-4">
+            <CanteenItemIcon />
+            <h3 className="text-2xl font-bold">Canteen Items Management</h3>
+          </div>
+      {/* Header Section */}
+      <div className="flex justify-between items-center mb-6">
+        <Input
+          placeholder="Search by item name..."
+          startContent={<SearchIcon />}
+          value={filterValue}
+          onChange={(e) => setFilterValue(e.target.value)}
+        />
+        <div className="flex items-center gap-4">
+          {/* Dropdown filter */}
+          <Dropdown>
+            <DropdownTrigger className="hidden sm:flex">
+              <Button
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                
+              >
+                Status
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu
+              disallowEmptySelection
+              aria-label="Table Columns"
+              closeOnSelect={false}
+              selectedKeys={statusFilter}
+              selectionMode="multiple"
+              onSelectionChange={(keys) => {
+                const selectedKeys = new Set(
+                  (keys as unknown as Set<string>).values()
+                );
+                setStatusFilter(selectedKeys);
+              }}
+            >
+              {statusOptions.map((status) => (
+                <DropdownItem key={status.uid} className="capitalize">
+                  {capitalize(status.name)}
+                </DropdownItem>
+              ))}
+            </DropdownMenu>
+          </Dropdown>
+
+          {/* Nút Add New Item */}
+          <Button color="primary" endContent={<PlusIcon />} onPress={() => setIsCreateModalOpen(true)}>
+            Add New Item
+          </Button>
+        </div>
+
       </div>
 
-      {isModalOpen && (
-        <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[500px]">
-            <ModalHeader>Add New Canteen Item</ModalHeader>
-            <ModalBody>
-              <CreateCanteenItemForm
-                onClose={() => {
-                  setIsModalOpen(false);
-                }}
-                onCreate={fetchCanteenItems}
-              />
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )}
+      {/* Card Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {displayedItems.map((item) => (
+          <Card key={item.id} className="relative shadow-lg rounded-xl overflow-hidden transition-transform transform hover:scale-105 duration-300">
+            {/* Góc trên bên phải - Trạng thái Status */}
+            <div className={`absolute top-2 right-2 px-3 py-1 text-xs font-semibold rounded-lg ${statusColorMap[item.status as "Active" | "Inactive"] || "bg-gray-200 text-gray-700"}`}>
+              {item.status ?? "Unknown"}
+            </div>
 
-      {isEditModalOpen && (
-        <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent className="max-w-[500px]">
+            <CardHeader className="flex flex-col items-center gap-3 p-4">
+              <Image
+                src={imgErrorMap[item.id] ? "/images/placeholder.jpg" : item.imageUrl || "/images/placeholder.jpg"}
+                alt={item.itemName}
+                width={150}
+                height={150}
+                className="rounded-lg object-cover shadow-md"
+                onError={() => setImgErrorMap((prev) => ({ ...prev, [item.id]: true }))}
+              />
+              <h3 className="text-lg font-bold text-gray-900 text-center">{item.itemName}</h3>
+            </CardHeader>
+
+            <CardBody className="p-4">
+              <p className="text-sm text-gray-500 mb-2">{item.description || "No description available."}</p>
+              <p className="font-semibold text-gray-900 text-lg">${item.unitPrice}</p>
+              <p className="text-sm text-gray-400">Created: {item.createdAt}</p>
+
+              {/* Available - Đưa xuống gần mô tả */}
+              <div className={`mt-2 px-3 py-1 text-xs font-semibold rounded-lg w-fit ${item.available ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                {item.available ? "Available" : "Out of Stock"}
+              </div>
+            </CardBody>
+
+            <CardFooter className="flex justify-between p-4 bg-gray-50 border-t border-gray-200">
+              <Button
+                color={item.status === "Active" ? "danger" : "success"}
+                size="sm"
+                onPress={() => {
+                  if (item.status === "Active") {
+                    setItemToDeactivate(item.id);
+                    setIsConfirmModalOpen(true);
+                  } else {
+                    setItemToActivate(item.id);
+                    setIsConfirmActivateModalOpen(true);
+                  }
+                }}
+              >
+                {item.status === "Active" ? "Deactivate" : "Activate"}
+              </Button>
+
+              <Button
+                color="primary"
+                size="sm"
+                onPress={() => {
+                  setSelectedCanteenItem(item.id);
+                  setIsEditModalOpen(true);
+                }}
+              >
+                Edit
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-center mt-6">
+        {isReady && (
+          <Pagination
+            key={page}
+            showControls
+            page={page}
+            total={pages}
+            onChange={(newPage) => setPage(newPage)}
+            color="primary"
+          />
+        )}
+      </div>
+
+      {/* Edit Modal */}
+      {isEditModalOpen && selectedCanteenItem && (
+        <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
+          <ModalContent>
             <ModalHeader>Edit Item</ModalHeader>
             <ModalBody>
               <EditCanteenItemForm
-                canteenItemId={editingCanteenItemId}
+                canteenItemId={selectedCanteenItem}
                 onClose={() => setIsEditModalOpen(false)}
                 onUpdate={handleUpdateSuccess}
               />
@@ -546,68 +280,50 @@ export function CanteenItems() {
         </Modal>
       )}
 
-      <Modal
-        isOpen={isConfirmModalOpen}
-        onClose={() => setIsConfirmModalOpen(false)}
-      >
-        <ModalContent>
-          <ModalHeader>Confirm Action</ModalHeader>
-          <ModalBody>
-            Are you sure you want to{" "}
-            {confirmAction === "activate" ? "activate" : "deactivate"} the
-            selected drugs?
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="flat" onClick={() => setIsConfirmModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              color={confirmAction === "activate" ? "success" : "danger"}
-              onClick={handleConfirmAction}
-            >
-              Confirm
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      {/* Create Modal */}
+      {isCreateModalOpen && (
+        <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)}>
+          <ModalContent>
+            <ModalHeader>Create New Item</ModalHeader>
+            <ModalBody>
+              <CreateCanteenItemForm onClose={() => setIsCreateModalOpen(false)} onCreate={fetchCanteenItems} />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
 
-      <Table
-        isHeaderSticky
-        aria-label="Drug groups table"
-        bottomContent={bottomContent}
-        bottomContentPlacement="outside"
-        classNames={{
-          wrapper: "max-h-[382px] ml-2",
-        }}
-        selectedKeys={selectedKeys}
-        selectionMode="multiple"
-        sortDescriptor={sortDescriptor}
-        topContent={topContent}
-        topContentPlacement="outside"
-        onSelectionChange={setSelectedKeys}
-        onSortChange={setSortDescriptor}
-      >
-        <TableHeader columns={headerColumns}>
-          {(column) => (
-            <TableColumn
-              key={column.uid}
-              align={column.uid === "actions" ? "center" : "start"}
-              allowsSorting={column.sortable}
-            >
-              {column.name}
-            </TableColumn>
-          )}
-        </TableHeader>
-        <TableBody emptyContent={"No drug groups found"} items={sortedItems}>
-          {(item) => (
-            <TableRow key={item.id}>
-              {(columnKey) => (
-                <TableCell>{renderCell(item, columnKey)}</TableCell>
-              )}
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+      {/* Confirm Deactivate Modal */}
+      {isConfirmModalOpen && (
+        <Modal isOpen={isConfirmModalOpen} onClose={() => setIsConfirmModalOpen(false)}>
+          <ModalContent>
+            <ModalHeader>Confirm Deactivation</ModalHeader>
+            <ModalBody>
+              <p>Are you sure you want to deactivate this item?</p>
+              <div className="flex justify-end mt-4">
+                <Button variant="flat" onPress={() => setIsConfirmModalOpen(false)}>Cancel</Button>
+                <Button color="danger" onPress={handleDeactivateConfirm}>Yes</Button>
+              </div>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {/* Confirm Activate Modal */}
+      {isConfirmActivateModalOpen && (
+        <Modal isOpen={isConfirmActivateModalOpen} onClose={() => setIsConfirmActivateModalOpen(false)}>
+          <ModalContent>
+            <ModalHeader>Confirm Activation</ModalHeader>
+            <ModalBody>
+              <p>Are you sure you want to activate this item?</p>
+              <div className="flex justify-end mt-4">
+                <Button variant="flat" onPress={() => setIsConfirmActivateModalOpen(false)}>Cancel</Button>
+                <Button color="success" onPress={handleActivateConfirm}>Yes</Button>
+              </div>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
     </>
   );
 }

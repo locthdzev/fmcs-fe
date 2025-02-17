@@ -1,129 +1,155 @@
-import React, { useEffect, useState } from "react";
-import { Button, Input, Textarea, Checkbox, Select, SelectItem } from "@heroui/react";
-import {
-    updateCanteenItem,
-    getCanteenItem,
-    UpdateCanteenItemsDTO,
-} from "@/api/canteenitems";
+import React, { useState, useEffect } from "react";
+import { Button, Input, Textarea } from "@heroui/react";
+import { updateCanteenItem, getCanteenItem } from "@/api/canteenitems";
 import { toast } from "react-toastify";
+import { CanteenItemResponse } from "@/api/canteenitems";
+
 
 interface EditCanteenItemFormProps {
-    canteenItemId: string;
-    onClose: () => void;
-    onUpdate: () => void;
+  canteenItemId: string;
+  onClose: () => void;
+  onUpdate: (updatedItem: CanteenItemResponse) => void;
 }
 
+
+const initialFormState = {
+  itemName: "",
+  description: "",
+  unitPrice: "",
+  available: false, // Dùng boolean thay vì string
+  updatedAt: new Date().toISOString(), // Sử dụng updatedAt thay vì createdAt
+  status: "Active",
+  imageFile: undefined as File | undefined,
+};
+
 export const EditCanteenItemForm: React.FC<EditCanteenItemFormProps> = ({
-    canteenItemId,
-    onClose,
-    onUpdate,
+  canteenItemId,
+  onClose,
+  onUpdate,
 }) => {
-    const [formData, setFormData] = useState<UpdateCanteenItemsDTO | null>(null);
-    const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState(initialFormState);
+  const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const canteenItemData = await getCanteenItem(canteenItemId);
-                setFormData({
-                    itemName: canteenItemData.itemName,
-                    description: canteenItemData.description || "",
-                    unitPrice: canteenItemData.unitPrice.toString(),
-                    available: canteenItemData.available.toString(),
-                    updatedAt: new Date().toISOString(),
-                    status: canteenItemData.status || "Active",
-                });
-            } catch (error) {
-                toast.error("Failed to load canteen item details");
-            }
-        };
-
-        fetchData();
-    }, [canteenItemId]);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev) => prev ? { ...prev, [name]: value } : null);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const canteenItemData = await getCanteenItem(canteenItemId);
+        setFormData({
+          itemName: canteenItemData.itemName,
+          description: canteenItemData.description || "",
+          unitPrice: canteenItemData.unitPrice.toString(),
+          available: canteenItemData.available === "true", // Chuyển thành boolean
+          updatedAt: new Date().toISOString(), // Cập nhật thời gian mới
+          status: canteenItemData.status || "Active",
+          imageFile: undefined, // Không có file ảnh ban đầu
+        });
+      } catch (error) {
+        toast.error("Failed to load canteen item details");
+      }
     };
 
-    const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData((prev) => prev ? { ...prev, available: e.target.checked ? "true" : "false" } : null);
-    };
+    fetchData();
+  }, [canteenItemId]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!formData) return;
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    let { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-        try {
-            setLoading(true);
-            const response = await updateCanteenItem(canteenItemId, formData);
-            if (response.isSuccess) {
-                toast.success(response.message || "Canteen item updated successfully");
-                onUpdate();
-                onClose();
-            } else {
-                toast.error(response.message || "Failed to update canteen item");
-            }
-        } catch (error) {
-            toast.error("Failed to update canteen item");
-        } finally {
-            setLoading(false);
-        }
-    };
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      available: e.target.checked, // Dùng boolean thay vì string
+    }));
+  };
 
-    if (!formData) return <p>Loading...</p>;
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files ? e.target.files[0] : undefined;
+    setFormData((prev) => ({
+      ...prev,
+      imageFile: file,
+    }));
+  };
 
-    return (
-        <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 gap-4">
-                <Input
-                    label="Item Name"
-                    name="itemName"
-                    value={formData.itemName}
-                    onChange={handleChange}
-                    required
-                />
-                <Textarea
-                    label="Description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                />
-                <Input
-                    label="Unit Price"
-                    name="unitPrice"
-                    type="text" // ✅ Để dạng text giữ nguyên string
-                    value={formData.unitPrice}
-                    onChange={handleChange}
-                    required
-                />
-                <Checkbox
-                    name="available"
-                    isSelected={formData.available === "true"}
-                    onChange={handleCheckboxChange}
-                >
-                    Available
-                </Checkbox>
-                <Select
-                    label="Status"
-                    name="status"
-                    value={formData.status}
-                    onChange={(e) => setFormData((prev) => prev ? { ...prev, status: e.target.value } : null)}
-                    required
-                >
-                    <SelectItem key="Active" value="Active">Active</SelectItem>
-                    <SelectItem key="Inactive" value="Inactive">Inactive</SelectItem>
-                </Select>
-            </div>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const updatedItem = await updateCanteenItem(canteenItemId, {
+        itemName: formData.itemName,
+        description: formData.description,
+        unitPrice: formData.unitPrice.trim(),
+        available: formData.available.toString(),
+        updatedAt: new Date().toISOString(),
+        status: formData.status,
+      }, formData.imageFile);
+  
+      toast.success("Canteen item updated successfully");
+  
+      onUpdate(updatedItem); // ✅ Cập nhật ngay sau khi chỉnh sửa
+      onClose();
+    } catch (error) {
+      toast.error("Failed to update canteen item");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
 
-            <div className="flex justify-end gap-2 mt-4">
-                <Button type="button" variant="flat" onClick={onClose}>
-                    Cancel
-                </Button>
-                <Button type="submit" color="primary" isLoading={loading}>
-                    Update Canteen Item
-                </Button>
-            </div>
-        </form>
-    );
+  const handleReset = () => {
+    setFormData(initialFormState);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="space-y-4">
+        <Input
+          label="Item Name"
+          name="itemName"
+          value={formData.itemName}
+          onChange={handleInputChange}
+          required
+        />
+        <Textarea
+          label="Description"
+          name="description"
+          value={formData.description}
+          onChange={handleInputChange}
+        />
+        <Input
+          label="Unit Price"
+          name="unitPrice"
+          value={formData.unitPrice}
+          onChange={handleInputChange}
+          required
+        />
+        <Input
+          label="Available"
+          name="available"
+          type="checkbox"
+          checked={formData.available} // Sử dụng boolean thay vì string
+          onChange={handleCheckboxChange}
+        />
+        <Input
+          label="Upload Image"
+          name="imageFile"
+          type="file"
+          onChange={handleFileChange}
+        />
+      </div>
+      <div className="flex justify-end space-x-2 mt-4">
+        <Button type="button" variant="flat" onClick={handleReset}>
+          Reset
+        </Button>
+        <Button type="submit" color="primary" isLoading={loading}>
+          Update Canteen Item
+        </Button>
+      </div>
+    </form>
+  );
 };
