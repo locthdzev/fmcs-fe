@@ -80,7 +80,9 @@ export function DrugGroupDetails() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("vi-VN", { timeZone: "UTC" });
+    return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
+      date.getMinutes()
+    ).padStart(2, "0")}`;
   };
 
   const handleOpenDetails = async (id: string) => {
@@ -174,28 +176,60 @@ export function DrugGroupDetails() {
           </Chip>
         </CardHeader>
         <CardBody>
-          <div className="grid grid-cols-4 gap-8">
-            <div>
-              <p className="text-gray-600">Group Name</p>
-              <p className="font-semibold">{drugGroup?.groupName}</p>
+          <div className="grid grid-cols-4 gap-4">
+            {/* Group Name */}
+            <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center space-x-2">
+                <div>
+                  <p className="text-gray-600 text-sm mb-1">Group Name</p>
+                  <p className="font-semibold text-base text-gray-800">
+                    {drugGroup?.groupName}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-gray-600">Description</p>
-              <p className="mt-1 w-full border-none p-0 sm:text-sm text-gray-600 italic">
-                {drugGroup?.description || "No description available"}
-              </p>
+            {/* Description */}
+            <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center space-x-2">
+                <div>
+                  <p className="text-gray-600 text-sm mb-1">Description</p>
+                  <p className="font-semibold text-base text-gray-800 italic">
+                    {drugGroup?.description || "No description available"}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-gray-600">Created At</p>
-              <p className="font-semibold">
-                {drugGroup?.createdAt ? formatDate(drugGroup.createdAt) : "-"}
-              </p>
+            {/* Created At */}
+            <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center space-x-2">
+                <div>
+                  <p className="text-gray-600 text-sm mb-1">Created At</p>
+                  <p className="font-semibold text-base text-gray-800">
+                    {drugGroup?.createdAt
+                      ? formatDate(drugGroup.createdAt)
+                      : "-"}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="mr-16">
-              <p className="text-gray-600">Updated At</p>
-              <p className="font-semibold">
-                {drugGroup?.updatedAt ? formatDate(drugGroup.updatedAt) : "-"}
-              </p>
+            {/* Updated At */}
+            <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center space-x-2">
+                <div>
+                  <p className="text-gray-600 text-sm mb-1">Updated At</p>
+                  <p
+                    className={`font-semibold text-base ${
+                      !drugGroup?.updatedAt
+                        ? "italic text-gray-400"
+                        : "text-gray-800"
+                    }`}
+                  >
+                    {drugGroup?.updatedAt
+                      ? formatDate(drugGroup.updatedAt)
+                      : "Not updated yet"}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </CardBody>
@@ -247,10 +281,7 @@ export function DrugGroupDetails() {
           >
             <TableHeader>
               {columns.map((column) => (
-                <TableColumn
-                  key={column.uid}
-                  allowsSorting={column.sortable}
-                >
+                <TableColumn key={column.uid} allowsSorting={column.sortable}>
                   {column.name}
                 </TableColumn>
               ))}
