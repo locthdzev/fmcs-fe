@@ -2,12 +2,15 @@ import api from "./customize-axios";
 
 export interface CanteenOrderResponse {
   id: string;
-  licensePlate: string;
   orderDate: string;
   createdAt: string;
   updatedAt?: string;
   status?: string;
   truckId: string;
+  truck: {
+    licensePlate: string;
+    driverName: string;
+  };
 }
 
 export interface CanteenOrderCreateRequest {
@@ -44,7 +47,7 @@ export const getCanteenOrderById = async (id: string) => {
 
 export const getOrdersByTruckId = async (truckId: string) => {
   try {
-    const response = await api.get(`/canteenorder-management/canteenorders/${truckId}`);
+    const response = await api.get(`/canteenorder-management/canteenorders/truck/${truckId}`);
     return response.data.data;
   } catch (error) {
     throw error;

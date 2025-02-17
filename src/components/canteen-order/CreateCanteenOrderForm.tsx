@@ -12,7 +12,7 @@ const initialFormState = {
   licensePlate: "",
   orderDate: "",
   createdAt: new Date().toISOString(),
-  status: "Active"
+  status: "Active",
 };
 
 export const CreateCanteenOrderForm: React.FC<CreateCanteenOrderFormProps> = ({
@@ -73,6 +73,7 @@ export const CreateCanteenOrderForm: React.FC<CreateCanteenOrderFormProps> = ({
           value={formData.orderDate}
           onChange={handleInputChange}
           required
+          placeholder=" "
         />
       </div>
 

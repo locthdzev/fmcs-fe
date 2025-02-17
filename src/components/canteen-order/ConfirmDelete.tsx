@@ -45,7 +45,7 @@ const ConfirmDeleteCanteenOrderModal: React.FC<ConfirmDeleteCanteenOrderModalPro
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { label: "Order ID", value: order.id },
-                { label: "License Plate", value: order.licensePlate },
+                { label: "License Plate", value: order.truck?.licensePlate },
                 { label: "Truck ID", value: order.truckId },
                 {
                   label: "Order Date",

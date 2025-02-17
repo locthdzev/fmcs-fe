@@ -6,7 +6,7 @@ import {
   SearchIcon,
   ChevronDownIcon,
   CanteenOrderIcon,
-} from "./Icons"; // Assuming you've created CanteenOrderIcon
+} from "./Icons";
 import {
   getCanteenOrders,
   deleteCanteenOrder,
@@ -14,7 +14,7 @@ import {
   getCanteenOrderById,
   activateCanteenOrders,
   deactivateCanteenOrders,
-} from "@/api/canteenorder"; // Update API paths if necessary
+} from "@/api/canteenorder";
 import {
   Table,
   TableHeader,
@@ -48,9 +48,7 @@ export function capitalize(s: string) {
 }
 // Define columns
 const columns = [
-  { name: "Order ID", uid: "id", sortable: true },
   { name: "License Plate", uid: "licensePlate", sortable: true },
-  { name: "Truck ID", uid: "truckId" },
   { name: "Order Date", uid: "orderDate", sortable: true },
   { name: "Created At", uid: "createdAt", sortable: true },
   { name: "Updated At", uid: "updatedAt", sortable: true },
@@ -69,33 +67,42 @@ const statusColorMap: Record<string, ChipProps["color"]> = {
 };
 
 const INITIAL_VISIBLE_COLUMNS = [
-  "id",
   "licensePlate",
   "orderDate",
   "createdAt",
   "status",
-  "truckId",
   "actions",
 ];
 
 export function CanteenOrders() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deletingOrder, setDeletingOrder] = useState<CanteenOrderResponse | null>(null);
+  const [deletingOrder, setDeletingOrder] =
+    useState<CanteenOrderResponse | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingOrderId, setEditingOrderId] = useState<string>("");
-  const [selectedOrder, setSelectedOrder] = useState<CanteenOrderResponse | null>(null);
+  const [selectedOrder, setSelectedOrder] =
+    useState<CanteenOrderResponse | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterValue, setFilterValue] = React.useState("");
-  const [selectedOrders, setSelectedOrders] = useState<CanteenOrderResponse[]>([]);
+  const [selectedOrders, setSelectedOrders] = useState<CanteenOrderResponse[]>(
+    []
+  );
   const [showActivate, setShowActivate] = useState(false);
   const [showDeactivate, setShowDeactivate] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<"activate" | "deactivate" | null>(null);
+  const [confirmAction, setConfirmAction] = useState<
+    "activate" | "deactivate" | null
+  >(null);
 
-  const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set([]));
-  const [visibleColumns, setVisibleColumns] = React.useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
+  const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
+    new Set([])
+  );
+  const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
+    new Set(INITIAL_VISIBLE_COLUMNS)
+  );
   const [statusFilter, setStatusFilter] = React.useState<Selection>("all");
+
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "createdAt",
@@ -106,8 +113,17 @@ export function CanteenOrders() {
   const [orders, setOrders] = useState<CanteenOrderResponse[]>([]);
 
   const fetchOrders = async () => {
-    const data = await getCanteenOrders();
-    setOrders(data);
+    try {
+      const data = await getCanteenOrders();
+      console.log("Dữ liệu đơn hàng:", data);
+      if (Array.isArray(data)) {
+        setOrders(data);
+      } else {
+        console.error("Dữ liệu không phải là một mảng", data);
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy dữ liệu đơn hàng:", error);
+    }
   };
 
   useEffect(() => {
@@ -134,23 +150,32 @@ export function CanteenOrders() {
     setShowDeactivate(hasActive);
   }, [selectedKeys, orders]);
 
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === "all") return columns;
+
+    return columns.filter((column) =>
+      Array.from(visibleColumns).includes(column.uid)
+    );
+  }, [visibleColumns]);
+
   const filteredItems = React.useMemo(() => {
     let filteredOrders = [...orders];
 
     if (filterValue) {
       filteredOrders = filteredOrders.filter((order) =>
-        order.licensePlate.toLowerCase().includes(filterValue.toLowerCase())
+        order.truck?.licensePlate
+          .toLowerCase()
+          .includes(filterValue.toLowerCase())
       );
     }
 
     if (
       statusFilter !== "all" &&
-      Array.from(statusFilter).length !== statusOptions.length
+      statusFilter instanceof Set &&
+      statusFilter.size > 0
     ) {
       filteredOrders = filteredOrders.filter(
-        (order) =>
-          order.status !== undefined &&
-          Array.from(statusFilter).includes(order.status)
+        (order) => order.status !== undefined && statusFilter.has(order.status)
       );
     }
 
@@ -167,17 +192,24 @@ export function CanteenOrders() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: CanteenOrderResponse, b: CanteenOrderResponse) => {
-      const first = a[sortDescriptor.column as keyof CanteenOrderResponse];
-      const second = b[sortDescriptor.column as keyof CanteenOrderResponse];
+    return [...items].sort(
+      (a: CanteenOrderResponse, b: CanteenOrderResponse) => {
+        const getValue = (item: CanteenOrderResponse, column: string) => {
+          if (column === "licensePlate") return item.truck?.licensePlate || "";
+          return item[column as keyof CanteenOrderResponse];
+        };
 
-      let cmp = 0;
-      if (typeof first === "string" && typeof second === "string") {
-        cmp = first.localeCompare(second);
+        const first = a[sortDescriptor.column as keyof CanteenOrderResponse];
+        const second = b[sortDescriptor.column as keyof CanteenOrderResponse];
+
+        let cmp = 0;
+        if (typeof first === "string" && typeof second === "string") {
+          cmp = first.localeCompare(second);
+        }
+
+        return sortDescriptor.direction === "descending" ? -cmp : cmp;
       }
-
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
+    );
   }, [sortDescriptor, items]);
 
   const formatDate = (dateString: string) => {
@@ -292,14 +324,16 @@ export function CanteenOrders() {
               className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
               onClick={() => handleOpenDetails(order.id)}
             >
-              {cellValue as string}
+              {order.truck?.licensePlate || "Not Available"}
             </p>
           );
         case "status":
           return (
             <Chip
               className="capitalize"
-              color={statusColorMap[order.status as keyof typeof statusColorMap]}
+              color={
+                statusColorMap[order.status as keyof typeof statusColorMap]
+              }
               size="sm"
               variant="flat"
             >
@@ -337,7 +371,9 @@ export function CanteenOrders() {
             </div>
           );
         default:
-          return typeof cellValue === "object" ? JSON.stringify(cellValue) : cellValue;
+          return typeof cellValue === "object"
+            ? JSON.stringify(cellValue)
+            : cellValue;
       }
     },
     []
@@ -624,7 +660,7 @@ export function CanteenOrders() {
         onSelectionChange={setSelectedKeys}
         onSortChange={setSortDescriptor}
       >
-        <TableHeader columns={columns}>
+        <TableHeader columns={headerColumns}>
           {(column) => (
             <TableColumn
               key={column.uid}

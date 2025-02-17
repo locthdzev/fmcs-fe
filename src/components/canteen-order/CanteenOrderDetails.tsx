@@ -32,14 +32,17 @@ const CanteenOrderDetailsModal: React.FC<CanteenOrderDetailsModalProps> = ({
   return (
     <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-2xl">
       <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
-        <ModalHeader className="border-b pb-3">Canteen Order Details</ModalHeader>
+        <ModalHeader className="border-b pb-3">
+          Canteen Order Details
+        </ModalHeader>
         <ModalBody className="p-6">
           <div className="space-y-4 text-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { label: "Order ID", value: order.id },
-                { label: "License Plate", value: order.licensePlate },
-                { label: "Truck ID", value: order.truckId },
+                { label: "License Plate", 
+                  value: order.truck?.licensePlate || "N/A"
+                 },
+
                 {
                   label: "Order Date",
                   value: new Date(order.orderDate).toLocaleDateString("vi-VN"),
