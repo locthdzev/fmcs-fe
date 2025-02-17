@@ -47,7 +47,7 @@ export const data = [
           {
             title: "DrugOrders",
             icon: <DrugOrderIcon />,
-            link: "/admin/settings/general",
+            link: "/drug-order/management",
           },
           {
             title: "DrugSuppliers",
