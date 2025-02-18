@@ -17,6 +17,7 @@ import { HealthInsuranceIcon } from "./icons/HealthInsuranceIcon";
 import { PeriodicHealthCheckupsIcon } from "./icons/PeriodicHealthCheckupsIcon";
 import { TrucksIcon } from "./icons/TruckIcon";
 import { ScheduleIcon } from "./icons/ScheduleIcon";
+import { ShiftIcon } from "./icons/ShiftIcon";
 
 export const data = [
   {
@@ -94,6 +95,11 @@ export const data = [
             icon: <ScheduleIcon />,
             link: "/schedule/management",
           },
+          {
+            title: "Shifts",
+            icon: <ShiftIcon />,
+            link: "/shift/management",
+          }
         ],
       },
       {
