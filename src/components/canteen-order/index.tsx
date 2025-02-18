@@ -105,26 +105,29 @@ export function CanteenOrders() {
 
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: "createdAt",
-    direction: "ascending",
+    column: "orderDate",
+    direction: "descending",
   });
 
   const [page, setPage] = useState(1);
   const [orders, setOrders] = useState<CanteenOrderResponse[]>([]);
-
-  const fetchOrders = async () => {
-    try {
-      const data = await getCanteenOrders();
-      console.log("Dữ liệu đơn hàng:", data);
-      if (Array.isArray(data)) {
-        setOrders(data);
-      } else {
-        console.error("Dữ liệu không phải là một mảng", data);
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy dữ liệu đơn hàng:", error);
+  // Modify the fetchOrders function to sort by date
+const fetchOrders = async () => {
+  try {
+    const data = await getCanteenOrders();
+    if (Array.isArray(data)) {
+      // Sort the data by orderDate in descending order (newest first)
+      const sortedData = data.sort((a, b) => {
+        return new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime();
+      });
+      setOrders(sortedData);
+      setPage(1);
     }
-  };
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+  }
+};
+
 
   useEffect(() => {
     fetchOrders();
@@ -252,7 +255,12 @@ export function CanteenOrders() {
     try {
       await deleteCanteenOrder(deletingOrder.id);
       toast.success("Order deleted successfully");
-      await fetchOrders();
+  
+      // Cập nhật danh sách trên FE
+      setOrders((prevOrders) =>
+        prevOrders.filter((order) => order.id !== deletingOrder.id)
+      );
+  
       setSelectedKeys(new Set());
       setIsDeleteModalOpen(false);
       setDeletingOrder(null);
@@ -260,6 +268,8 @@ export function CanteenOrders() {
       toast.error("Failed to delete order");
     }
   };
+  
+  
 
   const handleActivate = async () => {
     const ids = selectedOrders

@@ -49,7 +49,9 @@ export interface CanteenOrderUpdateRequest {
 
 export const getCanteenOrders = async () => {
   try {
-    const response = await api.get("/canteenorder-management/canteenorders");
+    const response = await api.get("/canteenorder-management/canteenorders", {
+      params: { timestamp: new Date().getTime() }
+    });
     return response.data.data;
   } catch (error) {
     throw error;
@@ -116,7 +118,7 @@ export const updateCanteenOrder = async (id: string, orderData: FormData) => {
 export const deleteCanteenOrder = async (id: string) => {
   try {
     const response = await api.delete(
-      `/canteenorder-management/canteenorders/${id}`
+`/canteenorder-management/canteenorders/${id}`
     );
     return response.data;
   } catch (error) {

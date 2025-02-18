@@ -23,7 +23,6 @@ interface OrderDetail {
   };
 }
 
-
 interface FormData {
   licensePlate: string;
   orderDate: string;
@@ -56,12 +55,33 @@ export const EditCanteenOrderForm: React.FC<EditCanteenOrderFormProps> = ({
         orderDate: orderData.orderDate,
         updatedAt: new Date().toISOString(),
         status: orderData.status || "Active",
-        canteenOrderDetails: orderData.canteenOrderDetails || [],
+        canteenOrderDetails: orderData.canteenOrderDetails.map((detail: {
+          itemId: string;
+          quantity: number;
+          itemName?: string;
+          unitPrice?: string;
+          canteenItem?: {
+            itemName: string;
+            unitPrice: string;
+          };
+          item?: {
+            itemName: string;
+            unitPrice: string;
+          };
+        }) => ({
+          itemId: detail.itemId,
+          quantity: detail.quantity,
+          canteenItem: {
+            itemName: detail.canteenItem?.itemName || detail.itemName || detail.item?.itemName,
+            unitPrice: detail.canteenItem?.unitPrice || detail.unitPrice || detail.item?.unitPrice
+          }
+        }))
       });
     } catch (error) {
       toast.error("Failed to load order details");
     }
   };
+  
 
   const fetchCanteenItems = async () => {
     try {
@@ -98,16 +118,25 @@ export const EditCanteenOrderForm: React.FC<EditCanteenOrderFormProps> = ({
     setQuantity(1);
   };
 
-  const handleRemoveItem = (itemId: string) => {
-    if (!formData) return;
+ // Update the handleRemoveItem function
+const handleRemoveItem = (itemId: string) => {
+  if (!formData) return;
 
-    setFormData({
-      ...formData,
-      canteenOrderDetails: formData.canteenOrderDetails.filter(
-        (detail) => detail.itemId !== itemId
-      ),
-    });
-  };
+  // Create new array without the removed item
+  const updatedDetails = formData.canteenOrderDetails.filter(
+    (detail) => detail.itemId !== itemId
+  );
+
+  // Update form data with new array
+  setFormData({
+    ...formData,
+    canteenOrderDetails: updatedDetails,
+  });
+
+  // Show success message
+  toast.success("Item removed successfully");
+};
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,12 +144,23 @@ export const EditCanteenOrderForm: React.FC<EditCanteenOrderFormProps> = ({
 
     try {
       const formDataToSend = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        if (key === "canteenOrderDetails") {
-          formDataToSend.append(key, JSON.stringify(value));
-        } else if (value !== undefined && value !== null) {
-          formDataToSend.append(key, value.toString());
-        }
+      
+      // Add basic order info
+      formDataToSend.append('licensePlate', formData.licensePlate);
+      formDataToSend.append('orderDate', formData.orderDate);
+      formDataToSend.append('updatedAt', formData.updatedAt);
+      formDataToSend.append('status', formData.status);
+
+      // Add order details as JSON string
+      const orderDetails = formData.canteenOrderDetails.map(detail => ({
+        itemId: detail.itemId,
+        quantity: detail.quantity
+      }));
+      
+      // Add as separate entries in FormData for proper binding
+      orderDetails.forEach((detail, index) => {
+        formDataToSend.append(`orderDetails[${index}].itemId`, detail.itemId);
+        formDataToSend.append(`orderDetails[${index}].quantity`, detail.quantity.toString());
       });
 
       setLoading(true);
@@ -133,7 +173,8 @@ export const EditCanteenOrderForm: React.FC<EditCanteenOrderFormProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+};
+
 
   if (!formData) {
     return <p>Loading...</p>;
@@ -216,10 +257,15 @@ export const EditCanteenOrderForm: React.FC<EditCanteenOrderFormProps> = ({
               {formData.canteenOrderDetails.map((detail) => (
                 <tr key={detail.itemId}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                  {detail.canteenItem?.itemName}
+                    {detail.item?.itemName ||
+                      detail.canteenItem?.itemName ||
+                      "N/A"}
                   </td>
                   <td className="px-6 py-4 text-right whitespace-nowrap">
-                    ${detail.canteenItem?.unitPrice }
+                    $
+                    {detail.item?.unitPrice ||
+                      detail.canteenItem?.unitPrice ||
+                      "0"}
                   </td>
                   <td className="px-6 py-4 text-right whitespace-nowrap">
                     {detail.quantity}
