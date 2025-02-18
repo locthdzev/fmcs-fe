@@ -4,8 +4,7 @@ import { changePassword } from "@/api/auth"; // Import changePassword function
 import { toast } from "react-toastify";
 import router from "next/router";
 import Cookies from "js-cookie";
-import { Button } from "antd";
-import { FaLock, FaEye, FaEyeSlash } from "react-icons/fa"; // Import eye icons
+import { Button, Form, Input } from "antd";
 import { LockIcon } from "@/components/users/Icons";
 
 export default function UserProfilePage() {
@@ -13,14 +12,8 @@ export default function UserProfilePage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [formValues, setFormValues] = useState<Partial<UserProfile>>({});
-  const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false); // State for change password form
-  const [oldPassword, setOldPassword] = useState<string>(""); // State for old password
-  const [newPassword, setNewPassword] = useState<string>(""); // State for new password
-  const [confirmPassword, setConfirmPassword] = useState<string>(""); // State for confirm new password
-  const [showOldPassword, setShowOldPassword] = useState<boolean>(false); // State for showing old password
-  const [showNewPassword, setShowNewPassword] = useState<boolean>(false); // State for showing new password
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState<boolean>(false); // State for showing confirm password
+  const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
+  const [form] = Form.useForm();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -68,22 +61,17 @@ export default function UserProfilePage() {
     }
   };
 
-  const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      toast.error("New password and confirm password do not match.");
-      return;
-    }
-
+  const handleChangePassword = async (values: any) => {
     try {
-      const result = await changePassword({ oldPassword, newPassword });
+      const result = await changePassword({
+        oldPassword: values.oldPassword,
+        newPassword: values.newPassword,
+      });
 
-      // Kiểm tra phản hồi từ API (tuỳ thuộc vào API trả về)
       if (result?.isSuccess) {
         toast.success("Password changed successfully.");
         setIsChangingPassword(false);
-        setOldPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
+        form.resetFields();
       } else {
         toast.error(result?.message || "Failed to change password.");
       }
@@ -252,19 +240,26 @@ export default function UserProfilePage() {
         <div className="mt-6 flex justify-end">
           {isEditing ? (
             <>
-              <Button type="primary" className="mr-2" onClick={handleSave}>
-                Save
-              </Button>
               <Button
+                className="mr-2"
                 onClick={() => {
                   setIsEditing(false);
                 }}
               >
                 Cancel
               </Button>
+              <Button
+                className="bg-orange-500 border-orange-500 text-white"
+                onClick={handleSave}
+              >
+                Save
+              </Button>
             </>
           ) : (
-            <Button type="primary" onClick={() => setIsEditing(true)}>
+            <Button
+              className="bg-orange-500 border-orange-500 text-white"
+              onClick={() => setIsEditing(true)}
+            >
               Change information
             </Button>
           )}
@@ -275,20 +270,16 @@ export default function UserProfilePage() {
             <span className="mr-2">
               <LockIcon />
             </span>
-            <span className="mr-2">Change account password</span>
+            <span className="mr-2 font-bold italic">
+              Change account password
+            </span>
             <div className="ml-auto">
               <Button
-                type="primary"
+                className="bg-orange-500 border-orange-500 text-white"
                 onClick={() => {
-                  setIsChangingPassword(!isChangingPassword); // Toggle change password form
-                  if (isChangingPassword) {
-                    // Clear form if closing
-                    setOldPassword("");
-                    setNewPassword("");
-                    setConfirmPassword("");
-                    setShowOldPassword(false); // Clear show password state
-                    setShowNewPassword(false); // Clear show password state
-                    setShowConfirmPassword(false); // Clear show password state
+                  setIsChangingPassword(!isChangingPassword);
+                  if (!isChangingPassword) {
+                    form.resetFields();
                   }
                 }}
               >
@@ -296,78 +287,84 @@ export default function UserProfilePage() {
               </Button>
             </div>
           </div>
-          <div className="text-gray-500 mt-2">
+          <div className="text-gray-500 mt-2 italic">
             Use strong passwords for security!
           </div>
           {isChangingPassword && (
             <div className="mt-4 p-4 border border-gray-300 rounded-lg shadow-md">
-              <div className="relative">
-                <input
-                  type={showOldPassword ? "text" : "password"}
-                  placeholder="Old Password"
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  className="mt-1 w-full border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer"
-                  onClick={() => setShowOldPassword(!showOldPassword)}
+              <Form
+                form={form}
+                onFinish={handleChangePassword}
+                layout="vertical"
+              >
+                <Form.Item
+                  name="oldPassword"
+                  label="Old Password"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input your old password!",
+                    },
+                  ]}
                 >
-                  {showOldPassword ? <FaEyeSlash /> : <FaEye />}
-                </span>
-              </div>
-              <div className="relative">
-                <input
-                  type={showNewPassword ? "text" : "password"}
-                  placeholder="New Password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="mt-2 w-full border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  <Input.Password placeholder="Enter your old password" />
+                </Form.Item>
+
+                <Form.Item
+                  name="newPassword"
+                  label="New Password"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input your new password!",
+                    },
+                  ]}
                 >
-                  {showNewPassword ? <FaEyeSlash /> : <FaEye />}
-                </span>
-              </div>
-              <div className="relative">
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm New Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="mt-2 w-full border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  <Input.Password placeholder="Enter your new password" />
+                </Form.Item>
+
+                <Form.Item
+                  name="confirmPassword"
+                  label="Confirm Password"
+                  dependencies={["newPassword"]}
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please confirm your password!",
+                    },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!value || getFieldValue("newPassword") === value) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(
+                          new Error("The two passwords do not match!")
+                        );
+                      },
+                    }),
+                  ]}
                 >
-                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                </span>
-              </div>
-              <div className="mt-2 flex justify-end">
-                <Button
-                  type="primary"
-                  className="mr-2"
-                  onClick={handleChangePassword}
-                >
-                  Submit
-                </Button>
-                <Button
-                  onClick={() => {
-                    setIsChangingPassword(false); // Cancel change password
-                    setOldPassword("");
-                    setNewPassword("");
-                    setConfirmPassword(""); // Clear form
-                    setShowOldPassword(false); // Clear show password state
-                    setShowNewPassword(false); // Clear show password state
-                    setShowConfirmPassword(false); // Clear show password state
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
+                  <Input.Password placeholder="Confirm your new password" />
+                </Form.Item>
+
+                <Form.Item className="flex justify-end mb-0">
+                  <Button
+                    className="mr-2"
+                    onClick={() => {
+                      setIsChangingPassword(false);
+                      form.resetFields();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    htmlType="submit"
+                    className="bg-orange-500 border-orange-500 text-white"
+                  >
+                    Submit
+                  </Button>
+                </Form.Item>
+              </Form>
             </div>
           )}
         </div>
