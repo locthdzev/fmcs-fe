@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import { ScheduleResponse } from "@/api/schedule";
 import { ShiftResponse } from "@/api/shift";
 import { UserProfile } from "@/api/user";
+import { toast } from "react-toastify";
 
 interface ScheduleTableProps {
   viewMode: "staff" | "shift";
@@ -11,9 +12,9 @@ interface ScheduleTableProps {
   currentWeek: Date[];
   rowData: (UserProfile | ShiftResponse)[];
   onAdd: (date: string, rowId: string) => void;
-  shifts: ShiftResponse[]; // Thêm props shifts
-  staffs: UserProfile[]; // Thêm props staffs
-  onDelete: (id: string) => void; // Thêm props onDelete
+  shifts: ShiftResponse[];
+  staffs: UserProfile[];
+  onDelete: (id: string) => void;
 }
 
 const ScheduleTable: React.FC<ScheduleTableProps> = ({
@@ -32,6 +33,24 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
         s[viewMode === "staff" ? "staffId" : "shiftId"] === rowId &&
         dayjs(s.workDate).isSame(date, "day")
     );
+  };
+
+  const handleDelete = (id: string) => {
+    try {
+      onDelete(id);
+      toast.success("Schedule deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete schedule");
+    }
+  };
+
+  const handleAdd = (date: string, rowId: string) => {
+    try {
+      onAdd(date, rowId);
+      //   toast.success("Schedule added successfully");
+    } catch (error) {
+      toast.error("Failed to add schedule");
+    }
   };
 
   const columns = [
@@ -115,7 +134,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                 <Tag
                   color={schedule.status === "ACTIVE" ? "green" : "red"}
                   closable
-                  onClose={() => onDelete(schedule.id)}
+                  onClose={() => handleDelete(schedule.id)}
                 >
                   {displayText}
                 </Tag>
@@ -135,7 +154,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
             >
               <Button
                 size="small"
-                onClick={() => onAdd(dateString, record.id)}
+                onClick={() => handleAdd(dateString, record.id)}
                 style={{
                   position: "absolute",
                   opacity: 0,

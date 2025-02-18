@@ -1,8 +1,19 @@
 // src/components/schedule/ScheduleModal.tsx
 import React, { useEffect } from "react";
-import { Modal, Form, Select, Checkbox, DatePicker, Button, Input } from "antd";
+import {
+  Modal,
+  Form,
+  Select,
+  Checkbox,
+  DatePicker,
+  Button,
+  Input,
+  Switch,
+} from "antd";
 import dayjs from "dayjs";
 import { ScheduleCreateRequest } from "@/api/schedule";
+import { toast } from "react-toastify";
+import { ShiftResponse } from "@/api/shift";
 
 interface ScheduleModalProps {
   visible: boolean;
@@ -26,14 +37,24 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   }, [visible]);
 
   const handleSubmit = () => {
-    form.validateFields().then((values) => {
-      const processedValues = {
-        ...values,
-        recurringEndDate: values.recurringEndDate?.format("YYYY-MM-DD"),
-        recurringDays: values.recurringDays?.map(Number),
-      };
-      onSubmit(processedValues);
-    });
+    form
+      .validateFields()
+      .then((values) => {
+        try {
+          const processedValues = {
+            ...values,
+            recurringEndDate: values.recurringEndDate?.format("YYYY-MM-DD"),
+            recurringDays: values.recurringDays?.map(Number),
+          };
+          onSubmit(processedValues);
+          toast.success("Schedule created successfully");
+        } catch (error) {
+          toast.error("Failed to create schedule");
+        }
+      })
+      .catch(() => {
+        toast.error("Please fill in all required fields");
+      });
   };
 
   return (
@@ -59,10 +80,17 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           <Select
             showSearch
             optionFilterProp="label"
-            options={options.map((option) => ({
-              value: option.id,
-              label: viewMode === "staff" ? option.shiftName : option.fullName,
-            }))}
+            options={options
+              .filter(
+                (option) =>
+                  viewMode !== "staff" ||
+                  (option as ShiftResponse).status === "Active"
+              )
+              .map((option) => ({
+                value: option.id,
+                label:
+                  viewMode === "staff" ? option.shiftName : option.fullName,
+              }))}
           />
         </Form.Item>
 
@@ -71,9 +99,11 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         </Form.Item>
 
         <Form.Item name="isRecurring" valuePropName="checked">
-          <Checkbox>Repeat weekly</Checkbox>
+          <Switch
+            checkedChildren="Repeat weekly"
+            unCheckedChildren="One time"
+          />
         </Form.Item>
-
         <Form.Item
           noStyle
           shouldUpdate={(prev, current) =>
