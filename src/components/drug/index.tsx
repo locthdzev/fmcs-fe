@@ -126,6 +126,10 @@ export function Drugs() {
     setDrugs(sortedData);
   };
 
+  useEffect(() => {
+    setPage(1); // Reset trang về 1 khi filter thay đổi
+  }, [statusFilter, filterValue]);
+
   // Lấy page từ URL khi component mount
   useEffect(() => {
     const queryPage = Number(router.query.page) || 1;
