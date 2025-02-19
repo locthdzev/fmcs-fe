@@ -29,6 +29,15 @@ const CanteenOrderDetailsModal: React.FC<CanteenOrderDetailsModalProps> = ({
 }) => {
   if (!order) return null;
 
+  const totalAmount =
+    order.canteenOrderDetails?.reduce((sum, detail) => {
+      const unitPrice = detail.canteenItem?.unitPrice
+        ? Number(detail.canteenItem.unitPrice)
+        : Number(detail.unitPrice || 0);
+      const quantity = detail.quantity || 0;
+      return sum + quantity * unitPrice;
+    }, 0) || 0;
+
   return (
     <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-2xl">
       <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
@@ -36,13 +45,13 @@ const CanteenOrderDetailsModal: React.FC<CanteenOrderDetailsModalProps> = ({
           Canteen Order Details
         </ModalHeader>
         <ModalBody className="p-6">
-          <div className="space-y-4 text-gray-700">
+          <div className="space-y-6 text-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { label: "License Plate", 
-                  value: order.truck?.licensePlate || "N/A"
-                 },
-
+                {
+                  label: "License Plate",
+                  value: order.truck?.licensePlate || "N/A",
+                },
                 {
                   label: "Order Date",
                   value: new Date(order.orderDate).toLocaleDateString("vi-VN"),
@@ -70,6 +79,80 @@ const CanteenOrderDetailsModal: React.FC<CanteenOrderDetailsModalProps> = ({
                   </div>
                 </label>
               ))}
+            </div>
+
+            {/* Order Items Table */}
+            <div className="mt-6">
+              <h3 className="font-semibold text-lg mb-3">Order Items</h3>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Item Name
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Unit Price
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Quantity
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Subtotal
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {order.canteenOrderDetails?.map((detail) => {
+                      // Log individual detail to verify structure
+                      console.log("Detail:", detail);
+
+                      return (
+                        <tr key={detail.itemId || detail.itemId}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {detail.canteenItem?.itemName ||
+                              detail.itemName ||
+                              "N/A"}
+                          </td>
+                          <td className="px-6 py-4 text-right whitespace-nowrap">
+                            $
+                            {detail.canteenItem?.unitPrice ||
+                              detail.unitPrice ||
+                              "0"}
+                          </td>
+                          <td className="px-6 py-4 text-right whitespace-nowrap">
+                            {detail.quantity || 0}
+                          </td>
+                          <td className="px-6 py-4 text-right whitespace-nowrap">
+                            $
+                            {(
+                              (detail.quantity || 0) *
+                              Number(
+                                detail.canteenItem?.unitPrice ||
+                                  detail.unitPrice ||
+                                  0
+                              )
+                            ).toFixed(2)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="bg-gray-50">
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="px-6 py-4 text-right font-semibold"
+                      >
+                        Total Amount:
+                      </td>
+                      <td className="px-6 py-4 text-right font-semibold">
+                        ${totalAmount?.toFixed(2)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
