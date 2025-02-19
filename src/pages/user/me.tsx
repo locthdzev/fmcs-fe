@@ -4,7 +4,7 @@ import { changePassword } from "@/api/auth"; // Import changePassword function
 import { toast } from "react-toastify";
 import router from "next/router";
 import Cookies from "js-cookie";
-import { Button } from "@heroui/react";
+import { Button } from "antd";
 import { FaLock, FaEye, FaEyeSlash } from "react-icons/fa"; // Import eye icons
 import { LockIcon } from "@/components/users/Icons";
 
@@ -115,7 +115,7 @@ export default function UserProfilePage() {
   return (
     <div className="flex justify-center p-6">
       <div className="w-full lg:w-8/12 bg-white rounded-3xl shadow-xl p-8">
-        <h3 className="text-3xl font-bold mb-6">
+        <h3 className="text-2xl font-bold mb-4">
           {isEditing ? "Edit Profile" : "User Profile"}
         </h3>
         {isEditing ? (
@@ -151,12 +151,6 @@ export default function UserProfilePage() {
                 name: "dob",
                 placeholder: "Date of Birth",
                 type: "date",
-              },
-              {
-                label: "Address",
-                name: "address",
-                placeholder: "Address",
-                type: "text",
               },
               {
                 label: "Phone",
@@ -202,48 +196,66 @@ export default function UserProfilePage() {
                 )}
               </label>
             ))}
+            <label
+              htmlFor="address"
+              className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 md:col-span-2"
+            >
+              <span className="text-xs font-medium text-gray-700">Address</span>
+              <input
+                type="text"
+                id="address"
+                name="address"
+                value={String(formValues.address || "")}
+                onChange={handleInputChange}
+                className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+                placeholder="Address"
+              />
+            </label>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              { label: "Full Name", value: userProfile.fullName },
-              { label: "Username", value: userProfile.userName || "N/A" },
-              { label: "Email", value: userProfile.email },
-              { label: "Gender", value: userProfile.gender },
-              {
-                label: "Date of Birth",
-                value: new Date(userProfile.dob).toLocaleDateString("vi-VN"),
-              },
-              { label: "Address", value: userProfile.address },
-              { label: "Phone", value: userProfile.phone },
-            ].map((field, index) => (
-              <label
-                key={index}
-                className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm"
-              >
+          <div className="col-span-7 space-y-4 text-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { label: "Full Name", value: userProfile.fullName },
+                { label: "Username", value: userProfile.userName || "N/A" },
+                { label: "Email", value: userProfile.email },
+                { label: "Gender", value: userProfile.gender },
+                {
+                  label: "Date of Birth",
+                  value: new Date(userProfile.dob).toLocaleDateString("vi-VN"),
+                },
+                { label: "Phone", value: userProfile.phone },
+              ].map((field, index) => (
+                <label
+                  key={index}
+                  className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm"
+                >
+                  <span className="text-xs font-medium text-gray-700">
+                    {field.label}
+                  </span>
+                  <div className="mt-1 w-full border-none p-0 sm:text-sm">
+                    {field.value}
+                  </div>
+                </label>
+              ))}
+              <label className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm md:col-span-2">
                 <span className="text-xs font-medium text-gray-700">
-                  {field.label}
+                  Address
                 </span>
-                <div className="mt-1 w-full break-words text-gray-800 bg-gray-50 p-2 rounded-md shadow-inner">
-                  {field.value}
+                <div className="mt-1 w-full border-none p-0 sm:text-sm">
+                  {userProfile.address}
                 </div>
               </label>
-            ))}
+            </div>
           </div>
         )}
         <div className="mt-6 flex justify-end">
           {isEditing ? (
             <>
-              <Button
-                className="bg-gradient-to-tr from-blue-600 to-blue-300 text-white shadow-lg mr-2"
-                radius="full"
-                onClick={handleSave}
-              >
+              <Button type="primary" className="mr-2" onClick={handleSave}>
                 Save
               </Button>
               <Button
-                className="bg-gradient-to-tr from-gray-500 to-gray-300 text-white shadow-lg"
-                radius="full"
                 onClick={() => {
                   setIsEditing(false);
                 }}
@@ -252,17 +264,13 @@ export default function UserProfilePage() {
               </Button>
             </>
           ) : (
-            <Button
-              className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg"
-              radius="full"
-              onClick={() => setIsEditing(true)}
-            >
+            <Button type="primary" onClick={() => setIsEditing(true)}>
               Change information
             </Button>
           )}
         </div>
-        <div className="mt-6 border-t border-gray-200 pt-4">
-          <h3 className="text-xl font-semibold mb-4">Account & Security</h3>
+        <div className="mt-6 border-t border-gray-200 pt-2">
+          <h3 className="text-xl font-bold mb-2">Account & Security</h3>
           <div className="flex items-center">
             <span className="mr-2">
               <LockIcon />
@@ -270,8 +278,7 @@ export default function UserProfilePage() {
             <span className="mr-2">Change account password</span>
             <div className="ml-auto">
               <Button
-                className="bg-gradient-to-tr from-green-400 to-blue-400 text-white shadow-lg"
-                radius="full"
+                type="primary"
                 onClick={() => {
                   setIsChangingPassword(!isChangingPassword); // Toggle change password form
                   if (isChangingPassword) {
@@ -341,15 +348,13 @@ export default function UserProfilePage() {
               </div>
               <div className="mt-2 flex justify-end">
                 <Button
-                  className="bg-gradient-to-tr from-blue-600 to-blue-300 text-white shadow-lg mr-2"
-                  radius="full"
+                  type="primary"
+                  className="mr-2"
                   onClick={handleChangePassword}
                 >
                   Submit
                 </Button>
                 <Button
-                  className="bg-gradient-to-tr from-gray-500 to-gray-300 text-white shadow-lg"
-                  radius="full"
                   onClick={() => {
                     setIsChangingPassword(false); // Cancel change password
                     setOldPassword("");
@@ -364,7 +369,7 @@ export default function UserProfilePage() {
                 </Button>
               </div>
             </div>
-          )}{" "}
+          )}
         </div>
       </div>
     </div>
