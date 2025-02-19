@@ -141,6 +141,10 @@ export function DrugOrders() {
   }, []);
 
   useEffect(() => {
+    setPage(1); // Reset trang về 1 khi filter thay đổi
+  }, [statusFilter, filterValue]);
+
+  useEffect(() => {
     let selected: DrugOrderResponse[] = [];
 
     if (selectedKeys === "all") {

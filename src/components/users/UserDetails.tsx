@@ -20,6 +20,7 @@ type User = {
   address: string;
   phone: string;
   createdAt: string;
+  updatedAt?: string;
   status?: string;
 };
 
@@ -42,8 +43,19 @@ const roleColorMap: Record<string, string> = {
   Unknown: "default",
 };
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("vi-VN");
+const formatDate = (dateString: string, includeTime: boolean = false) => {
+  if (!dateString || dateString === "-") return "-";
+  const date = new Date(dateString);
+  if (includeTime) {
+    return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
+      date.getMinutes()
+    ).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
+  }
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 };
 
 const ROLE_PRIORITY = ["Admin", "Manager", "Staff", "User"];
@@ -65,7 +77,29 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
     <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
       <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
         <ModalHeader className="border-b pb-3 flex justify-between items-center">
-          <span>User Details</span>
+          <div className="flex items-center gap-2">
+            <span>User Details</span>
+            <span className="text-sm text-gray-500 font-bold">
+              ({user.userName}) •{" "}
+              <Chip
+                className="capitalize px-2 py-1 text-sm font-medium"
+                color={
+                  roleColorMap[getHighestRole(user.roles)] as
+                    | "success"
+                    | "danger"
+                    | "warning"
+                    | "primary"
+                    | "default"
+                    | "secondary"
+                    | undefined
+                }
+                size="sm"
+                variant="flat"
+              >
+                {getHighestRole(user.roles)}
+              </Chip>
+            </span>
+          </div>
           <Chip
             className="capitalize px-2 py-1 text-sm font-medium mr-4"
             color={
@@ -103,6 +137,7 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
                   {
                     label: "Date of Birth",
                     value: formatDate(user.dob),
+                    italic: true,
                   },
                   {
                     label: "Phone",
@@ -110,29 +145,15 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
                   },
                   {
                     label: "Created At",
-                    value: formatDate(user.createdAt),
+                    value: formatDate(user.createdAt, true),
+                    italic: true,
                   },
                   {
-                    label: "Role",
-                    value: (
-                      <Chip
-                        className="capitalize px-2 py-1 text-sm font-medium"
-                        color={
-                          roleColorMap[getHighestRole(user.roles)] as
-                            | "success"
-                            | "danger"
-                            | "warning"
-                            | "primary"
-                            | "default"
-                            | "secondary"
-                            | undefined
-                        }
-                        size="sm"
-                        variant="flat"
-                      >
-                        {getHighestRole(user.roles)}
-                      </Chip>
-                    ),
+                    label: "Updated At",
+                    value: user.updatedAt
+                      ? formatDate(user.updatedAt, true)
+                      : "-",
+                    italic: true,
                   },
                 ].map((field, index) => (
                   <label
@@ -142,7 +163,11 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
                     <span className="text-xs font-medium text-gray-700">
                       {field.label}
                     </span>
-                    <div className="mt-1 w-full border-none p-0 sm:text-sm">
+                    <div
+                      className={`mt-1 w-full border-none p-0 sm:text-sm ${
+                        field.italic ? "italic" : ""
+                      }`}
+                    >
                       {field.value}
                     </div>
                   </label>
@@ -168,4 +193,5 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
     </Modal>
   );
 };
+
 export default UserDetails;

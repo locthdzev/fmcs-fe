@@ -41,12 +41,13 @@ export const columns = [
   { name: "NAME", uid: "fullName", sortable: true },
   { name: "USERNAME", uid: "userName", sortable: true },
   { name: "EMAIL", uid: "email", sortable: true },
-  { name: "ROLE", uid: "roles" },
   { name: "GENDER", uid: "gender" },
   { name: "DOB", uid: "dob", sortable: true },
-  { name: "ADDRESS", uid: "address" },
+  { name: "ROLE", uid: "roles" },
   { name: "PHONE", uid: "phone" },
+  { name: "ADDRESS", uid: "address" },
   { name: "CREATED AT", uid: "createdAt", sortable: true },
+  { name: "UPDATED AT", uid: "updatedAt", sortable: true },
   { name: "STATUS", uid: "status" },
   { name: "ACTIONS", uid: "actions" },
 ];
@@ -73,6 +74,9 @@ const INITIAL_VISIBLE_COLUMNS = [
   "fullName",
   "userName",
   "email",
+  "gender",
+  "dob",
+  "phone",
   "roles",
   "status",
   "actions",
@@ -89,6 +93,7 @@ type User = {
   address: string;
   phone: string;
   createdAt: string;
+  updatedAt?: string;
   status?: string;
 };
 
@@ -112,8 +117,6 @@ export function Users() {
   });
 
   const [page, setPage] = React.useState(1);
-  console.log("Current page:", page);
-
   const [users, setUsers] = React.useState<User[]>([]);
 
   const fetchUsers = async () => {
@@ -134,6 +137,10 @@ export function Users() {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    setPage(1); // Reset trang về 1 khi filter thay đổi
+  }, [statusFilter, filterValue]);
 
   useEffect(() => {
     const queryPage = Number(router.query.page) || 1;
@@ -166,14 +173,40 @@ export function Users() {
     );
   }, [visibleColumns]);
 
+  // Add this helper function at the top of the file
+  function removeVietnameseTones(str: string) {
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D");
+  }
+
+  // Then modify the filteredItems useMemo, specifically the search filter part:
   const filteredItems = React.useMemo(() => {
     let filteredUsers = [...users];
 
     if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter((user) =>
-        user.fullName.toLowerCase().includes(filterValue.toLowerCase())
+      const normalizedFilter = removeVietnameseTones(filterValue.toLowerCase());
+
+      filteredUsers = filteredUsers.filter(
+        (user) =>
+          removeVietnameseTones(user.fullName.toLowerCase()).includes(
+            normalizedFilter
+          ) ||
+          removeVietnameseTones(user.userName.toLowerCase()).includes(
+            normalizedFilter
+          ) ||
+          removeVietnameseTones(user.email.toLowerCase()).includes(
+            normalizedFilter
+          ) ||
+          removeVietnameseTones(user.phone.toLowerCase()).includes(
+            normalizedFilter
+          )
       );
     }
+
+    // Rest of the filtering logic remains the same
     if (
       statusFilter !== "all" &&
       Array.from(statusFilter).length !== statusOptions.length
@@ -198,23 +231,25 @@ export function Users() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: User, b: User) => {
-      const first = a[sortDescriptor.column as keyof User];
-      const second = b[sortDescriptor.column as keyof User];
+    return [...filteredItems]
+      .sort((a: User, b: User) => {
+        const first = a[sortDescriptor.column as keyof User];
+        const second = b[sortDescriptor.column as keyof User];
 
-      let cmp = 0;
-      if (typeof first === "string" && typeof second === "string") {
-        cmp = first.localeCompare(second);
-      } else if (typeof first === "number" && typeof second === "number") {
-        cmp = first - second;
-      } else if (first instanceof Date && second instanceof Date) {
-        cmp = first.getTime() - second.getTime();
-      }
+        let cmp = 0;
 
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
-  }, [sortDescriptor, items]);
+        if (typeof first === "string" && typeof second === "string") {
+          cmp = first.localeCompare(second);
+        } else if (typeof first === "number" && typeof second === "number") {
+          cmp = first - second;
+        } else if (first instanceof Date && second instanceof Date) {
+          cmp = first.getTime() - second.getTime();
+        }
 
+        return sortDescriptor.direction === "descending" ? -cmp : cmp;
+      })
+      .slice((page - 1) * rowsPerPage, page * rowsPerPage);
+  }, [sortDescriptor, filteredItems, page, rowsPerPage]);
   const ROLE_PRIORITY = ["Admin", "Manager", "Staff", "User"];
 
   const getHighestRole = (roles: string[]) => {
@@ -229,8 +264,18 @@ export function Users() {
     );
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN");
+  const formatDate = (dateString: string, includeTime: boolean = false) => {
+    const date = new Date(dateString);
+    if (includeTime) {
+      return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
+        date.getMinutes()
+      ).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
+    }
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   const renderCell = React.useCallback((user: User, columnKey: React.Key) => {
@@ -248,7 +293,8 @@ export function Users() {
             </p>
           </div>
         );
-
+      case "userName":
+        return <span className="font-medium">{cellValue as string}</span>;
       case "roles":
         const highestRole = getHighestRole(user.roles);
         return (
@@ -273,9 +319,16 @@ export function Users() {
           </Chip>
         );
       case "dob":
-        return formatDate(user.dob);
+        return <span className="italic">{formatDate(user.dob)}</span>;
       case "createdAt":
-        return formatDate(user.createdAt);
+      case "updatedAt":
+        return cellValue ? (
+          <span className="italic">
+            {formatDate(cellValue as string, true)}
+          </span>
+        ) : (
+          "-"
+        );
       case "actions":
         return (
           <div className="relative flex justify-center">
@@ -299,7 +352,7 @@ export function Users() {
         return cellValue;
     }
   }, []);
-
+  
   const onNextPage = React.useCallback(() => {
     if (page < pages) {
       setPage(page + 1);

@@ -53,6 +53,14 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
   const [pendingRoles, setPendingRoles] = useState<string[]>([...user.roles]);
   const [selectedRole, setSelectedRole] = useState("");
 
+  const roleColorMap: Record<string, string> = {
+    Admin: "bg-red-100 text-red-800",
+    Manager: "bg-yellow-100 text-yellow-800",
+    Staff: "bg-blue-100 text-blue-800",
+    User: "bg-green-100 text-green-800",
+    Unknown: "bg-gray-100 text-gray-800",
+  };
+
   useEffect(() => {
     const fetchRoles = async () => {
       try {
@@ -78,6 +86,11 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData) return;
+
+    if (pendingRoles.length === 0) {
+      toast.error("User must have at least one role");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -115,6 +128,10 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
   };
 
   const handlePendingUnassignRole = (roleId: string) => {
+    if (pendingRoles.length <= 1) {
+      toast.error("User must have at least one role");
+      return;
+    }
     setPendingRoles(pendingRoles.filter((role) => role !== roleId));
   };
 
@@ -131,7 +148,7 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
 
   return (
     <Modal isOpen={true} onOpenChange={onClose}>
-      <ModalContent className="max-w-[1000px]">
+      <ModalContent className="max-w-[800px]">
         <ModalHeader className="border-b pb-3">Edit User</ModalHeader>
         <ModalBody>
           <Tabs
@@ -222,12 +239,14 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
                     {pendingRoles.map((role, index) => (
                       <div
                         key={index}
-                        className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center"
+                        className={`${
+                          roleColorMap[role] || roleColorMap.Unknown
+                        } px-3 py-1 rounded-full flex items-center`}
                       >
                         <span>{role}</span>
                         <button
                           onClick={() => handlePendingUnassignRole(role)}
-                          className="ml-2 text-blue-800 hover:text-blue-900"
+                          className="ml-2 hover:opacity-80"
                         >
                           ×
                         </button>

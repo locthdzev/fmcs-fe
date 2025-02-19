@@ -70,7 +70,7 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
 
   return (
     <Modal isOpen={true} onOpenChange={onClose}>
-      <ModalContent className="max-w-[1000px]">
+      <ModalContent className="max-w-[800px]">
         <ModalHeader className="border-b pb-3">Create User</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>

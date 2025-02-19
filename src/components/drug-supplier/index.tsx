@@ -120,6 +120,10 @@ export function DrugSuppliers() {
   }, []);
 
   useEffect(() => {
+    setPage(1); // Reset trang về 1 khi filter thay đổi
+  }, [statusFilter, filterValue]);
+
+  useEffect(() => {
     let selected: DrugSupplierResponse[] = [];
     if (selectedKeys === "all") {
       selected = suppliers; // If "all" is selected, get all suppliers
