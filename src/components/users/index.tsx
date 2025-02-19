@@ -7,7 +7,7 @@ import {
   ChevronDownIcon,
   UsersIcon,
 } from "./Icons";
-import { getUsers, updateAccountsStatus } from "@/api/user";
+import { getUsers } from "@/api/user";
 import {
   Table,
   TableHeader,
@@ -38,7 +38,6 @@ export function capitalize(s: string) {
 }
 
 export const columns = [
-  //   { name: "ID", uid: "id", sortable: true },
   { name: "NAME", uid: "fullName", sortable: true },
   { name: "USERNAME", uid: "userName", sortable: true },
   { name: "EMAIL", uid: "email", sortable: true },
@@ -92,13 +91,9 @@ type User = {
   createdAt: string;
   status?: string;
 };
+
 export function Users() {
   const router = useRouter();
-  const [confirmingStatusUpdate, setConfirmingStatusUpdate] = useState<{
-    status: string;
-    count: number;
-  } | null>(null);
-
   const [creatingUser, setCreatingUser] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -112,8 +107,8 @@ export function Users() {
   const [statusFilter, setStatusFilter] = React.useState<Selection>("all");
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: "age",
-    direction: "ascending",
+    column: "createdAt",
+    direction: "descending",
   });
 
   const [page, setPage] = React.useState(1);
@@ -126,13 +121,13 @@ export function Users() {
       const userData = await getUsers();
       if (!userData || !Array.isArray(userData)) {
         console.error("Invalid data received:", userData);
-        setUsers([]); // Đảm bảo state luôn là mảng
+        setUsers([]);
         return;
       }
       setUsers(userData);
     } catch (error) {
       console.error("Failed to fetch users:", error);
-      setUsers([]); // Đảm bảo state không bị `null` hoặc `undefined`
+      setUsers([]);
     }
   };
 
@@ -140,13 +135,11 @@ export function Users() {
     fetchUsers();
   }, []);
 
-  // Lấy page từ URL khi component mount
   useEffect(() => {
     const queryPage = Number(router.query.page) || 1;
     setPage(queryPage);
   }, [router.query.page]);
 
-  // Hàm cập nhật URL khi đổi trang
   const updatePageInUrl = (newPage: number) => {
     router.push(
       {
@@ -240,35 +233,6 @@ export function Users() {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
-  const handleBulkStatusUpdate = async (newStatus: string) => {
-    if (
-      selectedKeys === "all" ||
-      (selectedKeys instanceof Set && selectedKeys.size === 0)
-    )
-      return;
-
-    const selectedUserIds = Array.from(selectedKeys as Set<string>);
-
-    // Hiển thị xác nhận thay vì gọi API ngay
-    setConfirmingStatusUpdate({
-      status: newStatus,
-      count: selectedUserIds.length,
-    });
-  };
-
-  const getBulkActionLabel = () => {
-    const selectedUsersArray = users.filter(
-      (user) =>
-        selectedKeys !== "all" && (selectedKeys as Set<string>).has(user.id)
-    );
-
-    const allInactive = selectedUsersArray.every(
-      (user) => user.status === "Inactive"
-    );
-
-    return allInactive ? "Activate Selected" : "Deactivate Selected";
-  };
-
   const renderCell = React.useCallback((user: User, columnKey: React.Key) => {
     const cellValue = user[columnKey as keyof User];
 
@@ -322,9 +286,6 @@ export function Users() {
                 </Button>
               </DropdownTrigger>
               <DropdownMenu>
-                <DropdownItem key="view" onClick={() => setSelectedUser(user)}>
-                  View
-                </DropdownItem>
                 <DropdownItem key="edit" onClick={() => setEditingUser(user)}>
                   Edit
                 </DropdownItem>
@@ -387,21 +348,6 @@ export function Users() {
             onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
-            {selectedKeys !== "all" &&
-              (selectedKeys as Set<string>).size > 0 && (
-                <Button
-                  color="warning"
-                  onClick={() =>
-                    handleBulkStatusUpdate(
-                      getBulkActionLabel() === "Activate Selected"
-                        ? "Active"
-                        : "Inactive"
-                    )
-                  }
-                >
-                  {getBulkActionLabel()}
-                </Button>
-              )}
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -487,8 +433,6 @@ export function Users() {
     users.length,
     hasSearchFilter,
     selectedKeys,
-    getBulkActionLabel,
-    handleBulkStatusUpdate,
   ]);
 
   const bottomContent = React.useMemo(() => {
@@ -537,7 +481,7 @@ export function Users() {
       <div className="flex items-center gap-2 mb-4 ml-4">
         <UsersIcon />
         <h3 className="text-2xl font-bold">Users Management</h3>
-      </div>{" "}
+      </div>
       <Table
         isHeaderSticky
         aria-label="Example table with custom cells, pagination and sorting"
@@ -577,6 +521,7 @@ export function Users() {
       </Table>
       {selectedUser && (
         <UserDetails
+          isOpen={!!selectedUser}
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
         />
@@ -596,63 +541,6 @@ export function Users() {
           onClose={() => setCreatingUser(false)}
           onCreate={fetchUsers}
         />
-      )}
-      {confirmingStatusUpdate && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-6 rounded shadow-lg">
-            <h2 className="text-lg font-semibold mb-4">Confirm Action</h2>
-            <p>
-              Are you sure you want to{" "}
-              {confirmingStatusUpdate.status === "Active"
-                ? "activate"
-                : "deactivate"}{" "}
-              {confirmingStatusUpdate.count} user(s)?
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => setConfirmingStatusUpdate(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                color={
-                  confirmingStatusUpdate.status === "Active"
-                    ? "success"
-                    : "danger"
-                }
-                onClick={async () => {
-                  const selectedUserIds = Array.from(
-                    selectedKeys as Set<string>
-                  );
-                  try {
-                    await updateAccountsStatus({
-                      userId: selectedUserIds,
-                      status: confirmingStatusUpdate.status,
-                    });
-                    fetchUsers();
-                    setSelectedKeys(new Set());
-                    toast.success(
-                      `Successfully ${
-                        confirmingStatusUpdate.status === "Active"
-                          ? "activated"
-                          : "deactivated"
-                      } ${selectedUserIds.length} user(s).`
-                    );
-                  } catch (error) {
-                    toast.error(
-                      "Failed to update user status. Please try again."
-                    );
-                  } finally {
-                    setConfirmingStatusUpdate(null);
-                  }
-                }}
-              >
-                Confirm
-              </Button>
-            </div>
-          </div>
-        </div>
       )}
     </>
   );

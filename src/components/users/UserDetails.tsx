@@ -1,4 +1,13 @@
 import React from "react";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Chip,
+} from "@heroui/react";
 
 type User = {
   id: string;
@@ -15,21 +24,22 @@ type User = {
 };
 
 type Props = {
-  user: User;
+  user: User | null;
+  isOpen: boolean;
   onClose: () => void;
 };
 
-const statusColorMap: Record<string, string> = {
-  active: "bg-green-100 text-green-800",
-  inactive: "bg-red-100 text-red-800",
+const statusColorMap: Record<string, any> = {
+  active: "success",
+  inactive: "danger",
 };
 
 const roleColorMap: Record<string, string> = {
-  Admin: "bg-red-100 text-red-800",
-  Manager: "bg-yellow-100 text-yellow-800",
-  Staff: "bg-blue-100 text-blue-800",
-  User: "bg-green-100 text-green-800",
-  Unknown: "bg-gray-100 text-gray-800",
+  Admin: "danger",
+  Manager: "warning",
+  Staff: "primary",
+  User: "success",
+  Unknown: "default",
 };
 
 const formatDate = (dateString: string) => {
@@ -48,93 +58,114 @@ const getHighestRole = (roles: string[]) => {
   );
 };
 
-export const UserDetails: React.FC<Props> = ({ user, onClose }) => {
+export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
+  if (!user) return null;
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full lg:w-6/12 bg-white rounded-3xl shadow-xl p-6">
-        <h3 className="text-2xl font-bold mb-4">User Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            {
-              label: "Full Name",
-              value: user.fullName,
-            },
-            {
-              label: "Username",
-              value: user.userName,
-            },
-            {
-              label: "Email",
-              value: user.email,
-            },
-            {
-              label: "Gender",
-              value: user.gender,
-            },
-            {
-              label: "Date of Birth",
-              value: formatDate(user.dob),
-            },
-            {
-              label: "Phone",
-              value: user.phone,
-            },
-            {
-              label: "Created At",
-              value: formatDate(user.createdAt),
-            },
-            {
-              label: "Role",
-              value: (
-                <span
-                  className={`px-2 py-1 rounded-full ${
-                    roleColorMap[getHighestRole(user.roles)]
-                  }`}
-                >
-                  {getHighestRole(user.roles)}
-                </span>
-              ),
-            },
-            {
-              label: "Status",
-              value: (
-                <span
-                  className={`px-2 py-1 rounded-full ${
-                    statusColorMap[user.status?.toLowerCase() || "inactive"]
-                  }`}
-                >
-                  {user.status}
-                </span>
-              ),
-            },
-            {
-              label: "Address",
-              value: user.address,
-            },
-          ].map((field, index) => (
-            <label
-              key={index}
-              className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm"
-            >
-              <span className="text-xs font-medium text-gray-700">
-                {field.label}
-              </span>
-              <div className="mt-1 w-full border-none p-0 sm:text-sm">
-                {field.value}
-              </div>
-            </label>
-          ))}
-        </div>
-        <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            className="bg-gradient-to-tr from-gray-500 to-gray-300 text-white shadow-lg rounded-full px-3 py-1.5"
-            onClick={onClose}
+    <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
+      <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
+        <ModalHeader className="border-b pb-3 flex justify-between items-center">
+          <span>User Details</span>
+          <Chip
+            className="capitalize px-2 py-1 text-sm font-medium mr-4"
+            color={
+              user.status && statusColorMap[user.status.toLowerCase()]
+                ? statusColorMap[user.status.toLowerCase()]
+                : "default"
+            }
+            size="sm"
+            variant="flat"
           >
+            {user.status}
+          </Chip>
+        </ModalHeader>
+        <ModalBody className="p-6">
+          <div className="grid grid-cols-12 gap-6 items-start">
+            <div className="col-span-12 space-y-4 text-gray-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  {
+                    label: "Full Name",
+                    value: user.fullName,
+                  },
+                  {
+                    label: "Username",
+                    value: user.userName,
+                  },
+                  {
+                    label: "Email",
+                    value: user.email,
+                  },
+                  {
+                    label: "Gender",
+                    value: user.gender,
+                  },
+                  {
+                    label: "Date of Birth",
+                    value: formatDate(user.dob),
+                  },
+                  {
+                    label: "Phone",
+                    value: user.phone,
+                  },
+                  {
+                    label: "Created At",
+                    value: formatDate(user.createdAt),
+                  },
+                  {
+                    label: "Role",
+                    value: (
+                      <Chip
+                        className="capitalize px-2 py-1 text-sm font-medium"
+                        color={
+                          roleColorMap[getHighestRole(user.roles)] as
+                            | "success"
+                            | "danger"
+                            | "warning"
+                            | "primary"
+                            | "default"
+                            | "secondary"
+                            | undefined
+                        }
+                        size="sm"
+                        variant="flat"
+                      >
+                        {getHighestRole(user.roles)}
+                      </Chip>
+                    ),
+                  },
+                ].map((field, index) => (
+                  <label
+                    key={index}
+                    className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm"
+                  >
+                    <span className="text-xs font-medium text-gray-700">
+                      {field.label}
+                    </span>
+                    <div className="mt-1 w-full border-none p-0 sm:text-sm">
+                      {field.value}
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <label className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm w-full">
+                <span className="text-xs font-medium text-gray-700">
+                  Address
+                </span>
+                <div className="mt-1 w-full border-none p-0 sm:text-sm">
+                  {user.address}
+                </div>
+              </label>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" onClick={onClose}>
             Close
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 };
+export default UserDetails;
