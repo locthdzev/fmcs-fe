@@ -16,6 +16,8 @@ import { CanteenOrder } from "./icons/CanteenOrder";
 import { HealthInsuranceIcon } from "./icons/HealthInsuranceIcon";
 import { PeriodicHealthCheckupsIcon } from "./icons/PeriodicHealthCheckupsIcon";
 import { TrucksIcon } from "./icons/TruckIcon";
+import { ScheduleIcon } from "./icons/ScheduleIcon";
+import { ShiftIcon } from "./icons/ShiftIcon";
 
 export const data = [
   {
@@ -83,8 +85,33 @@ export const data = [
           },
         ],
       },
-      { title: "HealthInsurance", icon: <HealthInsuranceIcon />, link: "/admin/archives" },
-      { title: "PeriodicHealthCheckups", icon: <PeriodicHealthCheckupsIcon />, link: "/admin/credits" },
+      {
+        title: "Schedules",
+        icon: <ScheduleIcon />,
+        // link: "/admin/settings",
+        submenu: [
+          {
+            title: "Schedules",
+            icon: <ScheduleIcon />,
+            link: "/schedule/management",
+          },
+          {
+            title: "Shifts",
+            icon: <ShiftIcon />,
+            link: "/shift/management",
+          }
+        ],
+      },
+      {
+        title: "HealthInsurance",
+        icon: <HealthInsuranceIcon />,
+        link: "/admin/credits",
+      },
+      {
+        title: "PeriodicHealthCheckups",
+        icon: <PeriodicHealthCheckupsIcon />,
+        link: "/admin/credits",
+      },
     ],
   },
   {
