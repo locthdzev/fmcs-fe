@@ -4,12 +4,12 @@ export interface CanteenItemResponse {
     id: string;
     itemName: string;
     description?: string;
-    unitPrice: number;   // Nên để kiểu `number` thay vì `string`
-    available: boolean;  // ✅ Sửa từ `string` thành `boolean`
+    unitPrice: number;   
+    available: boolean;  
     createdAt: string;
     updatedAt?: string;
     imageUrl?: string;
-    status?: "Active" | "Inactive"; // Chỉ có 2 trạng thái hợp lệ
+    status?: "Active" | "Inactive"; 
 }
 
 

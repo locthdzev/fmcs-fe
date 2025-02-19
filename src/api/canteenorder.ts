@@ -16,18 +16,21 @@ export interface CanteenOrderResponse {
     userName: string;
     role: string;
   };
+  updatedBy: {
+    id: string;
+    userName: string;
+    role: string;
+  };
   canteenOrderDetails: {
     itemId: string;
     quantity: number;
-    canteenItem?: {
-      itemName: string;
-      unitPrice: string;
-    };
     itemName?: string;
     unitPrice?: string;
+    imageUrl?: string;
     item?: {
       itemName: string;
       unitPrice: string;
+      imageUrl?: string;
     };
   }[];
 }

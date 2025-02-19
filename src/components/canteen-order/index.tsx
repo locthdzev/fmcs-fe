@@ -41,9 +41,9 @@ import {
   ModalFooter,
 } from "@heroui/react";
 import { CreateCanteenOrderForm } from "./CreateCanteenOrderForm";
-import CanteenOrderDetailsModal from "./CanteenOrderDetails";
 import { EditCanteenOrderForm } from "./EditCanteenOrderForm";
 import ConfirmDeleteCanteenOrderModal from "./ConfirmDelete";
+import router from "next/router";
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 }
@@ -77,6 +77,7 @@ const roleColorMap: Record<string, ChipProps["color"]> = {
   User: "success",
   Unknown: "default",
 };
+
 
 const INITIAL_VISIBLE_COLUMNS = [
   "licensePlate",
@@ -369,7 +370,7 @@ export function CanteenOrders() {
           return (
             <p
               className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
-              onClick={() => handleOpenDetails(order.id)}
+              onClick={() =>  router.push(`/canteen-order/details?id=${order.id}`)}
             >
               {order.truck?.licensePlate || "Not Available"}
             </p>
@@ -695,12 +696,6 @@ export function CanteenOrders() {
           </ModalContent>
         </Modal>
       )}
-
-      <CanteenOrderDetailsModal
-        order={selectedOrder}
-        isOpen={isDetailsModalOpen}
-        onClose={() => setIsDetailsModalOpen(false)}
-      />
 
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
