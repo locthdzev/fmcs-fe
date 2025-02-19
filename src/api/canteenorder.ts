@@ -11,6 +11,11 @@ export interface CanteenOrderResponse {
     licensePlate: string;
     driverName: string;
   };
+  createdBy: {
+    id: string;
+    userName: string;
+    role: string;
+  };
   canteenOrderDetails: {
     itemId: string;
     quantity: number;
@@ -79,21 +84,6 @@ export const getOrdersByTruckId = async (truckId: string) => {
     throw error;
   }
 };
-
-export const getOrdersByDate = async (orderDate: string) => {
-  try {
-    const response = await api.get(
-      `/canteenorder-management/canteenorders/ByDate`,
-      {
-        params: { orderDate },
-      }
-    );
-    return response.data.data;
-  } catch (error) {
-    throw error;
-  }
-};
-
 export const createCanteenOrder = async (orderData: CanteenOrderCreateRequest) => {
   try {
     const response = await api.post("/canteenorder-management/canteenorders", orderData);
@@ -125,22 +115,10 @@ export const deleteCanteenOrder = async (id: string) => {
     throw error;
   }
 };
-
-export const cancelCanteenOrder = async (id: string) => {
+export const approveCanteenOrders = async (orderIds: string[]) => {
   try {
     const response = await api.put(
-      `/canteenorder-management/canteenorders/Cancel/${id}`
-    );
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-};
-
-export const activateCanteenOrders = async (orderIds: string[]) => {
-  try {
-    const response = await api.put(
-      "/canteenorder-management/canteenorders/activate",
+      "/canteenorder-management/canteenorders/appprove",
       orderIds
     );
     return response.data;
@@ -149,10 +127,22 @@ export const activateCanteenOrders = async (orderIds: string[]) => {
   }
 };
 
-export const deactivateCanteenOrders = async (orderIds: string[]) => {
+export const rejectCanteenOrders = async (orderIds: string[]) => {
   try {
     const response = await api.put(
-      "/canteenorder-management/canteenorders/deactivate",
+      "/canteenorder-management/canteenorders/reject",
+      orderIds
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const completeCanteenOrders = async (orderIds: string[]) => {
+  try {
+    const response = await api.put(
+      "/canteenorder-management/canteenorders/complete",
       orderIds
     );
     return response.data;

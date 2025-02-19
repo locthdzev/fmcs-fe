@@ -12,8 +12,9 @@ import {
   deleteCanteenOrder,
   CanteenOrderResponse,
   getCanteenOrderById,
-  activateCanteenOrders,
-  deactivateCanteenOrders,
+  approveCanteenOrders,
+  rejectCanteenOrders,
+  completeCanteenOrders,
 } from "@/api/canteenorder";
 import {
   Table,
@@ -38,38 +39,50 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-} from "@heroui/react"; // Ensure @heroui/react is installed
-import { CreateCanteenOrderForm } from "./CreateCanteenOrderForm"; // Your form component for creating an order
-import CanteenOrderDetailsModal from "./CanteenOrderDetails"; // Your modal component for viewing details
-import { EditCanteenOrderForm } from "./EditCanteenOrderForm"; // Your form component for editing an order
-import ConfirmDeleteCanteenOrderModal from "./ConfirmDelete"; // Your delete confirmation modal
+} from "@heroui/react";
+import { CreateCanteenOrderForm } from "./CreateCanteenOrderForm";
+import CanteenOrderDetailsModal from "./CanteenOrderDetails";
+import { EditCanteenOrderForm } from "./EditCanteenOrderForm";
+import ConfirmDeleteCanteenOrderModal from "./ConfirmDelete";
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 }
 // Define columns
 const columns = [
-  { name: "License Plate", uid: "licensePlate", sortable: true },
-  { name: "Order Date", uid: "orderDate", sortable: true },
-  { name: "Created At", uid: "createdAt", sortable: true },
+  { name: "LICENSE PLATE", uid: "licensePlate", sortable: true },
+  { name: "ORDER DATE", uid: "orderDate", sortable: true },
+  { name: "CREATED BY", uid: "createdBy" },
   { name: "Updated At", uid: "updatedAt", sortable: true },
-  { name: "Status", uid: "status" },
-  { name: "Actions", uid: "actions" },
+  { name: "STATUS", uid: "status" },
+  { name: "ACTIONS", uid: "actions" },
 ];
 
 const statusOptions = [
-  { name: "Active", uid: "Active" },
-  { name: "Inactive", uid: "Inactive" },
+  { name: "Pending", uid: "Pending" },
+  { name: "Approved", uid: "Approved" },
+  { name: "Rejected", uid: "Rejected" },
+  { name: "Completed", uid: "Completed" },
 ];
 
 const statusColorMap: Record<string, ChipProps["color"]> = {
-  Active: "success",
-  Inactive: "danger",
+  Pending: "warning",
+  Approved: "primary",
+  Rejected: "danger",
+  Completed: "success",
+};
+const roleColorMap: Record<string, ChipProps["color"]> = {
+  Admin: "danger",
+  Manager: "warning",
+  Staff: "primary",
+  User: "success",
+  Unknown: "default",
 };
 
 const INITIAL_VISIBLE_COLUMNS = [
   "licensePlate",
   "orderDate",
-  "createdAt",
+  "createdBy",
+  "updatedAt",
   "status",
   "actions",
 ];
@@ -88,11 +101,12 @@ export function CanteenOrders() {
   const [selectedOrders, setSelectedOrders] = useState<CanteenOrderResponse[]>(
     []
   );
-  const [showActivate, setShowActivate] = useState(false);
-  const [showDeactivate, setShowDeactivate] = useState(false);
+  const [showApprove, setShowApprove] = useState(false);
+  const [showReject, setShowReject] = useState(false);
+  const [showComplete, setShowComplete] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<
-    "activate" | "deactivate" | null
+    "approve" | "reject" | "complete" | null
   >(null);
 
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
@@ -112,22 +126,23 @@ export function CanteenOrders() {
   const [page, setPage] = useState(1);
   const [orders, setOrders] = useState<CanteenOrderResponse[]>([]);
   // Modify the fetchOrders function to sort by date
-const fetchOrders = async () => {
-  try {
-    const data = await getCanteenOrders();
-    if (Array.isArray(data)) {
-      // Sort the data by orderDate in descending order (newest first)
-      const sortedData = data.sort((a, b) => {
-        return new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime();
-      });
-      setOrders(sortedData);
-      setPage(1);
+  const fetchOrders = async () => {
+    try {
+      const data = await getCanteenOrders();
+      if (Array.isArray(data)) {
+        // Sort the data by orderDate in descending order (newest first)
+        const sortedData = data.sort((a, b) => {
+          return (
+            new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
+          );
+        });
+        setOrders(sortedData);
+        setPage(1);
+      }
+    } catch (error) {
+      console.error("Error fetching orders:", error);
     }
-  } catch (error) {
-    console.error("Error fetching orders:", error);
-  }
-};
-
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -145,12 +160,21 @@ const fetchOrders = async () => {
     }
 
     setSelectedOrders(selected);
+    const hasPendingOrRejected = selected.some(
+      (canteenOrder) =>
+        canteenOrder.status === "Pending" || canteenOrder.status === "Rejected"
+    );
+    const hasPendingOrApproved = selected.some(
+      (canteenOrder) =>
+        canteenOrder.status === "Pending" || canteenOrder.status === "Approved"
+    );
+    const hasApproved = selected.some(
+      (canteenOrder) => canteenOrder.status === "Approved"
+    );
 
-    const hasActive = selected.some((order) => order.status === "Active");
-    const hasInactive = selected.some((order) => order.status === "Inactive");
-
-    setShowActivate(hasInactive);
-    setShowDeactivate(hasActive);
+    setShowApprove(hasPendingOrRejected);
+    setShowReject(hasPendingOrApproved);
+    setShowComplete(hasApproved);
   }, [selectedKeys, orders]);
 
   const headerColumns = React.useMemo(() => {
@@ -255,12 +279,12 @@ const fetchOrders = async () => {
     try {
       await deleteCanteenOrder(deletingOrder.id);
       toast.success("Order deleted successfully");
-  
+
       // Cập nhật danh sách trên FE
       setOrders((prevOrders) =>
         prevOrders.filter((order) => order.id !== deletingOrder.id)
       );
-  
+
       setSelectedKeys(new Set());
       setIsDeleteModalOpen(false);
       setDeletingOrder(null);
@@ -268,56 +292,69 @@ const fetchOrders = async () => {
       toast.error("Failed to delete order");
     }
   };
-  
-  
 
-  const handleActivate = async () => {
+  const handleApprove = async () => {
     const ids = selectedOrders
-      .filter((order) => order.status === "Inactive")
-      .map((order) => order.id);
-    if (ids.length === 0) return;
+      .filter((d) => d.status === "Pending" || d.status === "Rejected")
+      .map((d) => d.id);
+    if (ids.length === 0) {
+      toast.error("No valid drug orders found for approval.");
+      return;
+    }
 
     try {
-      await activateCanteenOrders(ids);
-      toast.success("Orders activated successfully");
+      await approveCanteenOrders(ids);
+      toast.success("Drug Orders approved successfully");
       fetchOrders();
       setSelectedKeys(new Set());
     } catch (error) {
-      toast.error("Failed to activate orders");
+      toast.error("Failed to approve drug orders");
     }
   };
-
-  const handleDeactivate = async () => {
+  const handleReject = async () => {
     const ids = selectedOrders
-      .filter((order) => order.status === "Active")
-      .map((order) => order.id);
-    if (ids.length === 0) return;
+      .filter((d) => d.status === "Pending" || d.status === "Approved")
+      .map((d) => d.id);
+    if (ids.length === 0) {
+      toast.error("No valid drug orders found for rejection.");
+      return;
+    }
 
     try {
-      await deactivateCanteenOrders(ids);
-      toast.success("Orders deactivated successfully");
+      await rejectCanteenOrders(ids);
+      toast.success("Drug orders rejected successfully");
       fetchOrders();
       setSelectedKeys(new Set());
     } catch (error) {
-      toast.error("Failed to deactivate orders");
+      toast.error("Failed to reject drug orders");
     }
   };
+  const handleComplete = async () => {
+    const ids = selectedOrders
+      .filter((d) => d.status === "Approved")
+      .map((d) => d.id);
+    if (ids.length === 0) {
+      toast.error("No valid drug orders found for completion.");
+      return;
+    }
 
-  const handleConfirmActivate = () => {
-    setConfirmAction("activate");
-    setIsConfirmModalOpen(true);
-  };
-
-  const handleConfirmDeactivate = () => {
-    setConfirmAction("deactivate");
-    setIsConfirmModalOpen(true);
+    try {
+      await completeCanteenOrders(ids);
+      toast.success("Drug orders completed successfully");
+      fetchOrders();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to complete drug orders");
+    }
   };
 
   const handleConfirmAction = async () => {
-    if (confirmAction === "activate") {
-      await handleActivate();
-    } else if (confirmAction === "deactivate") {
-      await handleDeactivate();
+    if (confirmAction === "approve") {
+      await handleApprove();
+    } else if (confirmAction === "reject") {
+      await handleReject();
+    } else if (confirmAction === "complete") {
+      await handleComplete();
     }
     setIsConfirmModalOpen(false);
     setConfirmAction(null);
@@ -350,7 +387,42 @@ const fetchOrders = async () => {
               {cellValue as string}
             </Chip>
           );
-        case "createdAt":
+        case "totalQuantity":
+          return (
+            <div className="flex justify-start gap-2">
+              <p className="text-bold text-small">
+                {order.canteenOrderDetails.reduce(
+                  (sum, detail) => sum + detail.quantity,
+                  0
+                )}
+              </p>
+            </div>
+          );
+
+        case "createdBy":
+          return cellValue && typeof cellValue === "object" ? (
+            <div className="flex flex-col gap-1">
+              {/* <span className="text-bold text-small text-primary cursor-pointer hover:underline"> */}
+              <span className="text-bold text-small">
+                {(cellValue as { userName: string }).userName}
+              </span>
+              <Chip
+                className="capitalize"
+                color={
+                  roleColorMap[
+                    (cellValue as { role: string })
+                      .role as keyof typeof roleColorMap
+                  ]
+                }
+                size="sm"
+                variant="flat"
+              >
+                {(cellValue as { role: string }).role}
+              </Chip>
+            </div>
+          ) : (
+            "-"
+          );
         case "updatedAt":
           return cellValue ? formatDate(cellValue as string) : "-";
         case "actions":
@@ -438,14 +510,37 @@ const fetchOrders = async () => {
           />
           <div className="flex gap-3">
             <div className="flex gap-2">
-              {showActivate && (
-                <Button color="success" onClick={handleConfirmActivate}>
-                  Activate Selected
+              {showApprove && (
+                <Button
+                  color="primary"
+                  onClick={() => {
+                    setConfirmAction("approve");
+                    setIsConfirmModalOpen(true);
+                  }}
+                >
+                  Approve Selected
                 </Button>
               )}
-              {showDeactivate && (
-                <Button color="danger" onClick={handleConfirmDeactivate}>
-                  Deactivate Selected
+              {showReject && (
+                <Button
+                  color="danger"
+                  onClick={() => {
+                    setConfirmAction("reject");
+                    setIsConfirmModalOpen(true);
+                  }}
+                >
+                  Reject Selected
+                </Button>
+              )}
+              {showComplete && (
+                <Button
+                  color="success"
+                  onClick={() => {
+                    setConfirmAction("complete");
+                    setIsConfirmModalOpen(true);
+                  }}
+                >
+                  Complete Selected
                 </Button>
               )}
             </div>
@@ -633,23 +728,49 @@ const fetchOrders = async () => {
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
       >
-        <ModalContent>
+        <ModalContent className="max-w-[500px]">
           <ModalHeader className="border-b pb-3">Confirm Action</ModalHeader>
           <ModalBody>
-            Are you sure you want to{" "}
-            {confirmAction === "activate" ? "activate" : "deactivate"} the
-            selected orders?
+            <p className="text-gray-700 mb-2">
+              Please review your action carefully before proceeding.
+            </p>
+            <p className="text-gray-600 text-sm">
+              Are you sure you want to{" "}
+              {confirmAction === "approve"
+                ? "approve"
+                : confirmAction === "reject"
+                ? "reject"
+                : confirmAction === "complete"
+                ? "complete"
+                : "perform this action on"}{" "}
+              the selected drug orders?
+            </p>
           </ModalBody>
-          <ModalFooter>
-            <Button variant="flat" onClick={() => setIsConfirmModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              color={confirmAction === "activate" ? "success" : "danger"}
-              onClick={handleConfirmAction}
-            >
-              Confirm
-            </Button>
+          <ModalFooter className="border-t pt-4">
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="flat"
+                onClick={() => setIsConfirmModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                color={
+                  confirmAction === "approve"
+                    ? "primary"
+                    : confirmAction === "reject"
+                    ? "danger"
+                    : confirmAction === "complete"
+                    ? "success"
+                    : "default"
+                }
+                onClick={handleConfirmAction}
+              >
+                Confirm
+              </Button>
+            </div>
           </ModalFooter>
         </ModalContent>
       </Modal>
