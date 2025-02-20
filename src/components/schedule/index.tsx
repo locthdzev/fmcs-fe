@@ -26,6 +26,15 @@ export function Schedule() {
   const [currentWeek, setCurrentWeek] = useState<Date[]>([]);
   const [selectedStaffs, setSelectedStaffs] = useState<string[]>([]); // State để lưu các staff được chọn
   const [filteredStaffs, setFilteredStaffs] = useState<UserProfile[]>([]); // State để lưu danh sách staff đã filter
+  const [selectedStaffInfo, setSelectedStaffInfo] = useState<{
+    fullName: string;
+    userName: string;
+  }>({ fullName: "", userName: "" });
+  const [selectedShiftInfo, setSelectedShiftInfo] = useState<{
+    shiftName: string;
+    startTime: string;
+    endTime: string;
+  }>({ shiftName: "", startTime: "", endTime: "" });
 
   // Khởi tạo tuần hiện tại
   useEffect(() => {
@@ -78,8 +87,26 @@ export function Schedule() {
   }, [currentWeek, viewMode]);
 
   const handleAdd = (date: string, rowId: string) => {
-    setSelectedDate(date);
-    setSelectedRowId(rowId);
+    if (viewMode === "staff") {
+      // Trường hợp thêm ca làm việc cho nhân viên
+      const selectedStaff = staffs.find((staff) => staff.id === rowId);
+      setSelectedDate(date);
+      setSelectedRowId(rowId);
+      setSelectedStaffInfo({
+        fullName: selectedStaff?.fullName || "",
+        userName: selectedStaff?.userName || "",
+      });
+    } else {
+      // Trường hợp thêm nhân viên cho ca làm việc
+      const selectedShift = shifts.find((shift) => shift.id === rowId);
+      setSelectedDate(date);
+      setSelectedRowId(rowId);
+      setSelectedShiftInfo({
+        shiftName: selectedShift?.shiftName || "",
+        startTime: selectedShift?.startTime || "",
+        endTime: selectedShift?.endTime || "",
+      });
+    }
     setVisible(true);
   };
 
@@ -221,6 +248,12 @@ export function Schedule() {
           onSubmit={handleSubmit}
           viewMode={viewMode}
           options={viewMode === "staff" ? shifts : staffs}
+          fullName={selectedStaffInfo.fullName}
+          userName={selectedStaffInfo.userName}
+          selectedDate={selectedDate}
+          shiftName={selectedShiftInfo.shiftName}
+          startTime={selectedShiftInfo.startTime}
+          endTime={selectedShiftInfo.endTime}
         />
       </div>
     </div>

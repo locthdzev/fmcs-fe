@@ -47,7 +47,6 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
   const handleAdd = (date: string, rowId: string) => {
     try {
       onAdd(date, rowId);
-      //   toast.success("Schedule added successfully");
     } catch (error) {
       toast.error("Failed to add schedule");
     }
@@ -70,7 +69,13 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
               )}
             </div>
           ) : (
-            (record as ShiftResponse).shiftName
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <div>{(record as ShiftResponse).shiftName}</div>
+              <div style={{ color: "#666", fontSize: "12px" }}>
+                ({(record as ShiftResponse).startTime} -{" "}
+                {(record as ShiftResponse).endTime})
+              </div>
+            </div>
           )}
         </div>
       ),
@@ -116,9 +121,15 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
             );
 
             let displayText;
+            let timeInfo = "";
             if (relatedItem) {
               if (isStaffView) {
-                displayText = (relatedItem as ShiftResponse).shiftName;
+                const shift = relatedItem as ShiftResponse;
+                displayText = shift.shiftName;
+                timeInfo = `(${shift.startTime.slice(
+                  0,
+                  5
+                )} - ${shift.endTime.slice(0, 5)})`;
               } else {
                 const staff = relatedItem as UserProfile;
                 displayText = `${staff.fullName}${
@@ -138,6 +149,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                 >
                   {displayText}
                 </Tag>
+                {timeInfo && <div style={{ fontSize: 12 }}>{timeInfo}</div>}
                 <div style={{ fontSize: 12 }}>{schedule.note}</div>
               </div>
             );

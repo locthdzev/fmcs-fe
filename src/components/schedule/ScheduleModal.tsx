@@ -11,6 +11,7 @@ import {
   Switch,
 } from "antd";
 import dayjs from "dayjs";
+import "dayjs/locale/vi";
 import { ScheduleCreateRequest } from "@/api/schedule";
 import { toast } from "react-toastify";
 import { ShiftResponse } from "@/api/shift";
@@ -21,6 +22,12 @@ interface ScheduleModalProps {
   onSubmit: (values: ScheduleCreateRequest) => void;
   viewMode: "staff" | "shift";
   options: any[];
+  fullName?: string;
+  userName?: string;
+  selectedDate?: string;
+  shiftName?: string; // Tên ca làm việc
+  startTime?: string; // Thời gian bắt đầu
+  endTime?: string; // Thời gian kết thúc
 }
 
 const ScheduleModal: React.FC<ScheduleModalProps> = ({
@@ -29,6 +36,12 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   onSubmit,
   viewMode,
   options,
+  fullName,
+  userName,
+  selectedDate,
+  shiftName,
+  startTime,
+  endTime,
 }) => {
   const [form] = Form.useForm();
 
@@ -71,6 +84,30 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         </Button>,
       ]}
     >
+      <div style={{ marginBottom: "15px" }}>
+        {/* Hiển thị thông tin nhân viên nếu viewMode là "staff" */}
+        {viewMode === "staff" && fullName && (
+          <p>
+            <strong>Staff:</strong> {fullName} {userName && `(${userName})`}
+          </p>
+        )}
+
+        {/* Hiển thị thông tin ca làm việc nếu viewMode là "shift" */}
+        {viewMode === "shift" && shiftName && (
+          <p>
+            <strong>Shift:</strong> {shiftName} ({startTime?.slice(0, 5)} -{" "}
+            {endTime?.slice(0, 5)})
+          </p>
+        )}
+
+        {/* Hiển thị ngày tháng năm và thứ */}
+        {selectedDate && (
+          <p>
+            <strong>Date:</strong>{" "}
+            {dayjs(selectedDate).format("dddd, DD/MM/YYYY")}
+          </p>
+        )}
+      </div>
       <Form form={form} layout="vertical">
         <Form.Item
           name={viewMode === "staff" ? "shiftId" : "staffId"}
@@ -148,4 +185,5 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     </Modal>
   );
 };
+
 export default ScheduleModal;
