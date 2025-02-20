@@ -28,7 +28,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
   onDelete,
 }) => {
   const getScheduleForCell = (rowId: string, date: Date) => {
-    return schedules.find(
+    return schedules.filter(
       (s) =>
         s[viewMode === "staff" ? "staffId" : "shiftId"] === rowId &&
         dayjs(s.workDate).isSame(date, "day")
@@ -47,10 +47,71 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
   const handleAdd = (date: string, rowId: string) => {
     try {
       onAdd(date, rowId);
-      //   toast.success("Schedule added successfully");
     } catch (error) {
       toast.error("Failed to add schedule");
     }
+  };
+
+  // Hàm tạo màu dựa trên ID
+  const generateColor = (id: string) => {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const color = `hsl(${hash % 360}, 70%, 50%)`;
+    return color;
+  };
+
+  const renderCellContent = (
+    schedules: ScheduleResponse[],
+    isStaffView: boolean
+  ) => {
+    return schedules.map((schedule) => {
+      const relatedId =
+        (isStaffView ? schedule.shiftId : schedule.staffId) ?? "defaultId"; // Thêm giá trị mặc định
+      const relatedList = isStaffView ? shifts : staffs;
+      const relatedItem = relatedList.find((item) => item.id === relatedId);
+
+      let displayText;
+      let timeInfo = "";
+      if (relatedItem) {
+        if (isStaffView) {
+          const shift = relatedItem as ShiftResponse;
+          displayText = shift.shiftName;
+          timeInfo = `(${shift.startTime.slice(0, 5)} - ${shift.endTime.slice(
+            0,
+            5
+          )})`;
+        } else {
+          const staff = relatedItem as UserProfile;
+          displayText = `${staff.fullName}${
+            staff.userName ? ` (${staff.userName})` : ""
+          }`;
+        }
+      } else {
+        displayText = relatedId;
+      }
+
+      // Tạo màu dựa trên ID của shift hoặc staff
+      const color = generateColor(relatedId); // relatedId luôn là string
+
+      return (
+        <div
+          key={schedule.id}
+          style={{ textAlign: "center", marginBottom: "8px" }}
+        >
+          <Tag
+            color={color} // Sử dụng màu được tạo
+            closable
+            onClose={() => handleDelete(schedule.id)}
+          >
+            {displayText}
+          </Tag>
+          {timeInfo && <div style={{ fontSize: 12 }}>{timeInfo}</div>}
+          <div style={{ fontSize: 12 }}>{schedule.note}</div>
+        </div>
+      );
+    });
   };
 
   const columns = [
@@ -70,7 +131,13 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
               )}
             </div>
           ) : (
-            (record as ShiftResponse).shiftName
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <div>{(record as ShiftResponse).shiftName}</div>
+              <div style={{ color: "#666", fontSize: "12px" }}>
+                ({(record as ShiftResponse).startTime} -{" "}
+                {(record as ShiftResponse).endTime})
+              </div>
+            </div>
           )}
         </div>
       ),
@@ -106,57 +173,25 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
         dataIndex: dateString,
         key: dateString,
         render: (_: any, record: any) => {
-          const schedule = getScheduleForCell(record.id, date);
-          if (schedule) {
-            const isStaffView = viewMode === "staff";
-            const relatedId = isStaffView ? schedule.shiftId : schedule.staffId;
-            const relatedList = isStaffView ? shifts : staffs;
-            const relatedItem = relatedList.find(
-              (item) => item.id === relatedId
-            );
-
-            let displayText;
-            if (relatedItem) {
-              if (isStaffView) {
-                displayText = (relatedItem as ShiftResponse).shiftName;
-              } else {
-                const staff = relatedItem as UserProfile;
-                displayText = `${staff.fullName}${
-                  staff.userName ? ` (${staff.userName})` : ""
-                }`;
-              }
-            } else {
-              displayText = relatedId;
-            }
-
-            return (
-              <div style={{ textAlign: "center" }}>
-                <Tag
-                  color={schedule.status === "ACTIVE" ? "green" : "red"}
-                  closable
-                  onClose={() => handleDelete(schedule.id)}
-                >
-                  {displayText}
-                </Tag>
-                <div style={{ fontSize: 12 }}>{schedule.note}</div>
-              </div>
-            );
-          }
+          const schedules = getScheduleForCell(record.id, date);
           return (
             <div
               style={{
                 position: "relative",
                 height: "100%",
                 display: "flex",
+                flexDirection: "column",
                 justifyContent: "center",
                 alignItems: "center",
+                gap: "8px",
               }}
             >
+              {schedules.length > 0 &&
+                renderCellContent(schedules, viewMode === "staff")}
               <Button
                 size="small"
                 onClick={() => handleAdd(dateString, record.id)}
                 style={{
-                  position: "absolute",
                   opacity: 0,
                   transition: "opacity 0.3s",
                 }}

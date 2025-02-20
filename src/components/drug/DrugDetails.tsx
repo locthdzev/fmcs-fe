@@ -21,6 +21,23 @@ const statusColorMap: Record<string, any> = {
   Inactive: "danger",
 };
 
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
+    date.getMinutes()
+  ).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
+};
+
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+    currencyDisplay: "code",
+  }).format(price);
+};
+
 const DrugDetailsModal: React.FC<DrugDetailsModalProps> = ({
   drug,
   isOpen,
@@ -34,7 +51,7 @@ const DrugDetailsModal: React.FC<DrugDetailsModalProps> = ({
     <>
       <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
         <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
-          <ModalHeader className="border-b pb-3 flex justify-between items-center">
+          <ModalHeader className="flex justify-between items-center">
             <span>Drug Details</span>
             <div className="flex items-center">
               <Chip
@@ -53,17 +70,15 @@ const DrugDetailsModal: React.FC<DrugDetailsModalProps> = ({
           </ModalHeader>
           <ModalBody className="p-6">
             <div className="grid grid-cols-12 gap-6 items-start">
-              {/* Hình ảnh thuốc */}
               <div className="col-span-5 flex justify-center items-center">
                 <img
                   src={drug.imageUrl}
                   alt={drug.name}
                   className="w-64 h-64 object-contain bg-white p-2 transition-transform duration-300 hover:scale-105 cursor-pointer"
-                  onClick={() => setIsImageModalOpen(true)} // Khi click vào mở modal ảnh lớn
+                  onClick={() => setIsImageModalOpen(true)}
                 />
               </div>
 
-              {/* Thông tin thuốc */}
               <div className="col-span-7 space-y-4 text-gray-700">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
@@ -74,19 +89,15 @@ const DrugDetailsModal: React.FC<DrugDetailsModalProps> = ({
                       value: drug.drugGroup?.groupName || "-",
                     },
                     { label: "Unit", value: drug.unit },
-                    { label: "Price", value: drug.price },
+                    { label: "Price", value: formatPrice(drug.price) },
                     { label: "Manufacturer", value: drug.manufacturer || "-" },
                     {
                       label: "Created At",
-                      value: drug.createdAt
-                        ? new Date(drug.createdAt).toLocaleDateString("vi-VN")
-                        : "-",
+                      value: drug.createdAt ? formatDate(drug.createdAt) : "-",
                     },
                     {
                       label: "Updated At",
-                      value: drug.updatedAt
-                        ? new Date(drug.updatedAt).toLocaleDateString("vi-VN")
-                        : "-",
+                      value: drug.updatedAt ? formatDate(drug.updatedAt) : "-",
                     },
                   ].map((field, index) => (
                     <label
@@ -115,22 +126,20 @@ const DrugDetailsModal: React.FC<DrugDetailsModalProps> = ({
             </div>
           </ModalBody>
 
-          {/* Footer */}
-          <ModalFooter className="border-t pt-3">
-            <Button variant="ghost" onClick={onClose}>
+          <ModalFooter>
+            <Button radius="sm" variant="ghost" onClick={onClose}>
               Close
             </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
 
-      {/* Modal hiển thị ảnh lớn hơn */}
       <Modal
         isOpen={isImageModalOpen}
         onOpenChange={() => setIsImageModalOpen(false)}
         size="2xl"
       >
-        <ModalContent className="bg-white shadow-lg p-4">
+        <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
           <ModalBody className="flex justify-center items-center p-6">
             <img
               src={drug.imageUrl}

@@ -261,10 +261,6 @@ export function Drugs() {
       .slice((page - 1) * rowsPerPage, page * rowsPerPage); // Áp dụng phân trang sau khi sắp xếp
   }, [sortDescriptor, filteredItems, page, rowsPerPage]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN");
-  };
-
   const handleOpenDetails = async (id: string) => {
     try {
       const drug = await getDrugById(id);
@@ -362,6 +358,23 @@ export function Drugs() {
     setConfirmAction(null);
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
+      date.getMinutes()
+    ).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+      currencyDisplay: "code",
+    }).format(price);
+  };
+
   const renderCell = React.useCallback(
     (drug: DrugResponse, columnKey: React.Key) => {
       const cellValue = drug[columnKey as keyof DrugResponse];
@@ -386,6 +399,8 @@ export function Drugs() {
               </div>
             </div>
           );
+        case "price":
+          return formatPrice(cellValue as number);
         case "status":
           return (
             <Chip
@@ -490,9 +505,10 @@ export function Drugs() {
       <div className="flex flex-col gap-4">
         <div className="flex justify-between gap-3 items-end ml-4">
           <Input
+            radius="sm"
             isClearable
             className="w-full sm:max-w-[44%]"
-            placeholder="Search by drug name..."
+            placeholder="Search by drug code, name, or group..."
             startContent={<SearchIcon />}
             value={filterValue}
             onClear={() => onClear()}
@@ -501,12 +517,22 @@ export function Drugs() {
           <div className="flex gap-3">
             <div className="flex gap-2">
               {showActivate && (
-                <Button color="success" onClick={handleConfirmActivate}>
+                <Button
+                  radius="sm"
+                  variant="bordered"
+                  className="bg-success-100 text-success-600"
+                  onClick={handleConfirmActivate}
+                >
                   Activate Selected
                 </Button>
               )}
               {showDeactivate && (
-                <Button color="danger" onClick={handleConfirmDeactivate}>
+                <Button
+                  radius="sm"
+                  variant="bordered"
+                  className="bg-danger-100 text-danger-600"
+                  onClick={handleConfirmDeactivate}
+                >
                   Deactivate Selected
                 </Button>
               )}
@@ -515,8 +541,9 @@ export function Drugs() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Status
                 </Button>
@@ -540,8 +567,9 @@ export function Drugs() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Columns
                 </Button>
@@ -562,6 +590,7 @@ export function Drugs() {
               </DropdownMenu>
             </Dropdown>
             <Button
+              radius="sm"
               color="primary"
               endContent={<PlusIcon />}
               onClick={() => setIsModalOpen(true)}
@@ -648,9 +677,13 @@ export function Drugs() {
       </div>
 
       {isModalOpen && (
-        <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[800px]">
-            <ModalHeader className="border-b pb-3">Add New Drug</ModalHeader>
+        <Modal
+          className="max-w-3xl"
+          isOpen={isModalOpen}
+          onOpenChange={setIsModalOpen}
+        >
+          <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
+            <ModalHeader>Add New Drug</ModalHeader>
             <ModalBody>
               <CreateDrugForm
                 onClose={() => {
@@ -670,9 +703,13 @@ export function Drugs() {
       />
 
       {isEditModalOpen && (
-        <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent className="max-w-[800px]">
-            <ModalHeader className="border-b pb-3">Edit Drug</ModalHeader>
+        <Modal
+          className="max-w-3xl"
+          isOpen={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+        >
+          <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
+            <ModalHeader>Edit Drug</ModalHeader>
             <ModalBody>
               <EditDrugForm
                 drugId={editingDrugId}
@@ -693,29 +730,46 @@ export function Drugs() {
 
       <Modal
         isOpen={isConfirmModalOpen}
-        onClose={() => setIsConfirmModalOpen(false)}
+        onOpenChange={(open) => !open && setIsConfirmModalOpen(false)}
       >
-        <ModalContent>
+        <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
           <ModalHeader className="border-b pb-3">Confirm Action</ModalHeader>
           <ModalBody>
-            Are you sure you want to{" "}
-            {confirmAction === "activate" ? "activate" : "deactivate"} the
-            selected drugs?
+            <p className="text-gray-700">
+              Are you sure you want to{" "}
+              <span
+                className={
+                  confirmAction === "activate"
+                    ? "text-green-600"
+                    : "text-red-600"
+                }
+              >
+                {confirmAction === "activate" ? "activate" : "deactivate"}
+              </span>{" "}
+              the selected drugs?
+            </p>
           </ModalBody>
-          <ModalFooter>
-            <Button variant="flat" onClick={() => setIsConfirmModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              color={confirmAction === "activate" ? "success" : "danger"}
-              onClick={handleConfirmAction}
-            >
-              Confirm
-            </Button>
+          <ModalFooter className="border-t pt-4">
+            <div className="flex justify-end gap-3">
+              <Button
+                radius="sm"
+                type="button"
+                onClick={() => setIsConfirmModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                radius="sm"
+                type="button"
+                color="primary"
+                onClick={handleConfirmAction}
+              >
+                Confirm
+              </Button>
+            </div>
           </ModalFooter>
         </ModalContent>
       </Modal>
-
       <Table
         isHeaderSticky
         aria-label="Drugs table"
