@@ -79,20 +79,6 @@ export const updateUser = async (
   }
 };
 
-export const updateAccountsStatus = async (
-  updateStatusData: UpdateAccountsStatusRequest
-) => {
-  try {
-    const response = await api.put(
-      "/user-management/users/status",
-      updateStatusData
-    );
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-};
-
 export const assignRoleToUser = async (userId: string, roleId: string) => {
   try {
     const response = await api.post(
@@ -136,6 +122,27 @@ export const getAllStaff = async (): Promise<UserProfile[]> => {
       return response.data.data;
     }
     throw new Error(response.data.message || "Failed to fetch staff users.");
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const activateUsers = async (userIds: string[]) => {
+  try {
+    const response = await api.put("/user-management/users/activate", userIds);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deactivateUsers = async (userIds: string[]) => {
+  try {
+    const response = await api.put(
+      "/user-management/users/deactivate",
+      userIds
+    );
+    return response.data;
   } catch (error) {
     throw error;
   }
