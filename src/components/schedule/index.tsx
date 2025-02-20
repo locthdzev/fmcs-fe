@@ -6,6 +6,8 @@ import {
   getSchedulesByDateRange,
   createSchedule,
   deleteSchedule,
+  createMultipleSchedulesForStaff,
+  createMultipleSchedulesForShift,
 } from "@/api/schedule";
 import { getShifts, ShiftResponse } from "@/api/shift";
 import { UserProfile, getAllStaff } from "@/api/user";
@@ -26,6 +28,15 @@ export function Schedule() {
   const [currentWeek, setCurrentWeek] = useState<Date[]>([]);
   const [selectedStaffs, setSelectedStaffs] = useState<string[]>([]); // State để lưu các staff được chọn
   const [filteredStaffs, setFilteredStaffs] = useState<UserProfile[]>([]); // State để lưu danh sách staff đã filter
+  const [selectedStaffInfo, setSelectedStaffInfo] = useState<{
+    fullName: string;
+    userName: string;
+  }>({ fullName: "", userName: "" });
+  const [selectedShiftInfo, setSelectedShiftInfo] = useState<{
+    shiftName: string;
+    startTime: string;
+    endTime: string;
+  }>({ shiftName: "", startTime: "", endTime: "" });
 
   // Khởi tạo tuần hiện tại
   useEffect(() => {
@@ -78,8 +89,26 @@ export function Schedule() {
   }, [currentWeek, viewMode]);
 
   const handleAdd = (date: string, rowId: string) => {
-    setSelectedDate(date);
-    setSelectedRowId(rowId);
+    if (viewMode === "staff") {
+      // Trường hợp thêm ca làm việc cho nhân viên
+      const selectedStaff = staffs.find((staff) => staff.id === rowId);
+      setSelectedDate(date);
+      setSelectedRowId(rowId);
+      setSelectedStaffInfo({
+        fullName: selectedStaff?.fullName || "",
+        userName: selectedStaff?.userName || "",
+      });
+    } else {
+      // Trường hợp thêm nhân viên cho ca làm việc
+      const selectedShift = shifts.find((shift) => shift.id === rowId);
+      setSelectedDate(date);
+      setSelectedRowId(rowId);
+      setSelectedShiftInfo({
+        shiftName: selectedShift?.shiftName || "",
+        startTime: selectedShift?.startTime || "",
+        endTime: selectedShift?.endTime || "",
+      });
+    }
     setVisible(true);
   };
 
@@ -91,7 +120,43 @@ export function Schedule() {
         workDate: selectedDate,
       };
 
-      await createSchedule(payload);
+      // Kiểm tra xem ca làm việc hoặc nhân viên đã được thêm vào chưa
+      const isDuplicate = schedules.some(
+        (schedule) =>
+          schedule[viewMode === "staff" ? "staffId" : "shiftId"] ===
+            selectedRowId &&
+          schedule[viewMode === "staff" ? "shiftId" : "staffId"] ===
+            values[viewMode === "staff" ? "shiftIds" : "staffIds"] &&
+          dayjs(schedule.workDate).isSame(selectedDate, "day")
+      );
+
+      if (isDuplicate) {
+        message.error("This schedule already exists!");
+        return;
+      }
+
+      if (viewMode === "staff") {
+        await createMultipleSchedulesForStaff({
+          staffId: selectedRowId,
+          shiftIds: values.shiftIds,
+          workDate: selectedDate,
+          note: values.note,
+          isRecurring: values.isRecurring,
+          recurringDays: values.recurringDays,
+          recurringEndDate: values.recurringEndDate,
+        });
+      } else {
+        await createMultipleSchedulesForShift({
+          shiftId: selectedRowId,
+          staffIds: values.staffIds,
+          workDate: selectedDate,
+          note: values.note,
+          isRecurring: values.isRecurring,
+          recurringDays: values.recurringDays,
+          recurringEndDate: values.recurringEndDate,
+        });
+      }
+
       message.success("Schedule created successfully!");
       setVisible(false);
       fetchData();
@@ -221,6 +286,13 @@ export function Schedule() {
           onSubmit={handleSubmit}
           viewMode={viewMode}
           options={viewMode === "staff" ? shifts : staffs}
+          fullName={selectedStaffInfo.fullName}
+          userName={selectedStaffInfo.userName}
+          selectedDate={selectedDate}
+          shiftName={selectedShiftInfo.shiftName}
+          startTime={selectedShiftInfo.startTime}
+          endTime={selectedShiftInfo.endTime}
+          schedules={schedules} // Truyền schedules xuống ScheduleModal
         />
       </div>
     </div>
