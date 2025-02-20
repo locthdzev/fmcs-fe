@@ -5,8 +5,8 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Button,
   Chip,
+  Button,
 } from "@heroui/react";
 
 type User = {
@@ -74,9 +74,9 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
   if (!user) return null;
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
+    <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-3xl">
       <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
-        <ModalHeader className="border-b pb-3 flex justify-between items-center">
+        <ModalHeader className="flex justify-between items-center pb-2">
           <div className="flex items-center gap-2">
             <span>User Details</span>
             <span className="text-sm text-gray-500 font-bold">
@@ -113,7 +113,7 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
             {user.status}
           </Chip>
         </ModalHeader>
-        <ModalBody className="p-6">
+        <ModalBody className="pt-2 px-6 pb-6">
           <div className="grid grid-cols-12 gap-6 items-start">
             <div className="col-span-12 space-y-4 text-gray-700">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -137,7 +137,6 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
                   {
                     label: "Date of Birth",
                     value: formatDate(user.dob),
-                    italic: true,
                   },
                   {
                     label: "Phone",
@@ -146,14 +145,12 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
                   {
                     label: "Created At",
                     value: formatDate(user.createdAt, true),
-                    italic: true,
                   },
                   {
                     label: "Updated At",
                     value: user.updatedAt
                       ? formatDate(user.updatedAt, true)
                       : "-",
-                    italic: true,
                   },
                 ].map((field, index) => (
                   <label
@@ -163,11 +160,7 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
                     <span className="text-xs font-medium text-gray-700">
                       {field.label}
                     </span>
-                    <div
-                      className={`mt-1 w-full border-none p-0 sm:text-sm ${
-                        field.italic ? "italic" : ""
-                      }`}
-                    >
+                    <div className="mt-1 w-full border-none p-0 sm:text-sm">
                       {field.value}
                     </div>
                   </label>
@@ -184,8 +177,8 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
             </div>
           </div>
         </ModalBody>
-        <ModalFooter>
-          <Button variant="ghost" onClick={onClose}>
+        <ModalFooter className="pt-2">
+          <Button radius="sm" onClick={onClose}>
             Close
           </Button>
         </ModalFooter>

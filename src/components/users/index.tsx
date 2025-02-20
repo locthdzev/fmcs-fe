@@ -7,7 +7,7 @@ import {
   ChevronDownIcon,
   UsersIcon,
 } from "./Icons";
-import { getUsers } from "@/api/user";
+import { getUsers, activateUsers, deactivateUsers } from "@/api/user";
 import {
   Table,
   TableHeader,
@@ -27,6 +27,11 @@ import {
   Selection,
   ChipProps,
   SortDescriptor,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from "@heroui/react";
 import { UserDetails } from "./UserDetails";
 import { EditUserForm } from "./EditUserForm";
@@ -118,6 +123,13 @@ export function Users() {
 
   const [page, setPage] = React.useState(1);
   const [users, setUsers] = React.useState<User[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
+  const [showActivate, setShowActivate] = useState(false);
+  const [showDeactivate, setShowDeactivate] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<
+    "activate" | "deactivate" | null
+  >(null);
 
   const fetchUsers = async () => {
     try {
@@ -278,15 +290,88 @@ export function Users() {
     });
   };
 
+  useEffect(() => {
+    let selected: User[] = [];
+
+    if (selectedKeys === "all") {
+      selected = filteredItems;
+    } else {
+      selected = users.filter((user) =>
+        (selectedKeys as Set<string>).has(user.id)
+      );
+    }
+
+    setSelectedUsers(selected);
+
+    const hasActive = selected.some((user) => user.status === "Active");
+    const hasInactive = selected.some((user) => user.status === "Inactive");
+
+    setShowActivate(hasInactive);
+    setShowDeactivate(hasActive);
+  }, [selectedKeys, filteredItems, users]);
+
+  const handleActivate = async () => {
+    const ids = selectedUsers
+      .filter((u) => u.status === "Inactive")
+      .map((u) => u.id);
+    if (ids.length === 0) return;
+
+    try {
+      await activateUsers(ids);
+      toast.success("Users activated successfully");
+      fetchUsers();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to activate users");
+    }
+  };
+
+  const handleDeactivate = async () => {
+    const ids = selectedUsers
+      .filter((u) => u.status === "Active")
+      .map((u) => u.id);
+
+    if (ids.length === 0) return;
+
+    try {
+      await deactivateUsers(ids);
+      toast.success("Users deactivated successfully");
+      fetchUsers();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to deactivate users");
+    }
+  };
+
+  const handleConfirmActivate = () => {
+    setConfirmAction("activate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDeactivate = () => {
+    setConfirmAction("deactivate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (confirmAction === "activate") {
+      await handleActivate();
+    } else if (confirmAction === "deactivate") {
+      await handleDeactivate();
+    }
+    setIsConfirmModalOpen(false);
+    setConfirmAction(null);
+    fetchUsers();
+  };
+
   const renderCell = React.useCallback((user: User, columnKey: React.Key) => {
     const cellValue = user[columnKey as keyof User];
-
     switch (columnKey) {
       case "fullName":
         return (
           <div className="flex flex-col">
             <p
-              className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+              className="text-bold text-small text-primary cursor-pointer hover:underline"
               onClick={() => setSelectedUser(user)}
             >
               {cellValue as string}
@@ -319,13 +404,11 @@ export function Users() {
           </Chip>
         );
       case "dob":
-        return <span className="italic">{formatDate(user.dob)}</span>;
+        return <span>{formatDate(user.dob)}</span>;
       case "createdAt":
       case "updatedAt":
         return cellValue ? (
-          <span className="italic">
-            {formatDate(cellValue as string, true)}
-          </span>
+          <span>{formatDate(cellValue as string, true)}</span>
         ) : (
           "-"
         );
@@ -352,7 +435,7 @@ export function Users() {
         return cellValue;
     }
   }, []);
-  
+
   const onNextPage = React.useCallback(() => {
     if (page < pages) {
       setPage(page + 1);
@@ -392,6 +475,7 @@ export function Users() {
       <div className="flex flex-col gap-4">
         <div className="flex justify-between gap-3 items-end ml-4">
           <Input
+            radius="sm"
             isClearable
             className="w-full sm:max-w-[44%]"
             placeholder="Search by name, username, email, phone..."
@@ -401,11 +485,34 @@ export function Users() {
             onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
+            <div className="flex gap-2">
+              {showActivate && (
+                <Button
+                  radius="sm"
+                  variant="bordered"
+                  className="bg-success-100 text-success-600"
+                  onClick={handleConfirmActivate}
+                >
+                  Activate Selected
+                </Button>
+              )}
+              {showDeactivate && (
+                <Button
+                  radius="sm"
+                  variant="bordered"
+                  className="bg-danger-100 text-danger-600"
+                  onClick={handleConfirmDeactivate}
+                >
+                  Deactivate Selected
+                </Button>
+              )}
+            </div>
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Status
                 </Button>
@@ -429,8 +536,9 @@ export function Users() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Columns
                 </Button>
@@ -451,6 +559,7 @@ export function Users() {
               </DropdownMenu>
             </Dropdown>
             <Button
+              radius="sm"
               color="primary"
               endContent={<PlusIcon />}
               onClick={() => setCreatingUser(true)}
@@ -478,6 +587,8 @@ export function Users() {
       </div>
     );
   }, [
+    router,
+    selectedUsers,
     filterValue,
     statusFilter,
     visibleColumns,
@@ -535,6 +646,48 @@ export function Users() {
         <UsersIcon />
         <h3 className="text-2xl font-bold">Users Management</h3>
       </div>
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onOpenChange={(open) => !open && setIsConfirmModalOpen(false)}
+      >
+        <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
+          <ModalHeader className="border-b pb-3">Confirm Action</ModalHeader>
+          <ModalBody>
+            <p className="text-gray-700">
+              Are you sure you want to{" "}
+              <span
+                className={
+                  confirmAction === "activate"
+                    ? "text-green-600"
+                    : "text-red-600"
+                }
+              >
+                {confirmAction === "activate" ? "activate" : "deactivate"}
+              </span>{" "}
+              the selected users?
+            </p>
+          </ModalBody>
+          <ModalFooter className="border-t pt-4">
+            <div className="flex justify-end gap-3">
+              <Button
+                radius="sm"
+                type="button"
+                onClick={() => setIsConfirmModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                radius="sm"
+                type="button"
+                color="primary"
+                onClick={handleConfirmAction}
+              >
+                Confirm
+              </Button>
+            </div>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>{" "}
       <Table
         isHeaderSticky
         aria-label="Example table with custom cells, pagination and sorting"
