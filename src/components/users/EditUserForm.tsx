@@ -7,7 +7,6 @@ import {
 } from "@/api/user";
 import { toast } from "react-toastify";
 import {
-  Button,
   Input,
   Modal,
   ModalBody,
@@ -17,6 +16,8 @@ import {
   SelectItem,
   Tab,
   Tabs,
+  ModalFooter,
+  Button,
 } from "@heroui/react";
 
 type User = {
@@ -92,28 +93,66 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
       return;
     }
 
+    // Validate empty or whitespace-only fields
+    for (const [key, value] of Object.entries(formData)) {
+      if (typeof value === "string" && value.trim() === "") {
+        toast.error(
+          `${
+            key.charAt(0).toUpperCase() + key.slice(1)
+          } cannot be empty or contain only whitespace`
+        );
+        return;
+      }
+    }
+
+    // Check if there are any changes in the form data
+    const hasFormDataChanges = Object.keys(formData).some((key) => {
+      const formValue = formData[key as keyof User];
+      const userValue = user[key as keyof User];
+      return typeof formValue === "string"
+        ? formValue.trim() !== userValue
+        : formValue !== userValue;
+    });
+
+    // Check if there are any changes in roles
+    const hasRoleChanges =
+      pendingRoles.length !== user.roles.length ||
+      pendingRoles.some((role) => !user.roles.includes(role)) ||
+      user.roles.some((role) => !pendingRoles.includes(role));
+
+    if (!hasFormDataChanges && !hasRoleChanges) {
+      toast.info("No changes detected");
+      onClose();
+      return;
+    }
+
     try {
       setLoading(true);
-      await updateUser(user.id, formData);
 
-      const rolesToAdd = pendingRoles.filter(
-        (role) => !user.roles.includes(role)
-      );
-      const rolesToRemove = user.roles.filter(
-        (role) => !pendingRoles.includes(role)
-      );
-
-      for (const roleId of rolesToAdd) {
-        const role = allRoles.find((r) => r.roleName === roleId);
-        if (role) {
-          await assignRoleToUser(user.id, role.id);
-        }
+      if (hasFormDataChanges) {
+        await updateUser(user.id, formData);
       }
 
-      for (const roleId of rolesToRemove) {
-        const role = allRoles.find((r) => r.roleName === roleId);
-        if (role) {
-          await unassignRoleFromUser(user.id, role.id);
+      if (hasRoleChanges) {
+        const rolesToAdd = pendingRoles.filter(
+          (role) => !user.roles.includes(role)
+        );
+        const rolesToRemove = user.roles.filter(
+          (role) => !pendingRoles.includes(role)
+        );
+
+        for (const roleId of rolesToAdd) {
+          const role = allRoles.find((r) => r.roleName === roleId);
+          if (role) {
+            await assignRoleToUser(user.id, role.id);
+          }
+        }
+
+        for (const roleId of rolesToRemove) {
+          const role = allRoles.find((r) => r.roleName === roleId);
+          if (role) {
+            await unassignRoleFromUser(user.id, role.id);
+          }
         }
       }
 
@@ -146,10 +185,17 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
     setSelectedRole("");
   };
 
+  const handleClear = (fieldName: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: "",
+    }));
+  };
+
   return (
-    <Modal isOpen={true} onOpenChange={onClose}>
-      <ModalContent className="max-w-[800px]">
-        <ModalHeader className="border-b pb-3">Edit User</ModalHeader>
+    <Modal isOpen={true} onOpenChange={onClose} className="max-w-3xl">
+      <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
+        <ModalHeader>Edit User</ModalHeader>
         <ModalBody>
           <Tabs
             selectedKey={activeTab}
@@ -159,28 +205,46 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
               <form onSubmit={handleSubmit}>
                 <div className="grid grid-cols-2 gap-4">
                   <Input
+                    isClearable
+                    radius="sm"
+                    variant="bordered"
+                    isRequired
                     label="Full Name"
                     name="fullName"
                     value={formData.fullName}
                     onChange={handleInputChange}
                     required
+                    onClear={() => handleClear("fullName")}
                   />
                   <Input
+                    isClearable
+                    radius="sm"
+                    variant="bordered"
+                    isRequired
                     label="Username"
                     name="userName"
                     value={formData.userName}
                     onChange={handleInputChange}
                     required
+                    onClear={() => handleClear("userName")}
                   />
                   <Input
+                    isClearable
+                    radius="sm"
+                    variant="bordered"
+                    isRequired
                     label="Email"
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
                     required
+                    onClear={() => handleClear("email")}
                   />
                   <Select
+                    variant="bordered"
+                    radius="sm"
+                    isRequired
                     className="w-full"
                     label="Gender"
                     id="gender"
@@ -199,6 +263,9 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
                     ))}
                   </Select>
                   <Input
+                    variant="bordered"
+                    radius="sm"
+                    isRequired
                     label="Date of Birth"
                     type="date"
                     name="dob"
@@ -207,28 +274,30 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
                     required
                   />
                   <Input
+                    isClearable
+                    variant="bordered"
+                    radius="sm"
+                    isRequired
                     label="Phone"
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
                     required
+                    onClear={() => handleClear("phone")}
                   />
                   <Input
-                    className="col-span-2"
+                    isClearable
+                    variant="bordered"
+                    radius="sm"
+                    isRequired
                     label="Address"
                     name="address"
                     value={formData.address}
                     onChange={handleInputChange}
                     required
+                    onClear={() => handleClear("address")}
+                    className="col-span-2"
                   />
-                </div>
-                <div className="flex justify-end gap-2 mt-6">
-                  <Button type="button" variant="flat" onClick={onClose}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" color="primary" isLoading={loading}>
-                    Update
-                  </Button>
                 </div>
               </form>
             </Tab>
@@ -254,7 +323,9 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
                     ))}
                   </div>
                   <Select
-                    isRequired
+                    variant="bordered"
+                    size="sm"
+                    radius="sm"
                     className="w-full"
                     label="Assign new role"
                     value={selectedRole}
@@ -270,29 +341,23 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
                     ))}
                   </Select>
                 </div>
-                <div className="flex justify-end gap-2 mt-6">
-                  <Button
-                    type="button"
-                    variant="flat"
-                    onClick={() => {
-                      setPendingRoles([...user.roles]);
-                      onClose();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSubmit}
-                    color="primary"
-                    isLoading={loading}
-                  >
-                    Save
-                  </Button>
-                </div>
               </div>
             </Tab>
           </Tabs>
         </ModalBody>
+        <ModalFooter>
+          <Button radius="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            radius="sm"
+            color="primary"
+            isLoading={loading}
+            onClick={handleSubmit}
+          >
+            Update
+          </Button>
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );
