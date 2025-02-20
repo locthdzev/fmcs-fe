@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Button, Input, Select, SelectItem, Textarea } from "@heroui/react";
+import { Button, Input, Textarea, Modal, ModalContent, ModalBody } from "@heroui/react";
+import { Select } from "antd";
 import { updateDrug, getDrugById, DrugUpdateRequest } from "@/api/drug";
 import { getDrugGroups } from "@/api/druggroup";
 import { toast } from "react-toastify";
@@ -26,6 +27,7 @@ export const EditDrugForm: React.FC<EditDrugFormProps> = ({
   const [formData, setFormData] = useState<DrugUpdateRequest | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,12 +63,6 @@ export const EditDrugForm: React.FC<EditDrugFormProps> = ({
     fetchData();
     fetchDrugGroups();
   }, [drugId]);
-
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFormData((prev) =>
-      prev ? { ...prev, drugGroupId: e.target.value } : null
-    );
-  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -107,102 +103,180 @@ export const EditDrugForm: React.FC<EditDrugFormProps> = ({
     return <p>Loading...</p>;
   }
 
+  const drugGroupOptions = drugGroups
+    .filter((group) => group.status === "Active")
+    .map((group) => ({
+      value: group.id,
+      label: group.groupName,
+    }));
+
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="grid grid-cols-2 gap-4">
-        <Select
-          isRequired
-          className="w-full"
-          label="Drug Group"
-          id="drugGroupId"
-          name="drugGroupId"
-          defaultSelectedKeys={
-            formData.drugGroupId ? [formData.drugGroupId] : undefined
-          }
-          onChange={handleSelectChange}
-        >
-          {drugGroups
-            .filter((group) => group.status === "Active")
-            .map((group) => (
-              <SelectItem key={group.id} value={group.id}>
-                {group.groupName}
-              </SelectItem>
-            ))}
-        </Select>
-        <Input
-          label="Drug Code"
-          name="drugCode"
-          value={formData.drugCode}
-          onChange={handleInputChange}
-          required
-        />
-        <Input
-          label="Name"
-          name="name"
-          value={formData.name}
-          onChange={handleInputChange}
-          required
-        />
-        <Input
-          label="Unit"
-          name="unit"
-          value={formData.unit}
-          onChange={handleInputChange}
-          required
-        />
-        <Input
-          type="number"
-          label="Price"
-          name="price"
-          value={formData.price.toString()}
-          onChange={handleInputChange}
-          required
-        />
-        <Input
-          label="Manufacturer"
-          name="manufacturer"
-          value={formData.manufacturer}
-          onChange={handleInputChange}
-        />
-        <div className="col-span-2">
-          <Textarea
-            label="Description"
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
+    <>
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-2 gap-4">
+          <Select
+            showSearch
+            style={{ width: "100%", height: "56px" }}
+            placeholder="Search to Select Drug Group"
+            optionFilterProp="label"
+            value={formData.drugGroupId || undefined}
+            onChange={(value) =>
+              setFormData((prev) =>
+                prev ? { ...prev, drugGroupId: value } : null
+              )
+            }
+            filterSort={(optionA, optionB) =>
+              (optionA?.label ?? "")
+                .toLowerCase()
+                .localeCompare((optionB?.label ?? "").toLowerCase())
+            }
+            options={drugGroupOptions}
+            dropdownStyle={{ zIndex: 9999 }}
+            getPopupContainer={(trigger) => trigger.parentElement!}
           />
-        </div>
-        <div className="col-span-2">
-          <div className="col-span-5">
+          <Input
+            isClearable
+            variant="bordered"
+            radius="sm"
+            label="Drug Code"
+            name="drugCode"
+            value={formData.drugCode}
+            onChange={handleInputChange}
+            onClear={() =>
+              setFormData((prev) => (prev ? { ...prev, drugCode: "" } : null))
+            }
+            required
+          />
+          <Input
+            isClearable
+            variant="bordered"
+            radius="sm"
+            label="Name"
+            name="name"
+            value={formData.name}
+            onChange={handleInputChange}
+            onClear={() =>
+              setFormData((prev) => (prev ? { ...prev, name: "" } : null))
+            }
+            required
+          />
+          <Input
+            isClearable
+            variant="bordered"
+            radius="sm"
+            label="Unit"
+            name="unit"
+            value={formData.unit}
+            onChange={handleInputChange}
+            onClear={() =>
+              setFormData((prev) => (prev ? { ...prev, unit: "" } : null))
+            }
+            required
+          />
+          <Input
+            variant="bordered"
+            radius="sm"
+            type="number"
+            label="Price"
+            name="price"
+            value={formData.price.toString()}
+            onChange={handleInputChange}
+            isRequired
+            endContent={
+              <div className="pointer-events-none flex items-center">
+                <span className="text-default-400 text-small">VND</span>
+              </div>
+            }
+          />
+          <Input
+            isClearable
+            variant="bordered"
+            radius="sm"
+            label="Manufacturer"
+            name="manufacturer"
+            value={formData.manufacturer}
+            onChange={handleInputChange}
+            onClear={() =>
+              setFormData((prev) => (prev ? { ...prev, manufacturer: "" } : null))
+            }
+            required
+          />
+          <div className="col-span-2 relative">
+            <Textarea
+              variant="bordered"
+              radius="sm"
+              label="Description"
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+            />
+            {formData.description && (
+              <button
+                type="button"
+                className="absolute right-2 top-2 flex items-center justify-center text-default-500 hover:text-default-900"
+                onClick={() => setFormData({ ...formData, description: "" })}
+              >
+                <svg
+                  aria-hidden="true"
+                  focusable="false"
+                  height="1em"
+                  role="presentation"
+                  viewBox="0 0 24 24"
+                  width="1em"
+                  className="w-5 h-5"
+                >
+                  <path
+                    d="M12 2a10 10 0 1010 10A10.016 10.016 0 0012 2zm3.36 12.3a.754.754 0 010 1.06.748.748 0 01-1.06 0l-2.3-2.3-2.3 2.3a.748.748 0 01-1.06 0 .754.754 0 010-1.06l2.3-2.3-2.3-2.3A.75.75 0 019.7 8.64l2.3 2.3 2.3-2.3a.75.75 0 011.06 1.06l-2.3 2.3z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+          <div className="col-span-2">
             <div className="flex gap-4">
-              <p className="text-sm text-gray-500 text-left underline">
-                Current Drug Image:
-              </p>
               <div className="flex items-center justify-center">
                 {formData.imageUrl && (
                   <img
                     src={formData.imageUrl}
                     alt="Drug"
-                    className="w-24 h-24 rounded"
+                    className="w-20 h-20 rounded cursor-pointer transition-transform duration-300 hover:scale-105"
+                    onClick={() => setIsImageModalOpen(true)}
                   />
                 )}
               </div>
             </div>
           </div>
-        </div>{" "}
-        <div className="col-span-2">
-          <FileUpload onChange={(files) => setImageFile(files[0])} />
+          <div className="col-span-2">
+            <FileUpload onChange={(files) => setImageFile(files[0])} />
+          </div>
         </div>
-      </div>
 
-      <div className="flex justify-end gap-2 mt-4">
-        <Button type="button" variant="flat" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit" color="primary" isLoading={loading}>
-          Update Drug
-        </Button>
-      </div>
-    </form>
+        <div className="flex justify-end gap-2 mt-6">
+          <Button type="button" radius="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" radius="sm" color="primary" isLoading={loading}>
+            Update
+          </Button>
+        </div>
+      </form>
+
+      <Modal
+        isOpen={isImageModalOpen}
+        onOpenChange={() => setIsImageModalOpen(false)}
+        size="2xl"
+      >
+        <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
+          <ModalBody className="flex justify-center items-center p-6">
+            <img
+              src={formData.imageUrl}
+              alt={formData.name}
+              className="max-w-full max-h-[80vh] rounded-md object-contain"
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </>
   );
 };
