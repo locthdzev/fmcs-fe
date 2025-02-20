@@ -6,6 +6,8 @@ import {
   getSchedulesByDateRange,
   createSchedule,
   deleteSchedule,
+  createMultipleSchedulesForStaff,
+  createMultipleSchedulesForShift,
 } from "@/api/schedule";
 import { getShifts, ShiftResponse } from "@/api/shift";
 import { UserProfile, getAllStaff } from "@/api/user";
@@ -118,7 +120,43 @@ export function Schedule() {
         workDate: selectedDate,
       };
 
-      await createSchedule(payload);
+      // Kiểm tra xem ca làm việc hoặc nhân viên đã được thêm vào chưa
+      const isDuplicate = schedules.some(
+        (schedule) =>
+          schedule[viewMode === "staff" ? "staffId" : "shiftId"] ===
+            selectedRowId &&
+          schedule[viewMode === "staff" ? "shiftId" : "staffId"] ===
+            values[viewMode === "staff" ? "shiftIds" : "staffIds"] &&
+          dayjs(schedule.workDate).isSame(selectedDate, "day")
+      );
+
+      if (isDuplicate) {
+        message.error("This schedule already exists!");
+        return;
+      }
+
+      if (viewMode === "staff") {
+        await createMultipleSchedulesForStaff({
+          staffId: selectedRowId,
+          shiftIds: values.shiftIds,
+          workDate: selectedDate,
+          note: values.note,
+          isRecurring: values.isRecurring,
+          recurringDays: values.recurringDays,
+          recurringEndDate: values.recurringEndDate,
+        });
+      } else {
+        await createMultipleSchedulesForShift({
+          shiftId: selectedRowId,
+          staffIds: values.staffIds,
+          workDate: selectedDate,
+          note: values.note,
+          isRecurring: values.isRecurring,
+          recurringDays: values.recurringDays,
+          recurringEndDate: values.recurringEndDate,
+        });
+      }
+
       message.success("Schedule created successfully!");
       setVisible(false);
       fetchData();
@@ -254,6 +292,7 @@ export function Schedule() {
           shiftName={selectedShiftInfo.shiftName}
           startTime={selectedShiftInfo.startTime}
           endTime={selectedShiftInfo.endTime}
+          schedules={schedules} // Truyền schedules xuống ScheduleModal
         />
       </div>
     </div>

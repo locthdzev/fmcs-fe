@@ -21,6 +21,26 @@ export interface ScheduleCreateRequest {
   recurringEndDate?: string;
 }
 
+export interface ScheduleCreateMultipleRequest {
+  staffId?: string;
+  shiftIds?: string[];
+  workDate: string;
+  note?: string;
+  isRecurring: boolean;
+  recurringDays?: string[];
+  recurringEndDate?: string;
+}
+
+export interface ScheduleCreateMultipleForShiftRequest {
+  shiftId?: string;
+  staffIds?: string[];
+  workDate: string;
+  note?: string;
+  isRecurring: boolean;
+  recurringDays?: string[];
+  recurringEndDate?: string;
+}
+
 export interface ScheduleUpdateRequest {
   id: string;
   staffId?: string;
@@ -51,6 +71,34 @@ export const createSchedule = async (scheduleData: ScheduleCreateRequest) => {
   try {
     const response = await api.post(
       "/schedule-management/schedules",
+      scheduleData
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const createMultipleSchedulesForStaff = async (
+  scheduleData: ScheduleCreateMultipleRequest
+) => {
+  try {
+    const response = await api.post(
+      "/schedule-management/schedules/multiple-for-staff",
+      scheduleData
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const createMultipleSchedulesForShift = async (
+  scheduleData: ScheduleCreateMultipleForShiftRequest
+) => {
+  try {
+    const response = await api.post(
+      "/schedule-management/schedules/multiple-for-shift",
       scheduleData
     );
     return response.data;

@@ -1,5 +1,4 @@
-// src/components/schedule/ScheduleModal.tsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Modal,
   Form,
@@ -25,9 +24,10 @@ interface ScheduleModalProps {
   fullName?: string;
   userName?: string;
   selectedDate?: string;
-  shiftName?: string; // Tên ca làm việc
-  startTime?: string; // Thời gian bắt đầu
-  endTime?: string; // Thời gian kết thúc
+  shiftName?: string;
+  startTime?: string;
+  endTime?: string;
+  schedules: any[]; // Thêm prop schedules
 }
 
 const ScheduleModal: React.FC<ScheduleModalProps> = ({
@@ -42,8 +42,10 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   shiftName,
   startTime,
   endTime,
+  schedules, // Nhận schedules từ prop
 }) => {
   const [form] = Form.useForm();
+  const [isRecurring, setIsRecurring] = useState(false); // State để theo dõi trạng thái của Switch
 
   useEffect(() => {
     if (!visible) form.resetFields();
@@ -70,9 +72,18 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       });
   };
 
+  // Hàm kiểm tra xem ca làm việc hoặc nhân viên đã được thêm vào chưa
+  const isOptionDisabled = (optionId: string) => {
+    return schedules.some(
+      (schedule) =>
+        schedule[viewMode === "staff" ? "shiftId" : "staffId"] === optionId &&
+        dayjs(schedule.workDate).isSame(selectedDate, "day")
+    );
+  };
+
   return (
     <Modal
-      title={`Add ${viewMode === "staff" ? "Shift" : "Staff"}`}
+      title={`Add ${viewMode === "staff" ? "Shifts" : "Staff"}`}
       open={visible}
       onCancel={onCancel}
       footer={[
@@ -85,14 +96,12 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       ]}
     >
       <div style={{ marginBottom: "15px" }}>
-        {/* Hiển thị thông tin nhân viên nếu viewMode là "staff" */}
         {viewMode === "staff" && fullName && (
           <p>
             <strong>Staff:</strong> {fullName} {userName && `(${userName})`}
           </p>
         )}
 
-        {/* Hiển thị thông tin ca làm việc nếu viewMode là "shift" */}
         {viewMode === "shift" && shiftName && (
           <p>
             <strong>Shift:</strong> {shiftName} ({startTime?.slice(0, 5)} -{" "}
@@ -100,7 +109,6 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           </p>
         )}
 
-        {/* Hiển thị ngày tháng năm và thứ */}
         {selectedDate && (
           <p>
             <strong>Date:</strong>{" "}
@@ -110,11 +118,12 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       </div>
       <Form form={form} layout="vertical">
         <Form.Item
-          name={viewMode === "staff" ? "shiftId" : "staffId"}
-          label={viewMode === "staff" ? "Select Shift" : "Select Staff"}
+          name={viewMode === "staff" ? "shiftIds" : "staffIds"}
+          label={viewMode === "staff" ? "Select Shifts" : "Select Staff"}
           rules={[{ required: true, message: "This field is required" }]}
         >
           <Select
+            mode="multiple"
             showSearch
             optionFilterProp="label"
             options={options
@@ -127,6 +136,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                 value: option.id,
                 label:
                   viewMode === "staff" ? option.shiftName : option.fullName,
+                disabled: isOptionDisabled(option.id), // Disable nếu đã được thêm
               }))}
           />
         </Form.Item>
@@ -135,12 +145,18 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           <Input.TextArea placeholder="Enter note..." />
         </Form.Item>
 
-        <Form.Item name="isRecurring" valuePropName="checked">
-          <Switch
-            checkedChildren="Repeat weekly"
-            unCheckedChildren="One time"
-          />
-        </Form.Item>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: "16px" }}>
+          <Form.Item name="isRecurring" valuePropName="checked" noStyle>
+            <Switch
+              checked={isRecurring}
+              onChange={(checked) => setIsRecurring(checked)}
+            />
+          </Form.Item>
+          <span style={{ marginLeft: "8px" }}>
+            {isRecurring ? "Repeat weekly" : "One time"}
+          </span>
+        </div>
+
         <Form.Item
           noStyle
           shouldUpdate={(prev, current) =>
