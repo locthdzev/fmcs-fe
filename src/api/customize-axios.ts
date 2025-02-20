@@ -2,7 +2,8 @@ import axios from "axios";
 import Cookies from "js-cookie"; // Import thư viện js-cookie
 
 const instance = axios.create({
-  baseURL: "http://localhost:5104/api", // Cập nhật base URL của API
+  // baseURL: "http://localhost:5104/api",
+  baseURL: "https://api-fmcs.duckdns.org/api",
 });
 
 interface ErrorResponse {
