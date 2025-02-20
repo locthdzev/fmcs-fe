@@ -9,10 +9,11 @@ import {
 } from "./Icons";
 import {
   getDrugs,
-  createDrug,
-  updateDrug,
   deleteDrug,
   DrugResponse,
+  getDrugById,
+  activateDrugs,
+  deactivateDrugs,
 } from "@/api/drug";
 import {
   Table,
@@ -39,6 +40,10 @@ import {
   ModalFooter,
 } from "@heroui/react";
 import { CreateDrugForm } from "./CreateDrugForm";
+import DrugDetailsModal from "./DrugDetails";
+import { EditDrugForm } from "./EditDrugForm";
+import ConfirmDeleteDrugModal from "./ConfirmDelete";
+import { useRouter } from "next/router";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -50,6 +55,7 @@ const columns = [
   { name: "DRUG GROUP", uid: "drugGroup", sortable: true },
   { name: "UNIT", uid: "unit" },
   { name: "PRICE", uid: "price", sortable: true },
+  { name: "MANUFACTURER", uid: "manufacturer", sortable: true },
   { name: "CREATED AT", uid: "createdAt", sortable: true },
   { name: "UPDATED AT", uid: "updatedAt", sortable: true },
   { name: "STATUS", uid: "status" },
@@ -78,8 +84,23 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function Drugs() {
+  const router = useRouter();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingDrug, setDeletingDrug] = useState<DrugResponse | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingDrugId, setEditingDrugId] = useState<string>("");
+  const [selectedDrug, setSelectedDrug] = useState<DrugResponse | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterValue, setFilterValue] = React.useState("");
+  const [selectedDrugs, setSelectedDrugs] = useState<DrugResponse[]>([]);
+  const [showActivate, setShowActivate] = useState(false);
+  const [showDeactivate, setShowDeactivate] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<
+    "activate" | "deactivate" | null
+  >(null);
+
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
@@ -90,7 +111,7 @@ export function Drugs() {
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "createdAt",
-    direction: "ascending",
+    direction: "descending",
   });
 
   const [page, setPage] = useState(1);
@@ -98,12 +119,63 @@ export function Drugs() {
 
   const fetchDrugs = async () => {
     const data = await getDrugs();
-    setDrugs(data);
+    const sortedData = data.sort(
+      (a: DrugResponse, b: DrugResponse) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    setDrugs(sortedData);
+  };
+
+  useEffect(() => {
+    setPage(1); // Reset trang về 1 khi filter thay đổi
+  }, [statusFilter, filterValue]);
+
+  // Lấy page từ URL khi component mount
+  useEffect(() => {
+    const queryPage = Number(router.query.page) || 1;
+    setPage(queryPage);
+  }, [router.query.page]);
+
+  // Hàm cập nhật URL khi đổi trang
+  const updatePageInUrl = (newPage: number) => {
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: newPage },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const onPageChange = (newPage: number) => {
+    setPage(newPage);
+    updatePageInUrl(newPage);
   };
 
   useEffect(() => {
     fetchDrugs();
   }, []);
+
+  useEffect(() => {
+    let selected: DrugResponse[] = [];
+
+    if (selectedKeys === "all") {
+      selected = drugs; // Nếu chọn "all", lấy toàn bộ danh sách thuốc
+    } else {
+      selected = drugs.filter((drug) =>
+        (selectedKeys as Set<string>).has(drug.id)
+      );
+    }
+
+    setSelectedDrugs(selected);
+
+    const hasActive = selected.some((drug) => drug.status === "Active");
+    const hasInactive = selected.some((drug) => drug.status === "Inactive");
+
+    setShowActivate(hasInactive);
+    setShowDeactivate(hasActive);
+  }, [selectedKeys, drugs]);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -115,14 +187,26 @@ export function Drugs() {
     );
   }, [visibleColumns]);
 
+  /**
+   * Search filter
+   */
   const filteredItems = React.useMemo(() => {
     let filteredDrugs = [...drugs];
 
     if (hasSearchFilter) {
-      filteredDrugs = filteredDrugs.filter((drug) =>
-        drug.name.toLowerCase().includes(filterValue.toLowerCase())
+      const lowerFilter = filterValue.toLowerCase();
+
+      filteredDrugs = filteredDrugs.filter(
+        (drug) =>
+          drug.name.toLowerCase().includes(lowerFilter) ||
+          drug.drugCode.toLowerCase().includes(lowerFilter) ||
+          (drug.drugGroup?.groupName?.toLowerCase() || "").includes(
+            lowerFilter
+          ) ||
+          (drug.manufacturer?.toLowerCase() || "").includes(lowerFilter)
       );
     }
+
     if (
       statusFilter !== "all" &&
       Array.from(statusFilter).length !== statusOptions.length
@@ -146,22 +230,136 @@ export function Drugs() {
     return filteredItems.slice(start, end);
   }, [page, filteredItems, rowsPerPage]);
 
+  /**
+   * Sorting descending and ascending
+   */
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: DrugResponse, b: DrugResponse) => {
-      const first = a[sortDescriptor.column as keyof DrugResponse];
-      const second = b[sortDescriptor.column as keyof DrugResponse];
+    return [...filteredItems]
+      .sort((a: DrugResponse, b: DrugResponse) => {
+        const first = a[sortDescriptor.column as keyof DrugResponse];
+        const second = b[sortDescriptor.column as keyof DrugResponse];
 
-      let cmp = 0;
-      if (typeof first === "string" && typeof second === "string") {
-        cmp = first.localeCompare(second);
-      }
+        let cmp = 0;
+        if (sortDescriptor.column === "drugGroup") {
+          const firstGroup = first
+            ? (first as { groupName: string })?.groupName || ""
+            : "";
+          const secondGroup = second
+            ? (second as { groupName: string })?.groupName || ""
+            : "";
+          cmp = firstGroup.localeCompare(secondGroup);
+        } else if (sortDescriptor.column === "price") {
+          cmp =
+            (parseFloat(first as string) || 0) -
+            (parseFloat(second as string) || 0);
+        } else if (typeof first === "string" && typeof second === "string") {
+          cmp = first.localeCompare(second);
+        }
 
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
-  }, [sortDescriptor, items]);
+        return sortDescriptor.direction === "descending" ? -cmp : cmp;
+      })
+      .slice((page - 1) * rowsPerPage, page * rowsPerPage); // Áp dụng phân trang sau khi sắp xếp
+  }, [sortDescriptor, filteredItems, page, rowsPerPage]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN");
+  };
+
+  const handleOpenDetails = async (id: string) => {
+    try {
+      const drug = await getDrugById(id);
+      setSelectedDrug(drug);
+      setIsDetailsModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load drug details");
+    }
+  };
+
+  const handleOpenEditModal = (id: string) => {
+    setEditingDrugId(id);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateSuccess = () => {
+    fetchDrugs();
+    setIsEditModalOpen(false);
+    setEditingDrugId("");
+  };
+
+  const handleOpenDeleteModal = async (id: string) => {
+    try {
+      const drug = await getDrugById(id);
+      setDeletingDrug(drug);
+      setIsDeleteModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load drug details for deletion");
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingDrug) return;
+    try {
+      await deleteDrug(deletingDrug.id);
+      toast.success("Drug deleted successfully");
+      await fetchDrugs();
+      setSelectedKeys(new Set());
+      setIsDeleteModalOpen(false);
+      setDeletingDrug(null);
+    } catch (error) {
+      toast.error("Failed to delete drug");
+    }
+  };
+
+  const handleActivate = async () => {
+    const ids = selectedDrugs
+      .filter((d) => d.status === "Inactive")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await activateDrugs(ids);
+      toast.success("Drugs activated successfully");
+      fetchDrugs();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to activate drugs");
+    }
+  };
+
+  const handleDeactivate = async () => {
+    const ids = selectedDrugs
+      .filter((d) => d.status === "Active")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await deactivateDrugs(ids);
+      toast.success("Drugs deactivated successfully");
+      fetchDrugs();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to deactivate drugs");
+    }
+  };
+
+  const handleConfirmActivate = () => {
+    setConfirmAction("activate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDeactivate = () => {
+    setConfirmAction("deactivate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (confirmAction === "activate") {
+      await handleActivate();
+    } else if (confirmAction === "deactivate") {
+      await handleDeactivate();
+    }
+    setIsConfirmModalOpen(false);
+    setConfirmAction(null);
   };
 
   const renderCell = React.useCallback(
@@ -176,9 +374,13 @@ export function Drugs() {
                 <img
                   src={drug.imageUrl}
                   alt={drug.name}
-                  className="w-8 h-8 mr-2 rounded"
+                  className="w-8 h-8 mr-2 rounded cursor-pointer"
+                  onClick={() => handleOpenDetails(drug.id)}
                 />
-                <p className="text-bold text-small capitalize text-primary cursor-pointer hover:underline">
+                <p
+                  className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+                  onClick={() => handleOpenDetails(drug.id)}
+                >
                   {cellValue as string}
                 </p>
               </div>
@@ -199,12 +401,23 @@ export function Drugs() {
         case "updatedAt":
           return cellValue ? formatDate(cellValue as string) : "-";
         case "drugGroup":
-          return cellValue && typeof cellValue === "object"
-            ? (cellValue as { groupName: string }).groupName
-            : "-";
+          return cellValue && typeof cellValue === "object" ? (
+            <div
+              className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+              onClick={() =>
+                router.push(
+                  `/drug-group/details?id=${(cellValue as { id: string }).id}`
+                )
+              }
+            >
+              {(cellValue as { groupName: string }).groupName}
+            </div>
+          ) : (
+            "-"
+          );
         case "actions":
           return (
-            <div className="relative flex justify-end items-center gap-2">
+            <div className="relative flex justify-center">
               <Dropdown>
                 <DropdownTrigger>
                   <Button isIconOnly size="sm" variant="light">
@@ -212,8 +425,19 @@ export function Drugs() {
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu>
-                  <DropdownItem key="edit">Edit</DropdownItem>
-                  <DropdownItem key="delete">Delete</DropdownItem>
+                  <DropdownItem
+                    key="edit"
+                    onClick={() => handleOpenEditModal(drug.id)}
+                  >
+                    Edit
+                  </DropdownItem>
+                  <DropdownItem
+                    key="delete"
+                    className="text-danger"
+                    onClick={() => handleOpenDeleteModal(drug.id)}
+                  >
+                    Delete
+                  </DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             </div>
@@ -275,6 +499,19 @@ export function Drugs() {
             onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
+            <div className="flex gap-2">
+              {showActivate && (
+                <Button color="success" onClick={handleConfirmActivate}>
+                  Activate Selected
+                </Button>
+              )}
+              {showDeactivate && (
+                <Button color="danger" onClick={handleConfirmDeactivate}>
+                  Deactivate Selected
+                </Button>
+              )}
+            </div>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -352,6 +589,7 @@ export function Drugs() {
       </div>
     );
   }, [
+    selectedDrugs,
     filterValue,
     statusFilter,
     visibleColumns,
@@ -378,7 +616,7 @@ export function Drugs() {
           color="primary"
           page={page}
           total={pages}
-          onChange={setPage}
+          onChange={onPageChange} // biding page lên url nè
         />
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
@@ -412,7 +650,7 @@ export function Drugs() {
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
           <ModalContent className="max-w-[800px]">
-            <ModalHeader>Add New Drug</ModalHeader>
+            <ModalHeader className="border-b pb-3">Add New Drug</ModalHeader>
             <ModalBody>
               <CreateDrugForm
                 onClose={() => {
@@ -424,6 +662,59 @@ export function Drugs() {
           </ModalContent>
         </Modal>
       )}
+
+      <DrugDetailsModal
+        drug={selectedDrug}
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+      />
+
+      {isEditModalOpen && (
+        <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <ModalContent className="max-w-[800px]">
+            <ModalHeader className="border-b pb-3">Edit Drug</ModalHeader>
+            <ModalBody>
+              <EditDrugForm
+                drugId={editingDrugId}
+                onClose={() => setIsEditModalOpen(false)}
+                onUpdate={handleUpdateSuccess}
+              />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
+      <ConfirmDeleteDrugModal
+        drug={deletingDrug}
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirmDelete={handleConfirmDelete}
+      />
+
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+      >
+        <ModalContent>
+          <ModalHeader className="border-b pb-3">Confirm Action</ModalHeader>
+          <ModalBody>
+            Are you sure you want to{" "}
+            {confirmAction === "activate" ? "activate" : "deactivate"} the
+            selected drugs?
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="flat" onClick={() => setIsConfirmModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              color={confirmAction === "activate" ? "success" : "danger"}
+              onClick={handleConfirmAction}
+            >
+              Confirm
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       <Table
         isHeaderSticky

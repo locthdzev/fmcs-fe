@@ -9,10 +9,9 @@ import {
 } from "./Icons";
 import {
   getDrugGroups,
-  createDrugGroup,
-  updateDrugGroup,
-  deleteDrugGroup,
   DrugGroupResponse,
+  activateDrugGroups,
+  deactivateDrugGroups,
 } from "@/api/druggroup";
 import {
   Table,
@@ -32,7 +31,15 @@ import {
   Selection,
   ChipProps,
   SortDescriptor,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from "@heroui/react";
+import { CreateDrugGroupForm } from "./CreateForm";
+import { EditDrugGroupForm } from "./EditForm";
+import { useRouter } from "next/router";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -66,7 +73,19 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function DrugGroups() {
+  const [editingDrugGroupId, setEditingDrugGroupId] = useState<string>("");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterValue, setFilterValue] = React.useState("");
+  const [selectedDrugGroups, setSelectedDrugGroups] = useState<
+    DrugGroupResponse[]
+  >([]);
+  const [showActivate, setShowActivate] = useState(false);
+  const [showDeactivate, setShowDeactivate] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<
+    "activate" | "deactivate" | null
+  >(null);
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
@@ -77,7 +96,7 @@ export function DrugGroups() {
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: "createdAt",
-    direction: "ascending",
+    direction: "descending",
   });
 
   const [page, setPage] = React.useState(1);
@@ -85,12 +104,20 @@ export function DrugGroups() {
 
   const fetchDrugGroups = async () => {
     const data = await getDrugGroups();
-    setDrugGroups(data);
+    const sortedData = data.sort(
+      (a: DrugGroupResponse, b: DrugGroupResponse) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    setDrugGroups(sortedData);
   };
 
   useEffect(() => {
     fetchDrugGroups();
   }, []);
+
+  useEffect(() => {
+    setPage(1); // Reset trang về 1 khi filter thay đổi
+  }, [statusFilter, filterValue]);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -134,34 +161,151 @@ export function DrugGroups() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: DrugGroupResponse, b: DrugGroupResponse) => {
-      const first = a[sortDescriptor.column as keyof DrugGroupResponse];
-      const second = b[sortDescriptor.column as keyof DrugGroupResponse];
+    return [...filteredItems]
+      .sort((a: DrugGroupResponse, b: DrugGroupResponse) => {
+        const first = a[sortDescriptor.column as keyof DrugGroupResponse];
+        const second = b[sortDescriptor.column as keyof DrugGroupResponse];
 
-      let cmp = 0;
-      if (typeof first === "string" && typeof second === "string") {
-        cmp = first.localeCompare(second);
-      }
+        let cmp = 0;
+        if (typeof first === "string" && typeof second === "string") {
+          cmp = first.localeCompare(second);
+        }
 
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
-  }, [sortDescriptor, items]);
+        return sortDescriptor.direction === "descending" ? -cmp : cmp;
+      })
+      .slice((page - 1) * rowsPerPage, page * rowsPerPage); // Áp dụng phân trang sau khi sắp xếp
+  }, [sortDescriptor, filteredItems, page, rowsPerPage]);
+
+  useEffect(() => {
+    let selected: DrugGroupResponse[] = [];
+
+    if (selectedKeys === "all") {
+      selected = filteredItems; // Sử dụng filteredItems thay vì drugGroups
+    } else {
+      selected = drugGroups.filter((drugGroup) =>
+        (selectedKeys as Set<string>).has(drugGroup.id)
+      );
+    }
+
+    setSelectedDrugGroups(selected);
+
+    const hasActive = selected.some(
+      (drugGroup) => drugGroup.status === "Active"
+    );
+    const hasInactive = selected.some(
+      (drugGroup) => drugGroup.status === "Inactive"
+    );
+
+    setShowActivate(hasInactive);
+    setShowDeactivate(hasActive);
+  }, [selectedKeys, drugGroups, filteredItems]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
+  const handleOpenEditModal = (id: string) => {
+    setEditingDrugGroupId(id);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateSuccess = () => {
+    fetchDrugGroups();
+    setIsEditModalOpen(false);
+    setEditingDrugGroupId("");
+  };
+
+  const handleActivate = async () => {
+    const ids = selectedDrugGroups
+      .filter((d) => d.status === "Inactive")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await activateDrugGroups(ids);
+      toast.success("Drug Groups activated successfully");
+      fetchDrugGroups();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to activate drug groups");
+    }
+  };
+
+  const handleDeactivate = async () => {
+    const ids = selectedDrugGroups
+      .filter((d) => d.status === "Active")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await deactivateDrugGroups(ids);
+      toast.success("Drug groups deactivated successfully");
+      fetchDrugGroups();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to deactivate drug groups");
+    }
+  };
+
+  const handleConfirmActivate = () => {
+    setConfirmAction("activate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDeactivate = () => {
+    setConfirmAction("deactivate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (confirmAction === "activate") {
+      await handleActivate();
+    } else if (confirmAction === "deactivate") {
+      await handleDeactivate();
+    }
+    setIsConfirmModalOpen(false);
+    setConfirmAction(null);
+  };
+
+  const router = useRouter();
+
+  // Lấy page từ URL khi component mount
+  useEffect(() => {
+    const queryPage = Number(router.query.page) || 1;
+    setPage(queryPage);
+  }, [router.query.page]);
+
+  // Hàm cập nhật URL khi đổi trang
+  const updatePageInUrl = (newPage: number) => {
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: newPage },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const onPageChange = (newPage: number) => {
+    setPage(newPage);
+    updatePageInUrl(newPage);
+  };
+
   const renderCell = React.useCallback(
-    (group: DrugGroupResponse, columnKey: React.Key) => {
-      const cellValue = group[columnKey as keyof DrugGroupResponse];
+    (drugGroup: DrugGroupResponse, columnKey: React.Key) => {
+      const cellValue = drugGroup[columnKey as keyof DrugGroupResponse];
 
       switch (columnKey) {
         case "groupName":
           return (
-            <div className="flex flex-col">
-              <p className="text-bold text-small capitalize text-primary">
-                {cellValue as string}
-              </p>
+            <div
+              className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+              onClick={() =>
+                router.push(`/drug-group/details?id=${drugGroup.id}`)
+              }
+            >
+              {cellValue as string}
             </div>
           );
         case "status":
@@ -169,7 +313,7 @@ export function DrugGroups() {
             <Chip
               className="capitalize"
               color={
-                statusColorMap[group.status as keyof typeof statusColorMap]
+                statusColorMap[drugGroup.status as keyof typeof statusColorMap]
               }
               size="sm"
               variant="flat"
@@ -182,7 +326,7 @@ export function DrugGroups() {
           return cellValue ? formatDate(cellValue as string) : "-";
         case "actions":
           return (
-            <div className="relative flex justify-end items-center gap-2">
+            <div className="relative flex justify-center">
               <Dropdown>
                 <DropdownTrigger>
                   <Button isIconOnly size="sm" variant="light">
@@ -190,8 +334,13 @@ export function DrugGroups() {
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu>
-                  <DropdownItem key="edit">Edit</DropdownItem>
-                  <DropdownItem key="delete">Delete</DropdownItem>
+                  <DropdownItem
+                    key="edit"
+                    onClick={() => handleOpenEditModal(drugGroup.id)}
+                  >
+                    Edit
+                  </DropdownItem>
+                  {/* <DropdownItem key="delete">Delete</DropdownItem> */}
                 </DropdownMenu>
               </Dropdown>
             </div>
@@ -251,6 +400,19 @@ export function DrugGroups() {
             onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
+            <div className="flex gap-2">
+              {showActivate && (
+                <Button color="success" onClick={handleConfirmActivate}>
+                  Activate Selected
+                </Button>
+              )}
+              {showDeactivate && (
+                <Button color="danger" onClick={handleConfirmDeactivate}>
+                  Deactivate Selected
+                </Button>
+              )}
+            </div>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -300,7 +462,11 @@ export function DrugGroups() {
                 ))}
               </DropdownMenu>
             </Dropdown>
-            <Button color="primary" endContent={<PlusIcon />}>
+            <Button
+              color="primary"
+              endContent={<PlusIcon />}
+              onClick={() => setIsModalOpen(true)}
+            >
               Add New
             </Button>
           </div>
@@ -324,9 +490,12 @@ export function DrugGroups() {
       </div>
     );
   }, [
+    router,
+    selectedDrugGroups,
     filterValue,
     statusFilter,
     visibleColumns,
+    selectedKeys,
     onSearchChange,
     onRowsPerPageChange,
     drugGroups.length,
@@ -349,7 +518,7 @@ export function DrugGroups() {
           color="primary"
           page={page}
           total={pages}
-          onChange={setPage}
+          onChange={onPageChange}
         />
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
@@ -378,7 +547,66 @@ export function DrugGroups() {
       <div className="flex items-center gap-2 mb-4 ml-4">
         <DrugGroupIcon />
         <h3 className="text-2xl font-bold">Drug Group Management</h3>
-      </div>{" "}
+      </div>
+
+      {isModalOpen && (
+        <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
+          <ModalContent className="max-w-[500px]">
+            <ModalHeader className="border-b pb-3">
+              Add New Drug Group
+            </ModalHeader>
+            <ModalBody>
+              <CreateDrugGroupForm
+                onClose={() => {
+                  setIsModalOpen(false);
+                }}
+                onCreate={fetchDrugGroups}
+              />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {isEditModalOpen && (
+        <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <ModalContent className="max-w-[500px]">
+            <ModalHeader className="border-b pb-3">Edit Drug</ModalHeader>
+            <ModalBody>
+              <EditDrugGroupForm
+                drugGroupId={editingDrugGroupId}
+                onClose={() => setIsEditModalOpen(false)}
+                onUpdate={handleUpdateSuccess}
+              />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+      >
+        <ModalContent>
+          <ModalHeader>Confirm Action</ModalHeader>
+          <ModalBody>
+            Are you sure you want to{" "}
+            {confirmAction === "activate" ? "activate" : "deactivate"} the
+            selected drugs?
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="flat" onClick={() => setIsConfirmModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              color={confirmAction === "activate" ? "success" : "danger"}
+              onClick={handleConfirmAction}
+            >
+              Confirm
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
       <Table
         isHeaderSticky
         aria-label="Drug groups table"

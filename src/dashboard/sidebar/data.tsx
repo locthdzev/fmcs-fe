@@ -15,6 +15,9 @@ import { CanteenInspection } from "./icons/CanteenInspection";
 import { CanteenOrder } from "./icons/CanteenOrder";
 import { HealthInsuranceIcon } from "./icons/HealthInsuranceIcon";
 import { PeriodicHealthCheckupsIcon } from "./icons/PeriodicHealthCheckupsIcon";
+import { TrucksIcon } from "./icons/TruckIcon";
+import { ScheduleIcon } from "./icons/ScheduleIcon";
+import { ShiftIcon } from "./icons/ShiftIcon";
 
 export const data = [
   {
@@ -41,17 +44,17 @@ export const data = [
           {
             title: "DrugGruops",
             icon: <DrugGroupIcon />,
-            link: "/drug/drug-group",
+            link: "/drug-group/management",
           },
           {
             title: "DrugOrders",
             icon: <DrugOrderIcon />,
-            link: "/admin/settings/general",
+            link: "/drug-order/management",
           },
           {
             title: "DrugSuppliers",
             icon: <DrugSupplierIcon />,
-            link: "/drug/drug-supplier",
+            link: "/drug-supplier/management",
           },
         ],
       },
@@ -63,7 +66,7 @@ export const data = [
           {
             title: "CanteenItems",
             icon: <CanteenItemIcon />,
-            link: "/drug/drug-group",
+            link: "/canteen/canteen-item",
           },
           {
             title: "CanteenInspections",
@@ -73,12 +76,42 @@ export const data = [
           {
             title: "CanteenOrders",
             icon: <CanteenOrder />,
-            link: "/drug/drug-supplier",
+            link: "/canteen-order/management",
+          },
+          {
+            title: "Trucks",
+            icon: <TrucksIcon />,
+            link: "/truck/management",
           },
         ],
       },
-      { title: "HealthInsurance", icon: <HealthInsuranceIcon />, link: "/admin/archives" },
-      { title: "PeriodicHealthCheckups", icon: <PeriodicHealthCheckupsIcon />, link: "/admin/credits" },
+      {
+        title: "Schedules",
+        icon: <ScheduleIcon />,
+        // link: "/admin/settings",
+        submenu: [
+          {
+            title: "Schedules",
+            icon: <ScheduleIcon />,
+            link: "/schedule/management",
+          },
+          {
+            title: "Shifts",
+            icon: <ShiftIcon />,
+            link: "/shift/management",
+          }
+        ],
+      },
+      {
+        title: "HealthInsurance",
+        icon: <HealthInsuranceIcon />,
+        link: "/admin/credits",
+      },
+      {
+        title: "PeriodicHealthCheckups",
+        icon: <PeriodicHealthCheckupsIcon />,
+        link: "/admin/credits",
+      },
     ],
   },
   {

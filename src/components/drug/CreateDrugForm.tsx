@@ -36,7 +36,6 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
   const [drugGroups, setDrugGroups] = useState<DrugGroup[]>([]);
   const [formData, setFormData] = useState(initialFormState);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  //   const [resetTrigger, setResetTrigger] = useState(false); // reset file trong form
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -100,12 +99,6 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
     setFormData(initialFormState);
     setImageFile(null);
   };
-
-  //   const handleReset = () => {
-  //     setFormData(initialFormState);
-  //     setImageFile(null);
-  //     setResetTrigger((prev) => !prev); // reset file trong form
-  //   };
 
   return (
     <form onSubmit={handleSubmit}>
@@ -173,10 +166,9 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           />
         </div>
 
-        <div className="col-span-2 flex justify-center">
+        <div className="col-span-2">
           <div>
             <FileUpload onChange={(files) => setImageFile(files[0])} />
-            {/* <FileUpload onChange={(files) => setImageFile(files[0])} resetTrigger={resetTrigger} /> // reset file trong form */}
           </div>
         </div>
       </div>
@@ -185,7 +177,7 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
         <Button type="button" variant="flat" onClick={handleReset}>
           Reset
         </Button>
-        <Button type="submit" color="primary">
+        <Button type="submit" color="primary" isLoading={loading}>
           Create Drug
         </Button>
       </div>
