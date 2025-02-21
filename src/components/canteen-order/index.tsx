@@ -41,9 +41,9 @@ import {
   ModalFooter,
 } from "@heroui/react";
 import { CreateCanteenOrderForm } from "./CreateCanteenOrderForm";
-import CanteenOrderDetailsModal from "./CanteenOrderDetails";
 import { EditCanteenOrderForm } from "./EditCanteenOrderForm";
 import ConfirmDeleteCanteenOrderModal from "./ConfirmDelete";
+import router from "next/router";
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 }
@@ -369,7 +369,9 @@ export function CanteenOrders() {
           return (
             <p
               className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
-              onClick={() => handleOpenDetails(order.id)}
+              onClick={() =>
+                router.push(`/canteen-order/details?id=${order.id}`)
+              }
             >
               {order.truck?.licensePlate || "Not Available"}
             </p>
@@ -696,18 +698,13 @@ export function CanteenOrders() {
         </Modal>
       )}
 
-      <CanteenOrderDetailsModal
-        order={selectedOrder}
-        isOpen={isDetailsModalOpen}
-        onClose={() => setIsDetailsModalOpen(false)}
-      />
-
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <ModalContent className="max-w-[800px]">
             <ModalHeader className="border-b pb-3">Edit Order</ModalHeader>
             <ModalBody>
               <EditCanteenOrderForm
+                isOpen={isEditModalOpen}
                 orderId={editingOrderId}
                 onClose={() => setIsEditModalOpen(false)}
                 onUpdate={handleUpdateSuccess}
