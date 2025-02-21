@@ -52,7 +52,6 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
     }
   };
 
-  // Hàm tạo màu dựa trên ID
   const generateColor = (id: string) => {
     let hash = 0;
     for (let i = 0; i < id.length; i++) {
@@ -68,9 +67,18 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
   ) => {
     return schedules.map((schedule) => {
       const relatedId =
-        (isStaffView ? schedule.shiftId : schedule.staffId) ?? "defaultId"; // Thêm giá trị mặc định
+        (isStaffView ? schedule.shiftId : schedule.staffId) ?? "defaultId";
       const relatedList = isStaffView ? shifts : staffs;
-      const relatedItem = relatedList.find((item) => item.id === relatedId);
+      const relatedItem = relatedList.find((item) => {
+        if (isStaffView) {
+          return (
+            item.id === relatedId && (item as ShiftResponse).status === "Active"
+          );
+        }
+        return item.id === relatedId;
+      });
+
+      if (!relatedItem) return null;
 
       let displayText;
       let timeInfo = "";
@@ -92,19 +100,14 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
         displayText = relatedId;
       }
 
-      // Tạo màu dựa trên ID của shift hoặc staff
-      const color = generateColor(relatedId); // relatedId luôn là string
+      const color = generateColor(relatedId);
 
       return (
         <div
           key={schedule.id}
           style={{ textAlign: "center", marginBottom: "8px" }}
         >
-          <Tag
-            color={color} // Sử dụng màu được tạo
-            closable
-            onClose={() => handleDelete(schedule.id)}
-          >
+          <Tag color={color} closable onClose={() => handleDelete(schedule.id)}>
             {displayText}
           </Tag>
           {timeInfo && <div style={{ fontSize: 12 }}>{timeInfo}</div>}

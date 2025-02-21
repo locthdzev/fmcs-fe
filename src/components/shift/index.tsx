@@ -1,40 +1,25 @@
 import React, { useState, useEffect } from "react";
-import {
-  Select,
-  Button,
-  message,
-  Input,
-  DatePicker,
-  Table,
-  Modal,
-  Form,
-  Switch,
-} from "antd";
-
+import { Button, Table, Switch } from "antd";
 import { Chip } from "@heroui/react";
 import {
   getShifts,
-  createShift,
-  updateShift,
   activateShifts,
   deactivateShifts,
   ShiftResponse,
-  ShiftCreateRequest,
-  ShiftUpdateRequest,
 } from "@/api/shift";
 import { PlusIcon, ScheduleIcon } from "../schedule/Icons";
 import { toast } from "react-toastify";
+import EditShiftModal from "./EditShiftModal";
+import CreateShiftModal from "./CreateShiftModal";
 
 const { Column } = Table;
 
 export function ShiftManagement() {
   const [shifts, setShifts] = useState<ShiftResponse[]>([]);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [currentShift, setCurrentShift] = useState<ShiftResponse | null>(null);
-  const [form] = Form.useForm();
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
-  const [totalTime, setTotalTime] = useState<string>("");
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  const [currentShift, setCurrentShift] = useState<ShiftResponse | null>(null);
 
   const fetchShifts = async () => {
     try {
@@ -49,78 +34,27 @@ export function ShiftManagement() {
     fetchShifts();
   }, []);
 
-  const showModal = (shift: ShiftResponse | null = null) => {
-    if (shift) {
-      setIsEditMode(true);
-      setCurrentShift(shift);
-      form.setFieldsValue({
-        shiftName: shift.shiftName,
-        startTime: shift.startTime,
-        endTime: shift.endTime,
-      });
-      setTotalTime(calculateTotalTime(shift.startTime, shift.endTime));
-    } else {
-      setIsEditMode(false);
-      setCurrentShift(null);
-      form.resetFields();
-      setTotalTime("");
-    }
-    setIsModalVisible(true);
+  const handleShowCreateModal = () => {
+    setIsCreateModalVisible(true);
   };
 
-  const handleCancel = () => {
-    setIsModalVisible(false);
-    form.resetFields();
-    setTotalTime("");
-  };
-
-  const handleSubmit = async (
-    values: ShiftCreateRequest | ShiftUpdateRequest
-  ) => {
-    try {
-      if (isEditMode && currentShift) {
-        const response = await updateShift(
-          currentShift.id,
-          values as ShiftUpdateRequest
-        );
-        if (response.isSuccess) {
-          toast.success(response.message || "Shift updated successfully!");
-        } else {
-          toast.error(response.message || "Failed to update shift");
-        }
-      } else {
-        const response = await createShift(values as ShiftCreateRequest);
-        if (response.isSuccess) {
-          toast.success(response.message || "Shift created successfully!");
-        } else {
-          toast.error(response.message || "Failed to create shift");
-        }
-      }
-      fetchShifts();
-      setIsModalVisible(false);
-    } catch (error) {
-      toast.error("Failed to save shift");
-    }
+  const handleShowEditModal = (shift: ShiftResponse) => {
+    setCurrentShift(shift);
+    setIsEditModalVisible(true);
   };
 
   const handleToggleStatus = async (shiftId: string, isActive: boolean) => {
     try {
       setLoading((prev) => ({ ...prev, [shiftId]: true }));
 
-      if (isActive) {
-        const response = await activateShifts([shiftId]);
-        if (response.isSuccess) {
-          toast.success(response.message || "Shift activated successfully!");
-        } else {
-          toast.error(response.message || "Failed to activate shift");
-        }
+      const response = isActive
+        ? await activateShifts([shiftId])
+        : await deactivateShifts([shiftId]);
+
+      if (response.isSuccess) {
+        toast.success(response.message || "Shift status updated!");
       } else {
-        const response = await deactivateShifts([shiftId]);
-        if (response.isSuccess) {
-          toast.success(response.message || "Shift deactivated successfully!");
-        } else {
-          toast.error(response.message || "Failed to deactivate shift");
-        }
+        toast.error(response.message || "Failed to update shift status");
       }
 
       setShifts((prevShifts) =>
@@ -137,27 +71,16 @@ export function ShiftManagement() {
     }
   };
 
-  const calculateTotalTime = (startTime: string, endTime: string) => {
-    const start = new Date(`2000/01/01 ${startTime}`);
-    const end = new Date(`2000/01/01 ${endTime}`);
-    let diff = end.getTime() - start.getTime();
-
-    if (diff < 0) {
-      diff += 24 * 60 * 60 * 1000;
+  const calculateTotalHours = (startTime: string, endTime: string) => {
+    const start = new Date(`2000/01/01 ${startTime.slice(0, 5)}`);
+    const end = new Date(`2000/01/01 ${endTime.slice(0, 5)}`);
+    if (end < start) {
+      end.setDate(end.getDate() + 1);
     }
-
+    const diff = end.getTime() - start.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
     return `${hours}h ${minutes}m`;
-  };
-
-  const handleTimeChange = () => {
-    const startTime = form.getFieldValue("startTime");
-    const endTime = form.getFieldValue("endTime");
-    if (startTime && endTime) {
-      setTotalTime(calculateTotalTime(startTime, endTime));
-    }
   };
 
   return (
@@ -176,7 +99,7 @@ export function ShiftManagement() {
         >
           <Button
             type="primary"
-            onClick={() => showModal()}
+            onClick={handleShowCreateModal}
             icon={<PlusIcon />}
           >
             Add New Shift
@@ -184,21 +107,31 @@ export function ShiftManagement() {
         </div>
 
         <Table dataSource={shifts} rowKey="id">
-          <Column title="Shift Name" dataIndex="shiftName" key="shiftName" />
-          <Column title="Start Time" dataIndex="startTime" key="startTime" />
-          <Column title="End Time" dataIndex="endTime" key="endTime" />
+          <Column title="SHIFT NAME" dataIndex="shiftName" key="shiftName" />
           <Column
-            title="Total Time"
+            title="START TIME"
+            dataIndex="startTime"
+            key="startTime"
+            render={(startTime) => startTime.slice(0, 5)}
+          />
+          <Column
+            title="END TIME"
+            dataIndex="endTime"
+            key="endTime"
+            render={(endTime) => endTime.slice(0, 5)}
+          />
+          <Column
+            title="TOTAL TIME"
             key="totalTime"
-            render={(_, record: ShiftResponse) =>
-              calculateTotalTime(record.startTime, record.endTime)
+            render={(_, record) =>
+              calculateTotalHours(record.startTime, record.endTime)
             }
           />
           <Column
-            title="Status"
+            title="STATUS"
             dataIndex="status"
             key="status"
-            render={(status: string) => (
+            render={(status) => (
               <Chip
                 className="capitalize"
                 color={status === "Active" ? "success" : "danger"}
@@ -213,7 +146,7 @@ export function ShiftManagement() {
             title=""
             key="toggle"
             align="center"
-            render={(_, record: ShiftResponse) => (
+            render={(_, record) => (
               <Switch
                 checked={record.status === "Active"}
                 loading={loading[record.id]}
@@ -222,59 +155,36 @@ export function ShiftManagement() {
             )}
           />
           <Column
-            title="Actions"
+            title="ACTIONS"
             key="actions"
             align="center"
-            render={(_, record: ShiftResponse) => (
-              <Button type="link" onClick={() => showModal(record)}>
+            render={(_, record) => (
+              <Button
+                type="link"
+                onClick={() => handleShowEditModal(record as ShiftResponse)}
+              >
                 Edit
               </Button>
             )}
           />
         </Table>
 
-        <Modal
-          title={isEditMode ? "Edit Shift" : "Add New Shift"}
-          open={isModalVisible}
-          onCancel={handleCancel}
-          footer={[
-            <Button key="cancel" onClick={handleCancel}>
-              Cancel
-            </Button>,
-            <Button key="submit" type="primary" onClick={() => form.submit()}>
-              {isEditMode ? "Update" : "Create"}
-            </Button>,
-          ]}
-        >
-          <Form form={form} onFinish={handleSubmit} layout="vertical">
-            <Form.Item
-              name="shiftName"
-              label="Shift Name"
-              rules={[{ required: true, message: "Please enter shift name" }]}
-            >
-              <Input placeholder="Enter shift name" />
-            </Form.Item>
-            <Form.Item
-              name="startTime"
-              label="Start Time"
-              rules={[{ required: true, message: "Please enter start time" }]}
-            >
-              <Input type="time" onChange={handleTimeChange} />
-            </Form.Item>
-            <Form.Item
-              name="endTime"
-              label="End Time"
-              rules={[{ required: true, message: "Please enter end time" }]}
-            >
-              <Input type="time" onChange={handleTimeChange} />
-            </Form.Item>
-            {totalTime && (
-              <Form.Item label="Total Time">
-                <Input value={totalTime} disabled />
-              </Form.Item>
-            )}
-          </Form>
-        </Modal>
+        {/* Modal Create Shift */}
+        <CreateShiftModal
+          visible={isCreateModalVisible}
+          onClose={() => setIsCreateModalVisible(false)}
+          onSuccess={fetchShifts}
+        />
+
+        {/* Modal Edit Shift */}
+        {currentShift && (
+          <EditShiftModal
+            visible={isEditModalVisible}
+            shift={currentShift}
+            onClose={() => setIsEditModalVisible(false)}
+            onSuccess={fetchShifts}
+          />
+        )}
       </div>
     </div>
   );
