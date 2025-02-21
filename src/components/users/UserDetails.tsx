@@ -5,8 +5,8 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Button,
   Chip,
+  Button,
 } from "@heroui/react";
 
 type User = {
@@ -20,6 +20,7 @@ type User = {
   address: string;
   phone: string;
   createdAt: string;
+  updatedAt?: string;
   status?: string;
 };
 
@@ -42,8 +43,19 @@ const roleColorMap: Record<string, string> = {
   Unknown: "default",
 };
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("vi-VN");
+const formatDate = (dateString: string, includeTime: boolean = false) => {
+  if (!dateString || dateString === "-") return "-";
+  const date = new Date(dateString);
+  if (includeTime) {
+    return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
+      date.getMinutes()
+    ).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
+  }
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 };
 
 const ROLE_PRIORITY = ["Admin", "Manager", "Staff", "User"];
@@ -62,10 +74,32 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
   if (!user) return null;
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
+    <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-3xl">
       <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
-        <ModalHeader className="border-b pb-3 flex justify-between items-center">
-          <span>User Details</span>
+        <ModalHeader className="flex justify-between items-center pb-2">
+          <div className="flex items-center gap-2">
+            <span>User Details</span>
+            <span className="text-sm text-gray-500 font-bold">
+              ({user.userName}) •{" "}
+              <Chip
+                className="capitalize px-2 py-1 text-sm font-medium"
+                color={
+                  roleColorMap[getHighestRole(user.roles)] as
+                    | "success"
+                    | "danger"
+                    | "warning"
+                    | "primary"
+                    | "default"
+                    | "secondary"
+                    | undefined
+                }
+                size="sm"
+                variant="flat"
+              >
+                {getHighestRole(user.roles)}
+              </Chip>
+            </span>
+          </div>
           <Chip
             className="capitalize px-2 py-1 text-sm font-medium mr-4"
             color={
@@ -79,7 +113,7 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
             {user.status}
           </Chip>
         </ModalHeader>
-        <ModalBody className="p-6">
+        <ModalBody className="pt-2 px-6 pb-6">
           <div className="grid grid-cols-12 gap-6 items-start">
             <div className="col-span-12 space-y-4 text-gray-700">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -110,29 +144,13 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
                   },
                   {
                     label: "Created At",
-                    value: formatDate(user.createdAt),
+                    value: formatDate(user.createdAt, true),
                   },
                   {
-                    label: "Role",
-                    value: (
-                      <Chip
-                        className="capitalize px-2 py-1 text-sm font-medium"
-                        color={
-                          roleColorMap[getHighestRole(user.roles)] as
-                            | "success"
-                            | "danger"
-                            | "warning"
-                            | "primary"
-                            | "default"
-                            | "secondary"
-                            | undefined
-                        }
-                        size="sm"
-                        variant="flat"
-                      >
-                        {getHighestRole(user.roles)}
-                      </Chip>
-                    ),
+                    label: "Updated At",
+                    value: user.updatedAt
+                      ? formatDate(user.updatedAt, true)
+                      : "-",
                   },
                 ].map((field, index) => (
                   <label
@@ -159,8 +177,8 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
             </div>
           </div>
         </ModalBody>
-        <ModalFooter>
-          <Button variant="ghost" onClick={onClose}>
+        <ModalFooter className="pt-2">
+          <Button radius="sm" variant="ghost" onClick={onClose}>
             Close
           </Button>
         </ModalFooter>
@@ -168,4 +186,5 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
     </Modal>
   );
 };
+
 export default UserDetails;

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Button,
   Input,
   Modal,
   ModalBody,
@@ -8,9 +7,13 @@ import {
   ModalHeader,
   Select,
   SelectItem,
+  ModalFooter,
+  Button,
 } from "@heroui/react";
+
 import { createUser } from "@/api/user";
 import { toast } from "react-toastify";
+import { EyeFilledIcon, EyeSlashFilledIcon } from "./Icons";
 
 interface CreateUserFormProps {
   onClose: () => void;
@@ -36,6 +39,10 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
 }) => {
   const [formData, setFormData] = useState(initialFormState);
   const [loading, setLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const toggleVisibility = () => {
+    setIsVisible(!isVisible);
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -51,6 +58,28 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
     e.preventDefault();
     if (!formData) return;
 
+    // Validate required fields
+    const requiredFields = [
+      "fullName",
+      "userName",
+      "email",
+      "password",
+      "gender",
+      "dob",
+      "address",
+      "phone",
+    ];
+    const emptyFields = requiredFields.filter(
+      (field): field is keyof typeof formData =>
+        !(field in formData) || !formData[field as keyof typeof formData]
+    );
+    if (emptyFields.length > 0) {
+      toast.error(
+        `Please fill in all required fields: ${emptyFields.join(", ")}`
+      );
+      return;
+    }
+
     try {
       setLoading(true);
       await createUser(formData);
@@ -65,47 +94,83 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
   };
 
   const handleReset = () => {
-    setFormData(initialFormState);
+    setFormData({ ...initialFormState, createdAt: new Date().toISOString() });
+  };
+
+  const handleClear = (fieldName: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: "",
+    }));
   };
 
   return (
-    <Modal isOpen={true} onOpenChange={onClose}>
-      <ModalContent className="max-w-[1000px]">
-        <ModalHeader className="border-b pb-3">Create User</ModalHeader>
+    <Modal isOpen={true} onOpenChange={onClose} className="max-w-3xl">
+      <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
+        <ModalHeader>Create User</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-2 gap-4">
               <Input
+                isClearable
+                radius="sm"
+                variant="bordered"
                 label="Full Name"
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleInputChange}
                 required
+                onClear={() => handleClear("fullName")}
               />
               <Input
+                isClearable
+                radius="sm"
+                variant="bordered"
                 label="Username"
                 name="userName"
                 value={formData.userName}
                 onChange={handleInputChange}
                 required
+                onClear={() => handleClear("userName")}
               />
               <Input
+                isClearable
+                radius="sm"
+                variant="bordered"
                 label="Email"
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
                 required
+                onClear={() => handleClear("email")}
               />
               <Input
+                variant="bordered"
+                radius="sm"
                 label="Password"
-                type="password"
+                type={isVisible ? "text" : "password"}
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
                 required
+                endContent={
+                  <button
+                    className="focus:outline-none p-2 hover:opacity-70"
+                    type="button"
+                    onClick={toggleVisibility}
+                  >
+                    {isVisible ? (
+                      <EyeFilledIcon className="text-2xl text-default-400" />
+                    ) : (
+                      <EyeSlashFilledIcon className="text-2xl text-default-400" />
+                    )}
+                  </button>
+                }
               />
               <Select
+                variant="bordered"
+                radius="sm"
                 className="w-full"
                 label="Gender"
                 id="gender"
@@ -123,6 +188,8 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
                 ))}
               </Select>
               <Input
+                variant="bordered"
+                radius="sm"
                 label="Date of Birth"
                 type="date"
                 name="dob"
@@ -131,30 +198,43 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
                 required
               />
               <Input
+                isClearable
+                variant="bordered"
+                radius="sm"
                 label="Phone"
                 name="phone"
                 value={formData.phone}
                 onChange={handleInputChange}
                 required
+                onClear={() => handleClear("phone")}
               />
               <Input
+                isClearable
+                variant="bordered"
+                radius="sm"
                 label="Address"
                 name="address"
                 value={formData.address}
                 onChange={handleInputChange}
                 required
+                onClear={() => handleClear("address")}
               />
-            </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <Button type="button" variant="flat" onClick={handleReset}>
-                Reset
-              </Button>
-              <Button type="submit" color="primary" isLoading={loading}>
-                Create
-              </Button>
             </div>
           </form>
         </ModalBody>
+        <ModalFooter>
+          <Button radius="sm" onClick={handleReset}>
+            Reset
+          </Button>
+          <Button
+            radius="sm"
+            color="primary"
+            isLoading={loading}
+            onClick={handleSubmit}
+          >
+            Create
+          </Button>
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );

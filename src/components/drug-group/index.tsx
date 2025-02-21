@@ -116,28 +116,8 @@ export function DrugGroups() {
   }, []);
 
   useEffect(() => {
-    let selected: DrugGroupResponse[] = [];
-
-    if (selectedKeys === "all") {
-      selected = drugGroups; // Nếu chọn "all", lấy toàn bộ danh sách thuốc
-    } else {
-      selected = drugGroups.filter((drugGroup) =>
-        (selectedKeys as Set<string>).has(drugGroup.id)
-      );
-    }
-
-    setSelectedDrugGroups(selected);
-
-    const hasActive = selected.some(
-      (drugGroup) => drugGroup.status === "Active"
-    );
-    const hasInactive = selected.some(
-      (drugGroup) => drugGroup.status === "Inactive"
-    );
-
-    setShowActivate(hasInactive);
-    setShowDeactivate(hasActive);
-  }, [selectedKeys, drugGroups]);
+    setPage(1); // Reset trang về 1 khi filter thay đổi
+  }, [statusFilter, filterValue]);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -195,6 +175,30 @@ export function DrugGroups() {
       })
       .slice((page - 1) * rowsPerPage, page * rowsPerPage); // Áp dụng phân trang sau khi sắp xếp
   }, [sortDescriptor, filteredItems, page, rowsPerPage]);
+
+  useEffect(() => {
+    let selected: DrugGroupResponse[] = [];
+
+    if (selectedKeys === "all") {
+      selected = filteredItems; // Sử dụng filteredItems thay vì drugGroups
+    } else {
+      selected = drugGroups.filter((drugGroup) =>
+        (selectedKeys as Set<string>).has(drugGroup.id)
+      );
+    }
+
+    setSelectedDrugGroups(selected);
+
+    const hasActive = selected.some(
+      (drugGroup) => drugGroup.status === "Active"
+    );
+    const hasInactive = selected.some(
+      (drugGroup) => drugGroup.status === "Inactive"
+    );
+
+    setShowActivate(hasInactive);
+    setShowDeactivate(hasActive);
+  }, [selectedKeys, drugGroups, filteredItems]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN");

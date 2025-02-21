@@ -19,16 +19,11 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  Dropdown, DropdownTrigger, DropdownMenu, DropdownItem
+  Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Checkbox
 } from "@heroui/react";
 import { EditCanteenItemForm } from "./EditCanteenItemForm";
 import { CreateCanteenItemForm } from "./CreateCanteenItemForm";
 import { PlusIcon, SearchIcon, ChevronDownIcon, CanteenItemIcon } from "./Icons";
-
-const statusColorMap: Record<"Active" | "Inactive", string> = {
-  Active: "bg-green-100 text-green-700",
-  Inactive: "bg-gray-100 text-gray-700",
-};
 
 export function CanteenItems() {
   const [canteenItems, setCanteenItems] = useState<CanteenItemResponse[]>([]);
@@ -52,10 +47,77 @@ export function CanteenItems() {
   const [itemToActivate, setItemToActivate] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [isAllSelected, setIsAllSelected] = useState(false);
 
+  const [showActivate, setShowActivate] = useState(false);
+  const [showDeactivate, setShowDeactivate] = useState(false);
+  const statusColorMap: Record<"Active" | "Inactive", string> = {
+    Active: "bg-green-100 text-green-700",
+    Inactive: "bg-gray-100 text-gray-700",
+  };
+  const filteredItems = (canteenItems || []).filter((item) => {
+    const statusKeys = Array.from(statusFilter);
+
+    // Nếu item.status là undefined, gán giá trị mặc định là ""
+    const itemStatus = item.status ?? "";
+
+    return (
+      item.itemName.toLowerCase().includes(filterValue.toLowerCase()) &&
+      (statusKeys.includes("All") || statusKeys.includes(itemStatus))
+    );
+  });
   useEffect(() => {
     fetchCanteenItems();
-  }, []);
+    let selected: CanteenItemResponse[] = [];
+
+    if (selectedKeys.size === canteenItems.length) {
+      selected = filteredItems;
+    } else {
+      selected = canteenItems.filter((item) => selectedKeys.has(item.id));
+    }
+
+    const hasActive = selected.some((item) => item.status === "Active");
+    const hasInactive = selected.some((item) => item.status === "Inactive");
+    setIsAllSelected(selectedKeys.size > 0 && selectedKeys.size === filteredItems.length);
+
+    setShowActivate(hasInactive);
+    setShowDeactivate(hasActive);
+  }, [selectedKeys, canteenItems, filteredItems]);
+
+  const handleActivate = async () => {
+    const ids = Array.from(selectedKeys).filter((id) =>
+      canteenItems.find((item) => item.id === id && item.status === "Inactive")
+    );
+
+    if (ids.length === 0) return;
+
+    try {
+      await activateCanteenItems(ids);
+      toast.success("Items activated successfully");
+      fetchCanteenItems();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to activate items");
+    }
+  };
+
+  const handleDeactivate = async () => {
+    const ids = Array.from(selectedKeys).filter((id) =>
+      canteenItems.find((item) => item.id === id && item.status === "Active")
+    );
+
+    if (ids.length === 0) return;
+
+    try {
+      await deactivateCanteenItems(ids);
+      toast.success("Items deactivated successfully");
+      fetchCanteenItems();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to deactivate items");
+    }
+  };
 
   const fetchCanteenItems = async () => {
     try {
@@ -67,12 +129,14 @@ export function CanteenItems() {
     }
   };
 
-  const handleUpdateSuccess = (updatedItem: CanteenItemResponse) => {
-    setCanteenItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === updatedItem.id ? { ...item, ...updatedItem } : item
-      )
-    );
+  const handleUpdateSuccess = async (updatedItem: CanteenItemResponse) => {
+    setCanteenItems((prevItems) => {
+      const updatedItems = prevItems.map((item) =>
+        item.id === updatedItem.id ? { ...updatedItem } : item
+      );
+      return [...updatedItems]; // Đảm bảo tạo một object mới để trigger re-render
+    });
+    await fetchCanteenItems(); // Gọi lại API để lấy dữ liệu mới
     setIsEditModalOpen(false);
   };
 
@@ -112,18 +176,6 @@ export function CanteenItems() {
     }
   };
 
-  const filteredItems = (canteenItems || []).filter((item) => {
-    const statusKeys = Array.from(statusFilter);
-
-    // Nếu item.status là undefined, gán giá trị mặc định là ""
-    const itemStatus = item.status ?? "";
-
-    return (
-      item.itemName.toLowerCase().includes(filterValue.toLowerCase()) &&
-      (statusKeys.includes("All") || statusKeys.includes(itemStatus))
-    );
-  });
-
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage);
   const displayedItems = filteredItems.slice(
@@ -133,26 +185,53 @@ export function CanteenItems() {
 
   return (
     <>
-          <div className="flex items-center gap-2 mb-4 ml-4">
-            <CanteenItemIcon />
-            <h3 className="text-2xl font-bold">Canteen Items Management</h3>
-          </div>
+      <div className="flex items-center gap-2 mb-4 ml-4">
+        <CanteenItemIcon />
+        <h3 className="text-2xl font-bold">Canteen Items Management</h3>
+      </div>
       {/* Header Section */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 px-4">
         <Input
           placeholder="Search by item name..."
           startContent={<SearchIcon />}
           value={filterValue}
           onChange={(e) => setFilterValue(e.target.value)}
+          className="w-full sm:max-w-[44%]"
         />
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 px-4">
+          {selectedKeys.size > 0 && (
+            <Button
+              color="primary"
+              variant="flat"
+              onClick={() => {
+                if (isAllSelected) {
+                  setSelectedKeys(new Set()); // Bỏ chọn tất cả
+                } else {
+                  setSelectedKeys(new Set(filteredItems.map((item) => item.id))); // Chọn tất cả
+                }
+              }}
+            >
+              {isAllSelected ? "Deselect All" : "Select All"}
+            </Button>
+          )}
+          {showActivate && (
+            <Button color="success" onClick={handleActivate}>
+              Activate Selected
+            </Button>
+          )}
+          {showDeactivate && (
+            <Button color="danger" onClick={handleDeactivate}>
+              Deactivate Selected
+            </Button>
+          )}
+
           {/* Dropdown filter */}
           <Dropdown>
             <DropdownTrigger className="hidden sm:flex">
               <Button
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
-                
+                endContent={<ChevronDownIcon className="text-small" />}
+                variant="flat"
+
               >
                 Status
               </Button>
@@ -180,21 +259,41 @@ export function CanteenItems() {
 
           {/* Nút Add New Item */}
           <Button color="primary" endContent={<PlusIcon />} onPress={() => setIsCreateModalOpen(true)}>
-            Add New Item
+            Create
           </Button>
         </div>
-
+      </div>
+      <div className="flex justify-between items-center px-4 mb-4">
+        <span className="text-gray-500">Total {canteenItems.length} canteen items</span>
+        <span className="text-gray-500">
+          {selectedKeys.size === canteenItems.length
+            ? "All items selected"
+            : `${selectedKeys.size} of ${filteredItems.length} selected`}
+        </span>
       </div>
 
       {/* Card Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 px-6">
         {displayedItems.map((item) => (
           <Card key={item.id} className="relative shadow-lg rounded-xl overflow-hidden transition-transform transform hover:scale-105 duration-300">
             {/* Góc trên bên phải - Trạng thái Status */}
             <div className={`absolute top-2 right-2 px-3 py-1 text-xs font-semibold rounded-lg ${statusColorMap[item.status as "Active" | "Inactive"] || "bg-gray-200 text-gray-700"}`}>
               {item.status ?? "Unknown"}
             </div>
-
+            <div className="top-2 left-2 px-3 py-1">
+              <Checkbox
+                isSelected={selectedKeys.has(item.id)}
+                onChange={() => {
+                  const newSelection = new Set(selectedKeys);
+                  if (newSelection.has(item.id)) {
+                    newSelection.delete(item.id);
+                  } else {
+                    newSelection.add(item.id);
+                  }
+                  setSelectedKeys(newSelection);
+                }}
+              />
+            </div>
             <CardHeader className="flex flex-col items-center gap-3 p-4">
               <Image
                 src={imgErrorMap[item.id] ? "/images/placeholder.jpg" : item.imageUrl || "/images/placeholder.jpg"}

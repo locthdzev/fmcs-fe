@@ -141,6 +141,10 @@ export function DrugOrders() {
   }, []);
 
   useEffect(() => {
+    setPage(1); // Reset trang về 1 khi filter thay đổi
+  }, [statusFilter, filterValue]);
+
+  useEffect(() => {
     let selected: DrugOrderResponse[] = [];
 
     if (selectedKeys === "all") {
@@ -232,23 +236,6 @@ export function DrugOrders() {
       })
       .slice((page - 1) * rowsPerPage, page * rowsPerPage);
   }, [sortDescriptor, filteredItems, page, rowsPerPage]);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
-      date.getMinutes()
-    ).padStart(2, "0")}`;
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-      currencyDisplay: "code",
-    }).format(price);
-  };
 
   const handleOpenDetails = async (id: string) => {
     try {
@@ -373,10 +360,26 @@ export function DrugOrders() {
     updatePageInUrl(newPage);
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
+      date.getMinutes()
+    ).padStart(2, "0")}`;
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+      currencyDisplay: "code",
+    }).format(price);
+  };
+
   const renderCell = React.useCallback(
     (drugOrder: DrugOrderResponse, columnKey: React.Key) => {
       const cellValue = drugOrder[columnKey as keyof DrugOrderResponse];
-
       switch (columnKey) {
         case "drugOrderCode":
           return (

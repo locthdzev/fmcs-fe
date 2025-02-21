@@ -12,12 +12,11 @@ export interface CanteenItemResponse {
     status?: "Active" | "Inactive"; 
 }
 
-
 export interface CreateCanteenItemsDTO {
     itemName: string;
     description?: string;
-    unitPrice: string;
-    available: string;
+    unitPrice: number;  // ✅ Đổi từ string thành number
+    available: boolean; // ✅ Đổi từ string thành boolean
     createdAt: string;
     status?: string;
 }
@@ -25,8 +24,8 @@ export interface CreateCanteenItemsDTO {
 export interface UpdateCanteenItemsDTO {
     itemName: string;
     description?: string;
-    unitPrice: string;
-    available: string;
+    unitPrice: number; // ✅ Đổi từ string thành number
+    available: boolean; // ✅ Đổi từ string thành boolean
     updatedAt?: string;
     status?: string;
 }
@@ -56,15 +55,16 @@ export const createCanteenItem = async (
     try {
         const formData = new FormData();
 
-        // Chuyển kiểu dữ liệu đúng với API Backend
         formData.append("itemName", canteenItemData.itemName);
         if (canteenItemData.description) formData.append("description", canteenItemData.description);
-        formData.append("unitPrice", canteenItemData.unitPrice); // Giữ nguyên, Backend nhận decimal
-        formData.append("available", String(canteenItemData.available)); // Chuyển boolean thành string
+        
+        // Chuyển `unitPrice` thành string để gửi đi
+        formData.append("unitPrice", canteenItemData.unitPrice.toString()); // ✅ Đảm bảo gửi số đúng dạng decimal
+        
+        formData.append("available", String(canteenItemData.available));
         formData.append("createdAt", canteenItemData.createdAt);
         if (canteenItemData.status) formData.append("status", canteenItemData.status);
 
-        // Nếu có file ảnh, thêm vào FormData
         if (imageFile) {
             formData.append("imageFile", imageFile);
         }
@@ -86,7 +86,7 @@ export const createCanteenItem = async (
 
 export const updateCanteenItem = async (
     id: string,
-    canteenItemData: UpdateCanteenItemsDTO,  // Đổi kiểu dữ liệu thành UpdateCanteenItemsDTO
+    canteenItemData: UpdateCanteenItemsDTO,
     imageFile?: File
 ) => {
     try {
@@ -94,9 +94,12 @@ export const updateCanteenItem = async (
 
         formData.append("itemName", canteenItemData.itemName);
         if (canteenItemData.description) formData.append("description", canteenItemData.description);
-        formData.append("unitPrice", canteenItemData.unitPrice);
+        
+        // Chuyển `unitPrice` thành string đúng định dạng decimal
+        formData.append("unitPrice", canteenItemData.unitPrice.toString());
+        
         formData.append("available", String(canteenItemData.available));
-        if (canteenItemData.updatedAt) formData.append("updatedAt", canteenItemData.updatedAt); // Thêm updatedAt khi cập nhật
+        if (canteenItemData.updatedAt) formData.append("updatedAt", canteenItemData.updatedAt);
         if (canteenItemData.status) formData.append("status", canteenItemData.status);
 
         if (imageFile) {
