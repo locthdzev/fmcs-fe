@@ -8,12 +8,15 @@ import {
   Button,
   Input,
   Switch,
+  Popover,
 } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import { ScheduleCreateRequest } from "@/api/schedule";
 import { toast } from "react-toastify";
 import { ShiftResponse } from "@/api/shift";
+import CreateShiftModal from "../shift/CreateShiftModal";
+import { PlusIcon } from "./Icons";
 
 interface ScheduleModalProps {
   visible: boolean;
@@ -46,6 +49,8 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [isRecurring, setIsRecurring] = useState(false); // State để theo dõi trạng thái của Switch
+  const [isCreateShiftModalVisible, setIsCreateShiftModalVisible] =
+    useState(false);
 
   useEffect(() => {
     if (!visible) form.resetFields();
@@ -83,7 +88,21 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
 
   return (
     <Modal
-      title={`Add ${viewMode === "staff" ? "Shifts" : "Staff"}`}
+      title={
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span>{`Add ${viewMode === "staff" ? "Shifts" : "Staff"}`}</span>
+          {viewMode === "staff" && (
+            <Popover content="Create New Shift" placement="right">
+              <Button
+                type="text"
+                icon={<PlusIcon />}
+                className="hover:text-blue-600 rounded-full bg-gray-100 p-1"
+                onClick={() => setIsCreateShiftModalVisible(true)}
+              />
+            </Popover>
+          )}
+        </div>
+      }
       open={visible}
       onCancel={onCancel}
       footer={[
@@ -121,6 +140,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           name={viewMode === "staff" ? "shiftIds" : "staffIds"}
           label={viewMode === "staff" ? "Select Shifts" : "Select Staff"}
           rules={[{ required: true, message: "This field is required" }]}
+          style={{ marginBottom: "24px" }}
         >
           <Select
             mode="multiple"
@@ -145,7 +165,13 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           <Input.TextArea placeholder="Enter note..." />
         </Form.Item>
 
-        <div style={{ display: "flex", alignItems: "center", marginBottom: "16px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            marginBottom: "16px",
+          }}
+        >
           <Form.Item name="isRecurring" valuePropName="checked" noStyle>
             <Switch
               checked={isRecurring}
@@ -198,8 +224,16 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           }
         </Form.Item>
       </Form>
+
+      <CreateShiftModal
+        visible={isCreateShiftModalVisible}
+        onClose={() => setIsCreateShiftModalVisible(false)}
+        onSuccess={() => {
+          setIsCreateShiftModalVisible(false);
+          // Refresh shifts list
+        }}
+      />
     </Modal>
   );
 };
-
 export default ScheduleModal;

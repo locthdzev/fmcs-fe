@@ -117,9 +117,26 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
     });
   };
 
+  const areAllOptionsAssigned = (rowId: string, date: Date) => {
+    if (viewMode === "staff") {
+      const existingShifts = schedules
+        .filter(
+          (s) => s.staffId === rowId && dayjs(s.workDate).isSame(date, "day")
+        )
+        .map((s) => s.shiftId);
+
+      const availableShifts = shifts
+        .filter((shift) => shift.status === "Active")
+        .map((shift) => shift.id);
+
+      return availableShifts.length === existingShifts.length;
+    }
+    return false;
+  };
+
   const columns = [
     {
-      title: viewMode === "staff" ? "Staff" : "Shift",
+      title: viewMode === "staff" ? "STAFF" : "SHIFT",
       dataIndex: "id",
       key: "id",
       render: (id: string, record: any) => (
@@ -167,7 +184,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                   : {}
               }
             >
-              {dayjs(date).format("ddd")}
+              {dayjs(date).format("ddd").toUpperCase()}
               <br />
               {dayjs(date).format("DD/MM")}
             </div>
@@ -191,17 +208,19 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
             >
               {schedules.length > 0 &&
                 renderCellContent(schedules, viewMode === "staff")}
-              <Button
-                size="small"
-                onClick={() => handleAdd(dateString, record.id)}
-                style={{
-                  opacity: 0,
-                  transition: "opacity 0.3s",
-                }}
-                className="schedule-add-button"
-              >
-                Add {viewMode === "staff" ? "Shift" : "Staff"}
-              </Button>
+              {!areAllOptionsAssigned(record.id, date) && (
+                <Button
+                  size="small"
+                  onClick={() => handleAdd(dateString, record.id)}
+                  style={{
+                    opacity: 0,
+                    transition: "opacity 0.3s",
+                  }}
+                  className="schedule-add-button"
+                >
+                  Add {viewMode === "staff" ? "Shift" : "Staff"}
+                </Button>
+              )}
               <style>
                 {`
                   td:hover .schedule-add-button {
