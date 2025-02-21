@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { Button, Table, Switch } from "antd";
-import { Chip } from "@heroui/react";
+import {
+  Chip,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from "@heroui/react";
 import {
   getShifts,
   activateShifts,
   deactivateShifts,
+  deleteShift,
   ShiftResponse,
 } from "@/api/shift";
 import { PlusIcon, ScheduleIcon } from "../schedule/Icons";
 import { toast } from "react-toastify";
 import EditShiftModal from "./EditShiftModal";
 import CreateShiftModal from "./CreateShiftModal";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 const { Column } = Table;
 
@@ -20,6 +29,9 @@ export function ShiftManagement() {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [currentShift, setCurrentShift] = useState<ShiftResponse | null>(null);
+  const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] =
+    useState(false);
+  const [shiftToDelete, setShiftToDelete] = useState<string | null>(null);
 
   const fetchShifts = async () => {
     try {
@@ -41,6 +53,29 @@ export function ShiftManagement() {
   const handleShowEditModal = (shift: ShiftResponse) => {
     setCurrentShift(shift);
     setIsEditModalVisible(true);
+  };
+
+  const handleShowDeleteConfirm = (shiftId: string) => {
+    setShiftToDelete(shiftId);
+    setIsConfirmDeleteModalOpen(true);
+  };
+
+  const handleDeleteShift = async () => {
+    if (!shiftToDelete) return;
+    try {
+      const response = await deleteShift(shiftToDelete);
+      if (response.isSuccess) {
+        toast.success(response.message || "Shift deleted successfully!");
+        fetchShifts();
+      } else {
+        toast.error(response.message || "Failed to delete shift");
+      }
+    } catch (error) {
+      toast.error("Failed to delete shift");
+    } finally {
+      setIsConfirmDeleteModalOpen(false);
+      setShiftToDelete(null);
+    }
   };
 
   const handleToggleStatus = async (shiftId: string, isActive: boolean) => {
@@ -106,7 +141,7 @@ export function ShiftManagement() {
           </Button>
         </div>
 
-        <Table dataSource={shifts} rowKey="id">
+        <Table dataSource={shifts} rowKey="id" pagination={false}>
           <Column title="SHIFT NAME" dataIndex="shiftName" key="shiftName" />
           <Column
             title="START TIME"
@@ -159,12 +194,28 @@ export function ShiftManagement() {
             key="actions"
             align="center"
             render={(_, record) => (
-              <Button
-                type="link"
-                onClick={() => handleShowEditModal(record as ShiftResponse)}
-              >
-                Edit
-              </Button>
+              <div className="space-x-2">
+                <Button
+                  type="text"
+                  onClick={() => handleShowEditModal(record as ShiftResponse)}
+                  icon={
+                    <PencilSquareIcon
+                      className="w-5 h-5"
+                      style={{ color: "#1890ff" }}
+                    />
+                  }
+                />
+                <Button
+                  type="text"
+                  onClick={() => handleShowDeleteConfirm(record.id)}
+                  icon={
+                    <TrashIcon
+                      className="w-5 h-5"
+                      style={{ color: "#ff4d4f" }}
+                    />
+                  }
+                />
+              </div>
             )}
           />
         </Table>
@@ -185,6 +236,32 @@ export function ShiftManagement() {
             onSuccess={fetchShifts}
           />
         )}
+
+        {/* Modal Confirm Delete */}
+        <Modal
+          isOpen={isConfirmDeleteModalOpen}
+          onOpenChange={(open) => !open && setIsConfirmDeleteModalOpen(false)}
+        >
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
+            <ModalHeader className="border-b pb-3">Confirm Delete</ModalHeader>
+            <ModalBody>
+              <p className="text-gray-700">
+                Are you sure you want to{" "}
+                <span className="text-red-600">delete</span> this shift?
+              </p>
+            </ModalBody>
+            <ModalFooter className="border-t pt-4">
+              <div className="flex justify-end gap-3">
+                <Button onClick={() => setIsConfirmDeleteModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="primary" onClick={handleDeleteShift}>
+                  Confirm
+                </Button>
+              </div>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       </div>
     </div>
   );

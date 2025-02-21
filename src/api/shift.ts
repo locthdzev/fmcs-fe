@@ -61,6 +61,15 @@ export const updateShift = async (
   }
 };
 
+export const deleteShift = async (id: string) => {
+  try {
+    const response = await api.delete(`/shift-management/shifts/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const activateShifts = async (shiftIds: string[]) => {
   try {
     const response = await api.put(
