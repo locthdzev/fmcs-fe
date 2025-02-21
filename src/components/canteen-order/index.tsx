@@ -78,7 +78,6 @@ const roleColorMap: Record<string, ChipProps["color"]> = {
   Unknown: "default",
 };
 
-
 const INITIAL_VISIBLE_COLUMNS = [
   "licensePlate",
   "orderDate",
@@ -370,7 +369,9 @@ export function CanteenOrders() {
           return (
             <p
               className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
-              onClick={() =>  router.push(`/canteen-order/details?id=${order.id}`)}
+              onClick={() =>
+                router.push(`/canteen-order/details?id=${order.id}`)
+              }
             >
               {order.truck?.licensePlate || "Not Available"}
             </p>
@@ -703,6 +704,7 @@ export function CanteenOrders() {
             <ModalHeader className="border-b pb-3">Edit Order</ModalHeader>
             <ModalBody>
               <EditCanteenOrderForm
+                isOpen={isEditModalOpen}
                 orderId={editingOrderId}
                 onClose={() => setIsEditModalOpen(false)}
                 onUpdate={handleUpdateSuccess}

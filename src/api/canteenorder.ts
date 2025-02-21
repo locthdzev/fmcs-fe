@@ -25,11 +25,11 @@ export interface CanteenOrderResponse {
     itemId: string;
     quantity: number;
     itemName?: string;
-    unitPrice?: string;
+    unitPrice?: number;
     imageUrl?: string;
     item?: {
       itemName: string;
-      unitPrice: string;
+      unitPrice: number;
       imageUrl?: string;
     };
   }[];
