@@ -2,8 +2,8 @@ import api from "./customize-axios";
 
 export interface ScheduleResponse {
   id: string;
-  staffId?: string;
-  shiftId?: string;
+  staffId: string;
+  shiftId: string;
   workDate: string;
   note?: string;
   status?: string;
@@ -12,8 +12,8 @@ export interface ScheduleResponse {
 }
 
 export interface ScheduleCreateRequest {
-  staffId?: string;
-  shiftId?: string;
+  staffId: string;
+  shiftId: string;
   workDate: string;
   note?: string;
   isRecurring: boolean;
@@ -22,8 +22,8 @@ export interface ScheduleCreateRequest {
 }
 
 export interface ScheduleCreateMultipleRequest {
-  staffId?: string;
-  shiftIds?: string[];
+  staffId: string;
+  shiftIds: string[];
   workDate: string;
   note?: string;
   isRecurring: boolean;
@@ -32,8 +32,8 @@ export interface ScheduleCreateMultipleRequest {
 }
 
 export interface ScheduleCreateMultipleForShiftRequest {
-  shiftId?: string;
-  staffIds?: string[];
+  shiftId: string;
+  staffIds: string[];
   workDate: string;
   note?: string;
   isRecurring: boolean;
@@ -43,8 +43,8 @@ export interface ScheduleCreateMultipleForShiftRequest {
 
 export interface ScheduleUpdateRequest {
   id: string;
-  staffId?: string;
-  shiftId?: string;
+  staffId: string;
+  shiftId: string;
   workDate: string;
   note?: string;
   status?: string;
