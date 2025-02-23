@@ -65,6 +65,9 @@ export const CreateDrugGroupForm: React.FC<CreateDrugGroupFormProps> = ({
     <form onSubmit={handleSubmit}>
       <div className="grid grid-cols-1 gap-4">
         <Input
+          isClearable
+          radius="sm"
+          variant="bordered"
           label="Group Name"
           name="groupName"
           value={formData.groupName}
@@ -74,6 +77,9 @@ export const CreateDrugGroupForm: React.FC<CreateDrugGroupFormProps> = ({
 
         <div className="col-span-1">
           <Textarea
+            isClearable
+            radius="sm"
+            variant="bordered"
             label="Description"
             name="description"
             value={formData.description || ""}
