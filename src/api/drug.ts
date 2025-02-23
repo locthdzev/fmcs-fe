@@ -19,7 +19,7 @@ export interface DrugResponse {
 }
 
 export interface DrugCreateRequest {
-  drugGroupId?: string;
+  drugGroupId: string;
   drugCode: string;
   name: string;
   unit: string;
@@ -32,7 +32,7 @@ export interface DrugCreateRequest {
 }
 
 export interface DrugUpdateRequest {
-  drugGroupId?: string;
+  drugGroupId: string;
   drugCode: string;
   name: string;
   unit: string;

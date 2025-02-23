@@ -52,7 +52,6 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
     }
   };
 
-  // Hàm tạo màu dựa trên ID
   const generateColor = (id: string) => {
     let hash = 0;
     for (let i = 0; i < id.length; i++) {
@@ -68,9 +67,20 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
   ) => {
     return schedules.map((schedule) => {
       const relatedId =
-        (isStaffView ? schedule.shiftId : schedule.staffId) ?? "defaultId"; // Thêm giá trị mặc định
-      const relatedList = isStaffView ? shifts : staffs;
-      const relatedItem = relatedList.find((item) => item.id === relatedId);
+        (isStaffView ? schedule.shiftId : schedule.staffId) ?? "defaultId";
+      const relatedList = isStaffView
+        ? shifts
+        : staffs.filter((staff) => staff.status === "Active");
+      const relatedItem = relatedList.find((item) => {
+        if (isStaffView) {
+          return (
+            item.id === relatedId && (item as ShiftResponse).status === "Active"
+          );
+        }
+        return item.id === relatedId;
+      });
+
+      if (!relatedItem) return null;
 
       let displayText;
       let timeInfo = "";
@@ -92,19 +102,14 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
         displayText = relatedId;
       }
 
-      // Tạo màu dựa trên ID của shift hoặc staff
-      const color = generateColor(relatedId); // relatedId luôn là string
+      const color = generateColor(relatedId);
 
       return (
         <div
           key={schedule.id}
           style={{ textAlign: "center", marginBottom: "8px" }}
         >
-          <Tag
-            color={color} // Sử dụng màu được tạo
-            closable
-            onClose={() => handleDelete(schedule.id)}
-          >
+          <Tag color={color} closable onClose={() => handleDelete(schedule.id)}>
             {displayText}
           </Tag>
           {timeInfo && <div style={{ fontSize: 12 }}>{timeInfo}</div>}
@@ -114,9 +119,57 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
     });
   };
 
+  const areAllOptionsAssigned = (rowId: string, date: Date) => {
+    if (viewMode === "staff") {
+      const existingShifts = schedules
+        .filter(
+          (s) => s.staffId === rowId && dayjs(s.workDate).isSame(date, "day")
+        )
+        .map((s) => s.shiftId)
+        .filter((shiftId) =>
+          shifts.some(
+            (shift) => shift.id === shiftId && shift.status === "Active"
+          )
+        );
+
+      const availableActiveShifts = shifts
+        .filter((shift) => shift.status === "Active")
+        .map((shift) => shift.id);
+
+      return (
+        availableActiveShifts.length > 0 &&
+        availableActiveShifts.every((shiftId) =>
+          existingShifts.includes(shiftId)
+        )
+      );
+    } else {
+      const existingStaffs = schedules
+        .filter(
+          (s) => s.shiftId === rowId && dayjs(s.workDate).isSame(date, "day")
+        )
+        .map((s) => s.staffId)
+        .filter((staffId) =>
+          staffs.some(
+            (staff) => staff.id === staffId && staff.status === "Active"
+          )
+        );
+
+      const availableActiveStaffs = staffs
+        .filter((staff) => staff.status === "Active")
+        .map((staff) => staff.id);
+
+      return (
+        availableActiveStaffs.length > 0 &&
+        availableActiveStaffs.every((staffId) =>
+          existingStaffs.includes(staffId)
+        )
+      );
+    }
+  };
+
   const columns = [
     {
-      title: viewMode === "staff" ? "Staff" : "Shift",
+      title: viewMode === "staff" ? "STAFF" : "SHIFT",
       dataIndex: "id",
       key: "id",
       render: (id: string, record: any) => (
@@ -134,8 +187,8 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
             <div style={{ display: "flex", flexDirection: "column" }}>
               <div>{(record as ShiftResponse).shiftName}</div>
               <div style={{ color: "#666", fontSize: "12px" }}>
-                ({(record as ShiftResponse).startTime} -{" "}
-                {(record as ShiftResponse).endTime})
+                ({(record as ShiftResponse).startTime.slice(0, 5)} -{" "}
+                {(record as ShiftResponse).endTime.slice(0, 5)})
               </div>
             </div>
           )}
@@ -164,7 +217,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                   : {}
               }
             >
-              {dayjs(date).format("ddd")}
+              {dayjs(date).format("ddd").toUpperCase()}
               <br />
               {dayjs(date).format("DD/MM")}
             </div>
@@ -188,17 +241,19 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
             >
               {schedules.length > 0 &&
                 renderCellContent(schedules, viewMode === "staff")}
-              <Button
-                size="small"
-                onClick={() => handleAdd(dateString, record.id)}
-                style={{
-                  opacity: 0,
-                  transition: "opacity 0.3s",
-                }}
-                className="schedule-add-button"
-              >
-                Add {viewMode === "staff" ? "Shift" : "Staff"}
-              </Button>
+              {!areAllOptionsAssigned(record.id, date) && (
+                <Button
+                  size="small"
+                  onClick={() => handleAdd(dateString, record.id)}
+                  style={{
+                    opacity: 0,
+                    transition: "opacity 0.3s",
+                  }}
+                  className="schedule-add-button"
+                >
+                  Add {viewMode === "staff" ? "Shift" : "Staff"}
+                </Button>
+              )}
               <style>
                 {`
                   td:hover .schedule-add-button {
@@ -217,9 +272,14 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
     }),
   ];
 
+  const filteredRowData =
+    viewMode === "staff"
+      ? (rowData as UserProfile[]).filter((staff) => staff.status === "Active")
+      : rowData;
+
   return (
     <Table
-      dataSource={rowData}
+      dataSource={filteredRowData}
       columns={columns}
       rowKey="id"
       bordered
