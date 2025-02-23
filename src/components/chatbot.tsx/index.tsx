@@ -10,7 +10,11 @@ const Chatbot: React.FC = () => {
   const { message, responses, setMessage, addResponse } = useChatbot();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 }); // Khởi tạo tĩnh
+  const [isDragging, setIsDragging] = useState(false);
+  const [hasJustDragged, setHasJustDragged] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatbotRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   const randomThoughts = [
@@ -23,6 +27,16 @@ const Chatbot: React.FC = () => {
 
   const [thought, setThought] = useState(randomThoughts[0]);
   const [isThoughtVisible, setIsThoughtVisible] = useState(true);
+
+  // Cập nhật vị trí ban đầu dựa trên window sau khi mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setPosition({
+        x: window.innerWidth - 100,
+        y: window.innerHeight - 100,
+      });
+    }
+  }, []); // Chỉ chạy một lần khi mount
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -44,14 +58,58 @@ const Chatbot: React.FC = () => {
           setIsThoughtVisible(true);
         }, 2000);
       }, 15000);
-
       return () => clearInterval(interval);
     }
   }, [isOpen]);
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!isOpen && typeof window !== "undefined") {
+      setIsDragging(true);
+      setHasJustDragged(false);
+
+      const handleMouseMove = (e: MouseEvent) => {
+        if (!chatbotRef.current) return;
+
+        setHasJustDragged(true);
+        const newX = e.clientX - chatbotRef.current.offsetWidth / 2;
+        const newY = e.clientY - chatbotRef.current.offsetHeight / 2;
+        const maxX = window.innerWidth - chatbotRef.current.offsetWidth;
+        const maxY = window.innerHeight - chatbotRef.current.offsetHeight;
+        const boundedX = Math.max(0, Math.min(newX, maxX));
+        const boundedY = Math.max(0, Math.min(newY, maxY));
+        setPosition({ x: boundedX, y: boundedY });
+      };
+
+      const handleMouseUp = () => {
+        setIsDragging(false);
+        setTimeout(() => {
+          setHasJustDragged(false);
+        }, 100);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+
+      e.preventDefault();
+    }
+  };
+
   const handleCloseChatbot = () => {
     setIsOpen(false);
     setIsThoughtVisible(true);
+    if (typeof window !== "undefined") {
+      setPosition({ x: window.innerWidth - 100, y: window.innerHeight - 100 });
+    }
+  };
+
+  const handleOpenChatbot = () => {
+    if (!isDragging && !hasJustDragged && typeof window !== "undefined") {
+      setIsOpen(true);
+
+      setPosition({ x: window.innerWidth - 100, y: window.innerHeight - 100 });
+    }
   };
 
   const sendMessage = async () => {
@@ -112,9 +170,23 @@ const Chatbot: React.FC = () => {
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-50">
+      <div
+        ref={chatbotRef}
+        className="fixed z-50"
+        style={{
+          bottom: isOpen ? "1.5rem" : undefined,
+          right: isOpen ? "1.5rem" : undefined,
+          top: !isOpen ? `${position.y}px` : undefined,
+          left: !isOpen ? `${position.x}px` : undefined,
+          cursor: !isOpen && isDragging ? "grabbing" : "auto",
+        }}
+      >
         {!isOpen && (
-          <div className="relative flex items-center">
+          <div
+            className="relative flex items-center"
+            onMouseDown={handleMouseDown}
+            style={{ cursor: isDragging ? "grabbing" : "grab" }}
+          >
             {isThoughtVisible && (
               <div
                 style={{
@@ -162,7 +234,7 @@ const Chatbot: React.FC = () => {
               </div>
             )}
             <button
-              onClick={() => setIsOpen(true)}
+              onClick={handleOpenChatbot}
               className="w-14 h-14 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300"
               aria-label="Mở chatbot"
             >
