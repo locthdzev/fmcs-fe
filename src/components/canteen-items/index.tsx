@@ -19,11 +19,20 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Checkbox
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  Checkbox,
 } from "@heroui/react";
 import { EditCanteenItemForm } from "./EditCanteenItemForm";
 import { CreateCanteenItemForm } from "./CreateCanteenItemForm";
-import { PlusIcon, SearchIcon, ChevronDownIcon, CanteenItemIcon } from "./Icons";
+import {
+  PlusIcon,
+  SearchIcon,
+  ChevronDownIcon,
+  CanteenItemIcon,
+} from "./Icons";
 
 export function CanteenItems() {
   const [canteenItems, setCanteenItems] = useState<CanteenItemResponse[]>([]);
@@ -34,16 +43,22 @@ export function CanteenItems() {
     { uid: "Active", name: "Active" },
     { uid: "Inactive", name: "Inactive" },
   ];
-  const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
+  const capitalize = (str: string) =>
+    str.charAt(0).toUpperCase() + str.slice(1);
 
-  const [page, setPage] = useState(1);
+  const [page, setPage] = React.useState(1);
   const [rowsPerPage] = useState(8);
-  const [selectedCanteenItem, setSelectedCanteenItem] = useState<string | null>(null);
+  const [selectedCanteenItem, setSelectedCanteenItem] = useState<string | null>(
+    null
+  );
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [imgErrorMap, setImgErrorMap] = useState<{ [key: string]: boolean }>({});
+  const [imgErrorMap, setImgErrorMap] = useState<{ [key: string]: boolean }>(
+    {}
+  );
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [itemToDeactivate, setItemToDeactivate] = useState<string | null>(null);
-  const [isConfirmActivateModalOpen, setIsConfirmActivateModalOpen] = useState(false);
+  const [isConfirmActivateModalOpen, setIsConfirmActivateModalOpen] =
+    useState(false);
   const [itemToActivate, setItemToActivate] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -79,7 +94,9 @@ export function CanteenItems() {
 
     const hasActive = selected.some((item) => item.status === "Active");
     const hasInactive = selected.some((item) => item.status === "Inactive");
-    setIsAllSelected(selectedKeys.size > 0 && selectedKeys.size === filteredItems.length);
+    setIsAllSelected(
+      selectedKeys.size > 0 && selectedKeys.size === filteredItems.length
+    );
 
     setShowActivate(hasInactive);
     setShowDeactivate(hasActive);
@@ -176,7 +193,6 @@ export function CanteenItems() {
     }
   };
 
-
   const pages = Math.ceil(filteredItems.length / rowsPerPage);
   const displayedItems = filteredItems.slice(
     (page - 1) * rowsPerPage,
@@ -207,7 +223,9 @@ export function CanteenItems() {
                 if (isAllSelected) {
                   setSelectedKeys(new Set()); // Bỏ chọn tất cả
                 } else {
-                  setSelectedKeys(new Set(filteredItems.map((item) => item.id))); // Chọn tất cả
+                  setSelectedKeys(
+                    new Set(filteredItems.map((item) => item.id))
+                  ); // Chọn tất cả
                 }
               }}
             >
@@ -215,12 +233,22 @@ export function CanteenItems() {
             </Button>
           )}
           {showActivate && (
-            <Button color="success" onClick={handleActivate}>
+            <Button
+              radius="sm"
+              variant="bordered"
+              className="bg-success-100 text-success-600"
+              onClick={handleActivate}
+            >
               Activate Selected
             </Button>
           )}
           {showDeactivate && (
-            <Button color="danger" onClick={handleDeactivate}>
+            <Button
+              radius="sm"
+              variant="bordered"
+              className="bg-danger-100 text-danger-600"
+              onClick={handleDeactivate}
+            >
               Deactivate Selected
             </Button>
           )}
@@ -229,9 +257,9 @@ export function CanteenItems() {
           <Dropdown>
             <DropdownTrigger className="hidden sm:flex">
               <Button
+                radius="sm"
                 endContent={<ChevronDownIcon className="text-small" />}
-                variant="flat"
-
+                variant="bordered"
               >
                 Status
               </Button>
@@ -258,13 +286,20 @@ export function CanteenItems() {
           </Dropdown>
 
           {/* Nút Add New Item */}
-          <Button color="primary" endContent={<PlusIcon />} onPress={() => setIsCreateModalOpen(true)}>
+          <Button
+            radius="sm"
+            color="primary"
+            endContent={<PlusIcon />}
+            onPress={() => setIsCreateModalOpen(true)}
+          >
             Create
           </Button>
         </div>
       </div>
       <div className="flex justify-between items-center px-4 mb-4">
-        <span className="text-gray-500">Total {canteenItems.length} canteen items</span>
+        <span className="text-gray-500">
+          Total {canteenItems.length} canteen items
+        </span>
         <span className="text-gray-500">
           {selectedKeys.size === canteenItems.length
             ? "All items selected"
@@ -275,9 +310,17 @@ export function CanteenItems() {
       {/* Card Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 px-6">
         {displayedItems.map((item) => (
-          <Card key={item.id} className="relative shadow-lg rounded-xl overflow-hidden transition-transform transform hover:scale-105 duration-300">
+          <Card
+            key={item.id}
+            className="relative shadow-lg rounded-xl overflow-hidden transition-transform transform hover:scale-105 duration-300"
+          >
             {/* Góc trên bên phải - Trạng thái Status */}
-            <div className={`absolute top-2 right-2 px-3 py-1 text-xs font-semibold rounded-lg ${statusColorMap[item.status as "Active" | "Inactive"] || "bg-gray-200 text-gray-700"}`}>
+            <div
+              className={`absolute top-2 right-2 px-3 py-1 text-xs font-semibold rounded-lg ${
+                statusColorMap[item.status as "Active" | "Inactive"] ||
+                "bg-gray-200 text-gray-700"
+              }`}
+            >
               {item.status ?? "Unknown"}
             </div>
             <div className="top-2 left-2 px-3 py-1">
@@ -296,23 +339,41 @@ export function CanteenItems() {
             </div>
             <CardHeader className="flex flex-col items-center gap-3 p-4">
               <Image
-                src={imgErrorMap[item.id] ? "/images/placeholder.jpg" : item.imageUrl || "/images/placeholder.jpg"}
+                src={
+                  imgErrorMap[item.id]
+                    ? "/images/placeholder.jpg"
+                    : item.imageUrl || "/images/placeholder.jpg"
+                }
                 alt={item.itemName}
                 width={150}
                 height={150}
                 className="rounded-lg object-cover shadow-md"
-                onError={() => setImgErrorMap((prev) => ({ ...prev, [item.id]: true }))}
+                onError={() =>
+                  setImgErrorMap((prev) => ({ ...prev, [item.id]: true }))
+                }
               />
-              <h3 className="text-lg font-bold text-gray-900 text-center">{item.itemName}</h3>
+              <h3 className="text-lg font-bold text-gray-900 text-center">
+                {item.itemName}
+              </h3>
             </CardHeader>
 
             <CardBody className="p-4">
-              <p className="text-sm text-gray-500 mb-2">{item.description || "No description available."}</p>
-              <p className="font-semibold text-gray-900 text-lg">${item.unitPrice}</p>
+              <p className="text-sm text-gray-500 mb-2">
+                {item.description || "No description available."}
+              </p>
+              <p className="font-semibold text-gray-900 text-lg">
+                ${item.unitPrice}
+              </p>
               <p className="text-sm text-gray-400">Created: {item.createdAt}</p>
 
               {/* Available - Đưa xuống gần mô tả */}
-              <div className={`mt-2 px-3 py-1 text-xs font-semibold rounded-lg w-fit ${item.available ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+              <div
+                className={`mt-2 px-3 py-1 text-xs font-semibold rounded-lg w-fit ${
+                  item.available
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
                 {item.available ? "Available" : "Out of Stock"}
               </div>
             </CardBody>
@@ -365,8 +426,11 @@ export function CanteenItems() {
 
       {/* Edit Modal */}
       {isEditModalOpen && selectedCanteenItem && (
-        <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
-          <ModalContent>
+        <Modal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+        >
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalHeader>Edit Item</ModalHeader>
             <ModalBody>
               <EditCanteenItemForm
@@ -381,11 +445,17 @@ export function CanteenItems() {
 
       {/* Create Modal */}
       {isCreateModalOpen && (
-        <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)}>
-          <ModalContent>
+        <Modal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+        >
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalHeader>Create New Item</ModalHeader>
             <ModalBody>
-              <CreateCanteenItemForm onClose={() => setIsCreateModalOpen(false)} onCreate={fetchCanteenItems} />
+              <CreateCanteenItemForm
+                onClose={() => setIsCreateModalOpen(false)}
+                onCreate={fetchCanteenItems}
+              />
             </ModalBody>
           </ModalContent>
         </Modal>
@@ -393,14 +463,24 @@ export function CanteenItems() {
 
       {/* Confirm Deactivate Modal */}
       {isConfirmModalOpen && (
-        <Modal isOpen={isConfirmModalOpen} onClose={() => setIsConfirmModalOpen(false)}>
-          <ModalContent>
+        <Modal
+          isOpen={isConfirmModalOpen}
+          onClose={() => setIsConfirmModalOpen(false)}
+        >
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalHeader>Confirm Deactivation</ModalHeader>
             <ModalBody>
               <p>Are you sure you want to deactivate this item?</p>
               <div className="flex justify-end mt-4">
-                <Button variant="flat" onPress={() => setIsConfirmModalOpen(false)}>Cancel</Button>
-                <Button color="danger" onPress={handleDeactivateConfirm}>Yes</Button>
+                <Button
+                  variant="flat"
+                  onPress={() => setIsConfirmModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button color="danger" onPress={handleDeactivateConfirm}>
+                  Yes
+                </Button>
               </div>
             </ModalBody>
           </ModalContent>
@@ -409,20 +489,29 @@ export function CanteenItems() {
 
       {/* Confirm Activate Modal */}
       {isConfirmActivateModalOpen && (
-        <Modal isOpen={isConfirmActivateModalOpen} onClose={() => setIsConfirmActivateModalOpen(false)}>
-          <ModalContent>
+        <Modal
+          isOpen={isConfirmActivateModalOpen}
+          onClose={() => setIsConfirmActivateModalOpen(false)}
+        >
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalHeader>Confirm Activation</ModalHeader>
             <ModalBody>
               <p>Are you sure you want to activate this item?</p>
               <div className="flex justify-end mt-4">
-                <Button variant="flat" onPress={() => setIsConfirmActivateModalOpen(false)}>Cancel</Button>
-                <Button color="success" onPress={handleActivateConfirm}>Yes</Button>
+                <Button
+                  variant="flat"
+                  onPress={() => setIsConfirmActivateModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button color="success" onPress={handleActivateConfirm}>
+                  Yes
+                </Button>
               </div>
             </ModalBody>
           </ModalContent>
         </Modal>
       )}
-
     </>
   );
 }
