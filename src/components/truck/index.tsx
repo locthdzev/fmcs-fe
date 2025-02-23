@@ -477,8 +477,9 @@ export function Trucks() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Status
                 </Button>
@@ -501,8 +502,9 @@ export function Trucks() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Columns
                 </Button>
@@ -524,6 +526,7 @@ export function Trucks() {
             </Dropdown>
 
             <Button
+              radius="sm"
               color="primary"
               endContent={<PlusIcon />}
               onClick={() => setIsModalOpen(true)}
@@ -612,7 +615,7 @@ export function Trucks() {
 
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[800px]">
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white" >
             <ModalHeader>Add New Truck</ModalHeader>
             <ModalBody>
               <CreateTruckForm
@@ -634,7 +637,7 @@ export function Trucks() {
 
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent className="max-w-[800px]">
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalHeader>Edit Truck</ModalHeader>
             <ModalBody>
               <EditTruckForm
@@ -658,7 +661,7 @@ export function Trucks() {
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
       >
-        <ModalContent>
+        <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
           <ModalHeader>Confirm Action</ModalHeader>
           <ModalBody>
             Are you sure you want to{" "}

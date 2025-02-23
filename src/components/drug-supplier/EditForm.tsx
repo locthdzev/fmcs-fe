@@ -84,6 +84,9 @@ export const EditDrugSupplierForm: React.FC<EditDrugSupplierFormProps> = ({
     <form onSubmit={handleSubmit}>
       <div className="grid grid-cols-1 gap-4">
         <Input
+          isClearable
+          radius="sm"
+          variant="bordered"
           label="Supplier Name"
           name="supplierName"
           value={formData.supplierName}
@@ -91,12 +94,18 @@ export const EditDrugSupplierForm: React.FC<EditDrugSupplierFormProps> = ({
           required
         />
         <Input
+          isClearable
+          radius="sm"
+          variant="bordered"
           label="Contact Number"
           name="contactNumber"
           value={formData.contactNumber}
           onChange={handleInputChange}
         />
         <Input
+          isClearable
+          radius="sm"
+          variant="bordered"
           label="Email"
           name="email"
           value={formData.email}
@@ -104,6 +113,9 @@ export const EditDrugSupplierForm: React.FC<EditDrugSupplierFormProps> = ({
         />
         <div className="col-span-1">
           <Textarea
+            isClearable
+            radius="sm"
+            variant="bordered"
             label="Address"
             name="address"
             value={formData.address}

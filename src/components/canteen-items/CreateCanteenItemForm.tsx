@@ -106,6 +106,9 @@ export const CreateCanteenItemForm: React.FC<CreateCanteenItemFormProps> = ({
     <form onSubmit={handleSubmit}>
       <div className="space-y-4">
         <Input
+        isClearable
+        radius="sm"
+        variant="bordered"
           label="Item Name"
           name="itemName"
           value={formData.itemName}
@@ -114,6 +117,9 @@ export const CreateCanteenItemForm: React.FC<CreateCanteenItemFormProps> = ({
         />
 
         <Textarea
+        isClearable
+        radius="sm"
+        variant="bordered"
           label="Description"
           name="description"
           value={formData.description}
@@ -121,6 +127,9 @@ export const CreateCanteenItemForm: React.FC<CreateCanteenItemFormProps> = ({
         />
 
         <Input
+        isClearable
+        radius="sm"
+        variant="bordered"
           label="Unit Price"
           name="unitPrice"
           type="number" // ✅ Đúng kiểu input cho số
