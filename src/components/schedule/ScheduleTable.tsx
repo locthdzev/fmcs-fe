@@ -68,7 +68,9 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
     return schedules.map((schedule) => {
       const relatedId =
         (isStaffView ? schedule.shiftId : schedule.staffId) ?? "defaultId";
-      const relatedList = isStaffView ? shifts : staffs;
+      const relatedList = isStaffView
+        ? shifts
+        : staffs.filter((staff) => staff.status === "Active");
       const relatedItem = relatedList.find((item) => {
         if (isStaffView) {
           return (
@@ -123,15 +125,46 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
         .filter(
           (s) => s.staffId === rowId && dayjs(s.workDate).isSame(date, "day")
         )
-        .map((s) => s.shiftId);
+        .map((s) => s.shiftId)
+        .filter((shiftId) =>
+          shifts.some(
+            (shift) => shift.id === shiftId && shift.status === "Active"
+          )
+        );
 
-      const availableShifts = shifts
+      const availableActiveShifts = shifts
         .filter((shift) => shift.status === "Active")
         .map((shift) => shift.id);
 
-      return availableShifts.length === existingShifts.length;
+      return (
+        availableActiveShifts.length > 0 &&
+        availableActiveShifts.every((shiftId) =>
+          existingShifts.includes(shiftId)
+        )
+      );
+    } else {
+      const existingStaffs = schedules
+        .filter(
+          (s) => s.shiftId === rowId && dayjs(s.workDate).isSame(date, "day")
+        )
+        .map((s) => s.staffId)
+        .filter((staffId) =>
+          staffs.some(
+            (staff) => staff.id === staffId && staff.status === "Active"
+          )
+        );
+
+      const availableActiveStaffs = staffs
+        .filter((staff) => staff.status === "Active")
+        .map((staff) => staff.id);
+
+      return (
+        availableActiveStaffs.length > 0 &&
+        availableActiveStaffs.every((staffId) =>
+          existingStaffs.includes(staffId)
+        )
+      );
     }
-    return false;
   };
 
   const columns = [
@@ -154,8 +187,8 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
             <div style={{ display: "flex", flexDirection: "column" }}>
               <div>{(record as ShiftResponse).shiftName}</div>
               <div style={{ color: "#666", fontSize: "12px" }}>
-                ({(record as ShiftResponse).startTime} -{" "}
-                {(record as ShiftResponse).endTime})
+                ({(record as ShiftResponse).startTime.slice(0, 5)} -{" "}
+                {(record as ShiftResponse).endTime.slice(0, 5)})
               </div>
             </div>
           )}
@@ -239,9 +272,14 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
     }),
   ];
 
+  const filteredRowData =
+    viewMode === "staff"
+      ? (rowData as UserProfile[]).filter((staff) => staff.status === "Active")
+      : rowData;
+
   return (
     <Table
-      dataSource={rowData}
+      dataSource={filteredRowData}
       columns={columns}
       rowKey="id"
       bordered

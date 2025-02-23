@@ -49,4 +49,10 @@ instance.interceptors.response.use(
   }
 );
 
+// Tạo instance riêng cho Rasa (không cần token)
+const rasaInstance = axios.create({
+  baseURL: "http://localhost:5005", // Rasa server
+});
+
 export default instance;
+export { rasaInstance };

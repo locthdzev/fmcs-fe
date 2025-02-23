@@ -15,6 +15,7 @@ import "dayjs/locale/vi";
 import { ScheduleCreateRequest } from "@/api/schedule";
 import { toast } from "react-toastify";
 import { ShiftResponse } from "@/api/shift";
+import { UserProfile } from "@/api/user";
 import CreateShiftModal from "../shift/CreateShiftModal";
 import { PlusIcon } from "./Icons";
 
@@ -30,7 +31,8 @@ interface ScheduleModalProps {
   shiftName?: string;
   startTime?: string;
   endTime?: string;
-  schedules: any[]; // Thêm prop schedules
+  schedules: any[];
+  selectedRowId?: string;
 }
 
 const ScheduleModal: React.FC<ScheduleModalProps> = ({
@@ -45,10 +47,11 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   shiftName,
   startTime,
   endTime,
-  schedules, // Nhận schedules từ prop
+  schedules,
+  selectedRowId,
 }) => {
   const [form] = Form.useForm();
-  const [isRecurring, setIsRecurring] = useState(false); // State để theo dõi trạng thái của Switch
+  const [isRecurring, setIsRecurring] = useState(false);
   const [isCreateShiftModalVisible, setIsCreateShiftModalVisible] =
     useState(false);
 
@@ -77,10 +80,11 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       });
   };
 
-  // Hàm kiểm tra xem ca làm việc hoặc nhân viên đã được thêm vào chưa
   const isOptionDisabled = (optionId: string) => {
     return schedules.some(
       (schedule) =>
+        schedule[viewMode === "staff" ? "staffId" : "shiftId"] ===
+          selectedRowId &&
         schedule[viewMode === "staff" ? "shiftId" : "staffId"] === optionId &&
         dayjs(schedule.workDate).isSame(selectedDate, "day")
     );
@@ -149,14 +153,15 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             options={options
               .filter(
                 (option) =>
-                  viewMode !== "staff" ||
-                  (option as ShiftResponse).status === "Active"
+                  viewMode === "staff"
+                    ? (option as ShiftResponse).status === "Active" // Chỉ lấy shift "Active"
+                    : (option as UserProfile).status === "Active" // Chỉ lấy staff "Active"
               )
               .map((option) => ({
                 value: option.id,
                 label:
                   viewMode === "staff" ? option.shiftName : option.fullName,
-                disabled: isOptionDisabled(option.id), // Disable nếu đã được thêm
+                disabled: isOptionDisabled(option.id),
               }))}
           />
         </Form.Item>

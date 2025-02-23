@@ -293,6 +293,7 @@ export function Schedule() {
           startTime={selectedShiftInfo.startTime}
           endTime={selectedShiftInfo.endTime}
           schedules={schedules} // Truyền schedules xuống ScheduleModal
+          selectedRowId={selectedRowId} // Thêm prop này
         />
       </div>
     </div>
