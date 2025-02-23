@@ -550,8 +550,9 @@ export function CanteenOrders() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Status
                 </Button>
@@ -575,8 +576,9 @@ export function CanteenOrders() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Columns
                 </Button>
@@ -597,6 +599,7 @@ export function CanteenOrders() {
               </DropdownMenu>
             </Dropdown>
             <Button
+              radius="sm"
               color="primary"
               endContent={<PlusIcon />}
               onClick={() => setIsModalOpen(true)}
@@ -684,10 +687,10 @@ export function CanteenOrders() {
 
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[800px]">
-            <ModalHeader className="border-b pb-3">Add New Order</ModalHeader>
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalBody>
               <CreateCanteenOrderForm
+                isOpen={isModalOpen}
                 onClose={() => {
                   setIsModalOpen(false);
                 }}
@@ -700,8 +703,7 @@ export function CanteenOrders() {
 
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent className="max-w-[800px]">
-            <ModalHeader className="border-b pb-3">Edit Order</ModalHeader>
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalBody>
               <EditCanteenOrderForm
                 isOpen={isEditModalOpen}
@@ -725,7 +727,7 @@ export function CanteenOrders() {
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
       >
-        <ModalContent className="max-w-[500px]">
+        <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
           <ModalHeader className="border-b pb-3">Confirm Action</ModalHeader>
           <ModalBody>
             <p className="text-gray-700 mb-2">

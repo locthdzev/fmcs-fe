@@ -538,7 +538,9 @@ export function DrugOrders() {
               )}
               {showReject && (
                 <Button
-                  color="danger"
+                radius="sm"
+                variant="bordered"
+                className="bg-danger-100 text-danger-600"
                   onClick={() => {
                     setConfirmAction("reject");
                     setIsConfirmModalOpen(true);
@@ -549,7 +551,9 @@ export function DrugOrders() {
               )}
               {showComplete && (
                 <Button
-                  color="success"
+                radius="sm"
+                variant="bordered"
+                className="bg-success-100 text-success-600"
                   onClick={() => {
                     setConfirmAction("complete");
                     setIsConfirmModalOpen(true);
@@ -563,8 +567,9 @@ export function DrugOrders() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Status
                 </Button>
@@ -588,8 +593,9 @@ export function DrugOrders() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Columns
                 </Button>
