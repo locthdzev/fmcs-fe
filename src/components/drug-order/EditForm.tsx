@@ -27,6 +27,8 @@ interface DrugOrderDetail {
   drugId: string;
   quantity: number;
   price: number;
+  status?: string;
+  isActive?: boolean;
   searchDrug?: string;
 }
 
@@ -85,11 +87,15 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
           setFormData({
             supplierId: orderData.supplier.id,
             drugOrderCode: orderData.drugOrderCode,
-            drugOrderDetails: orderData.drugOrderDetails.map((detail) => ({
-              drugId: detail.drug.id,
-              quantity: detail.quantity,
-              price: detail.pricePerUnit,
-            })),
+            drugOrderDetails: orderData.drugOrderDetails
+              .filter((detail) => detail.isActive) // Chỉ lấy chi tiết IsActive = true
+              .map((detail) => ({
+                drugId: detail.drug.id,
+                quantity: detail.quantity,
+                price: detail.pricePerUnit,
+                status: detail.status,
+                isActive: detail.isActive,
+              })),
             totalQuantity: orderData.totalQuantity,
             totalPrice: orderData.totalPrice,
           });
@@ -174,7 +180,14 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
       ...prev,
       drugOrderDetails: [
         ...prev.drugOrderDetails,
-        { drugId: "", quantity: 0, price: 0, searchDrug: "" },
+        {
+          drugId: "",
+          quantity: 0,
+          price: 0,
+          status: "Pending",
+          isActive: true,
+          searchDrug: "",
+        },
       ],
     }));
   };
@@ -329,7 +342,9 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
                                     </div>
                                   </div>
                                 ),
-                                disabled: selectedDrugIds.has(drug.id),
+                                disabled:
+                                  selectedDrugIds.has(drug.id) &&
+                                  detail.drugId !== drug.id,
                               })
                             )}
                             getPopupContainer={(trigger) =>
@@ -396,9 +411,7 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
                     {formData.totalQuantity}
                   </span>
                 </div>
-
                 <div className="h-8 w-px bg-gray-300"></div>
-
                 <div className="flex flex-col items-center">
                   <span className="text-gray-500 text-sm">Total Price</span>
                   <span className="text-xl font-bold text-green-600">
@@ -406,15 +419,14 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
                   </span>
                 </div>
               </div>
-
               <div className="flex gap-3">
                 <Button
                   type="button"
                   variant="flat"
-                  onClick={handleReset}
+                  onClick={onClose}
                   className="px-6"
                 >
-                  Reset Form
+                  Close
                 </Button>
                 <Button
                   type="submit"
