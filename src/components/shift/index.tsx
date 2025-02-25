@@ -7,6 +7,9 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
+  Card,
+  CardHeader,
+  CardBody,
 } from "@heroui/react";
 import {
   getShifts,
@@ -120,149 +123,151 @@ export function ShiftManagement() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4 ml-4">
-        <ScheduleIcon />
-        <h3 className="text-2xl font-bold">Shift Management</h3>
-      </div>
-      <div style={{ padding: "16px" }}>
-        <div
-          style={{
-            marginBottom: 16,
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-        >
-          <Button
-            type="primary"
-            onClick={handleShowCreateModal}
-            icon={<PlusIcon />}
+      <Card className="m-4">
+        <CardHeader className="flex items-center gap-2">
+          <ScheduleIcon />
+          <h3 className="text-2xl font-bold">Shift Management</h3>
+        </CardHeader>
+        <CardBody>
+          <div
+            style={{
+              marginBottom: 16,
+              display: "flex",
+              justifyContent: "flex-end",
+            }}
           >
-            Add New Shift
-          </Button>
-        </div>
+            <Button
+              type="primary"
+              onClick={handleShowCreateModal}
+              icon={<PlusIcon />}
+            >
+              Add New Shift
+            </Button>
+          </div>
 
-        <Table dataSource={shifts} rowKey="id" pagination={false}>
-          <Column title="SHIFT NAME" dataIndex="shiftName" key="shiftName" />
-          <Column
-            title="START TIME"
-            dataIndex="startTime"
-            key="startTime"
-            render={(startTime) => startTime.slice(0, 5)}
-          />
-          <Column
-            title="END TIME"
-            dataIndex="endTime"
-            key="endTime"
-            render={(endTime) => endTime.slice(0, 5)}
-          />
-          <Column
-            title="TOTAL TIME"
-            key="totalTime"
-            render={(_, record) =>
-              calculateTotalHours(record.startTime, record.endTime)
-            }
-          />
-          <Column
-            title="STATUS"
-            dataIndex="status"
-            key="status"
-            render={(status) => (
-              <Chip
-                className="capitalize"
-                color={status === "Active" ? "success" : "danger"}
-                size="sm"
-                variant="flat"
-              >
-                {status}
-              </Chip>
-            )}
-          />
-          <Column
-            title=""
-            key="toggle"
-            align="center"
-            render={(_, record) => (
-              <Switch
-                checked={record.status === "Active"}
-                loading={loading[record.id]}
-                onChange={(checked) => handleToggleStatus(record.id, checked)}
-              />
-            )}
-          />
-          <Column
-            title="ACTIONS"
-            key="actions"
-            align="center"
-            render={(_, record) => (
-              <div className="space-x-2">
-                <Button
-                  type="text"
-                  onClick={() => handleShowEditModal(record as ShiftResponse)}
-                  icon={
-                    <PencilSquareIcon
-                      className="w-5 h-5"
-                      style={{ color: "#1890ff" }}
-                    />
-                  }
+          <Table dataSource={shifts} rowKey="id" pagination={false}>
+            <Column title="SHIFT NAME" dataIndex="shiftName" key="shiftName" />
+            <Column
+              title="START TIME"
+              dataIndex="startTime"
+              key="startTime"
+              render={(startTime) => startTime.slice(0, 5)}
+            />
+            <Column
+              title="END TIME"
+              dataIndex="endTime"
+              key="endTime"
+              render={(endTime) => endTime.slice(0, 5)}
+            />
+            <Column
+              title="TOTAL TIME"
+              key="totalTime"
+              render={(_, record) =>
+                calculateTotalHours(record.startTime, record.endTime)
+              }
+            />
+            <Column
+              title="STATUS"
+              dataIndex="status"
+              key="status"
+              render={(status) => (
+                <Chip
+                  className="capitalize"
+                  color={status === "Active" ? "success" : "danger"}
+                  size="sm"
+                  variant="flat"
+                >
+                  {status}
+                </Chip>
+              )}
+            />
+            <Column
+              title=""
+              key="toggle"
+              align="center"
+              render={(_, record) => (
+                <Switch
+                  checked={record.status === "Active"}
+                  loading={loading[record.id]}
+                  onChange={(checked) => handleToggleStatus(record.id, checked)}
                 />
-                <Button
-                  type="text"
-                  onClick={() => handleShowDeleteConfirm(record.id)}
-                  icon={
-                    <TrashIcon
-                      className="w-5 h-5"
-                      style={{ color: "#ff4d4f" }}
-                    />
-                  }
-                />
-              </div>
-            )}
-          />
-        </Table>
+              )}
+            />
+            <Column
+              title="ACTIONS"
+              key="actions"
+              align="center"
+              render={(_, record) => (
+                <div className="space-x-2">
+                  <Button
+                    type="text"
+                    onClick={() => handleShowEditModal(record as ShiftResponse)}
+                    icon={
+                      <PencilSquareIcon
+                        className="w-5 h-5"
+                        style={{ color: "#1890ff" }}
+                      />
+                    }
+                  />
+                  <Button
+                    type="text"
+                    onClick={() => handleShowDeleteConfirm(record.id)}
+                    icon={
+                      <TrashIcon
+                        className="w-5 h-5"
+                        style={{ color: "#ff4d4f" }}
+                      />
+                    }
+                  />
+                </div>
+              )}
+            />
+          </Table>
 
-        {/* Modal Create Shift */}
-        <CreateShiftModal
-          visible={isCreateModalVisible}
-          onClose={() => setIsCreateModalVisible(false)}
-          onSuccess={fetchShifts}
-        />
-
-        {/* Modal Edit Shift */}
-        {currentShift && (
-          <EditShiftModal
-            visible={isEditModalVisible}
-            shift={currentShift}
-            onClose={() => setIsEditModalVisible(false)}
+          {/* Modal Create Shift */}
+          <CreateShiftModal
+            visible={isCreateModalVisible}
+            onClose={() => setIsCreateModalVisible(false)}
             onSuccess={fetchShifts}
           />
-        )}
 
-        {/* Modal Confirm Delete */}
-        <Modal
-          isOpen={isConfirmDeleteModalOpen}
-          onOpenChange={(open) => !open && setIsConfirmDeleteModalOpen(false)}
-        >
-          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
-            <ModalHeader className="border-b pb-3">Confirm Delete</ModalHeader>
-            <ModalBody>
-              <p className="text-gray-700">
-                Are you sure you want to{" "}
-                <span className="text-red-600">delete</span> this shift?
-              </p>
-            </ModalBody>
-            <ModalFooter className="border-t pt-4">
-              <div className="flex justify-end gap-3">
-                <Button onClick={() => setIsConfirmDeleteModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="primary" onClick={handleDeleteShift}>
-                  Confirm
-                </Button>
-              </div>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-      </div>
+          {/* Modal Edit Shift */}
+          {currentShift && (
+            <EditShiftModal
+              visible={isEditModalVisible}
+              shift={currentShift}
+              onClose={() => setIsEditModalVisible(false)}
+              onSuccess={fetchShifts}
+            />
+          )}
+
+          {/* Modal Confirm Delete */}
+          <Modal
+            isOpen={isConfirmDeleteModalOpen}
+            onOpenChange={(open) => !open && setIsConfirmDeleteModalOpen(false)}
+          >
+            <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
+              <ModalHeader className="border-b pb-3">Confirm Delete</ModalHeader>
+              <ModalBody>
+                <p className="text-gray-700">
+                  Are you sure you want to{" "}
+                  <span className="text-red-600">delete</span> this shift?
+                </p>
+              </ModalBody>
+              <ModalFooter className="border-t pt-4">
+                <div className="flex justify-end gap-3">
+                  <Button onClick={() => setIsConfirmDeleteModalOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="primary" onClick={handleDeleteShift}>
+                    Confirm
+                  </Button>
+                </div>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
+        </CardBody>
+      </Card>
     </div>
   );
 }
