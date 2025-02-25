@@ -29,6 +29,7 @@ export interface DrugOrderDetailDTO {
     userName: string;
     role: string;
   };
+  isActive?: boolean;
   status?: string;
 }
 
@@ -75,6 +76,14 @@ export interface DrugOrderUpdateRequest {
   drugOrderCode: string;
   supplierId?: string;
   drugOrderDetails: DrugOrderDetailRequest[];
+}
+
+export interface CompleteDrugOrderDetailsRequest {
+  drugOrderDetailIds: string[];
+}
+
+export interface RejectDrugOrderDetailsRequest {
+  drugOrderDetailIds: string[];
 }
 
 export const getDrugOrders = async () => {
@@ -127,7 +136,7 @@ export const updateDrugOrder = async (
 export const approveDrugOrders = async (drugOrderIds: string[]) => {
   try {
     const response = await api.put(
-      "/drugorder-management/drugorders/appprove",
+      "/drugorder-management/drugorders/approve",
       drugOrderIds
     );
     return response.data;
@@ -153,6 +162,34 @@ export const completeDrugOrders = async (drugOrderIds: string[]) => {
     const response = await api.put(
       "/drugorder-management/drugorders/complete",
       drugOrderIds
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const completeDrugOrderDetails = async (
+  completeData: CompleteDrugOrderDetailsRequest
+) => {
+  try {
+    const response = await api.put(
+      "/drugorder-management/drugorders/completedetails",
+      completeData
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const rejectDrugOrderDetails = async (
+  rejectData: RejectDrugOrderDetailsRequest
+) => {
+  try {
+    const response = await api.put(
+      "/drugorder-management/drugorders/rejectdetails",
+      rejectData
     );
     return response.data;
   } catch (error) {

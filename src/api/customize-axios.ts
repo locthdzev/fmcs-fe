@@ -1,9 +1,9 @@
 import axios from "axios";
-import Cookies from "js-cookie"; // Import thư viện js-cookie
+import Cookies from "js-cookie";
+import { HubConnectionBuilder, HubConnection } from "@microsoft/signalr";
 
 const instance = axios.create({
   baseURL: "http://localhost:5104/api",
-  // baseURL: "https://api-fmcs.duckdns.org/api",
 });
 
 interface ErrorResponse {
@@ -12,7 +12,6 @@ interface ErrorResponse {
   headers?: any;
 }
 
-// Add a request interceptor to include the token in headers
 instance.interceptors.request.use(
   (config) => {
     const token = Cookies.get("token");
@@ -24,17 +23,12 @@ instance.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Add a response interceptor for handling errors
 instance.interceptors.response.use(
-  function (response) {
-    return response;
-  },
-  function (error) {
+  (response) => response,
+  (error) => {
     const res: ErrorResponse = {};
     if (error.response) {
       res.data = error.response.data;
@@ -49,10 +43,54 @@ instance.interceptors.response.use(
   }
 );
 
-// Tạo instance riêng cho Rasa (không cần token)
 const rasaInstance = axios.create({
-  baseURL: "http://localhost:5005", // Rasa server
+  baseURL: "http://localhost:5005",
 });
+
+export const setupSignalRConnection = (
+  endpoint: string,
+  callback: (data: any) => void
+): HubConnection => {
+  const token = Cookies.get("token");
+  if (!token) {
+    console.error("No token available for SignalR connection.");
+    throw new Error("Authentication token is missing.");
+  }
+
+  const connection = new HubConnectionBuilder()
+    .withUrl(`http://localhost:5104${endpoint}`, {
+      accessTokenFactory: () => token,
+    })
+    .withAutomaticReconnect([0, 2000, 5000, 10000]) // Retry sau 0s, 2s, 5s, 10s
+    .build();
+
+  connection.on("ReceiveUpdate", callback);
+
+  // Delay nhỏ để đảm bảo backend sẵn sàng
+  const startConnection = () => {
+    setTimeout(() => {
+      connection
+        .start()
+        .then(() => console.log("SignalR Connected to " + endpoint))
+        .catch((err) => {
+          console.error("SignalR Connection Error:", err);
+          // Retry nếu lỗi
+          if (err.message.includes("negotiation")) {
+            setTimeout(startConnection, 2000); // Retry sau 2s
+          }
+        });
+    }, 500); // Delay 500ms
+  };
+
+  startConnection();
+
+  connection.onreconnecting((err) => console.log("SignalR Reconnecting:", err));
+  connection.onreconnected(() =>
+    console.log("SignalR Reconnected to " + endpoint)
+  );
+
+  return connection;
+};
 
 export default instance;
 export { rasaInstance };
