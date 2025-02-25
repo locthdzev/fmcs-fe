@@ -74,6 +74,7 @@ export const CreateDrugSupplierForm: React.FC<CreateDrugSupplierFormProps> = ({
           name="supplierName"
           value={formData.supplierName}
           onChange={handleInputChange}
+          onClear={() => setFormData({ ...formData, supplierName: "" })}
           required
         />
         <Input
@@ -84,6 +85,7 @@ export const CreateDrugSupplierForm: React.FC<CreateDrugSupplierFormProps> = ({
           name="contactNumber"
           value={formData.contactNumber}
           onChange={handleInputChange}
+          onClear={() => setFormData({ ...formData, contactNumber: "" })}
         />
         <Input
           isClearable
@@ -93,6 +95,7 @@ export const CreateDrugSupplierForm: React.FC<CreateDrugSupplierFormProps> = ({
           name="email"
           value={formData.email}
           onChange={handleInputChange}
+          onClear={() => setFormData({ ...formData, email: "" })}
         />
         <div className="col-span-1">
           <Textarea
@@ -103,6 +106,7 @@ export const CreateDrugSupplierForm: React.FC<CreateDrugSupplierFormProps> = ({
             name="address"
             value={formData.address || ""}
             onChange={handleInputChange}
+            onClear={() => setFormData({ ...formData, address: "" })}
           />
         </div>
       </div>

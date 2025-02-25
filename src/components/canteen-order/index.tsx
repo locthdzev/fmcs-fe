@@ -123,6 +123,7 @@ export function CanteenOrders() {
     direction: "descending",
   });
 
+  const [isReady, setIsReady] = useState(false);
   const [page, setPage] = useState(1);
   const [orders, setOrders] = useState<CanteenOrderResponse[]>([]);
   // Modify the fetchOrders function to sort by date
@@ -137,6 +138,7 @@ export function CanteenOrders() {
           );
         });
         setOrders(sortedData);
+        setIsReady(true);
         setPage(1);
       }
     } catch (error) {
@@ -647,15 +649,16 @@ export function CanteenOrders() {
                 filteredItems.length
               } selected`}
         </span>
-        <Pagination
-          isCompact
-          showControls
-          showShadow
-          color="primary"
-          page={page}
-          total={pages}
-          onChange={setPage}
-        />
+        {isReady && (
+                  <Pagination
+                    key={page}
+                    showControls
+                    page={page}
+                    total={pages}
+                    onChange={(newPage) => setPage(newPage)}
+                    color="primary"
+                  />
+                )}
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
             isDisabled={pages === 1}

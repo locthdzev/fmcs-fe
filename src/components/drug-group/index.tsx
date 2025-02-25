@@ -99,6 +99,7 @@ export function DrugGroups() {
     direction: "descending",
   });
 
+  const [isReady, setIsReady] = useState(false);
   const [page, setPage] = React.useState(1);
   const [drugGroups, setDrugGroups] = React.useState<DrugGroupResponse[]>([]);
 
@@ -109,6 +110,7 @@ export function DrugGroups() {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     setDrugGroups(sortedData);
+    setIsReady(true);
   };
 
   useEffect(() => {
@@ -524,15 +526,16 @@ export function DrugGroups() {
                 filteredItems.length
               } selected`}
         </span>
-        <Pagination
-          isCompact
-          showControls
-          showShadow
-          color="primary"
-          page={page}
-          total={pages}
-          onChange={onPageChange}
-        />
+        {isReady && (
+                  <Pagination
+                    key={page}
+                    showControls
+                    page={page}
+                    total={pages}
+                    onChange={(newPage) => setPage(newPage)}
+                    color="primary"
+                  />
+                )}
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
             isDisabled={pages === 1}

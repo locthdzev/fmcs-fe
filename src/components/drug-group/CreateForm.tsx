@@ -72,6 +72,7 @@ export const CreateDrugGroupForm: React.FC<CreateDrugGroupFormProps> = ({
           name="groupName"
           value={formData.groupName}
           onChange={handleInputChange}
+          onClear={() => setFormData({ ...formData, groupName: "" })}
           required
         />
 
@@ -84,6 +85,8 @@ export const CreateDrugGroupForm: React.FC<CreateDrugGroupFormProps> = ({
             name="description"
             value={formData.description || ""}
             onChange={handleInputChange}
+            onClear={() => setFormData({ ...formData, description: "" })}
+
           />
         </div>
       </div>

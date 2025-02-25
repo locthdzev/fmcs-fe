@@ -113,6 +113,7 @@ export const CreateCanteenItemForm: React.FC<CreateCanteenItemFormProps> = ({
           name="itemName"
           value={formData.itemName}
           onChange={handleInputChange}
+          onClear={() => setFormData({ ...formData, itemName: "" })}
           required
         />
 
@@ -124,10 +125,10 @@ export const CreateCanteenItemForm: React.FC<CreateCanteenItemFormProps> = ({
           name="description"
           value={formData.description}
           onChange={handleInputChange}
+          onClear={() => setFormData({ ...formData, description: "" })}
         />
 
         <Input
-        isClearable
         radius="sm"
         variant="bordered"
           label="Unit Price"

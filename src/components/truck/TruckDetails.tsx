@@ -34,7 +34,23 @@ const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
     <>
       <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
         <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
-          <ModalHeader className="border-b pb-3">Truck Details</ModalHeader>
+          <ModalHeader className="flex justify-between items-center">
+            <span>Truck Details</span>
+            <div className="flex items-center">
+              <Chip
+                className="capitalize px-2 py-1 text-sm font-medium mr-4"
+                color={
+                  truck.status && statusColorMap[truck.status]
+                    ? statusColorMap[truck.status]
+                    : "default"
+                }
+                size="sm"
+                variant="flat"
+              >
+                {truck.status}
+              </Chip>
+            </div>
+          </ModalHeader>
           <ModalBody className="p-6">
             <div className="grid grid-cols-12 gap-6 items-start">
               {/* Truck Image */}
@@ -53,7 +69,10 @@ const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
                   {[
                     { label: "License Plate", value: truck.licensePlate },
                     { label: "Driver Name", value: truck.driverName || "-" },
-                    { label: "Driver Contact", value: truck.driverContact || "-" },
+                    {
+                      label: "Driver Contact",
+                      value: truck.driverContact || "-",
+                    },
                     {
                       label: "Created At",
                       value: truck.createdAt
@@ -89,24 +108,6 @@ const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
                     {truck.description || "No description available."}
                   </div>
                 </label>
-
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-900 underline">
-                    Status:
-                  </span>
-                  <Chip
-                    className="capitalize px-2 py-1 text-sm font-medium"
-                    color={
-                      truck.status && statusColorMap[truck.status]
-                        ? statusColorMap[truck.status]
-                        : "default"
-                    }
-                    size="sm"
-                    variant="flat"
-                  >
-                    {truck.status}
-                  </Chip>
-                </div>
               </div>
             </div>
           </ModalBody>
