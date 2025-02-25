@@ -84,6 +84,7 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function Drugs() {
+  const [isReady, setIsReady] = useState(false);
   const router = useRouter();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingDrug, setDeletingDrug] = useState<DrugResponse | null>(null);
@@ -124,6 +125,7 @@ export function Drugs() {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     setDrugs(sortedData);
+    setIsReady(true);
   };
 
   useEffect(() => {
@@ -638,15 +640,16 @@ export function Drugs() {
                 filteredItems.length
               } selected`}
         </span>
-        <Pagination
-          isCompact
-          showControls
-          showShadow
-          color="primary"
-          page={page}
-          total={pages}
-          onChange={onPageChange} // biding page lên url nè
-        />
+        {isReady && (
+                  <Pagination
+                    key={page}
+                    showControls
+                    page={page}
+                    total={pages}
+                    onChange={(newPage) => setPage(newPage)}
+                    color="primary"
+                  />
+                )}
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
             isDisabled={pages === 1}

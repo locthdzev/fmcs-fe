@@ -42,7 +42,7 @@ export const data = [
             link: "/drug/management",
           },
           {
-            title: "DrugGruops",
+            title: "DrugGroups",
             icon: <DrugGroupIcon />,
             link: "/drug-group/management",
           },
