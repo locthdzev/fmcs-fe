@@ -123,7 +123,7 @@ export const data = [
           {
             title: "Inventory History",
             icon: <InventoryHistoryIcon />,
-            link: "/inventory-history/management",
+            link: "/inventory-history",
           },
         ],
       },

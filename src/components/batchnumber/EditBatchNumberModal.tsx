@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Modal, Form, DatePicker, Select, Button } from "antd";
+import { Modal, Form, DatePicker, Button } from "antd";
 import { BatchNumberResponseDTO, updateBatchNumber } from "@/api/batchnumber";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -28,7 +28,6 @@ const EditBatchNumberModal: React.FC<EditBatchNumberModalProps> = ({
         expiryDate: batchNumber.expiryDate
           ? moment(batchNumber.expiryDate)
           : null,
-        status: batchNumber.status,
       });
     }
   }, [batchNumber, form]);
@@ -38,58 +37,84 @@ const EditBatchNumberModal: React.FC<EditBatchNumberModalProps> = ({
       const response = await updateBatchNumber(batchNumber.id, {
         manufacturingDate: values.manufacturingDate?.format("YYYY-MM-DD"),
         expiryDate: values.expiryDate?.format("YYYY-MM-DD"),
-        status: values.status,
       });
       if (response.isSuccess) {
-        toast.success("Cập nhật batch number thành công!");
+        toast.success("Batch number updated successfully!");
         onSuccess();
         onClose();
       } else {
-        toast.error(response.message || "Không thể cập nhật batch number");
+        toast.error(response.message || "Unable to update batch number");
       }
     } catch {
-      toast.error("Không thể cập nhật batch number");
+      toast.error("Unable to update batch number");
     }
   };
 
   return (
     <Modal
-      title="Chỉnh sửa Batch Number"
+      title="Edit Batch Number"
       open={visible}
       onCancel={onClose}
       footer={[
         <Button key="cancel" onClick={onClose}>
-          Hủy
+          Cancel
         </Button>,
         <Button key="submit" type="primary" onClick={() => form.submit()}>
-          Cập nhật
+          Update
         </Button>,
       ]}
     >
       <Form form={form} onFinish={handleSubmit} layout="vertical">
         <Form.Item
           name="manufacturingDate"
-          label="Ngày sản xuất"
-          rules={[{ required: true }]}
+          label="Manufacturing Date"
+          rules={[
+            { required: true, message: "Please select manufacturing date!" },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || !getFieldValue("expiryDate")) {
+                  return Promise.resolve();
+                }
+                if (value.isAfter(getFieldValue("expiryDate"))) {
+                  return Promise.reject(
+                    new Error(
+                      "Manufacturing date cannot be later than expiry date"
+                    )
+                  );
+                }
+                return Promise.resolve();
+              },
+            }),
+          ]}
         >
           <DatePicker format="YYYY-MM-DD" />
         </Form.Item>
         <Form.Item
           name="expiryDate"
-          label="Ngày hết hạn"
-          rules={[{ required: true }]}
+          label="Expiry Date"
+          rules={[
+            { required: true, message: "Please select expiry date!" },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || !getFieldValue("manufacturingDate")) {
+                  return Promise.resolve();
+                }
+                if (getFieldValue("manufacturingDate").isAfter(value)) {
+                  return Promise.reject(
+                    new Error(
+                      "Expiry date cannot be earlier than manufacturing date"
+                    )
+                  );
+                }
+                return Promise.resolve();
+              },
+            }),
+          ]}
         >
           <DatePicker format="YYYY-MM-DD" />
-        </Form.Item>
-        <Form.Item name="status" label="Trạng thái">
-          <Select>
-            <Select.Option value="ACTIVE">Active</Select.Option>
-            <Select.Option value="INACTIVE">Inactive</Select.Option>
-          </Select>
         </Form.Item>
       </Form>
     </Modal>
   );
 };
-
 export default EditBatchNumberModal;
