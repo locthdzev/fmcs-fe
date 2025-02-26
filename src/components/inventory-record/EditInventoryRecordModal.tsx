@@ -1,6 +1,9 @@
 import React, { useEffect } from "react";
 import { Modal, Form, InputNumber, Button } from "antd";
-import { InventoryRecordResponseDTO, updateInventoryRecord } from "@/api/inventoryrecord";
+import {
+  InventoryRecordResponseDTO,
+  updateInventoryRecord,
+} from "@/api/inventoryrecord";
 import { toast } from "react-toastify";
 
 interface EditInventoryRecordModalProps {
@@ -26,35 +29,41 @@ const EditInventoryRecordModal: React.FC<EditInventoryRecordModalProps> = ({
 
   const handleSubmit = async (values: { reorderLevel: number }) => {
     try {
-      const response = await updateInventoryRecord(record.id, { reorderLevel: values.reorderLevel });
+      const response = await updateInventoryRecord(record.id, {
+        reorderLevel: values.reorderLevel,
+      });
       if (response.isSuccess) {
-        toast.success("Cập nhật inventory record thành công!");
+        toast.success("Inventory record updated successfully!");
         onSuccess();
         onClose();
       } else {
-        toast.error(response.message || "Không thể cập nhật inventory record");
+        toast.error(response.message || "Failed to update inventory record");
       }
     } catch {
-      toast.error("Không thể cập nhật inventory record");
+      toast.error("Failed to update inventory record");
     }
   };
 
   return (
     <Modal
-      title="Chỉnh sửa Inventory Record"
+      title="Edit Inventory Record"
       open={visible}
       onCancel={onClose}
       footer={[
         <Button key="cancel" onClick={onClose}>
-          Hủy
+          Cancel
         </Button>,
         <Button key="submit" type="primary" onClick={() => form.submit()}>
-          Cập nhật
+          Update
         </Button>,
       ]}
     >
       <Form form={form} onFinish={handleSubmit} layout="vertical">
-        <Form.Item name="reorderLevel" label="Mức đặt lại" rules={[{ required: true }]}>
+        <Form.Item
+          name="reorderLevel"
+          label="Reorder Level"
+          rules={[{ required: true }]}
+        >
           <InputNumber min={0} />
         </Form.Item>
       </Form>
