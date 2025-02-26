@@ -18,6 +18,10 @@ import { PeriodicHealthCheckupsIcon } from "./icons/PeriodicHealthCheckupsIcon";
 import { TrucksIcon } from "./icons/TruckIcon";
 import { ScheduleIcon } from "./icons/ScheduleIcon";
 import { ShiftIcon } from "./icons/ShiftIcon";
+import { BatchNumberIcon } from "./icons/BatchNumberIcon";
+import { InventoryRecordIcon } from "./icons/InventoryRecordIcon";
+import { InventoryHistoryIcon } from "./icons/InventoryHistoryIcon";
+import { InventoriesIcon } from "./icons/InventoriesIcon";
 
 export const data = [
   {
@@ -99,7 +103,28 @@ export const data = [
             title: "Shifts",
             icon: <ShiftIcon />,
             link: "/shift/management",
-          }
+          },
+        ],
+      },
+      {
+        title: "Inventories",
+        icon: <InventoriesIcon />,
+        submenu: [
+          {
+            title: "Batch Numbers",
+            icon: <BatchNumberIcon />,
+            link: "/batch-number/management",
+          },
+          {
+            title: "Inventory Records",
+            icon: <InventoryRecordIcon />,
+            link: "/inventory-record/management",
+          },
+          {
+            title: "Inventory History",
+            icon: <InventoryHistoryIcon />,
+            link: "/inventory-history",
+          },
         ],
       },
       {

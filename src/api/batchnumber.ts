@@ -87,3 +87,17 @@ export const setupBatchNumberRealTime = (
 ) => {
   return setupSignalRConnection("/batchNumberHub", callback);
 };
+
+export const updateBatchNumberStatus = async (
+  id: string,
+  newStatus: string
+) => {
+  const response = await api.put(
+    `/batchnumber-management/batchnumbers/${id}/status`,
+    {},
+    {
+      params: { newStatus },
+    }
+  );
+  return response.data;
+};

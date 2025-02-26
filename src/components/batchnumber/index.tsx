@@ -1,5 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { Button, Table, Switch, Select, Input, Pagination } from "antd";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  Button,
+  Table,
+  Switch,
+  Select,
+  Input,
+  DatePicker,
+  Pagination,
+  Space,
+} from "antd";
 import {
   Chip,
   Modal,
@@ -14,10 +23,8 @@ import {
 import { PencilSquareIcon, PlusIcon } from "@heroicons/react/24/outline";
 import {
   getAllBatchNumbers,
-  toggleBatchNumberStatus,
+  updateBatchNumberStatus,
   mergeBatchNumbers,
-  getBatchNumbersByDrugId,
-  getBatchNumbersByStatus,
   BatchNumberResponseDTO,
   setupBatchNumberRealTime,
 } from "@/api/batchnumber";
@@ -26,80 +33,141 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/router";
 import EditBatchNumberModal from "./EditBatchNumberModal";
 import MergeBatchNumbersModal from "./MergeBatchNumbersModal";
+import { BatchNumberIcon } from "./Icons";
+import debounce from "lodash/debounce";
 
 const { Column } = Table;
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 export function BatchNumberManagement() {
   const router = useRouter();
   const [batchNumbers, setBatchNumbers] = useState<BatchNumberResponseDTO[]>(
     []
   );
-  const [filteredBatchNumbers, setFilteredBatchNumbers] = useState<
-    BatchNumberResponseDTO[]
-  >([]);
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isMergeModalVisible, setIsMergeModalVisible] = useState(false);
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<"toggle" | "merge" | null>(
-    null
-  );
   const [currentBatchNumber, setCurrentBatchNumber] =
     useState<BatchNumberResponseDTO | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [drugIdFilter, setDrugIdFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const [searchText, setSearchText] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize] = useState<number>(10);
   const [total, setTotal] = useState<number>(0);
+  const [searchText, setSearchText] = useState<string>("");
+  const [drugNameFilter, setDrugNameFilter] = useState<string>("");
+  const [supplierFilter, setSupplierFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [manufacturingDateRange, setManufacturingDateRange] = useState<
+    [string, string] | null
+  >(null);
+  const [expiryDateRange, setExpiryDateRange] = useState<
+    [string, string] | null
+  >(null);
 
-  const fetchBatchNumbers = async () => {
+  const fetchBatchNumbers = useCallback(async () => {
     try {
       const result = await getAllBatchNumbers(
         currentPage,
         pageSize,
         searchText
       );
-      setBatchNumbers(result.data);
-      setFilteredBatchNumbers(result.data);
+      let filteredData = result.data;
+
+      if (drugNameFilter) {
+        filteredData = filteredData.filter((b: BatchNumberResponseDTO) =>
+          b.drug.name.toLowerCase().includes(drugNameFilter.toLowerCase())
+        );
+      }
+      if (supplierFilter) {
+        filteredData = filteredData.filter((b: BatchNumberResponseDTO) =>
+          b.supplier.supplierName
+            .toLowerCase()
+            .includes(supplierFilter.toLowerCase())
+        );
+      }
+      if (statusFilter) {
+        filteredData = filteredData.filter(
+          (b: BatchNumberResponseDTO) => b.status === statusFilter
+        );
+      }
+      if (manufacturingDateRange) {
+        filteredData = filteredData.filter((b: BatchNumberResponseDTO) => {
+          if (!b.manufacturingDate) return false;
+          const date = new Date(b.manufacturingDate);
+          return (
+            date >= new Date(manufacturingDateRange[0]) &&
+            date <= new Date(manufacturingDateRange[1])
+          );
+        });
+      }
+      if (expiryDateRange) {
+        filteredData = filteredData.filter((b: BatchNumberResponseDTO) => {
+          if (!b.expiryDate) return false;
+          const date = new Date(b.expiryDate);
+          return (
+            date >= new Date(expiryDateRange[0]) &&
+            date <= new Date(expiryDateRange[1])
+          );
+        });
+      }
+
+      // Sort by createdAt in descending order
+      filteredData.sort(
+        (a: BatchNumberResponseDTO, b: BatchNumberResponseDTO) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      setBatchNumbers(filteredData);
       setTotal(result.totalRecords);
     } catch (error) {
-      toast.error("Không thể tải danh sách batch number.");
+      toast.error("Unable to load batch number list.");
     }
-  };
+  }, [
+    currentPage,
+    searchText,
+    drugNameFilter,
+    supplierFilter,
+    statusFilter,
+    manufacturingDateRange,
+    expiryDateRange,
+  ]);
 
   useEffect(() => {
     fetchBatchNumbers();
 
     const connection = setupBatchNumberRealTime(
       (updatedBatch: BatchNumberResponseDTO) => {
-        toast.info(`Batch ${updatedBatch.batchCode} đã được cập nhật!`);
-        fetchBatchNumbers(); // Làm mới toàn bộ danh sách mỗi khi nhận tín hiệu
+        fetchBatchNumbers();
       }
     );
 
     return () => {
       connection.stop();
     };
-  }, [currentPage, drugIdFilter, statusFilter, searchText]);
+  }, [fetchBatchNumbers]);
 
   const handleToggleStatus = async (id: string, isActive: boolean) => {
+    const batch = batchNumbers.find((b) => b.id === id);
+    if (!batch?.manufacturingDate || !batch?.expiryDate) {
+      toast.error("Please update Manufacturing Date and Expiry Date first.");
+      return;
+    }
+
     try {
       setLoading((prev) => ({ ...prev, [id]: true }));
-      const response = await toggleBatchNumberStatus(
+      const response = await updateBatchNumberStatus(
         id,
-        isActive ? "ACTIVE" : "INACTIVE"
+        isActive ? "Active" : "Inactive"
       );
       if (response.isSuccess) {
-        toast.success(response.message || "Cập nhật trạng thái thành công!");
+        toast.success(response.message || "Status updated successfully!");
         fetchBatchNumbers();
       } else {
-        toast.error(response.message || "Không thể cập nhật trạng thái");
+        toast.error(response.message || "Unable to update status");
       }
     } catch (error) {
-      toast.error("Không thể cập nhật trạng thái");
+      toast.error("Unable to update status");
     } finally {
       setLoading((prev) => ({ ...prev, [id]: false }));
     }
@@ -107,35 +175,30 @@ export function BatchNumberManagement() {
 
   const handleMerge = async () => {
     if (selectedIds.length < 2) {
-      toast.error("Vui lòng chọn ít nhất 2 batch number để gộp.");
+      toast.error("Please select at least 2 batch numbers to merge.");
       return;
     }
     try {
       const response = await mergeBatchNumbers({ batchNumberIds: selectedIds });
       if (response.isSuccess) {
-        toast.success("Gộp batch number thành công!");
+        toast.success("Batch numbers merged successfully!");
         setSelectedIds([]);
         fetchBatchNumbers();
       } else {
-        toast.error(response.message || "Không thể gộp batch number");
+        toast.error(response.message || "Unable to merge batch numbers");
       }
     } catch {
-      toast.error("Không thể gộp batch number");
+      toast.error("Unable to merge batch numbers");
     }
   };
 
-  const handleSearch = (value: string) => {
-    setSearchText(value);
-    fetchBatchNumbers();
+  const handleShowEditModal = (batch: BatchNumberResponseDTO) => {
+    setCurrentBatchNumber(batch);
+    setIsEditModalVisible(true);
   };
 
-  const handleRowSelection = (selectedRowKeys: React.Key[]) => {
-    setSelectedIds(selectedRowKeys as string[]);
-  };
-
-  const rowSelection = {
-    selectedRowKeys: selectedIds,
-    onChange: handleRowSelection,
+  const handleShowMergeModal = () => {
+    setIsMergeModalVisible(true);
   };
 
   const handleExportExcel = () => {
@@ -143,131 +206,173 @@ export function BatchNumberManagement() {
       "/batchnumber-management/batchnumbers/export",
       "batch_numbers.xlsx"
     );
-    toast.success("Đang tải file Excel...");
+    toast.success("Downloading Excel file...");
+  };
+
+  const handleSearchChange = debounce((value: string) => {
+    setSearchText(value);
+    setCurrentPage(1);
+  }, 300);
+
+  const rowSelection = {
+    selectedRowKeys: selectedIds,
+    onChange: (selectedRowKeys: React.Key[]) =>
+      setSelectedIds(selectedRowKeys as string[]),
   };
 
   return (
-    <div className="p-6">
-      <Card>
-        <CardHeader className="flex justify-between items-center">
-          <h3 className="text-2xl font-bold">Quản lý Batch Number</h3>
-          <div className="flex gap-2">
-            <Button type="primary" onClick={handleExportExcel}>
-              Xuất Excel
-            </Button>
-            <Button
-              type="primary"
-              onClick={() => setIsMergeModalVisible(true)}
-              disabled={selectedIds.length < 2}
-            >
-              Gộp Batch Numbers
-            </Button>
-          </div>
+    <div>
+      <Card className="m-4">
+        <CardHeader className="flex items-center gap-2">
+          <BatchNumberIcon />
+          <h3 className="text-2xl font-bold">Batch Number Management</h3>
         </CardHeader>
         <CardBody>
-          <div
+          <Space
             style={{
               marginBottom: 16,
               display: "flex",
               justifyContent: "space-between",
             }}
           >
-            <div>
-              <Input.Search
-                placeholder="Tìm kiếm theo BatchCode hoặc Drug Name"
-                onSearch={handleSearch}
-                style={{ width: 300, marginRight: 16 }}
+            <Space>
+              <Input
+                placeholder="Search by BatchCode"
+                onChange={(e) => handleSearchChange(e.target.value)}
+                style={{ width: 200 }}
+              />
+              <Input
+                placeholder="Filter by Drug Name"
+                onChange={(e) => setDrugNameFilter(e.target.value)}
+                style={{ width: 200 }}
+              />
+              <Input
+                placeholder="Filter by Supplier"
+                onChange={(e) => setSupplierFilter(e.target.value)}
+                style={{ width: 200 }}
               />
               <Select
-                placeholder="Lọc theo Drug ID"
-                onChange={(value) => setDrugIdFilter(value)}
-                style={{ width: 200, marginRight: 16 }}
-                allowClear
-              >
-                {/* Giả sử lấy danh sách Drug ID từ API */}
-              </Select>
-              <Select
-                placeholder="Lọc theo trạng thái"
+                placeholder="Filter by Status"
                 onChange={(value) => setStatusFilter(value)}
-                style={{ width: 200 }}
+                style={{ width: 150 }}
                 allowClear
               >
-                <Option value="ACTIVE">Active</Option>
-                <Option value="INACTIVE">Inactive</Option>
-                <Option value="EXPIRED">Expired</Option>
-                <Option value="NEAR_EXPIRY">Near Expiry</Option>
+                <Option value="Priority">Priority</Option>
+                <Option value="Active">Active</Option>
+                <Option value="Inactive">Inactive</Option>
+                <Option value="Expired">Expired</Option>
               </Select>
-            </div>
-          </div>
+              <RangePicker
+                placeholder={["Manufacturing Start", "End"]}
+                onChange={(dates) =>
+                  setManufacturingDateRange(
+                    dates
+                      ? [
+                          dates[0]?.format("YYYY-MM-DD") ?? "",
+                          dates[1]?.format("YYYY-MM-DD") ?? "",
+                        ]
+                      : null
+                  )
+                }
+              />
+              <RangePicker
+                placeholder={["Expiry Start", "End"]}
+                onChange={(dates) =>
+                  setExpiryDateRange(
+                    dates
+                      ? [
+                          dates[0]?.format("YYYY-MM-DD") ?? "",
+                          dates[1]?.format("YYYY-MM-DD") ?? "",
+                        ]
+                      : null
+                  )
+                }
+              />
+            </Space>
+            <Space>
+              <Button type="primary" onClick={handleExportExcel}>
+                Export Excel
+              </Button>
+              <Button
+                type="primary"
+                onClick={handleShowMergeModal}
+                disabled={selectedIds.length < 2}
+                icon={<PlusIcon />}
+              >
+                Merge Batch Numbers
+              </Button>
+            </Space>
+          </Space>
 
           <Table
-            dataSource={filteredBatchNumbers}
+            dataSource={batchNumbers}
             rowKey="id"
             rowSelection={rowSelection}
             pagination={false}
-            scroll={{ x: true }}
-            onRow={(record) => ({
-              onClick: () => router.push(`/batchnumber/detail?id=${record.id}`),
-            })}
           >
             <Column
-              title="MÃ BATCH"
+              title="BATCH CODE"
               dataIndex="batchCode"
               key="batchCode"
               sorter={(a, b) => a.batchCode.localeCompare(b.batchCode)}
             />
             <Column
-              title="TÊN THUỐC"
+              title="DRUG NAME"
               dataIndex={["drug", "name"]}
               key="drugName"
               sorter={(a, b) => a.drug.name.localeCompare(b.drug.name)}
             />
             <Column
-              title="NHÀ CUNG CẤP"
+              title="SUPPLIER"
               dataIndex={["supplier", "supplierName"]}
               key="supplierName"
+              sorter={(a, b) =>
+                a.supplier.supplierName.localeCompare(b.supplier.supplierName)
+              }
             />
             <Column
-              title="NGÀY SẢN XUẤT"
+              title="MANUFACTURING DATE"
               dataIndex="manufacturingDate"
               key="manufacturingDate"
               render={(date) =>
                 date ? new Date(date).toLocaleDateString("vi-VN") : "-"
               }
               sorter={(a, b) =>
-                (a.manufacturingDate || "").localeCompare(
-                  b.manufacturingDate || ""
-                )
+                new Date(a.manufacturingDate || 0).getTime() -
+                new Date(b.manufacturingDate || 0).getTime()
               }
             />
             <Column
-              title="NGÀY HẾT HẠN"
+              title="EXPIRY DATE"
               dataIndex="expiryDate"
               key="expiryDate"
               render={(date) =>
                 date ? new Date(date).toLocaleDateString("vi-VN") : "-"
               }
               sorter={(a, b) =>
-                (a.expiryDate || "").localeCompare(b.expiryDate || "")
+                new Date(a.expiryDate || 0).getTime() -
+                new Date(b.expiryDate || 0).getTime()
               }
             />
             <Column
-              title="SỐ LƯỢNG NHẬN"
+              title="QUANTITY RECEIVED"
               dataIndex="quantityReceived"
               key="quantityReceived"
               sorter={(a, b) => a.quantityReceived - b.quantityReceived}
             />
             <Column
-              title="TRẠNG THÁI"
+              title="STATUS"
               dataIndex="status"
               key="status"
               render={(status) => (
                 <Chip
                   className="capitalize"
                   color={
-                    status === "ACTIVE"
+                    status === "Priority"
+                      ? "primary"
+                      : status === "Active"
                       ? "success"
-                      : status === "INACTIVE"
+                      : status === "Inactive"
                       ? "danger"
                       : "warning"
                   }
@@ -277,21 +382,49 @@ export function BatchNumberManagement() {
                   {status}
                 </Chip>
               )}
+              sorter={(a, b) => a.status.localeCompare(b.status)}
             />
             <Column
-              title="BẬT/TẮT"
+              title="CREATED AT"
+              dataIndex="createdAt"
+              key="createdAt"
+              render={(date) =>
+                date ? new Date(date).toLocaleString("vi-VN") : "-"
+              }
+              sorter={(a, b) =>
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime()
+              }
+            />
+            <Column
+              title="UPDATED AT"
+              dataIndex="updatedAt"
+              key="updatedAt"
+              render={(date) =>
+                date ? new Date(date).toLocaleString("vi-VN") : "-"
+              }
+              sorter={(a, b) =>
+                new Date(b.updatedAt).getTime() -
+                new Date(a.updatedAt).getTime()
+              }
+            />
+            <Column
+              title=""
               key="toggle"
               align="center"
               render={(_, record: BatchNumberResponseDTO) => (
                 <Switch
-                  checked={record.status === "ACTIVE"}
+                  checked={
+                    record.status === "Priority" || record.status === "Active"
+                  }
+                  disabled={!record.manufacturingDate || !record.expiryDate}
                   loading={loading[record.id]}
                   onChange={(checked) => handleToggleStatus(record.id, checked)}
                 />
               )}
             />
             <Column
-              title="HÀNH ĐỘNG"
+              title="ACTIONS"
               key="actions"
               align="center"
               render={(_, record: BatchNumberResponseDTO) => (
@@ -299,8 +432,7 @@ export function BatchNumberManagement() {
                   type="text"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setCurrentBatchNumber(record);
-                    setIsEditModalVisible(true);
+                    handleShowEditModal(record);
                   }}
                   icon={
                     <PencilSquareIcon
@@ -338,31 +470,6 @@ export function BatchNumberManagement() {
         onSuccess={fetchBatchNumbers}
         selectedIds={selectedIds}
       />
-
-      <Modal
-        isOpen={isConfirmModalOpen}
-        onOpenChange={(open) => !open && setIsConfirmModalOpen(false)}
-      >
-        <ModalContent>
-          <ModalHeader>Xác nhận hành động</ModalHeader>
-          <ModalBody>
-            <p>
-              Bạn có chắc chắn muốn{" "}
-              {confirmAction === "toggle" ? "thay đổi trạng thái" : "gộp"} các
-              batch number đã chọn không?
-            </p>
-          </ModalBody>
-          <ModalFooter>
-            <Button onClick={() => setIsConfirmModalOpen(false)}>Hủy</Button>
-            <Button
-              type="primary"
-              onClick={confirmAction === "merge" ? handleMerge : () => {}}
-            >
-              Xác nhận
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
     </div>
   );
 }

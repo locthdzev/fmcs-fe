@@ -21,11 +21,11 @@ const MergeBatchNumbersModal: React.FC<MergeBatchNumbersModalProps> = ({
 
   const fetchBatchNumbers = async () => {
     try {
-      const result = await getAllBatchNumbers(1, 1000); // Lấy tất cả để hiển thị trong select
+      const result = await getAllBatchNumbers(1, 1000); // Get all to display in select
       setBatchNumbers(result.data);
       form.setFieldsValue({ batchNumberIds: selectedIds });
     } catch {
-      toast.error("Không thể tải danh sách batch number.");
+      toast.error("Unable to load batch number list.");
     }
   };
 
@@ -39,40 +39,43 @@ const MergeBatchNumbersModal: React.FC<MergeBatchNumbersModalProps> = ({
         batchNumberIds: values.batchNumberIds,
       });
       if (response.isSuccess) {
-        toast.success("Gộp batch number thành công!");
+        toast.success("Batch numbers merged successfully!");
         onSuccess();
         onClose();
       } else {
-        toast.error(response.message || "Không thể gộp batch number");
+        toast.error(response.message || "Unable to merge batch numbers");
       }
     } catch {
-      toast.error("Không thể gộp batch number");
+      toast.error("Unable to merge batch numbers");
     }
   };
 
   return (
     <Modal
-      title="Gộp Batch Numbers"
+      title="Merge Batch Numbers"
       open={visible}
       onCancel={onClose}
       footer={[
         <Button key="cancel" onClick={onClose}>
-          Hủy
+          Cancel
         </Button>,
         <Button key="submit" type="primary" onClick={() => form.submit()}>
-          Gộp
+          Merge
         </Button>,
       ]}
     >
       <Form form={form} onFinish={handleSubmit} layout="vertical">
         <Form.Item
           name="batchNumberIds"
-          label="Chọn Batch Numbers để gộp"
+          label="Select Batch Numbers to merge"
           rules={[
-            { required: true, message: "Vui lòng chọn ít nhất 2 batch number" },
+            {
+              required: true,
+              message: "Please select at least 2 batch numbers",
+            },
           ]}
         >
-          <Select mode="multiple" placeholder="Chọn batch numbers">
+          <Select mode="multiple" placeholder="Select batch numbers">
             {batchNumbers.map((bn) => (
               <Select.Option key={bn.id} value={bn.id}>
                 {`${bn.batchCode} - ${bn.drug.name}`}
