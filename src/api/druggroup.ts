@@ -42,7 +42,9 @@ export const getDrugGroupById = async (id: string) => {
   }
 };
 
-export const createDrugGroup = async (drugGroupData: DrugGroupCreateRequest) => {
+export const createDrugGroup = async (
+  drugGroupData: DrugGroupCreateRequest
+) => {
   try {
     const formData = new FormData();
     Object.entries(drugGroupData).forEach(([key, value]) => {
@@ -50,14 +52,20 @@ export const createDrugGroup = async (drugGroupData: DrugGroupCreateRequest) => 
         formData.append(key, value);
       }
     });
-    const response = await api.post("/druggroup-management/druggroups", formData);
+    const response = await api.post(
+      "/druggroup-management/druggroups",
+      formData
+    );
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-export const updateDrugGroup = async (id: string, drugGroupData: DrugGroupUpdateRequest) => {
+export const updateDrugGroup = async (
+  id: string,
+  drugGroupData: DrugGroupUpdateRequest
+) => {
   try {
     const formData = new FormData();
     Object.entries(drugGroupData).forEach(([key, value]) => {
@@ -65,16 +73,34 @@ export const updateDrugGroup = async (id: string, drugGroupData: DrugGroupUpdate
         formData.append(key, value);
       }
     });
-    const response = await api.put(`/druggroup-management/druggroups/${id}`, formData);
+    const response = await api.put(
+      `/druggroup-management/druggroups/${id}`,
+      formData
+    );
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-export const deleteDrugGroup = async (id: string) => {
+export const activateDrugGroups = async (drugGroupIds: string[]) => {
   try {
-    const response = await api.delete(`/druggroup-management/druggroups/${id}`);
+    const response = await api.put(
+      "/druggroup-management/druggroups/activate",
+      drugGroupIds
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deactivateDrugGroups = async (drugGroupIds: string[]) => {
+  try {
+    const response = await api.put(
+      "/druggroup-management/druggroups/deactivate",
+      drugGroupIds
+    );
     return response.data;
   } catch (error) {
     throw error;

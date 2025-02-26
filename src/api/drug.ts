@@ -19,7 +19,7 @@ export interface DrugResponse {
 }
 
 export interface DrugCreateRequest {
-  drugGroupId?: string;
+  drugGroupId: string;
   drugCode: string;
   name: string;
   unit: string;
@@ -32,7 +32,7 @@ export interface DrugCreateRequest {
 }
 
 export interface DrugUpdateRequest {
-  drugGroupId?: string;
+  drugGroupId: string;
   drugCode: string;
   name: string;
   unit: string;
@@ -57,6 +57,15 @@ export const getDrugs = async () => {
 export const getDrugById = async (id: string) => {
   try {
     const response = await api.get(`/drug-management/drugs/${id}`);
+    return response.data.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getDrugsByDrugGroupId = async (drugGroupId: string) => {
+  try {
+    const response = await api.get(`/drug-management/drugs/by-group/${drugGroupId}`);
     return response.data.data;
   } catch (error) {
     throw error;
@@ -90,9 +99,21 @@ export const deleteDrug = async (id: string) => {
   }
 };
 
-export const updateDrugsStatus = async (drugIds: string[]) => {
+export const activateDrugs = async (drugIds: string[]) => {
   try {
-    const response = await api.put("/drug-management/drugs/status", drugIds);
+    const response = await api.put("/drug-management/drugs/activate", drugIds);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deactivateDrugs = async (drugIds: string[]) => {
+  try {
+    const response = await api.put(
+      "/drug-management/drugs/deactivate",
+      drugIds
+    );
     return response.data;
   } catch (error) {
     throw error;

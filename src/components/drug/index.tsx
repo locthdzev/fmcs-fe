@@ -9,11 +9,11 @@ import {
 } from "./Icons";
 import {
   getDrugs,
-  createDrug,
-  updateDrug,
   deleteDrug,
   DrugResponse,
   getDrugById,
+  activateDrugs,
+  deactivateDrugs,
 } from "@/api/drug";
 import {
   Table,
@@ -43,6 +43,7 @@ import { CreateDrugForm } from "./CreateDrugForm";
 import DrugDetailsModal from "./DrugDetails";
 import { EditDrugForm } from "./EditDrugForm";
 import ConfirmDeleteDrugModal from "./ConfirmDelete";
+import { useRouter } from "next/router";
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -54,6 +55,7 @@ const columns = [
   { name: "DRUG GROUP", uid: "drugGroup", sortable: true },
   { name: "UNIT", uid: "unit" },
   { name: "PRICE", uid: "price", sortable: true },
+  { name: "MANUFACTURER", uid: "manufacturer", sortable: true },
   { name: "CREATED AT", uid: "createdAt", sortable: true },
   { name: "UPDATED AT", uid: "updatedAt", sortable: true },
   { name: "STATUS", uid: "status" },
@@ -82,6 +84,8 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function Drugs() {
+  const [isReady, setIsReady] = useState(false);
+  const router = useRouter();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingDrug, setDeletingDrug] = useState<DrugResponse | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -90,6 +94,14 @@ export function Drugs() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterValue, setFilterValue] = React.useState("");
+  const [selectedDrugs, setSelectedDrugs] = useState<DrugResponse[]>([]);
+  const [showActivate, setShowActivate] = useState(false);
+  const [showDeactivate, setShowDeactivate] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<
+    "activate" | "deactivate" | null
+  >(null);
+
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
@@ -100,7 +112,7 @@ export function Drugs() {
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "createdAt",
-    direction: "ascending",
+    direction: "descending",
   });
 
   const [page, setPage] = useState(1);
@@ -108,12 +120,64 @@ export function Drugs() {
 
   const fetchDrugs = async () => {
     const data = await getDrugs();
-    setDrugs(data);
+    const sortedData = data.sort(
+      (a: DrugResponse, b: DrugResponse) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    setDrugs(sortedData);
+    setIsReady(true);
+  };
+
+  useEffect(() => {
+    setPage(1); // Reset trang về 1 khi filter thay đổi
+  }, [statusFilter, filterValue]);
+
+  // Lấy page từ URL khi component mount
+  useEffect(() => {
+    const queryPage = Number(router.query.page) || 1;
+    setPage(queryPage);
+  }, [router.query.page]);
+
+  // Hàm cập nhật URL khi đổi trang
+  const updatePageInUrl = (newPage: number) => {
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, page: newPage },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const onPageChange = (newPage: number) => {
+    setPage(newPage);
+    updatePageInUrl(newPage);
   };
 
   useEffect(() => {
     fetchDrugs();
   }, []);
+
+  useEffect(() => {
+    let selected: DrugResponse[] = [];
+
+    if (selectedKeys === "all") {
+      selected = drugs; // Nếu chọn "all", lấy toàn bộ danh sách thuốc
+    } else {
+      selected = drugs.filter((drug) =>
+        (selectedKeys as Set<string>).has(drug.id)
+      );
+    }
+
+    setSelectedDrugs(selected);
+
+    const hasActive = selected.some((drug) => drug.status === "Active");
+    const hasInactive = selected.some((drug) => drug.status === "Inactive");
+
+    setShowActivate(hasInactive);
+    setShowDeactivate(hasActive);
+  }, [selectedKeys, drugs]);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -125,14 +189,26 @@ export function Drugs() {
     );
   }, [visibleColumns]);
 
+  /**
+   * Search filter
+   */
   const filteredItems = React.useMemo(() => {
     let filteredDrugs = [...drugs];
 
     if (hasSearchFilter) {
-      filteredDrugs = filteredDrugs.filter((drug) =>
-        drug.name.toLowerCase().includes(filterValue.toLowerCase())
+      const lowerFilter = filterValue.toLowerCase();
+
+      filteredDrugs = filteredDrugs.filter(
+        (drug) =>
+          drug.name.toLowerCase().includes(lowerFilter) ||
+          drug.drugCode.toLowerCase().includes(lowerFilter) ||
+          (drug.drugGroup?.groupName?.toLowerCase() || "").includes(
+            lowerFilter
+          ) ||
+          (drug.manufacturer?.toLowerCase() || "").includes(lowerFilter)
       );
     }
+
     if (
       statusFilter !== "all" &&
       Array.from(statusFilter).length !== statusOptions.length
@@ -156,23 +232,36 @@ export function Drugs() {
     return filteredItems.slice(start, end);
   }, [page, filteredItems, rowsPerPage]);
 
+  /**
+   * Sorting descending and ascending
+   */
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: DrugResponse, b: DrugResponse) => {
-      const first = a[sortDescriptor.column as keyof DrugResponse];
-      const second = b[sortDescriptor.column as keyof DrugResponse];
+    return [...filteredItems]
+      .sort((a: DrugResponse, b: DrugResponse) => {
+        const first = a[sortDescriptor.column as keyof DrugResponse];
+        const second = b[sortDescriptor.column as keyof DrugResponse];
 
-      let cmp = 0;
-      if (typeof first === "string" && typeof second === "string") {
-        cmp = first.localeCompare(second);
-      }
+        let cmp = 0;
+        if (sortDescriptor.column === "drugGroup") {
+          const firstGroup = first
+            ? (first as { groupName: string })?.groupName || ""
+            : "";
+          const secondGroup = second
+            ? (second as { groupName: string })?.groupName || ""
+            : "";
+          cmp = firstGroup.localeCompare(secondGroup);
+        } else if (sortDescriptor.column === "price") {
+          cmp =
+            (parseFloat(first as string) || 0) -
+            (parseFloat(second as string) || 0);
+        } else if (typeof first === "string" && typeof second === "string") {
+          cmp = first.localeCompare(second);
+        }
 
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
-  }, [sortDescriptor, items]);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN");
-  };
+        return sortDescriptor.direction === "descending" ? -cmp : cmp;
+      })
+      .slice((page - 1) * rowsPerPage, page * rowsPerPage); // Áp dụng phân trang sau khi sắp xếp
+  }, [sortDescriptor, filteredItems, page, rowsPerPage]);
 
   const handleOpenDetails = async (id: string) => {
     try {
@@ -219,6 +308,75 @@ export function Drugs() {
     }
   };
 
+  const handleActivate = async () => {
+    const ids = selectedDrugs
+      .filter((d) => d.status === "Inactive")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await activateDrugs(ids);
+      toast.success("Drugs activated successfully");
+      fetchDrugs();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to activate drugs");
+    }
+  };
+
+  const handleDeactivate = async () => {
+    const ids = selectedDrugs
+      .filter((d) => d.status === "Active")
+      .map((d) => d.id);
+    if (ids.length === 0) return;
+
+    try {
+      await deactivateDrugs(ids);
+      toast.success("Drugs deactivated successfully");
+      fetchDrugs();
+      setSelectedKeys(new Set());
+    } catch (error) {
+      toast.error("Failed to deactivate drugs");
+    }
+  };
+
+  const handleConfirmActivate = () => {
+    setConfirmAction("activate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDeactivate = () => {
+    setConfirmAction("deactivate");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (confirmAction === "activate") {
+      await handleActivate();
+    } else if (confirmAction === "deactivate") {
+      await handleDeactivate();
+    }
+    setIsConfirmModalOpen(false);
+    setConfirmAction(null);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
+      date.getMinutes()
+    ).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+      currencyDisplay: "code",
+    }).format(price);
+  };
+
   const renderCell = React.useCallback(
     (drug: DrugResponse, columnKey: React.Key) => {
       const cellValue = drug[columnKey as keyof DrugResponse];
@@ -231,7 +389,8 @@ export function Drugs() {
                 <img
                   src={drug.imageUrl}
                   alt={drug.name}
-                  className="w-8 h-8 mr-2 rounded"
+                  className="w-8 h-8 mr-2 rounded cursor-pointer"
+                  onClick={() => handleOpenDetails(drug.id)}
                 />
                 <p
                   className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
@@ -242,6 +401,8 @@ export function Drugs() {
               </div>
             </div>
           );
+        case "price":
+          return formatPrice(cellValue as number);
         case "status":
           return (
             <Chip
@@ -257,12 +418,23 @@ export function Drugs() {
         case "updatedAt":
           return cellValue ? formatDate(cellValue as string) : "-";
         case "drugGroup":
-          return cellValue && typeof cellValue === "object"
-            ? (cellValue as { groupName: string }).groupName
-            : "-";
+          return cellValue && typeof cellValue === "object" ? (
+            <div
+              className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+              onClick={() =>
+                router.push(
+                  `/drug-group/details?id=${(cellValue as { id: string }).id}`
+                )
+              }
+            >
+              {(cellValue as { groupName: string }).groupName}
+            </div>
+          ) : (
+            "-"
+          );
         case "actions":
           return (
-            <div className="relative flex justify-end items-center gap-2">
+            <div className="relative flex justify-center">
               <Dropdown>
                 <DropdownTrigger>
                   <Button isIconOnly size="sm" variant="light">
@@ -335,20 +507,45 @@ export function Drugs() {
       <div className="flex flex-col gap-4">
         <div className="flex justify-between gap-3 items-end ml-4">
           <Input
+            radius="sm"
             isClearable
             className="w-full sm:max-w-[44%]"
-            placeholder="Search by drug name..."
+            placeholder="Search by drug code, name, or group..."
             startContent={<SearchIcon />}
             value={filterValue}
             onClear={() => onClear()}
             onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
+            <div className="flex gap-2">
+              {showActivate && (
+                <Button
+                  radius="sm"
+                  variant="bordered"
+                  className="bg-success-100 text-success-600"
+                  onClick={handleConfirmActivate}
+                >
+                  Activate Selected
+                </Button>
+              )}
+              {showDeactivate && (
+                <Button
+                  radius="sm"
+                  variant="bordered"
+                  className="bg-danger-100 text-danger-600"
+                  onClick={handleConfirmDeactivate}
+                >
+                  Deactivate Selected
+                </Button>
+              )}
+            </div>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Status
                 </Button>
@@ -372,8 +569,9 @@ export function Drugs() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Columns
                 </Button>
@@ -394,6 +592,7 @@ export function Drugs() {
               </DropdownMenu>
             </Dropdown>
             <Button
+              radius="sm"
               color="primary"
               endContent={<PlusIcon />}
               onClick={() => setIsModalOpen(true)}
@@ -421,6 +620,7 @@ export function Drugs() {
       </div>
     );
   }, [
+    selectedDrugs,
     filterValue,
     statusFilter,
     visibleColumns,
@@ -440,15 +640,16 @@ export function Drugs() {
                 filteredItems.length
               } selected`}
         </span>
-        <Pagination
-          isCompact
-          showControls
-          showShadow
-          color="primary"
-          page={page}
-          total={pages}
-          onChange={setPage}
-        />
+        {isReady && (
+                  <Pagination
+                    key={page}
+                    showControls
+                    page={page}
+                    total={pages}
+                    onChange={(newPage) => setPage(newPage)}
+                    color="primary"
+                  />
+                )}
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
             isDisabled={pages === 1}
@@ -479,8 +680,12 @@ export function Drugs() {
       </div>
 
       {isModalOpen && (
-        <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[800px]">
+        <Modal
+          className="max-w-3xl"
+          isOpen={isModalOpen}
+          onOpenChange={setIsModalOpen}
+        >
+          <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalHeader>Add New Drug</ModalHeader>
             <ModalBody>
               <CreateDrugForm
@@ -501,8 +706,12 @@ export function Drugs() {
       />
 
       {isEditModalOpen && (
-        <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent className="max-w-[800px]">
+        <Modal
+          className="max-w-3xl"
+          isOpen={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+        >
+          <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalHeader>Edit Drug</ModalHeader>
             <ModalBody>
               <EditDrugForm
@@ -522,6 +731,48 @@ export function Drugs() {
         onConfirmDelete={handleConfirmDelete}
       />
 
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onOpenChange={(open) => !open && setIsConfirmModalOpen(false)}
+      >
+        <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
+          <ModalHeader className="border-b pb-3">Confirm Action</ModalHeader>
+          <ModalBody>
+            <p className="text-gray-700">
+              Are you sure you want to{" "}
+              <span
+                className={
+                  confirmAction === "activate"
+                    ? "text-green-600"
+                    : "text-red-600"
+                }
+              >
+                {confirmAction === "activate" ? "activate" : "deactivate"}
+              </span>{" "}
+              the selected drugs?
+            </p>
+          </ModalBody>
+          <ModalFooter className="border-t pt-4">
+            <div className="flex justify-end gap-3">
+              <Button
+                radius="sm"
+                type="button"
+                onClick={() => setIsConfirmModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                radius="sm"
+                type="button"
+                color="primary"
+                onClick={handleConfirmAction}
+              >
+                Confirm
+              </Button>
+            </div>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
       <Table
         isHeaderSticky
         aria-label="Drugs table"

@@ -32,7 +32,7 @@ export interface DrugSupplierUpdateRequest {
 
 export const getDrugSuppliers = async () => {
   try {
-    const response = await api.get("/drugsupplier/getall");
+    const response = await api.get("/drugsupplier-management/drugsuppliers");
     return response.data.data;
   } catch (error) {
     throw error;
@@ -41,7 +41,9 @@ export const getDrugSuppliers = async () => {
 
 export const getDrugSupplierById = async (id: string) => {
   try {
-    const response = await api.get(`/drugsupplier/${id}`);
+    const response = await api.get(
+      `/drugsupplier-management/drugsuppliers/${id}`
+    );
     return response.data.data;
   } catch (error) {
     throw error;
@@ -52,7 +54,16 @@ export const createDrugSupplier = async (
   drugSupplierData: DrugSupplierCreateRequest
 ) => {
   try {
-    const response = await api.post("/drugsupplier", drugSupplierData);
+    const formData = new FormData();
+    Object.entries(drugSupplierData).forEach(([key, value]) => {
+      if (value !== undefined) {
+        formData.append(key, value);
+      }
+    });
+    const response = await api.post(
+      "/drugsupplier-management/drugsuppliers",
+      formData
+    );
     return response.data;
   } catch (error) {
     throw error;
@@ -64,37 +75,41 @@ export const updateDrugSupplier = async (
   drugSupplierData: DrugSupplierUpdateRequest
 ) => {
   try {
-    const response = await api.put(`/drugsupplier/${id}`, drugSupplierData);
+    const formData = new FormData();
+    Object.entries(drugSupplierData).forEach(([key, value]) => {
+      if (value !== undefined) {
+        formData.append(key, value);
+      }
+    });
+    const response = await api.put(
+      `/drugsupplier-management/drugsuppliers/${id}`,
+      formData
+    );
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-export const deleteDrugSupplier = async (id: string) => {
+export const activateDrugSuppliers = async (supplierIds: string[]) => {
   try {
-    const response = await api.delete(`/drugsupplier/${id}`);
+    const response = await api.put(
+      "/drugsupplier-management/drugsuppliers/activate",
+      supplierIds
+    );
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-export const searchDrugSuppliers = async (
-  supplierName?: string,
-  contactNumber?: string,
-  email?: string,
-  status?: string
-) => {
+export const deactivateDrugSuppliers = async (supplierIds: string[]) => {
   try {
-    const params = new URLSearchParams();
-    if (supplierName) params.append("supplierName", supplierName);
-    if (contactNumber) params.append("contactNumber", contactNumber);
-    if (email) params.append("email", email);
-    if (status) params.append("status", status);
-
-    const response = await api.get(`/drugsupplier/search?${params.toString()}`);
-    return response.data.data;
+    const response = await api.put(
+      "/drugsupplier-management/drugsuppliers/deactivate",
+      supplierIds
+    );
+    return response.data;
   } catch (error) {
     throw error;
   }

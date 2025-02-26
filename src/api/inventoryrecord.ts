@@ -1,0 +1,82 @@
+import api, { setupSignalRConnection } from "./customize-axios";
+
+export interface InventoryRecordResponseDTO {
+  id: string;
+  drug: { id: string; drugCode: string; name: string };
+  batchCode: string;
+  quantityInStock: number;
+  reorderLevel: number;
+  lastUpdated?: string;
+  createdAt: string;
+  status?: string;
+}
+
+export interface InventoryRecordUpdateRequestDTO {
+  reorderLevel: number;
+}
+
+export const getAllInventoryRecords = async (
+  page: number = 1,
+  pageSize: number = 10,
+  search?: string
+) => {
+  const response = await api.get(
+    "/inventoryrecord-management/inventoryrecords",
+    {
+      params: { page, pageSize, search },
+    }
+  );
+  return response.data;
+};
+
+export const getInventoryRecordById = async (id: string) => {
+  const response = await api.get(
+    `/inventoryrecord-management/inventoryrecords/${id}`
+  );
+  return response.data.data;
+};
+
+export const updateInventoryRecord = async (
+  id: string,
+  data: InventoryRecordUpdateRequestDTO
+) => {
+  const response = await api.put(
+    `/inventoryrecord-management/inventoryrecords/${id}`,
+    data
+  );
+  return response.data;
+};
+
+export const getInventoryRecordsByDrugId = async (drugId: string) => {
+  const response = await api.get(
+    `/inventoryrecord-management/inventoryrecords/by-drug/${drugId}`
+  );
+  return response.data.data;
+};
+
+export const getInventoryRecordsByBatchId = async (batchId: string) => {
+  const response = await api.get(
+    `/inventoryrecord-management/inventoryrecords/by-batch/${batchId}`
+  );
+  return response.data.data;
+};
+
+export const getInventoryRecordsBelowReorderLevel = async () => {
+  const response = await api.get(
+    "/inventoryrecord-management/inventoryrecords/below-reorder-level"
+  );
+  return response.data.data;
+};
+
+export const getInventoryRecordsByStatus = async (status: string) => {
+  const response = await api.get(
+    `/inventoryrecord-management/inventoryrecords/by-status/${status}`
+  );
+  return response.data.data;
+};
+
+export const setupInventoryRecordRealTime = (
+  callback: (data: InventoryRecordResponseDTO) => void
+) => {
+  return setupSignalRConnection("/inventoryRecordHub", callback);
+};

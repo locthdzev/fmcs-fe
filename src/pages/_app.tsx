@@ -9,6 +9,8 @@ import { UserContext, UserProvider } from "@/context/UserContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { HeroUIProvider } from "@heroui/react";
+import Chatbot from "@/components/chatbot.tsx";
+import { ChatbotProvider } from "@/context/ChatbotContext";
 
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -27,42 +29,50 @@ function MyApp({ Component, pageProps }: AppProps) {
     <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
       <HeroUIProvider>
         <UserProvider>
-          <UserContext.Consumer>
-            {(context) => {
-              const user = context?.user;
+          <ChatbotProvider>
+            <UserContext.Consumer>
+              {(context) => {
+                const user = context?.user;
 
-              // Kiểm tra nếu đang ở trang login
-              const isLoginPage = router.pathname === "/";
+                // Kiểm tra nếu đang ở trang login
+                const isLoginPage = router.pathname === "/";
 
-              // Nếu chưa đăng nhập hoặc đang ở trang login, không hiển thị Sidebar và Header
-              if (!user?.auth || isLoginPage) {
+                // Nếu chưa đăng nhập hoặc đang ở trang login, không hiển thị Sidebar và Header
+                if (!user?.auth || isLoginPage) {
+                  return (
+                    <>
+                      <main className="bg-white flex-1">
+                        <Component {...pageProps} />
+                      </main>
+                      <Chatbot />
+                    </>
+                  );
+                }
+
+                // Nếu đã đăng nhập và không phải trang login
+                const highestRole = user?.role
+                  ? getHighestRole(user.role)
+                  : null;
                 return (
-                  <main className="bg-white flex-1">
-                    <Component {...pageProps} />
-                  </main>
+                  <>
+                    <Head>
+                      <title>FMCS</title>
+                    </Head>
+                    {highestRole === "Admin" ? (
+                      <DashboardLayout>
+                        <Component {...pageProps} />
+                      </DashboardLayout>
+                    ) : (
+                      <DashboardLayout>
+                        <Component {...pageProps} />
+                      </DashboardLayout>
+                    )}
+                    <Chatbot />
+                  </>
                 );
-              }
-
-              // Nếu đã đăng nhập và không phải trang login
-              const highestRole = user?.role ? getHighestRole(user.role) : null;
-              return (
-                <>
-                  <Head>
-                    <title>FMCS</title>
-                  </Head>
-                  {highestRole === "Admin" ? (
-                    <DashboardLayout>
-                      <Component {...pageProps} />
-                    </DashboardLayout>
-                  ) : (
-                    <DashboardLayout>
-                      <Component {...pageProps} />
-                    </DashboardLayout>
-                  )}
-                </>
-              );
-            }}
-          </UserContext.Consumer>
+              }}
+            </UserContext.Consumer>
+          </ChatbotProvider>
         </UserProvider>
         <ToastContainer
           position="top-right"

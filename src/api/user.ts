@@ -3,7 +3,7 @@ import api from "./customize-axios";
 export const getUsers = async () => {
   try {
     const response = await api.get("/user-management/users");
-    return response.data.data; // Adjusted to return the user profiles from the response
+    return response.data.data;
   } catch (error) {
     throw error;
   }
@@ -56,7 +56,7 @@ export const getUserProfile = async (): Promise<UserProfile> => {
       "/user-management/users/me"
     );
     if (response.data.isSuccess && response.data.data) {
-      return response.data.data; // Chỉ trả về trường `data`
+      return response.data.data;
     }
     throw new Error("Failed to fetch user profile.");
   } catch (error) {
@@ -72,20 +72,6 @@ export const updateUser = async (
     const response = await api.put(
       `/user-management/users?userId=${userId}`,
       userUpdateData
-    );
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-};
-
-export const updateAccountsStatus = async (
-  updateStatusData: UpdateAccountsStatusRequest
-) => {
-  try {
-    const response = await api.put(
-      "/user-management/users/status",
-      updateStatusData
     );
     return response.data;
   } catch (error) {
@@ -119,6 +105,44 @@ export const getAllRoles = async () => {
   try {
     const response = await api.get("/role-management/roles");
     return response.data.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getAllStaff = async (): Promise<UserProfile[]> => {
+  try {
+    const response = await api.get<{
+      isSuccess: boolean;
+      data: UserProfile[];
+      code: number;
+      message?: string;
+    }>("/user-management/users/staff");
+    if (response.data.isSuccess && response.data.data) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || "Failed to fetch staff users.");
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const activateUsers = async (userIds: string[]) => {
+  try {
+    const response = await api.put("/user-management/users/activate", userIds);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deactivateUsers = async (userIds: string[]) => {
+  try {
+    const response = await api.put(
+      "/user-management/users/deactivate",
+      userIds
+    );
+    return response.data;
   } catch (error) {
     throw error;
   }

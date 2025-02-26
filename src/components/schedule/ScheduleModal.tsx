@@ -1,0 +1,244 @@
+import React, { useEffect, useState } from "react";
+import {
+  Modal,
+  Form,
+  Select,
+  Checkbox,
+  DatePicker,
+  Button,
+  Input,
+  Switch,
+  Popover,
+} from "antd";
+import dayjs from "dayjs";
+import "dayjs/locale/vi";
+import { ScheduleCreateRequest } from "@/api/schedule";
+import { toast } from "react-toastify";
+import { ShiftResponse } from "@/api/shift";
+import { UserProfile } from "@/api/user";
+import CreateShiftModal from "../shift/CreateShiftModal";
+import { PlusIcon } from "./Icons";
+
+interface ScheduleModalProps {
+  visible: boolean;
+  onCancel: () => void;
+  onSubmit: (values: ScheduleCreateRequest) => void;
+  viewMode: "staff" | "shift";
+  options: any[];
+  fullName?: string;
+  userName?: string;
+  selectedDate?: string;
+  shiftName?: string;
+  startTime?: string;
+  endTime?: string;
+  schedules: any[];
+  selectedRowId?: string;
+}
+
+const ScheduleModal: React.FC<ScheduleModalProps> = ({
+  visible,
+  onCancel,
+  onSubmit,
+  viewMode,
+  options,
+  fullName,
+  userName,
+  selectedDate,
+  shiftName,
+  startTime,
+  endTime,
+  schedules,
+  selectedRowId,
+}) => {
+  const [form] = Form.useForm();
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [isCreateShiftModalVisible, setIsCreateShiftModalVisible] =
+    useState(false);
+
+  useEffect(() => {
+    if (!visible) form.resetFields();
+  }, [visible]);
+
+  const handleSubmit = () => {
+    form
+      .validateFields()
+      .then((values) => {
+        try {
+          const processedValues = {
+            ...values,
+            recurringEndDate: values.recurringEndDate?.format("YYYY-MM-DD"),
+            recurringDays: values.recurringDays?.map(Number),
+          };
+          onSubmit(processedValues);
+          toast.success("Schedule created successfully");
+        } catch (error) {
+          toast.error("Failed to create schedule");
+        }
+      })
+      .catch(() => {
+        toast.error("Please fill in all required fields");
+      });
+  };
+
+  const isOptionDisabled = (optionId: string) => {
+    return schedules.some(
+      (schedule) =>
+        schedule[viewMode === "staff" ? "staffId" : "shiftId"] ===
+          selectedRowId &&
+        schedule[viewMode === "staff" ? "shiftId" : "staffId"] === optionId &&
+        dayjs(schedule.workDate).isSame(selectedDate, "day")
+    );
+  };
+
+  return (
+    <Modal
+      title={
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span>{`Add ${viewMode === "staff" ? "Shifts" : "Staff"}`}</span>
+          {viewMode === "staff" && (
+            <Popover content="Create New Shift" placement="right">
+              <Button
+                type="text"
+                icon={<PlusIcon />}
+                className="hover:text-blue-600 rounded-full bg-gray-100 p-1"
+                onClick={() => setIsCreateShiftModalVisible(true)}
+              />
+            </Popover>
+          )}
+        </div>
+      }
+      open={visible}
+      onCancel={onCancel}
+      footer={[
+        <Button key="cancel" onClick={onCancel}>
+          Cancel
+        </Button>,
+        <Button key="submit" type="primary" onClick={handleSubmit}>
+          Submit
+        </Button>,
+      ]}
+    >
+      <div style={{ marginBottom: "15px" }}>
+        {viewMode === "staff" && fullName && (
+          <p>
+            <strong>Staff:</strong> {fullName} {userName && `(${userName})`}
+          </p>
+        )}
+
+        {viewMode === "shift" && shiftName && (
+          <p>
+            <strong>Shift:</strong> {shiftName} ({startTime?.slice(0, 5)} -{" "}
+            {endTime?.slice(0, 5)})
+          </p>
+        )}
+
+        {selectedDate && (
+          <p>
+            <strong>Date:</strong>{" "}
+            {dayjs(selectedDate).format("dddd, DD/MM/YYYY")}
+          </p>
+        )}
+      </div>
+      <Form form={form} layout="vertical">
+        <Form.Item
+          name={viewMode === "staff" ? "shiftIds" : "staffIds"}
+          label={viewMode === "staff" ? "Select Shifts" : "Select Staff"}
+          rules={[{ required: true, message: "This field is required" }]}
+          style={{ marginBottom: "24px" }}
+        >
+          <Select
+            mode="multiple"
+            showSearch
+            optionFilterProp="label"
+            options={options
+              .filter(
+                (option) =>
+                  viewMode === "staff"
+                    ? (option as ShiftResponse).status === "Active" // Chỉ lấy shift "Active"
+                    : (option as UserProfile).status === "Active" // Chỉ lấy staff "Active"
+              )
+              .map((option) => ({
+                value: option.id,
+                label:
+                  viewMode === "staff" ? option.shiftName : option.fullName,
+                disabled: isOptionDisabled(option.id),
+              }))}
+          />
+        </Form.Item>
+
+        <Form.Item name="note" label="Note">
+          <Input.TextArea placeholder="Enter note..." />
+        </Form.Item>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            marginBottom: "16px",
+          }}
+        >
+          <Form.Item name="isRecurring" valuePropName="checked" noStyle>
+            <Switch
+              checked={isRecurring}
+              onChange={(checked) => setIsRecurring(checked)}
+            />
+          </Form.Item>
+          <span style={{ marginLeft: "8px" }}>
+            {isRecurring ? "Repeat weekly" : "One time"}
+          </span>
+        </div>
+
+        <Form.Item
+          noStyle
+          shouldUpdate={(prev, current) =>
+            prev.isRecurring !== current.isRecurring
+          }
+        >
+          {({ getFieldValue }) =>
+            getFieldValue("isRecurring") && (
+              <>
+                <Form.Item
+                  name="recurringDays"
+                  label="Repeat on days"
+                  rules={[{ required: true, message: "Please select days" }]}
+                >
+                  <Select mode="multiple">
+                    {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+                      <Select.Option key={day} value={day}>
+                        {dayjs().day(day).format("dddd")}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+
+                <Form.Item
+                  name="recurringEndDate"
+                  label="Repeat until"
+                  rules={[
+                    { required: true, message: "Please select end date" },
+                  ]}
+                >
+                  <DatePicker
+                    disabledDate={(current) =>
+                      current && current < dayjs().endOf("day")
+                    }
+                  />
+                </Form.Item>
+              </>
+            )
+          }
+        </Form.Item>
+      </Form>
+
+      <CreateShiftModal
+        visible={isCreateShiftModalVisible}
+        onClose={() => setIsCreateShiftModalVisible(false)}
+        onSuccess={() => {
+          setIsCreateShiftModalVisible(false);
+          // Refresh shifts list
+        }}
+      />
+    </Modal>
+  );
+};
+export default ScheduleModal;
