@@ -116,12 +116,14 @@ export function Trucks() {
     direction: "ascending",
   });
 
+  const [isReady, setIsReady] = useState(false);
   const [page, setPage] = useState(1);
   const [trucks, setTrucks] = useState<TruckResponse[]>([]);
 
   const fetchTrucks = async () => {
     const data = await getTrucks();
     setTrucks(data);
+    setIsReady(true);
   };
 
   useEffect(() => {
@@ -463,12 +465,22 @@ export function Trucks() {
           <div className="flex gap-3">
             <div className="flex gap-2">
               {showActivate && (
-                <Button color="success" onClick={handleConfirmActivate}>
+                <Button
+                  radius="sm"
+                  variant="bordered"
+                  className="bg-success-100 text-success-600"
+                  onClick={handleConfirmActivate}
+                >
                   Activate Selected
                 </Button>
               )}
               {showDeactivate && (
-                <Button color="danger" onClick={handleConfirmDeactivate}>
+                <Button
+                  className="bg-danger-100 text-danger-600"
+                  radius="sm"
+                  variant="bordered"
+                  onClick={handleConfirmDeactivate}
+                >
                   Deactivate Selected
                 </Button>
               )}
@@ -575,15 +587,16 @@ export function Trucks() {
                 filteredItems.length
               } selected`}
         </span>
-        <Pagination
-          isCompact
-          showControls
-          showShadow
-          color="primary"
-          page={page}
-          total={pages}
-          onChange={onPageChange}
-        />
+        {isReady && (
+          <Pagination
+            key={page}
+            showControls
+            page={page}
+            total={pages}
+            onChange={(newPage) => setPage(newPage)}
+            color="primary"
+          />
+        )}
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
             isDisabled={pages === 1}
@@ -615,7 +628,7 @@ export function Trucks() {
 
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white" >
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalHeader>Add New Truck</ModalHeader>
             <ModalBody>
               <CreateTruckForm
