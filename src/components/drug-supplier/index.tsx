@@ -103,6 +103,7 @@ export function DrugSuppliers() {
     column: "createdAt",
     direction: "descending",
   });
+  const [isReady, setIsReady] = useState(false);
   const [page, setPage] = useState(1);
   const [suppliers, setSuppliers] = useState<DrugSupplierResponse[]>([]);
 
@@ -113,6 +114,7 @@ export function DrugSuppliers() {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     setSuppliers(sortedData);
+    setIsReady(true);
   };
 
   useEffect(() => {
@@ -410,12 +412,22 @@ export function DrugSuppliers() {
           <div className="flex gap-3">
             <div className="flex gap-2">
               {showActivate && (
-                <Button color="success" onClick={handleConfirmActivate}>
+                <Button
+                  radius="sm"
+                  variant="bordered"
+                  className="bg-success-100 text-success-600"
+                  onClick={handleConfirmActivate}
+                >
                   Activate Selected
                 </Button>
               )}
               {showDeactivate && (
-                <Button color="danger" onClick={handleConfirmDeactivate}>
+                <Button
+                  radius="sm"
+                  variant="bordered"
+                  className="bg-danger-100 text-danger-600"
+                  onClick={handleConfirmDeactivate}
+                >
                   Deactivate Selected
                 </Button>
               )}
@@ -423,8 +435,9 @@ export function DrugSuppliers() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Status
                 </Button>
@@ -447,8 +460,9 @@ export function DrugSuppliers() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Columns
                 </Button>
@@ -516,15 +530,16 @@ export function DrugSuppliers() {
                 filteredItems.length
               } selected`}
         </span>
-        <Pagination
-          isCompact
-          showControls
-          showShadow
-          color="primary"
-          page={page}
-          total={pages}
-          onChange={onPageChange}
-        />
+        {isReady && (
+                  <Pagination
+                    key={page}
+                    showControls
+                    page={page}
+                    total={pages}
+                    onChange={(newPage) => setPage(newPage)}
+                    color="primary"
+                  />
+                )}
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
             isDisabled={pages === 1}
@@ -556,10 +571,8 @@ export function DrugSuppliers() {
 
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[500px]">
-            <ModalHeader className="border-b pb-3">
-              Add New Drug Supplier
-            </ModalHeader>
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
+            <ModalHeader className="pb-3">Add New Drug Supplier</ModalHeader>
             <ModalBody>
               <CreateDrugSupplierForm
                 onClose={() => {
@@ -574,8 +587,8 @@ export function DrugSuppliers() {
 
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent className="max-w-[500px]">
-            <ModalHeader className="border-b pb-3">Edit Drug</ModalHeader>
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
+            <ModalHeader className=" pb-3">Edit Drug</ModalHeader>
             <ModalBody>
               <EditDrugSupplierForm
                 drugSupplierId={editingSupplierId}
@@ -591,7 +604,7 @@ export function DrugSuppliers() {
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
       >
-        <ModalContent>
+        <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
           <ModalHeader>Confirm Action</ModalHeader>
           <ModalBody>
             Are you sure you want to{" "}

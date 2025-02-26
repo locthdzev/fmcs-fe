@@ -6,7 +6,7 @@ interface ChatResponse {
 
 export const sendMessageToChatbot = async (
   message: string
-): Promise<string> => {
+): Promise<string[]> => {
   try {
     const response = await rasaInstance.post<ChatResponse[]>(
       "/webhooks/rest/webhook",
@@ -15,9 +15,12 @@ export const sendMessageToChatbot = async (
         message,
       }
     );
-    return response.data[0]?.text || "Tôi chưa hiểu, thử lại nhé!";
+    console.log("Rasa Response:", response.data);
+    return response.data && response.data.length > 0
+      ? response.data.map((d) => d.text)
+      : ["Bot không có phản hồi, thử lại nhé!"];
   } catch (error) {
     console.error("Chatbot error:", error);
-    return "Có lỗi xảy ra, thử lại sau!";
+    return ["Có lỗi xảy ra, thử lại sau!"];
   }
 };

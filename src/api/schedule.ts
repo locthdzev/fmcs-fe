@@ -11,6 +11,21 @@ export interface ScheduleResponse {
   updatedAt?: string;
 }
 
+export interface ScheduleTodayResponse {
+  id: string;
+  staffId: string;
+  shiftId: string;
+  workDate: string;
+  note?: string;
+  status?: string;
+  createdAt: string;
+  updatedAt?: string;
+  staffName?: string;
+  shiftName?: string;
+  shiftStartTime?: string;
+  shiftEndTime?: string;
+}
+
 export interface ScheduleCreateRequest {
   staffId: string;
   shiftId: string;
@@ -62,6 +77,17 @@ export const getSchedulesByDateRange = async (
       },
     });
     return response.data.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getStaffSchedulesForToday = async () => {
+  try {
+    const response = await api.get(
+      "/schedule-management/schedules/staff/today"
+    );
+    return response.data;
   } catch (error) {
     throw error;
   }

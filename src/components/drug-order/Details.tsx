@@ -1,14 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { Card, CardHeader, CardBody, Chip, ChipProps } from "@heroui/react";
-import { Steps } from "antd";
 import {
-  CheckOutlined,
-  CloseOutlined,
-  LoadingOutlined,
-  CheckCircleOutlined,
-} from "@ant-design/icons";
-import { getDrugOrderById, DrugOrderIdResponse } from "@/api/drugorder";
+  Card,
+  CardHeader,
+  CardBody,
+  Chip,
+  ChipProps,
+  Button,
+  Checkbox,
+} from "@heroui/react";
+import { Steps } from "antd"; // Nhập StepsProps để mở rộng kiểu
+import { LoadingOutlined, CheckOutlined } from "@ant-design/icons";
+import {
+  getDrugOrderById,
+  DrugOrderIdResponse,
+  completeDrugOrderDetails,
+  rejectDrugOrderDetails,
+} from "@/api/drugorder";
+import { toast } from "react-toastify";
+import { ConfirmModal } from "./Confirm";
 
 const statusColorMap: Record<string, ChipProps["color"]> = {
   Pending: "warning",
@@ -32,9 +42,9 @@ const getStepStatus = (currentStatus: string) => {
     case "Approved":
       return 1;
     case "Rejected":
-      return 1;
-    case "Completed":
       return 2;
+    case "Completed":
+      return 3;
     default:
       return 0;
   }
@@ -44,6 +54,13 @@ export function DrugOrderDetails() {
   const router = useRouter();
   const { id } = router.query;
   const [drugOrder, setDrugOrder] = useState<DrugOrderIdResponse | null>(null);
+  const [selectedDetailIds, setSelectedDetailIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<
+    "complete" | "reject" | null
+  >(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,8 +94,96 @@ export function DrugOrderDetails() {
     }).format(price);
   };
 
+  const handleToggleSelect = (detailId: string) => {
+    setSelectedDetailIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(detailId)) {
+        newSet.delete(detailId);
+      } else {
+        newSet.add(detailId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allEligibleIds =
+        drugOrder?.drugOrderDetails
+          .filter((d) => d.isActive && d.status === "Approved")
+          .map((d) => d.id) || [];
+      setSelectedDetailIds(new Set(allEligibleIds));
+    } else {
+      setSelectedDetailIds(new Set());
+    }
+  };
+
+  const handleCompleteDetails = async () => {
+    if (selectedDetailIds.size === 0) {
+      toast.error("Please select at least one detail to complete.");
+      return;
+    }
+
+    try {
+      const response = await completeDrugOrderDetails({
+        drugOrderDetailIds: Array.from(selectedDetailIds),
+      });
+      if (response.isSuccess) {
+        toast.success("Selected drug order details completed successfully");
+        const updatedOrder = await getDrugOrderById(id as string);
+        setDrugOrder(updatedOrder);
+        setSelectedDetailIds(new Set());
+      } else {
+        toast.error(
+          response.message || "Failed to complete drug order details"
+        );
+      }
+    } catch (error) {
+      toast.error("Failed to complete drug order details");
+    }
+  };
+
+  const handleRejectDetails = async () => {
+    if (selectedDetailIds.size === 0) {
+      toast.error("Please select at least one detail to reject.");
+      return;
+    }
+
+    try {
+      const response = await rejectDrugOrderDetails({
+        drugOrderDetailIds: Array.from(selectedDetailIds),
+      });
+      if (response.isSuccess) {
+        toast.success("Selected drug order details rejected successfully");
+        const updatedOrder = await getDrugOrderById(id as string);
+        setDrugOrder(updatedOrder);
+        setSelectedDetailIds(new Set());
+      } else {
+        toast.error(response.message || "Failed to reject drug order details");
+      }
+    } catch (error) {
+      toast.error("Failed to reject drug order details");
+    }
+  };
+
+  const handleConfirmAction = async () => {
+    if (confirmAction === "complete") {
+      await handleCompleteDetails();
+    } else if (confirmAction === "reject") {
+      await handleRejectDetails();
+    }
+    setIsConfirmModalOpen(false);
+    setConfirmAction(null);
+  };
+
+  const canCompleteOrReject = drugOrder?.status === "Approved";
+  const showActionButtons = canCompleteOrReject && selectedDetailIds.size > 0;
+
+  const activeDetails =
+    drugOrder?.drugOrderDetails.filter((detail) => detail.isActive) || [];
+
   return (
-    <div ref={{ current: null }} className="space-y-6 p-6">
+    <div className="space-y-6 p-6">
       <button
         onClick={() => router.back()}
         className="p-0.5 text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-100 w-6 h-6 flex items-center justify-center mb-0"
@@ -100,7 +205,7 @@ export function DrugOrderDetails() {
       <Card>
         <CardHeader className="flex justify-between items-center">
           <h4 className="text-xl font-bold">Drug Order Details</h4>
-          <div className="w-[550px]">
+          <div className="w-[450px]">
             <Steps
               size="small"
               current={getStepStatus(drugOrder?.status || "Pending")}
@@ -119,30 +224,25 @@ export function DrugOrderDetails() {
                     drugOrder?.status === "Pending" ? "process" : "finish",
                   icon:
                     drugOrder?.status === "Pending" ? (
-                      <LoadingOutlined />
-                    ) : (
-                      <CheckOutlined />
-                    ),
+                      <LoadingOutlined style={{ fontSize: "20px" }} />
+                    ) : undefined,
                 },
                 {
-                  title:
-                    drugOrder?.status === "Rejected" ? (
-                      <Chip
-                        color={statusColorMap["Rejected"]}
-                        size="sm"
-                        variant="flat"
-                      >
-                        Rejected
-                      </Chip>
-                    ) : (
-                      <Chip
-                        color={statusColorMap["Approved"]}
-                        size="sm"
-                        variant="flat"
-                      >
-                        Approved
-                      </Chip>
-                    ),
+                  title: (
+                    <Chip
+                      color={
+                        drugOrder?.status === "Rejected"
+                          ? statusColorMap["Rejected"]
+                          : statusColorMap["Approved"]
+                      }
+                      size="sm"
+                      variant="flat"
+                    >
+                      {drugOrder?.status === "Rejected"
+                        ? "Rejected"
+                        : "Approved"}
+                    </Chip>
+                  ),
                   status:
                     drugOrder?.status === "Rejected"
                       ? "error"
@@ -152,13 +252,9 @@ export function DrugOrderDetails() {
                       ? "finish"
                       : "wait",
                   icon:
-                    drugOrder?.status === "Rejected" ? (
-                      <CloseOutlined />
-                    ) : drugOrder?.status === "Approved" ? (
-                      <LoadingOutlined />
-                    ) : (
-                      <CheckOutlined />
-                    ),
+                    drugOrder?.status === "Approved" ? (
+                      <LoadingOutlined style={{ fontSize: "20px" }} />
+                    ) : undefined,
                 },
                 {
                   title: (
@@ -172,19 +268,14 @@ export function DrugOrderDetails() {
                   ),
                   status: drugOrder?.status === "Completed" ? "finish" : "wait",
                   icon:
-                    drugOrder?.status === "Completed" ? (
-                      <CheckCircleOutlined />
-                    ) : (
-                      <CheckOutlined />
-                    ),
+                    drugOrder?.status === "Completed" ? undefined : undefined,
                 },
               ]}
-            />
+            />{" "}
           </div>
         </CardHeader>
         <CardBody>
           <div className="grid grid-cols-3 gap-4">
-            {/* Order Code */}
             <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center space-x-2">
                 <div>
@@ -196,7 +287,6 @@ export function DrugOrderDetails() {
               </div>
             </div>
 
-            {/* Supplier */}
             <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center space-x-2">
                 <div>
@@ -208,7 +298,6 @@ export function DrugOrderDetails() {
               </div>
             </div>
 
-            {/* Created By */}
             <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center space-x-2">
                 <div>
@@ -232,7 +321,6 @@ export function DrugOrderDetails() {
               </div>
             </div>
 
-            {/* Order Date */}
             <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center space-x-2">
                 <div>
@@ -246,7 +334,6 @@ export function DrugOrderDetails() {
               </div>
             </div>
 
-            {/* Updated At */}
             <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center space-x-2">
                 <div>
@@ -266,7 +353,6 @@ export function DrugOrderDetails() {
               </div>
             </div>
 
-            {/* Updated By */}
             <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center space-x-2">
                 <div>
@@ -299,9 +385,7 @@ export function DrugOrderDetails() {
             </div>
           </div>
 
-          {/* Total Drug Types, Total Quantity, Total Price */}
           <div className="grid grid-cols-3 gap-4 mt-6">
-            {/* Total Drug Types */}
             <div className="p-4 bg-purple-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center space-x-2">
                 <div>
@@ -309,13 +393,12 @@ export function DrugOrderDetails() {
                     Total Drug Types
                   </p>
                   <p className="font-semibold text-base text-purple-800">
-                    {drugOrder?.drugOrderDetails.length || 0} types
+                    {activeDetails.length} types
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Total Quantity */}
             <div className="p-4 bg-blue-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center space-x-2">
                 <div>
@@ -327,7 +410,6 @@ export function DrugOrderDetails() {
               </div>
             </div>
 
-            {/* Total Price */}
             <div className="p-4 bg-green-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center space-x-2">
                 <div>
@@ -344,28 +426,93 @@ export function DrugOrderDetails() {
         </CardBody>
       </Card>
       <Card>
-        <CardHeader>
+        <CardHeader className="flex justify-between items-center">
           <h4 className="text-xl font-bold">Drugs In The Order</h4>
+          <div className="flex gap-2 items-center">
+            {canCompleteOrReject && (
+              <>
+                {showActionButtons && (
+                  <>
+                    <Button
+                      color="success"
+                      onClick={() => {
+                        setConfirmAction("complete");
+                        setIsConfirmModalOpen(true);
+                      }}
+                      isDisabled={
+                        selectedDetailIds.size === 0 ||
+                        !activeDetails.some(
+                          (d) =>
+                            selectedDetailIds.has(d.id) &&
+                            d.status === "Approved"
+                        )
+                      }
+                    >
+                      Complete Selected
+                    </Button>
+                    <Button
+                      color="danger"
+                      onClick={() => {
+                        setConfirmAction("reject");
+                        setIsConfirmModalOpen(true);
+                      }}
+                      isDisabled={
+                        selectedDetailIds.size === 0 ||
+                        !activeDetails.some(
+                          (d) =>
+                            selectedDetailIds.has(d.id) &&
+                            d.status === "Approved"
+                        )
+                      }
+                    >
+                      Reject Selected
+                    </Button>
+                  </>
+                )}
+                <Checkbox
+                  size="sm"
+                  isSelected={
+                    selectedDetailIds.size ===
+                    activeDetails.filter((d) => d.status === "Approved").length
+                  }
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                >
+                  Select All
+                </Checkbox>
+              </>
+            )}
+          </div>
         </CardHeader>
         <CardBody>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {drugOrder?.drugOrderDetails.map((detail) => (
               <div
                 key={detail.id}
-                className="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-100"
+                className={`p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border ${
+                  detail.isActive
+                    ? "bg-white border-gray-200"
+                    : "bg-gray-100 border-gray-300 opacity-70"
+                } relative`}
               >
-                <div className="flex items-start space-x-4">
-                  {/* Hình ảnh thuốc */}
+                {canCompleteOrReject && detail.isActive && (
+                  <Checkbox
+                    size="sm"
+                    isSelected={selectedDetailIds.has(detail.id)}
+                    onChange={() => handleToggleSelect(detail.id)}
+                    isDisabled={detail.status !== "Approved"}
+                    className="absolute top-2 left-2"
+                  />
+                )}
+                <div className="flex items-start space-x-4 mt-8">
                   {detail.drug.imageUrl && (
                     <img
                       src={detail.drug.imageUrl}
                       alt={detail.drug.name}
-                      className="w-24 h-24 object-cover rounded-lg"
+                      className="w-20 h-20 object-cover rounded-lg"
                     />
                   )}
                   <div className="flex-1">
-                    {/* Tên thuốc và mã thuốc */}
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-center mb-2">
                       <div>
                         <h5 className="font-semibold text-lg text-gray-800">
                           {detail.drug.name}
@@ -374,7 +521,6 @@ export function DrugOrderDetails() {
                           Code: {detail.drug.drugCode}
                         </p>
                       </div>
-                      {/* Chip status */}
                       {detail.status && (
                         <Chip
                           color={
@@ -391,43 +537,46 @@ export function DrugOrderDetails() {
                       )}
                     </div>
 
-                    {/* Thông tin chi tiết */}
-                    <div className="mt-4 space-y-3">
+                    <div className="mt-4 space-y-2">
                       <div className="flex justify-between">
                         <p className="text-sm text-gray-600">Quantity</p>
-                        <p className="font-semibold text-gray-800">
+                        <p className="font-medium text-gray-800">
                           {detail.quantity} {detail.drug.unit}
                         </p>
                       </div>
                       <div className="flex justify-between">
                         <p className="text-sm text-gray-600">Price Per Unit</p>
-                        <p className="font-semibold text-gray-800">
+                        <p className="font-medium text-gray-800">
                           {formatPrice(detail.pricePerUnit)}
                         </p>
                       </div>
                       <div className="flex justify-between">
                         <p className="text-sm text-gray-600">Total</p>
-                        <p className="font-semibold text-blue-600">
+                        <p className="font-medium text-blue-600">
                           {formatPrice(detail.quantity * detail.pricePerUnit)}
                         </p>
                       </div>
                     </div>
 
-                    {/* Thông tin người tạo và ngày tạo */}
-                    <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="mt-4 pt-4 border-t border-gray-200">
                       <p className="text-sm text-gray-500">
                         Created by:{" "}
-                        <span className="font-semibold text-gray-700">
+                        <span className="font-medium text-gray-700">
                           {detail.createdBy.userName}
                         </span>
                       </p>
                       <p className="text-sm text-gray-500">
                         Created at:{" "}
-                        <span className="font-semibold text-gray-700">
+                        <span className="font-medium text-gray-700">
                           {formatDate(detail.createdAt)}
                         </span>
                       </p>
                     </div>
+                    {!detail.isActive && (
+                      <p className="text-sm text-gray-500 mt-2 italic">
+                        This detail is inactive and not included in totals.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -435,6 +584,39 @@ export function DrugOrderDetails() {
           </div>
         </CardBody>
       </Card>
+
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={handleConfirmAction}
+        title={`Confirm ${
+          confirmAction === "complete" ? "Completion" : "Rejection"
+        }`}
+        message={
+          confirmAction === "complete" ? (
+            <span>
+              Are you sure you want to{" "}
+              <span className="text-green-600 font-semibold">complete</span> the
+              selected drug order details? Once{" "}
+              <span className="text-green-600 font-semibold">completed</span>,
+              these details will be finalized, and stock will be updated in the
+              inventory.
+            </span>
+          ) : (
+            <span>
+              Are you sure you want to{" "}
+              <span className="text-red-600 font-semibold">reject</span> the
+              selected drug order details? Once{" "}
+              <span className="text-red-600 font-semibold">rejected</span>,
+              these details will be marked inactive and removed from the order
+              totals.
+            </span>
+          )
+        }
+        confirmText={confirmAction === "complete" ? "Complete" : "Reject"}
+        cancelText="Cancel"
+        confirmColor={confirmAction === "complete" ? "success" : "danger"}
+      />
     </div>
   );
 }

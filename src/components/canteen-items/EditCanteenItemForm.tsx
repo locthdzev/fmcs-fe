@@ -77,7 +77,9 @@ export const EditCanteenItemForm: React.FC<EditCanteenItemFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
 
     setFormData((prev) => ({
@@ -92,7 +94,10 @@ export const EditCanteenItemForm: React.FC<EditCanteenItemFormProps> = ({
     if (file) {
       // ✅ Kiểm tra định dạng file
       if (!file.type.startsWith("image/")) {
-        setErrors((prev) => ({ ...prev, imageFile: "Only image files are allowed." }));
+        setErrors((prev) => ({
+          ...prev,
+          imageFile: "Only image files are allowed.",
+        }));
         return;
       }
       setErrors((prev) => ({ ...prev, imageFile: "" }));
@@ -148,15 +153,23 @@ export const EditCanteenItemForm: React.FC<EditCanteenItemFormProps> = ({
     <form onSubmit={handleSubmit}>
       <div className="space-y-4">
         <Input
+          isClearable
+          radius="sm"
+          variant="bordered"
           label="Item Name"
           name="itemName"
           value={formData.itemName}
           onChange={handleInputChange}
           required
         />
-        {errors.itemName && <p className="text-red-500 text-sm">{errors.itemName}</p>}
+        {errors.itemName && (
+          <p className="text-red-500 text-sm">{errors.itemName}</p>
+        )}
 
         <Input
+          isClearable
+          radius="sm"
+          variant="bordered"
           label="Description"
           name="description"
           value={formData.description}
@@ -165,6 +178,9 @@ export const EditCanteenItemForm: React.FC<EditCanteenItemFormProps> = ({
         />
 
         <Input
+          isClearable
+          radius="sm"
+          variant="bordered"
           label="Unit Price"
           name="unitPrice"
           type="number"
@@ -172,11 +188,18 @@ export const EditCanteenItemForm: React.FC<EditCanteenItemFormProps> = ({
           onChange={handleInputChange}
           required
         />
-        {errors.unitPrice && <p className="text-red-500 text-sm">{errors.unitPrice}</p>}
+        {errors.unitPrice && (
+          <p className="text-red-500 text-sm">{errors.unitPrice}</p>
+        )}
 
         <Checkbox
           isSelected={formData.available} // ✅ Sử dụng `isSelected` thay vì `checked`
-          onChange={(event) => setFormData((prev) => ({ ...prev, available: event.target.checked }))} // ✅ Lấy `event.target.checked`
+          onChange={(event) =>
+            setFormData((prev) => ({
+              ...prev,
+              available: event.target.checked,
+            }))
+          } // ✅ Lấy `event.target.checked`
           color="success"
         >
           Available
@@ -189,13 +212,19 @@ export const EditCanteenItemForm: React.FC<EditCanteenItemFormProps> = ({
           accept="image/*" // ✅ Chỉ chấp nhận file ảnh
           onChange={handleFileChange}
         />
-        {errors.imageFile && <p className="text-red-500 text-sm">{errors.imageFile}</p>}
+        {errors.imageFile && (
+          <p className="text-red-500 text-sm">{errors.imageFile}</p>
+        )}
 
         {/* ✅ Hiển thị ảnh preview nếu có */}
         {imagePreview && (
           <div className="mt-4">
             <p className="text-gray-500">Image Preview:</p>
-            <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded-md border" />
+            <img
+              src={imagePreview}
+              alt="Preview"
+              className="w-32 h-32 object-cover rounded-md border"
+            />
           </div>
         )}
       </div>

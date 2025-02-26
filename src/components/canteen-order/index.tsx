@@ -123,6 +123,7 @@ export function CanteenOrders() {
     direction: "descending",
   });
 
+  const [isReady, setIsReady] = useState(false);
   const [page, setPage] = useState(1);
   const [orders, setOrders] = useState<CanteenOrderResponse[]>([]);
   // Modify the fetchOrders function to sort by date
@@ -137,6 +138,7 @@ export function CanteenOrders() {
           );
         });
         setOrders(sortedData);
+        setIsReady(true);
         setPage(1);
       }
     } catch (error) {
@@ -550,8 +552,9 @@ export function CanteenOrders() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Status
                 </Button>
@@ -575,8 +578,9 @@ export function CanteenOrders() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Columns
                 </Button>
@@ -597,6 +601,7 @@ export function CanteenOrders() {
               </DropdownMenu>
             </Dropdown>
             <Button
+              radius="sm"
               color="primary"
               endContent={<PlusIcon />}
               onClick={() => setIsModalOpen(true)}
@@ -644,15 +649,16 @@ export function CanteenOrders() {
                 filteredItems.length
               } selected`}
         </span>
-        <Pagination
-          isCompact
-          showControls
-          showShadow
-          color="primary"
-          page={page}
-          total={pages}
-          onChange={setPage}
-        />
+        {isReady && (
+                  <Pagination
+                    key={page}
+                    showControls
+                    page={page}
+                    total={pages}
+                    onChange={(newPage) => setPage(newPage)}
+                    color="primary"
+                  />
+                )}
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
             isDisabled={pages === 1}
@@ -684,10 +690,10 @@ export function CanteenOrders() {
 
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[800px]">
-            <ModalHeader className="border-b pb-3">Add New Order</ModalHeader>
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalBody>
               <CreateCanteenOrderForm
+                isOpen={isModalOpen}
                 onClose={() => {
                   setIsModalOpen(false);
                 }}
@@ -700,8 +706,7 @@ export function CanteenOrders() {
 
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent className="max-w-[800px]">
-            <ModalHeader className="border-b pb-3">Edit Order</ModalHeader>
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalBody>
               <EditCanteenOrderForm
                 isOpen={isEditModalOpen}
@@ -725,7 +730,7 @@ export function CanteenOrders() {
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
       >
-        <ModalContent className="max-w-[500px]">
+        <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
           <ModalHeader className="border-b pb-3">Confirm Action</ModalHeader>
           <ModalBody>
             <p className="text-gray-700 mb-2">

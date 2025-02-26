@@ -67,30 +67,46 @@ export const CreateDrugSupplierForm: React.FC<CreateDrugSupplierFormProps> = ({
     <form onSubmit={handleSubmit}>
       <div className="grid grid-cols-1 gap-4">
         <Input
+          isClearable
+          radius="sm"
+          variant="bordered"
           label="Supplier Name"
           name="supplierName"
           value={formData.supplierName}
           onChange={handleInputChange}
+          onClear={() => setFormData({ ...formData, supplierName: "" })}
           required
         />
         <Input
+          isClearable
+          radius="sm"
+          variant="bordered"
           label="Contact Number"
           name="contactNumber"
           value={formData.contactNumber}
           onChange={handleInputChange}
+          onClear={() => setFormData({ ...formData, contactNumber: "" })}
         />
         <Input
+          isClearable
+          radius="sm"
+          variant="bordered"
           label="Email"
           name="email"
           value={formData.email}
           onChange={handleInputChange}
+          onClear={() => setFormData({ ...formData, email: "" })}
         />
         <div className="col-span-1">
           <Textarea
+            isClearable
+            radius="sm"
+            variant="bordered"
             label="Address"
             name="address"
             value={formData.address || ""}
             onChange={handleInputChange}
+            onClear={() => setFormData({ ...formData, address: "" })}
           />
         </div>
       </div>

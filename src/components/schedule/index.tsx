@@ -4,7 +4,6 @@ import ScheduleTable from "./ScheduleTable";
 import ScheduleModal from "./ScheduleModal";
 import {
   getSchedulesByDateRange,
-  createSchedule,
   deleteSchedule,
   createMultipleSchedulesForStaff,
   createMultipleSchedulesForShift,
@@ -26,8 +25,8 @@ export function Schedule() {
   const [shifts, setShifts] = useState<ShiftResponse[]>([]);
   const [staffs, setStaffs] = useState<UserProfile[]>([]);
   const [currentWeek, setCurrentWeek] = useState<Date[]>([]);
-  const [selectedStaffs, setSelectedStaffs] = useState<string[]>([]); // State để lưu các staff được chọn
-  const [filteredStaffs, setFilteredStaffs] = useState<UserProfile[]>([]); // State để lưu danh sách staff đã filter
+  const [selectedStaffs, setSelectedStaffs] = useState<string[]>([]);
+  const [filteredStaffs, setFilteredStaffs] = useState<UserProfile[]>([]);
   const [selectedStaffInfo, setSelectedStaffInfo] = useState<{
     fullName: string;
     userName: string;
@@ -38,13 +37,12 @@ export function Schedule() {
     endTime: string;
   }>({ shiftName: "", startTime: "", endTime: "" });
 
-  // Khởi tạo tuần hiện tại
   useEffect(() => {
     setCurrentWeekDays(dayjs());
   }, []);
 
   const setCurrentWeekDays = (date: dayjs.Dayjs) => {
-    const startOfWeek = date.startOf("week").add(1, "day"); // Thứ 2 đầu tuần
+    const startOfWeek = date.startOf("week").add(1, "day");
     const weekDays = [];
     for (let i = 0; i < 7; i++) {
       weekDays.push(startOfWeek.add(i, "day").toDate());
@@ -52,30 +50,30 @@ export function Schedule() {
     setCurrentWeek(weekDays);
   };
 
-  // Fetch dữ liệu
   const fetchData = async () => {
     try {
       const startDate = dayjs(currentWeek[0]).format("YYYY-MM-DD");
       const endDate = dayjs(currentWeek[6]).format("YYYY-MM-DD");
 
-      // Lấy schedules
       const scheduleData = await getSchedulesByDateRange(startDate, endDate);
       setSchedules(scheduleData);
 
-      // Lấy danh sách shift và staff
       const [shiftData, staffData] = await Promise.all([
         getShifts(),
         getAllStaff(),
       ]);
       setShifts(shiftData);
-      setStaffs(staffData);
+      const activeStaffs = staffData.filter(
+        (staff) => staff.status === "Active"
+      );
+      setStaffs(activeStaffs);
       if (selectedStaffs.length > 0) {
-        const filtered = staffData.filter((staff) =>
+        const filtered = activeStaffs.filter((staff) =>
           selectedStaffs.includes(staff.id)
         );
         setFilteredStaffs(filtered);
       } else {
-        setFilteredStaffs(staffData);
+        setFilteredStaffs(activeStaffs);
       }
     } catch (error) {
       message.error("Error fetching data");
@@ -90,7 +88,6 @@ export function Schedule() {
 
   const handleAdd = (date: string, rowId: string) => {
     if (viewMode === "staff") {
-      // Trường hợp thêm ca làm việc cho nhân viên
       const selectedStaff = staffs.find((staff) => staff.id === rowId);
       setSelectedDate(date);
       setSelectedRowId(rowId);
@@ -99,7 +96,6 @@ export function Schedule() {
         userName: selectedStaff?.userName || "",
       });
     } else {
-      // Trường hợp thêm nhân viên cho ca làm việc
       const selectedShift = shifts.find((shift) => shift.id === rowId);
       setSelectedDate(date);
       setSelectedRowId(rowId);
@@ -120,7 +116,6 @@ export function Schedule() {
         workDate: selectedDate,
       };
 
-      // Kiểm tra xem ca làm việc hoặc nhân viên đã được thêm vào chưa
       const isDuplicate = schedules.some(
         (schedule) =>
           schedule[viewMode === "staff" ? "staffId" : "shiftId"] ===
@@ -175,7 +170,6 @@ export function Schedule() {
     }
   };
 
-  // Hàm xử lý khi chọn staff
   const handleStaffSelect = (values: string[]) => {
     setSelectedStaffs(values);
     if (values.length > 0) {
@@ -186,7 +180,6 @@ export function Schedule() {
     }
   };
 
-  // Hàm lấy dữ liệu hiển thị
   const getRowData = () => {
     if (viewMode === "staff") {
       return selectedStaffs.length > 0 ? filteredStaffs : staffs;
@@ -292,8 +285,8 @@ export function Schedule() {
           shiftName={selectedShiftInfo.shiftName}
           startTime={selectedShiftInfo.startTime}
           endTime={selectedShiftInfo.endTime}
-          schedules={schedules} // Truyền schedules xuống ScheduleModal
-          selectedRowId={selectedRowId} // Thêm prop này
+          schedules={schedules}
+          selectedRowId={selectedRowId}
         />
       </div>
     </div>

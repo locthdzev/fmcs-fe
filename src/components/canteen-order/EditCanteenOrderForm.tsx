@@ -27,6 +27,14 @@ interface EditCanteenOrderFormProps {
   orderId: string;
 }
 
+interface CanteenItem {
+  id: string;
+  itemName: string;
+  unitPrice: number;
+  available: string;
+  imageUrl?: string;
+}
+
 interface OrderDetail {
   itemId: string;
   quantity: number;
@@ -60,7 +68,7 @@ export const EditCanteenOrderForm: React.FC<EditCanteenOrderFormProps> = ({
   const [order, setOrder] = useState<CanteenOrderResponse | null>(null);
   const [formData, setFormData] = useState<FormData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [canteenItems, setCanteenItems] = useState<CanteenItemResponse[]>([]);
+  const [canteenItems, setCanteenItems] = useState<CanteenItem[]>([]);
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const selectedItemIds = new Set(
     formData?.canteenOrderDetails.map((detail) => detail.itemId)
@@ -78,7 +86,7 @@ export const EditCanteenOrderForm: React.FC<EditCanteenOrderFormProps> = ({
     try {
       const orderData = await getCanteenOrderById(orderId);
       console.log("API Response:", orderData);
-
+      setOrder(orderData);
       setFormData({
         licensePlate: orderData.truck?.licensePlate || "",
         orderDate: orderData.orderDate,
@@ -89,6 +97,7 @@ export const EditCanteenOrderForm: React.FC<EditCanteenOrderFormProps> = ({
             return {
               itemId: detail.itemId,
               quantity: detail.quantity,
+              unitPrice: detail.unitPrice,
               canteenItem: detail.item
                 ? {
                     itemName: detail.item.itemName,
@@ -431,6 +440,34 @@ export const EditCanteenOrderForm: React.FC<EditCanteenOrderFormProps> = ({
           </ModalBody>
           <ModalFooter className="border-t pt-4">
             <div className="flex items-center justify-between w-full gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-gray-500 text-sm">Total Quantity</span>
+                  <span className="text-xl font-bold text-primary">
+                    {formData.canteenOrderDetails.reduce(
+                      (total, detail) => total + (detail.quantity || 0),
+                      0
+                    )}
+                  </span>
+                </div>
+
+                <div className="h-8 w-px bg-gray-300"></div>
+
+                <div className="flex flex-col items-center">
+                  <span className="text-gray-500 text-sm">Total Amount</span>
+                  <span className="text-xl font-bold text-green-600">
+
+                  {formData.canteenOrderDetails
+                    .reduce(
+                      (total, detail) =>
+                        total +
+                        (detail.quantity || 0) * (detail.unitPrice || 0),
+                      0
+                    )
+                    .toLocaleString() + " VND"}
+                  </span>
+                </div>
+              </div>
               <div className="flex gap-3">
                 <Button
                   type="button"
