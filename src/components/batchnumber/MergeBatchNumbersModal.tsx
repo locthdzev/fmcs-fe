@@ -46,9 +46,7 @@ const MergeBatchNumbersModal: React.FC<MergeBatchNumbersModalProps> = ({
   };
 
   useEffect(() => {
-    if (visible) {
-      fetchMergeableGroups();
-    }
+    if (visible) fetchMergeableGroups();
   }, [visible]);
 
   const handleMergeGroup = async (batchIds: string[]) => {
@@ -86,7 +84,7 @@ const MergeBatchNumbersModal: React.FC<MergeBatchNumbersModalProps> = ({
                     <span className="font-semibold text-base">
                       {`${group.drugName} - ${group.supplierName} - ${new Date(
                         group.expiryDate
-                      ).toLocaleDateString("vi-VN")}`}
+                      ).toLocaleDateString()}`}
                     </span>
                     <Button
                       type="primary"
@@ -111,7 +109,7 @@ const MergeBatchNumbersModal: React.FC<MergeBatchNumbersModalProps> = ({
                         batch.manufacturingDate
                           ? new Date(
                               batch.manufacturingDate
-                            ).toLocaleDateString("vi-VN")
+                            ).toLocaleDateString()
                           : "-"
                       } | Quantity: ${batch.quantityReceived} | Status: ${
                         batch.status
