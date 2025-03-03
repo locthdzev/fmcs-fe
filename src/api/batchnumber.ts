@@ -50,16 +50,6 @@ export const updateBatchNumber = async (
   return response.data;
 };
 
-export const toggleBatchNumberStatus = async (
-  id: string,
-  newStatus: string
-) => {
-  const response = await api.put(
-    `/batchnumber-management/batchnumbers/${id}/toggle-status?newStatus=${newStatus}`
-  );
-  return response.data;
-};
-
 export const mergeBatchNumbers = async (data: MergeBatchNumbersRequestDTO) => {
   const response = await api.post(
     "/batchnumber-management/batchnumbers/merge",
@@ -100,4 +90,11 @@ export const updateBatchNumberStatus = async (
     }
   );
   return response.data;
+};
+
+export const getMergeableBatchGroups = async () => {
+  const response = await api.get(
+    "/batchnumber-management/batchnumbers/mergeable-groups"
+  );
+  return response.data.data;
 };

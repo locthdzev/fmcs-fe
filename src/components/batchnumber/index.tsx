@@ -9,24 +9,14 @@ import {
   Pagination,
   Space,
 } from "antd";
-import {
-  Chip,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Card,
-  CardHeader,
-  CardBody,
-} from "@heroui/react";
+import { Chip, Card, CardHeader, CardBody } from "@heroui/react";
 import { PencilSquareIcon, PlusIcon } from "@heroicons/react/24/outline";
 import {
   getAllBatchNumbers,
   updateBatchNumberStatus,
-  mergeBatchNumbers,
   BatchNumberResponseDTO,
   setupBatchNumberRealTime,
+  getMergeableBatchGroups,
 } from "@/api/batchnumber";
 import { exportToExcel } from "@/api/export";
 import { toast } from "react-toastify";
@@ -50,7 +40,7 @@ export function BatchNumberManagement() {
   const [isMergeModalVisible, setIsMergeModalVisible] = useState(false);
   const [currentBatchNumber, setCurrentBatchNumber] =
     useState<BatchNumberResponseDTO | null>(null);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [mergeableGroups, setMergeableGroups] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize] = useState<number>(10);
   const [total, setTotal] = useState<number>(0);
@@ -112,7 +102,6 @@ export function BatchNumberManagement() {
         });
       }
 
-      // Sort by createdAt in descending order
       filteredData.sort(
         (a: BatchNumberResponseDTO, b: BatchNumberResponseDTO) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -133,19 +122,30 @@ export function BatchNumberManagement() {
     expiryDateRange,
   ]);
 
+  const fetchMergeableGroups = useCallback(async () => {
+    try {
+      const groups = await getMergeableBatchGroups();
+      setMergeableGroups(groups);
+    } catch (error) {
+      toast.error("Unable to load mergeable batch groups.");
+    }
+  }, []);
+
   useEffect(() => {
     fetchBatchNumbers();
+    fetchMergeableGroups();
 
     const connection = setupBatchNumberRealTime(
       (updatedBatch: BatchNumberResponseDTO) => {
         fetchBatchNumbers();
+        fetchMergeableGroups();
       }
     );
 
     return () => {
       connection.stop();
     };
-  }, [fetchBatchNumbers]);
+  }, [fetchBatchNumbers, fetchMergeableGroups]);
 
   const handleToggleStatus = async (id: string, isActive: boolean) => {
     const batch = batchNumbers.find((b) => b.id === id);
@@ -163,6 +163,7 @@ export function BatchNumberManagement() {
       if (response.isSuccess) {
         toast.success(response.message || "Status updated successfully!");
         fetchBatchNumbers();
+        fetchMergeableGroups();
       } else {
         toast.error(response.message || "Unable to update status");
       }
@@ -170,25 +171,6 @@ export function BatchNumberManagement() {
       toast.error("Unable to update status");
     } finally {
       setLoading((prev) => ({ ...prev, [id]: false }));
-    }
-  };
-
-  const handleMerge = async () => {
-    if (selectedIds.length < 2) {
-      toast.error("Please select at least 2 batch numbers to merge.");
-      return;
-    }
-    try {
-      const response = await mergeBatchNumbers({ batchNumberIds: selectedIds });
-      if (response.isSuccess) {
-        toast.success("Batch numbers merged successfully!");
-        setSelectedIds([]);
-        fetchBatchNumbers();
-      } else {
-        toast.error(response.message || "Unable to merge batch numbers");
-      }
-    } catch {
-      toast.error("Unable to merge batch numbers");
     }
   };
 
@@ -213,12 +195,6 @@ export function BatchNumberManagement() {
     setSearchText(value);
     setCurrentPage(1);
   }, 300);
-
-  const rowSelection = {
-    selectedRowKeys: selectedIds,
-    onChange: (selectedRowKeys: React.Key[]) =>
-      setSelectedIds(selectedRowKeys as string[]),
-  };
 
   return (
     <div>
@@ -259,6 +235,7 @@ export function BatchNumberManagement() {
               >
                 <Option value="Priority">Priority</Option>
                 <Option value="Active">Active</Option>
+                <Option value="NearExpiry">Near Expiry</Option>
                 <Option value="Inactive">Inactive</Option>
                 <Option value="Expired">Expired</Option>
               </Select>
@@ -296,7 +273,7 @@ export function BatchNumberManagement() {
               <Button
                 type="primary"
                 onClick={handleShowMergeModal}
-                disabled={selectedIds.length < 2}
+                disabled={mergeableGroups.length === 0}
                 icon={<PlusIcon />}
               >
                 Merge Batch Numbers
@@ -304,12 +281,7 @@ export function BatchNumberManagement() {
             </Space>
           </Space>
 
-          <Table
-            dataSource={batchNumbers}
-            rowKey="id"
-            rowSelection={rowSelection}
-            pagination={false}
-          >
+          <Table dataSource={batchNumbers} rowKey="id" pagination={false}>
             <Column
               title="BATCH CODE"
               dataIndex="batchCode"
@@ -372,14 +344,16 @@ export function BatchNumberManagement() {
                       ? "primary"
                       : status === "Active"
                       ? "success"
+                      : status === "NearExpiry"
+                      ? "warning"
                       : status === "Inactive"
                       ? "danger"
-                      : "warning"
+                      : "secondary"
                   }
                   size="sm"
                   variant="flat"
                 >
-                  {status}
+                  {status === "NearExpiry" ? "Near Expiry" : status}
                 </Chip>
               )}
               sorter={(a, b) => a.status.localeCompare(b.status)}
@@ -404,8 +378,8 @@ export function BatchNumberManagement() {
                 date ? new Date(date).toLocaleString("vi-VN") : "-"
               }
               sorter={(a, b) =>
-                new Date(b.updatedAt).getTime() -
-                new Date(a.updatedAt).getTime()
+                new Date(b.updatedAt || 0).getTime() -
+                new Date(a.updatedAt || 0).getTime()
               }
             />
             <Column
@@ -415,9 +389,15 @@ export function BatchNumberManagement() {
               render={(_, record: BatchNumberResponseDTO) => (
                 <Switch
                   checked={
-                    record.status === "Priority" || record.status === "Active"
+                    record.status === "Priority" ||
+                    record.status === "Active" ||
+                    record.status === "NearExpiry"
                   }
-                  disabled={!record.manufacturingDate || !record.expiryDate}
+                  disabled={
+                    !record.manufacturingDate ||
+                    !record.expiryDate ||
+                    record.status === "Expired" // Disable nếu Expired
+                  }
                   loading={loading[record.id]}
                   onChange={(checked) => handleToggleStatus(record.id, checked)}
                 />
@@ -434,10 +414,14 @@ export function BatchNumberManagement() {
                     e.stopPropagation();
                     handleShowEditModal(record);
                   }}
+                  disabled={record.status === "Expired"} // Disable nếu Expired
                   icon={
                     <PencilSquareIcon
                       className="w-5 h-5"
-                      style={{ color: "#1890ff" }}
+                      style={{
+                        color:
+                          record.status === "Expired" ? "#d9d9d9" : "#1890ff",
+                      }}
                     />
                   }
                 />
@@ -467,8 +451,10 @@ export function BatchNumberManagement() {
       <MergeBatchNumbersModal
         visible={isMergeModalVisible}
         onClose={() => setIsMergeModalVisible(false)}
-        onSuccess={fetchBatchNumbers}
-        selectedIds={selectedIds}
+        onSuccess={() => {
+          fetchBatchNumbers();
+          fetchMergeableGroups();
+        }}
       />
     </div>
   );

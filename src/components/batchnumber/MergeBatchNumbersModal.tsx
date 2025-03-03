@@ -1,43 +1,59 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Select, Button } from "antd";
-import { getAllBatchNumbers, mergeBatchNumbers } from "@/api/batchnumber";
+import { Modal, Button, Collapse } from "antd";
+import { Listbox, ListboxItem } from "@heroui/react";
+import { getMergeableBatchGroups, mergeBatchNumbers } from "@/api/batchnumber";
 import { toast } from "react-toastify";
+
+const { Panel } = Collapse;
 
 interface MergeBatchNumbersModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  selectedIds: string[];
+}
+
+interface MergeableBatchGroup {
+  drugId: string;
+  drugName: string;
+  supplierId: string;
+  supplierName: string;
+  expiryDate: string;
+  batches: {
+    id: string;
+    batchCode: string;
+    manufacturingDate?: string;
+    quantityReceived: number;
+    status: string;
+  }[];
 }
 
 const MergeBatchNumbersModal: React.FC<MergeBatchNumbersModalProps> = ({
   visible,
   onClose,
   onSuccess,
-  selectedIds,
 }) => {
-  const [form] = Form.useForm();
-  const [batchNumbers, setBatchNumbers] = useState<any[]>([]);
+  const [mergeableGroups, setMergeableGroups] = useState<MergeableBatchGroup[]>(
+    []
+  );
 
-  const fetchBatchNumbers = async () => {
+  const fetchMergeableGroups = async () => {
     try {
-      const result = await getAllBatchNumbers(1, 1000); // Get all to display in select
-      setBatchNumbers(result.data);
-      form.setFieldsValue({ batchNumberIds: selectedIds });
+      const groups = await getMergeableBatchGroups();
+      setMergeableGroups(groups);
     } catch {
-      toast.error("Unable to load batch number list.");
+      toast.error("Unable to load mergeable batch groups.");
     }
   };
 
   useEffect(() => {
-    if (visible) fetchBatchNumbers();
+    if (visible) {
+      fetchMergeableGroups();
+    }
   }, [visible]);
 
-  const handleSubmit = async (values: { batchNumberIds: string[] }) => {
+  const handleMergeGroup = async (batchIds: string[]) => {
     try {
-      const response = await mergeBatchNumbers({
-        batchNumberIds: values.batchNumberIds,
-      });
+      const response = await mergeBatchNumbers({ batchNumberIds: batchIds });
       if (response.isSuccess) {
         toast.success("Batch numbers merged successfully!");
         onSuccess();
@@ -55,35 +71,60 @@ const MergeBatchNumbersModal: React.FC<MergeBatchNumbersModalProps> = ({
       title="Merge Batch Numbers"
       open={visible}
       onCancel={onClose}
-      footer={[
-        <Button key="cancel" onClick={onClose}>
-          Cancel
-        </Button>,
-        <Button key="submit" type="primary" onClick={() => form.submit()}>
-          Merge
-        </Button>,
-      ]}
+      footer={null}
+      width={800}
     >
-      <Form form={form} onFinish={handleSubmit} layout="vertical">
-        <Form.Item
-          name="batchNumberIds"
-          label="Select Batch Numbers to merge"
-          rules={[
-            {
-              required: true,
-              message: "Please select at least 2 batch numbers",
-            },
-          ]}
-        >
-          <Select mode="multiple" placeholder="Select batch numbers">
-            {batchNumbers.map((bn) => (
-              <Select.Option key={bn.id} value={bn.id}>
-                {`${bn.batchCode} - ${bn.drug.name}`}
-              </Select.Option>
+      <div className="max-h-[60vh] overflow-y-auto">
+        {mergeableGroups.length === 0 ? (
+          <p className="text-gray-500">No mergeable batch groups available.</p>
+        ) : (
+          <Collapse accordion>
+            {mergeableGroups.map((group, index) => (
+              <Panel
+                header={
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-base">
+                      {`${group.drugName} - ${group.supplierName} - ${new Date(
+                        group.expiryDate
+                      ).toLocaleDateString("vi-VN")}`}
+                    </span>
+                    <Button
+                      type="primary"
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMergeGroup(group.batches.map((b) => b.id));
+                      }}
+                    >
+                      Merge Group
+                    </Button>
+                  </div>
+                }
+                key={index}
+              >
+                <Listbox>
+                  {group.batches.map((batch) => (
+                    <ListboxItem
+                      key={batch.id}
+                      title={batch.batchCode}
+                      description={`Manufactured: ${
+                        batch.manufacturingDate
+                          ? new Date(
+                              batch.manufacturingDate
+                            ).toLocaleDateString("vi-VN")
+                          : "-"
+                      } | Quantity: ${batch.quantityReceived} | Status: ${
+                        batch.status
+                      }`}
+                      className="py-2"
+                    />
+                  ))}
+                </Listbox>
+              </Panel>
             ))}
-          </Select>
-        </Form.Item>
-      </Form>
+          </Collapse>
+        )}
+      </div>
     </Modal>
   );
 };
