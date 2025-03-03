@@ -41,11 +41,14 @@ export function InventoryRecordManagement() {
   const fetchRecords = async () => {
     try {
       const result = await getAllInventoryRecords(currentPage, pageSize, "");
-      const sortedRecords = result.data.sort((a: InventoryRecordResponseDTO, b: InventoryRecordResponseDTO) => {
-        const dateA = a.lastUpdated ? new Date(a.lastUpdated) : new Date(a.createdAt);
-        const dateB = b.lastUpdated ? new Date(b.lastUpdated) : new Date(b.createdAt);
-        return dateB.getTime() - dateA.getTime();
-      });      setRecords(sortedRecords);
+      const sortedRecords = result.data.sort(
+        (a: InventoryRecordResponseDTO, b: InventoryRecordResponseDTO) => {
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        }
+      );
+      setRecords(sortedRecords);
       setTotal(result.totalRecords);
     } catch (error) {
       toast.error("Unable to load inventory records list.");
@@ -145,13 +148,19 @@ export function InventoryRecordManagement() {
               dataIndex="lastUpdated"
               key="lastUpdated"
               render={(lastUpdated, record) => {
-                const date = lastUpdated ? new Date(lastUpdated) : new Date(record.createdAt);
+                const date = lastUpdated
+                  ? new Date(lastUpdated)
+                  : new Date(record.createdAt);
                 return date.toLocaleString();
               }}
               sorter={(a, b) => {
-                const dateA = a.lastUpdated ? new Date(a.lastUpdated) : new Date(a.createdAt);
-                const dateB = b.lastUpdated ? new Date(b.lastUpdated) : new Date(b.createdAt);
-                return dateA.getTime() - dateB.getTime();
+                const dateA = a.lastUpdated
+                  ? new Date(a.lastUpdated)
+                  : new Date(a.createdAt);
+                const dateB = b.lastUpdated
+                  ? new Date(b.lastUpdated)
+                  : new Date(b.createdAt);
+                return dateB.getTime() - dateA.getTime();
               }}
             />
             <Column
@@ -162,7 +171,7 @@ export function InventoryRecordManagement() {
               sorter={(a, b) => {
                 const dateA = new Date(a.createdAt);
                 const dateB = new Date(b.createdAt);
-                return dateA.getTime() - dateB.getTime();
+                return dateB.getTime() - dateA.getTime();
               }}
             />
             <Column
@@ -172,13 +181,24 @@ export function InventoryRecordManagement() {
               render={(status) => (
                 <Chip
                   className="capitalize"
-                  color={status === "Active" ? "success" : "danger"}
+                  color={
+                    status === "Priority"
+                      ? "primary"
+                      : status === "Active"
+                      ? "success"
+                      : status === "NearExpiry"
+                      ? "warning"
+                      : status === "Inactive"
+                      ? "danger"
+                      : "secondary"
+                  }
                   size="sm"
                   variant="flat"
                 >
-                  {status}
+                  {status === "NearExpiry" ? "Near Expiry" : status}
                 </Chip>
               )}
+              sorter={(a, b) => a.status.localeCompare(b.status)}
             />
             <Column
               title="ACTIONS"
@@ -191,10 +211,14 @@ export function InventoryRecordManagement() {
                     e.stopPropagation();
                     handleShowEditModal(record);
                   }}
+                  disabled={record.status === "Expired"}
                   icon={
                     <PencilSquareIcon
                       className="w-5 h-5"
-                      style={{ color: "#1890ff" }}
+                      style={{
+                        color:
+                          record.status === "Expired" ? "#d9d9d9" : "#1890ff",
+                      }}
                     />
                   }
                 />
