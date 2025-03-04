@@ -9,28 +9,17 @@ import {
   Pagination,
   Space,
 } from "antd";
-import {
-  Chip,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Card,
-  CardHeader,
-  CardBody,
-} from "@heroui/react";
+import { Chip, Card, CardHeader, CardBody } from "@heroui/react";
 import { PencilSquareIcon, PlusIcon } from "@heroicons/react/24/outline";
 import {
   getAllBatchNumbers,
   updateBatchNumberStatus,
-  mergeBatchNumbers,
   BatchNumberResponseDTO,
   setupBatchNumberRealTime,
+  getMergeableBatchGroups,
 } from "@/api/batchnumber";
 import { exportToExcel } from "@/api/export";
 import { toast } from "react-toastify";
-import { useRouter } from "next/router";
 import EditBatchNumberModal from "./EditBatchNumberModal";
 import MergeBatchNumbersModal from "./MergeBatchNumbersModal";
 import { BatchNumberIcon } from "./Icons";
@@ -41,7 +30,6 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 export function BatchNumberManagement() {
-  const router = useRouter();
   const [batchNumbers, setBatchNumbers] = useState<BatchNumberResponseDTO[]>(
     []
   );
@@ -50,11 +38,14 @@ export function BatchNumberManagement() {
   const [isMergeModalVisible, setIsMergeModalVisible] = useState(false);
   const [currentBatchNumber, setCurrentBatchNumber] =
     useState<BatchNumberResponseDTO | null>(null);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [mergeableGroups, setMergeableGroups] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize] = useState<number>(10);
+  const [pageSize, setPageSize] = useState<number>(10);
   const [total, setTotal] = useState<number>(0);
   const [searchText, setSearchText] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("CreatedAt");
+  const [ascending, setAscending] = useState<boolean>(false); // Mặc định descending, nhưng sẽ không áp dụng nếu API đã sort
+
   const [drugNameFilter, setDrugNameFilter] = useState<string>("");
   const [supplierFilter, setSupplierFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -70,62 +61,28 @@ export function BatchNumberManagement() {
       const result = await getAllBatchNumbers(
         currentPage,
         pageSize,
-        searchText
+        searchText,
+        sortBy,
+        ascending,
+        drugNameFilter,
+        supplierFilter,
+        statusFilter,
+        manufacturingDateRange?.[0],
+        manufacturingDateRange?.[1],
+        expiryDateRange?.[0],
+        expiryDateRange?.[1]
       );
-      let filteredData = result.data;
-
-      if (drugNameFilter) {
-        filteredData = filteredData.filter((b: BatchNumberResponseDTO) =>
-          b.drug.name.toLowerCase().includes(drugNameFilter.toLowerCase())
-        );
-      }
-      if (supplierFilter) {
-        filteredData = filteredData.filter((b: BatchNumberResponseDTO) =>
-          b.supplier.supplierName
-            .toLowerCase()
-            .includes(supplierFilter.toLowerCase())
-        );
-      }
-      if (statusFilter) {
-        filteredData = filteredData.filter(
-          (b: BatchNumberResponseDTO) => b.status === statusFilter
-        );
-      }
-      if (manufacturingDateRange) {
-        filteredData = filteredData.filter((b: BatchNumberResponseDTO) => {
-          if (!b.manufacturingDate) return false;
-          const date = new Date(b.manufacturingDate);
-          return (
-            date >= new Date(manufacturingDateRange[0]) &&
-            date <= new Date(manufacturingDateRange[1])
-          );
-        });
-      }
-      if (expiryDateRange) {
-        filteredData = filteredData.filter((b: BatchNumberResponseDTO) => {
-          if (!b.expiryDate) return false;
-          const date = new Date(b.expiryDate);
-          return (
-            date >= new Date(expiryDateRange[0]) &&
-            date <= new Date(expiryDateRange[1])
-          );
-        });
-      }
-
-      // Sort by createdAt in descending order
-      filteredData.sort(
-        (a: BatchNumberResponseDTO, b: BatchNumberResponseDTO) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-
-      setBatchNumbers(filteredData);
+      setBatchNumbers(result.data);
       setTotal(result.totalRecords);
     } catch (error) {
       toast.error("Unable to load batch number list.");
     }
   }, [
     currentPage,
+    pageSize,
     searchText,
+    sortBy,
+    ascending,
     drugNameFilter,
     supplierFilter,
     statusFilter,
@@ -133,19 +90,30 @@ export function BatchNumberManagement() {
     expiryDateRange,
   ]);
 
+  const fetchMergeableGroups = useCallback(async () => {
+    try {
+      const groups = await getMergeableBatchGroups();
+      setMergeableGroups(groups);
+    } catch (error) {
+      toast.error("Unable to load mergeable batch groups.");
+    }
+  }, []);
+
   useEffect(() => {
     fetchBatchNumbers();
+    fetchMergeableGroups();
 
     const connection = setupBatchNumberRealTime(
       (updatedBatch: BatchNumberResponseDTO) => {
         fetchBatchNumbers();
+        fetchMergeableGroups();
       }
     );
 
     return () => {
       connection.stop();
     };
-  }, [fetchBatchNumbers]);
+  }, [fetchBatchNumbers, fetchMergeableGroups]);
 
   const handleToggleStatus = async (id: string, isActive: boolean) => {
     const batch = batchNumbers.find((b) => b.id === id);
@@ -163,6 +131,7 @@ export function BatchNumberManagement() {
       if (response.isSuccess) {
         toast.success(response.message || "Status updated successfully!");
         fetchBatchNumbers();
+        fetchMergeableGroups();
       } else {
         toast.error(response.message || "Unable to update status");
       }
@@ -170,25 +139,6 @@ export function BatchNumberManagement() {
       toast.error("Unable to update status");
     } finally {
       setLoading((prev) => ({ ...prev, [id]: false }));
-    }
-  };
-
-  const handleMerge = async () => {
-    if (selectedIds.length < 2) {
-      toast.error("Please select at least 2 batch numbers to merge.");
-      return;
-    }
-    try {
-      const response = await mergeBatchNumbers({ batchNumberIds: selectedIds });
-      if (response.isSuccess) {
-        toast.success("Batch numbers merged successfully!");
-        setSelectedIds([]);
-        fetchBatchNumbers();
-      } else {
-        toast.error(response.message || "Unable to merge batch numbers");
-      }
-    } catch {
-      toast.error("Unable to merge batch numbers");
     }
   };
 
@@ -214,10 +164,34 @@ export function BatchNumberManagement() {
     setCurrentPage(1);
   }, 300);
 
-  const rowSelection = {
-    selectedRowKeys: selectedIds,
-    onChange: (selectedRowKeys: React.Key[]) =>
-      setSelectedIds(selectedRowKeys as string[]),
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    setCurrentPage(1);
+  };
+
+  const handlePageSizeChange = (_: number, size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+  };
+
+  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+    const { field, order } = sorter;
+    if (field && order) {
+      setSortBy(
+        field === "drug.name"
+          ? "DrugName"
+          : field === "supplier.supplierName"
+          ? "SupplierName"
+          : field
+      );
+      setAscending(order === "ascend");
+    } else {
+      // Nếu không có sorting từ người dùng, giữ mặc định của API (CreatedAt descending)
+      setSortBy("CreatedAt");
+      setAscending(false);
+    }
+    setCurrentPage(pagination.current);
+    fetchBatchNumbers();
   };
 
   return (
@@ -237,7 +211,7 @@ export function BatchNumberManagement() {
           >
             <Space>
               <Input
-                placeholder="Search by BatchCode"
+                placeholder="Search by Batch Code"
                 onChange={(e) => handleSearchChange(e.target.value)}
                 style={{ width: 200 }}
               />
@@ -259,6 +233,7 @@ export function BatchNumberManagement() {
               >
                 <Option value="Priority">Priority</Option>
                 <Option value="Active">Active</Option>
+                <Option value="NearExpiry">Near Expiry</Option>
                 <Option value="Inactive">Inactive</Option>
                 <Option value="Expired">Expired</Option>
               </Select>
@@ -296,7 +271,7 @@ export function BatchNumberManagement() {
               <Button
                 type="primary"
                 onClick={handleShowMergeModal}
-                disabled={selectedIds.length < 2}
+                disabled={mergeableGroups.length === 0}
                 icon={<PlusIcon />}
               >
                 Merge Batch Numbers
@@ -307,8 +282,8 @@ export function BatchNumberManagement() {
           <Table
             dataSource={batchNumbers}
             rowKey="id"
-            rowSelection={rowSelection}
             pagination={false}
+            onChange={handleTableChange}
           >
             <Column
               title="BATCH CODE"
@@ -319,13 +294,13 @@ export function BatchNumberManagement() {
             <Column
               title="DRUG NAME"
               dataIndex={["drug", "name"]}
-              key="drugName"
+              key="drug.name"
               sorter={(a, b) => a.drug.name.localeCompare(b.drug.name)}
             />
             <Column
               title="SUPPLIER"
               dataIndex={["supplier", "supplierName"]}
-              key="supplierName"
+              key="supplier.supplierName"
               sorter={(a, b) =>
                 a.supplier.supplierName.localeCompare(b.supplier.supplierName)
               }
@@ -335,11 +310,12 @@ export function BatchNumberManagement() {
               dataIndex="manufacturingDate"
               key="manufacturingDate"
               render={(date) =>
-                date ? new Date(date).toLocaleDateString("vi-VN") : "-"
+                date ? new Date(date).toLocaleDateString() : "-"
               }
               sorter={(a, b) =>
-                new Date(a.manufacturingDate || 0).getTime() -
-                new Date(b.manufacturingDate || 0).getTime()
+                (a.manufacturingDate || "").localeCompare(
+                  b.manufacturingDate || ""
+                )
               }
             />
             <Column
@@ -347,11 +323,10 @@ export function BatchNumberManagement() {
               dataIndex="expiryDate"
               key="expiryDate"
               render={(date) =>
-                date ? new Date(date).toLocaleDateString("vi-VN") : "-"
+                date ? new Date(date).toLocaleDateString() : "-"
               }
               sorter={(a, b) =>
-                new Date(a.expiryDate || 0).getTime() -
-                new Date(b.expiryDate || 0).getTime()
+                (a.expiryDate || "").localeCompare(b.expiryDate || "")
               }
             />
             <Column
@@ -372,14 +347,16 @@ export function BatchNumberManagement() {
                       ? "primary"
                       : status === "Active"
                       ? "success"
+                      : status === "NearExpiry"
+                      ? "warning"
                       : status === "Inactive"
                       ? "danger"
-                      : "warning"
+                      : "secondary"
                   }
                   size="sm"
                   variant="flat"
                 >
-                  {status}
+                  {status === "NearExpiry" ? "Near Expiry" : status}
                 </Chip>
               )}
               sorter={(a, b) => a.status.localeCompare(b.status)}
@@ -388,24 +365,41 @@ export function BatchNumberManagement() {
               title="CREATED AT"
               dataIndex="createdAt"
               key="createdAt"
-              render={(date) =>
-                date ? new Date(date).toLocaleString("vi-VN") : "-"
-              }
+              render={(date) => (date ? new Date(date).toLocaleString() : "-")}
               sorter={(a, b) =>
                 new Date(b.createdAt).getTime() -
                 new Date(a.createdAt).getTime()
               }
             />
             <Column
+              title="CREATED BY"
+              dataIndex={["createdBy", "userName"]}
+              key="createdBy"
+              render={(userName) => userName || "-"}
+              sorter={(a, b) =>
+                (a.createdBy?.userName || "").localeCompare(
+                  b.createdBy?.userName || ""
+                )
+              }
+            />
+            <Column
               title="UPDATED AT"
               dataIndex="updatedAt"
               key="updatedAt"
-              render={(date) =>
-                date ? new Date(date).toLocaleString("vi-VN") : "-"
-              }
+              render={(date) => (date ? new Date(date).toLocaleString() : "-")}
               sorter={(a, b) =>
-                new Date(b.updatedAt).getTime() -
-                new Date(a.updatedAt).getTime()
+                (a.updatedAt || "").localeCompare(b.updatedAt || "")
+              }
+            />
+            <Column
+              title="UPDATED BY"
+              dataIndex={["updatedBy", "userName"]}
+              key="updatedBy"
+              render={(userName) => userName || "-"}
+              sorter={(a, b) =>
+                (a.updatedBy?.userName || "").localeCompare(
+                  b.updatedBy?.userName || ""
+                )
               }
             />
             <Column
@@ -415,9 +409,15 @@ export function BatchNumberManagement() {
               render={(_, record: BatchNumberResponseDTO) => (
                 <Switch
                   checked={
-                    record.status === "Priority" || record.status === "Active"
+                    record.status === "Priority" ||
+                    record.status === "Active" ||
+                    record.status === "NearExpiry"
                   }
-                  disabled={!record.manufacturingDate || !record.expiryDate}
+                  disabled={
+                    !record.manufacturingDate ||
+                    !record.expiryDate ||
+                    record.status === "Expired"
+                  }
                   loading={loading[record.id]}
                   onChange={(checked) => handleToggleStatus(record.id, checked)}
                 />
@@ -434,10 +434,14 @@ export function BatchNumberManagement() {
                     e.stopPropagation();
                     handleShowEditModal(record);
                   }}
+                  disabled={record.status === "Expired"}
                   icon={
                     <PencilSquareIcon
                       className="w-5 h-5"
-                      style={{ color: "#1890ff" }}
+                      style={{
+                        color:
+                          record.status === "Expired" ? "#d9d9d9" : "#1890ff",
+                      }}
                     />
                   }
                 />
@@ -450,6 +454,9 @@ export function BatchNumberManagement() {
             pageSize={pageSize}
             total={total}
             onChange={(page) => setCurrentPage(page)}
+            onShowSizeChange={handlePageSizeChange}
+            showSizeChanger
+            pageSizeOptions={["10", "20", "50", "100"]}
             style={{ marginTop: 16, textAlign: "right" }}
           />
         </CardBody>
@@ -467,8 +474,10 @@ export function BatchNumberManagement() {
       <MergeBatchNumbersModal
         visible={isMergeModalVisible}
         onClose={() => setIsMergeModalVisible(false)}
-        onSuccess={fetchBatchNumbers}
-        selectedIds={selectedIds}
+        onSuccess={() => {
+          fetchBatchNumbers();
+          fetchMergeableGroups();
+        }}
       />
     </div>
   );

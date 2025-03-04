@@ -532,7 +532,7 @@ export function DrugGroups() {
                     showControls
                     page={page}
                     total={pages}
-                    onChange={(newPage) => setPage(newPage)}
+                    onChange={onPageChange}
                     color="primary"
                   />
                 )}
