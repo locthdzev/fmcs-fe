@@ -13,6 +13,7 @@ export interface NotificationResponseDTO {
   recipientType: string;
   roleId?: string;
   recipientIds: string[];
+  sendEmail: boolean;
 }
 
 export interface NotificationCreateRequestDTO {
@@ -48,6 +49,19 @@ export const getAllNotifications = async (
   const response = await api.get("/notification-management/notifications", {
     params: { page, pageSize, search, status },
   });
+  return response.data;
+};
+
+export const getUserNotifications = async (
+  page: number = 1,
+  pageSize: number = 10
+) => {
+  const response = await api.get(
+    "/notification-management/user-notifications",
+    {
+      params: { page, pageSize },
+    }
+  );
   return response.data;
 };
 

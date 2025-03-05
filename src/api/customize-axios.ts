@@ -44,7 +44,7 @@ instance.interceptors.response.use(
 );
 
 const rasaInstance = axios.create({
-  baseURL: "http://localhost:5005",
+  baseURL: "https://chatbot.truongvu.id.vn",
 });
 
 export const setupSignalRConnection = (
