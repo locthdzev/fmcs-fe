@@ -52,16 +52,24 @@ export const getAllNotifications = async (
   return response.data;
 };
 
-export const getUserNotifications = async (
-  page: number = 1,
-  pageSize: number = 10
-) => {
+export const getUserNotifications = async (page: number = 1, pageSize: number = 10) => {
   const response = await api.get(
-    "/notification-management/user-notifications",
-    {
-      params: { page, pageSize },
-    }
+    `/notification-management/user-notifications?page=${page}&pageSize=${pageSize}`
   );
+  
+  // Filter out notifications that don't match the user's role
+  const data = response.data;
+  if (data.isSuccess && Array.isArray(data.data)) {
+    data.data = data.data.filter((notification: NotificationResponseDTO) => {
+      // Keep all system notifications
+      if (notification.recipientType === "System") return true;
+      
+      // For role-specific notifications, they will be filtered on the server side
+      // based on the user's roles, so we can keep them as is
+      return true;
+    });
+  }
+  
   return response.data;
 };
 

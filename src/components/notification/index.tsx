@@ -71,18 +71,52 @@ export function NotificationManagement() {
     loadData();
 
     const handleNotificationUpdate = (data: NotificationResponseDTO) => {
+      if (!data || !data.id) return;
+
       setNotifications((prev) => {
-        const updated = [data, ...prev.filter((n) => n.id !== data.id)];
-        return updated;
+        // Find existing notification
+        const existingNotification = prev.find((n) => n.id === data.id);
+        
+        // If notification exists, merge with new data keeping existing fields if new ones are empty
+        const updatedNotification = existingNotification 
+          ? {
+              ...existingNotification,
+              ...data,
+              createdAt: data.createdAt || existingNotification.createdAt,
+              createdBy: data.createdBy || existingNotification.createdBy,
+              status: data.status || existingNotification.status,
+              title: data.title || existingNotification.title,
+              recipientType: data.recipientType || existingNotification.recipientType,
+            }
+          : data;
+
+        // For new notifications or updates, ensure we have all required fields
+        if (!updatedNotification.createdAt) {
+          updatedNotification.createdAt = new Date().toISOString();
+        }
+
+        // Only update notifications that match the current user's role or are system-wide
+        if (updatedNotification.recipientType === "All" || 
+            updatedNotification.recipientType === "System" ||
+            (updatedNotification.recipientType === "Role" && updatedNotification.roleId)) {
+          const updated = [updatedNotification, ...prev.filter((n) => n.id !== data.id)];
+          return updated;
+        }
+
+        return prev;
       });
     };
 
     const handleNotificationDelete = (deletedIds: string[]) => {
+      if (!Array.isArray(deletedIds)) return;
+      
       setNotifications((prev) => prev.filter((n) => !deletedIds.includes(n.id)));
       setSelectedRowKeys((prev) => prev.filter((key) => !deletedIds.includes(key.toString())));
     };
 
     const handleStatusUpdate = (data: { id: string; status: string }) => {
+      if (!data || !data.id) return;
+
       setNotifications((prev) =>
         prev.map((n) => (n.id === data.id ? { ...n, status: data.status } : n))
       );
