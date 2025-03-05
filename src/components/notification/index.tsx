@@ -70,14 +70,38 @@ export function NotificationManagement() {
     };
     loadData();
 
-    const connection = setupNotificationRealTime((data) => {
+    const handleNotificationUpdate = (data: NotificationResponseDTO) => {
+      setNotifications((prev) => {
+        const updated = [data, ...prev.filter((n) => n.id !== data.id)];
+        return updated;
+      });
+    };
+
+    const handleNotificationDelete = (deletedIds: string[]) => {
+      setNotifications((prev) => prev.filter((n) => !deletedIds.includes(n.id)));
+      setSelectedRowKeys((prev) => prev.filter((key) => !deletedIds.includes(key.toString())));
+    };
+
+    const handleStatusUpdate = (data: { id: string; status: string }) => {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === data.id ? { ...n, status: data.status } : n))
+      );
+    };
+
+    const eventHandlers = {
+      ReceiveNotificationUpdate: handleNotificationUpdate,
+      NewNotification: handleNotificationUpdate,
+      ReceiveNotificationDelete: handleNotificationDelete,
+      NotificationStatusUpdated: handleStatusUpdate,
+      NotificationReupped: handleNotificationUpdate,
+      NotificationCopied: handleNotificationUpdate
+    };
+
+    const connection = setupNotificationRealTime((data: NotificationResponseDTO | string[]) => {
       if (Array.isArray(data)) {
-        setNotifications((prev) => prev.filter((n) => !data.includes(n.id)));
+        handleNotificationDelete(data);
       } else {
-        setNotifications((prev) => {
-          const updated = [data, ...prev.filter((n) => n.id !== data.id)];
-          return updated;
-        });
+        handleNotificationUpdate(data);
       }
     });
 

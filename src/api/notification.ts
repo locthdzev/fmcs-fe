@@ -121,7 +121,17 @@ export const markAllNotificationsAsRead = async () => {
 export const setupNotificationRealTime = (
   callback: (data: NotificationResponseDTO | string[]) => void
 ) => {
-  return setupSignalRConnection("/notificationHub", callback);
+  const eventHandlers = {
+    ReceiveNotificationUpdate: callback,
+    NewNotification: callback,
+    ReceiveNotificationDelete: callback,
+    NotificationStatusUpdated: callback,
+    NotificationReupped: callback,
+    NotificationCopied: callback,
+    AllNotificationsRead: callback
+  };
+
+  return setupSignalRConnection("/notificationHub", callback, eventHandlers);
 };
 
 export interface RoleResponseDTO {

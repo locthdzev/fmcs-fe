@@ -49,7 +49,8 @@ const rasaInstance = axios.create({
 
 export const setupSignalRConnection = (
   endpoint: string,
-  callback: (data: any) => void
+  callback: (data: any) => void,
+  eventHandlers?: { [key: string]: (data: any) => void }
 ): HubConnection => {
   const token = Cookies.get("token");
   if (!token) {
@@ -64,7 +65,15 @@ export const setupSignalRConnection = (
     .withAutomaticReconnect([0, 2000, 5000, 10000]) // Retry sau 0s, 2s, 5s, 10s
     .build();
 
+  // Register default event handler
   connection.on("ReceiveUpdate", callback);
+
+  // Register additional event handlers if provided
+  if (eventHandlers) {
+    Object.entries(eventHandlers).forEach(([event, handler]) => {
+      connection.on(event, handler);
+    });
+  }
 
   // Delay nhỏ để đảm bảo backend sẵn sàng
   const startConnection = () => {

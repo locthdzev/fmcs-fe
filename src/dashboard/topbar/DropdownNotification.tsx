@@ -45,23 +45,46 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   useEffect(() => {
     fetchNotifications();
 
-    const connection = setupNotificationRealTime(
-      (data: NotificationResponseDTO | string[]) => {
-        if (Array.isArray(data)) {
-          setNotifications((prev) => prev.filter((n) => !data.includes(n.id)));
-          setUnreadCount((prev) => Math.max(0, prev - data.length));
-        } else {
-          setNotifications((prev) => {
-            const updated = [
-              data,
-              ...prev.filter((n) => n.id !== data.id),
-            ].slice(0, maxItems);
-            setUnreadCount(data.unreadCount);
-            return updated;
-          });
-        }
+    const handleNotificationUpdate = (data: NotificationResponseDTO) => {
+      setNotifications((prev) => {
+        const updated = [data, ...prev.filter((n) => n.id !== data.id)].slice(0, maxItems);
+        setUnreadCount(data.unreadCount);
+        return updated;
+      });
+    };
+
+    const handleNotificationDelete = (deletedIds: string[]) => {
+      setNotifications((prev) => prev.filter((n) => !deletedIds.includes(n.id)));
+      // Update unread count by counting remaining unread notifications
+      setNotifications((prev) => {
+        const unreadCount = prev.filter(n => !n.isRead).length;
+        setUnreadCount(unreadCount);
+        return prev;
+      });
+    };
+
+    const handleAllNotificationsRead = () => {
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    };
+
+    const eventHandlers = {
+      ReceiveNotificationUpdate: handleNotificationUpdate,
+      NewNotification: handleNotificationUpdate,
+      ReceiveNotificationDelete: handleNotificationDelete,
+      NotificationStatusUpdated: handleNotificationUpdate,
+      NotificationReupped: handleNotificationUpdate,
+      NotificationCopied: handleNotificationUpdate,
+      AllNotificationsRead: handleAllNotificationsRead
+    };
+
+    const connection = setupNotificationRealTime((data: NotificationResponseDTO | string[]) => {
+      if (Array.isArray(data)) {
+        handleNotificationDelete(data);
+      } else {
+        handleNotificationUpdate(data);
       }
-    );
+    });
 
     return () => {
       connection.stop();
