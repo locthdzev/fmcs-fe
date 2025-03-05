@@ -3,7 +3,7 @@ import Cookies from "js-cookie";
 import { HubConnectionBuilder, HubConnection } from "@microsoft/signalr";
 
 const instance = axios.create({
-  baseURL: "http://localhost:5104/api",
+  baseURL: "https://api.truongvu.id.vn/api",
 });
 
 interface ErrorResponse {
@@ -58,7 +58,7 @@ export const setupSignalRConnection = (
   }
 
   const connection = new HubConnectionBuilder()
-    .withUrl(`http://localhost:5104${endpoint}`, {
+    .withUrl(`https://chatbot.truongvu.id.vn${endpoint}`, {
       accessTokenFactory: () => token,
     })
     .withAutomaticReconnect([0, 2000, 5000, 10000]) // Retry sau 0s, 2s, 5s, 10s
