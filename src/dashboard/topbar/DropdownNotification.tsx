@@ -9,7 +9,7 @@ import {
 import { IoNotificationsOutline } from "react-icons/io5";
 import { Modal } from "antd";
 import {
-  getAllNotifications,
+  getUserNotifications,
   getNotificationById,
   markAllNotificationsAsRead,
   NotificationResponseDTO,
@@ -32,13 +32,13 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
 
   const fetchNotifications = async () => {
     try {
-      const result = await getAllNotifications(1, maxItems);
+      const result = await getUserNotifications(1, maxItems);
       setNotifications(result.data);
       setUnreadCount(
         result.data.filter((n: NotificationResponseDTO) => !n.isRead).length
       );
     } catch (error) {
-      console.error("Failed to fetch notifications:", error);
+      console.error("Failed to fetch user notifications:", error);
     }
   };
 
@@ -48,17 +48,15 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     const connection = setupNotificationRealTime(
       (data: NotificationResponseDTO | string[]) => {
         if (Array.isArray(data)) {
-          // Xóa thông báo
           setNotifications((prev) => prev.filter((n) => !data.includes(n.id)));
           setUnreadCount((prev) => Math.max(0, prev - data.length));
         } else {
-          // Thêm hoặc cập nhật thông báo
           setNotifications((prev) => {
             const updated = [
               data,
               ...prev.filter((n) => n.id !== data.id),
             ].slice(0, maxItems);
-            setUnreadCount(data.unreadCount); // Cập nhật từ server
+            setUnreadCount(data.unreadCount);
             return updated;
           });
         }

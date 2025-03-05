@@ -94,6 +94,7 @@ export function NotificationManagement() {
       );
       if (response.isSuccess) {
         toast.success("Status updated successfully!");
+        fetchNotifications();
       } else {
         toast.error(response.message);
       }
@@ -133,6 +134,7 @@ export function NotificationManagement() {
         toast.success(response.message || "Notification created successfully!");
         setIsCreateModalVisible(false);
         form.resetFields();
+        fetchNotifications();
       } else {
         toast.error(response.message || "Unable to create notification.");
       }
@@ -146,6 +148,7 @@ export function NotificationManagement() {
       const response = await reupNotification(id, true);
       if (response.isSuccess) {
         toast.success(response.message || "Notification reupped successfully!");
+        fetchNotifications();
       } else {
         toast.error(response.message);
       }
@@ -176,6 +179,7 @@ export function NotificationManagement() {
         );
         setIsCopyModalVisible(false);
         copyForm.resetFields();
+        fetchNotifications();
       } else {
         toast.error(response.message);
       }
@@ -194,8 +198,8 @@ export function NotificationManagement() {
     copyForm.setFieldsValue({
       title: record.title,
       content: record.content,
-      sendEmail: false,
-      recipientType: record.recipientType === "System" ? "All" : "Role",
+      sendEmail: record.sendEmail,
+      recipientType: record.recipientType,
       roleId: record.roleId,
       file: record.attachment
         ? [{ url: record.attachment, name: record.attachment.split("/").pop() }]
@@ -249,6 +253,12 @@ export function NotificationManagement() {
           title="Recipient Type"
           dataIndex="recipientType"
           key="recipientType"
+        />
+        <Column
+          title="Send Email"
+          dataIndex="sendEmail"
+          key="sendEmail"
+          render={(sendEmail) => (sendEmail ? "Yes" : "No")}
         />
         <Column
           title="Created At"
