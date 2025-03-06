@@ -3,7 +3,7 @@ import Cookies from "js-cookie";
 import { HubConnectionBuilder, HubConnection } from "@microsoft/signalr";
 
 const instance = axios.create({
-  baseURL: "http://localhost:5104/api",
+  baseURL: "https://api.truongvu.id.vn/api",
 });
 
 interface ErrorResponse {
