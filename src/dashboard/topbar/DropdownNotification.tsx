@@ -66,12 +66,24 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       const connection = setupNotificationRealTime((data: any) => {
         if (Array.isArray(data)) {
           setNotifications((prev) => prev.filter((n) => !data.includes(n.id)));
-          fetchNotifications();
-        } else if (data && "unreadCount" in data) {
-          setNotifications((prev) =>
-            [data, ...prev.filter((n) => n.id !== data.id)].slice(0, maxItems)
-          );
-          setUnreadCount(data.unreadCount);
+          fetchNotifications(); // Sync with server
+        } else if (data && "id" in data) {
+          setNotifications((prev) => {
+            const exists = prev.find((n) => n.id === data.id);
+            if (exists) {
+              return prev.map((n) =>
+                n.id === data.id ? { ...n, ...data } : n
+              );
+            } else {
+              return [data, ...prev.filter((n) => n.id !== data.id)].slice(
+                0,
+                maxItems
+              );
+            }
+          });
+          if (!data.isRead && data.unreadCount > 0) {
+            setUnreadCount(data.unreadCount);
+          }
         } else if (data === "AllNotificationsRead") {
           setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
           setUnreadCount(0);

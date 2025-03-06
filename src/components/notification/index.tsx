@@ -71,7 +71,7 @@ export function NotificationManagement() {
       await fetchRoles();
 
       const connection = setupNotificationRealTime(
-        (data: NotificationResponseDTO | string[]) => {
+        (data: NotificationResponseDTO | string[] | any) => {
           if (Array.isArray(data)) {
             setNotifications((prev) =>
               prev.filter((n) => !data.includes(n.id))
@@ -79,11 +79,17 @@ export function NotificationManagement() {
             setSelectedRowKeys((prev) =>
               prev.filter((key) => !data.includes(key.toString()))
             );
-          } else {
-            setNotifications((prev) => [
-              data,
-              ...prev.filter((n) => n.id !== data.id),
-            ]);
+          } else if (data && "id" in data) {
+            setNotifications((prev) => {
+              const exists = prev.find((n) => n.id === data.id);
+              if (exists) {
+                return prev.map((n) =>
+                  n.id === data.id ? { ...n, ...data } : n
+                );
+              } else {
+                return [data, ...prev.filter((n) => n.id !== data.id)];
+              }
+            });
           }
         }
       );
@@ -96,16 +102,15 @@ export function NotificationManagement() {
 
   const handleToggleStatus = async (id: string, status: string) => {
     try {
-      const response = await updateNotificationStatus(
-        id,
-        status === "Active" ? "Inactive" : "Active"
-      );
+      const newStatus = status === "Active" ? "Inactive" : "Active";
+      const response = await updateNotificationStatus(id, newStatus);
       if (response.isSuccess) {
         toast.success("Status updated successfully!");
-        fetchNotifications();
+        // Không cần fetch lại, SignalR sẽ đồng bộ
       }
-    } catch {
+    } catch (error) {
       toast.error("Unable to update status.");
+      console.error("Error toggling status:", error);
     }
   };
 
