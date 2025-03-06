@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import Cookies from "js-cookie";
 import {
   Button,
   Table,
@@ -72,24 +73,37 @@ export function NotificationManagement() {
 
       const connection = setupNotificationRealTime(
         (data: NotificationResponseDTO | string[] | any) => {
+          console.log("SignalR notification data received in NotificationManagement:", data);
+          
           if (Array.isArray(data)) {
+            // Xử lý khi xóa thông báo
+            console.log("Processing notification deletion:", data);
             setNotifications((prev) =>
               prev.filter((n) => !data.includes(n.id))
             );
             setSelectedRowKeys((prev) =>
               prev.filter((key) => !data.includes(key.toString()))
             );
-          } else if (data && "id" in data) {
-            setNotifications((prev) => {
-              const exists = prev.find((n) => n.id === data.id);
-              if (exists) {
-                return prev.map((n) =>
-                  n.id === data.id ? { ...n, ...data } : n
-                );
-              } else {
-                return [data, ...prev.filter((n) => n.id !== data.id)];
-              }
-            });
+          } else if (data && typeof data === "object") {
+            // Xử lý khi có thông báo mới hoặc cập nhật thông báo
+            console.log("Processing notification update or new notification:", data);
+            
+            // Nếu là sự kiện NewNotification
+            if (data.id && data.title) {
+              console.log("Adding/updating notification in list:", data.id);
+              setNotifications((prev) => {
+                const exists = prev.find((n) => n.id === data.id);
+                if (exists) {
+                  console.log("Updating existing notification:", data.id);
+                  return prev.map((n) =>
+                    n.id === data.id ? { ...n, ...data } : n
+                  );
+                } else {
+                  console.log("Adding new notification:", data.id);
+                  return [data, ...prev.filter((n) => n.id !== data.id)];
+                }
+              });
+            }
           }
         }
       );
