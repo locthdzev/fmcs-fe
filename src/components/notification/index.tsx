@@ -22,6 +22,7 @@ import {
   setupNotificationRealTime,
   getAllRoles,
   RoleResponseDTO,
+  getNotificationDetailForAdmin,
 } from "@/api/notification";
 
 const { Column } = Table;
@@ -48,7 +49,7 @@ export function NotificationManagement() {
     try {
       const result = await getAllNotifications();
       setNotifications(result.data);
-    } catch (error) {
+    } catch {
       toast.error("Unable to load notifications.");
     } finally {
       setLoading(false);
@@ -59,31 +60,38 @@ export function NotificationManagement() {
     try {
       const roleList = await getAllRoles();
       setRoles(roleList);
-    } catch (error) {
+    } catch {
       toast.error("Unable to load roles.");
     }
   };
 
   useEffect(() => {
-    const loadData = async () => {
-      await Promise.all([fetchNotifications(), fetchRoles()]);
-    };
-    loadData();
+    const initialize = async () => {
+      await fetchNotifications();
+      await fetchRoles();
 
-    const connection = setupNotificationRealTime((data) => {
-      if (Array.isArray(data)) {
-        setNotifications((prev) => prev.filter((n) => !data.includes(n.id)));
-      } else {
-        setNotifications((prev) => {
-          const updated = [data, ...prev.filter((n) => n.id !== data.id)];
-          return updated;
-        });
-      }
-    });
+      const connection = setupNotificationRealTime(
+        (data: NotificationResponseDTO | string[]) => {
+          if (Array.isArray(data)) {
+            setNotifications((prev) =>
+              prev.filter((n) => !data.includes(n.id))
+            );
+            setSelectedRowKeys((prev) =>
+              prev.filter((key) => !data.includes(key.toString()))
+            );
+          } else {
+            setNotifications((prev) => [
+              data,
+              ...prev.filter((n) => n.id !== data.id),
+            ]);
+          }
+        }
+      );
 
-    return () => {
-      connection.stop();
+      return () => connection.stop();
     };
+
+    initialize();
   }, [fetchNotifications]);
 
   const handleToggleStatus = async (id: string, status: string) => {
@@ -95,8 +103,6 @@ export function NotificationManagement() {
       if (response.isSuccess) {
         toast.success("Status updated successfully!");
         fetchNotifications();
-      } else {
-        toast.error(response.message);
       }
     } catch {
       toast.error("Unable to update status.");
@@ -109,8 +115,6 @@ export function NotificationManagement() {
       if (response.isSuccess) {
         toast.success("Notifications deleted successfully!");
         setSelectedRowKeys([]);
-      } else {
-        toast.error(response.message);
       }
     } catch {
       toast.error("Unable to delete notifications.");
@@ -131,15 +135,13 @@ export function NotificationManagement() {
     try {
       const response = await createNotification(formData);
       if (response.isSuccess) {
-        toast.success(response.message || "Notification created successfully!");
+        toast.success(response.message);
         setIsCreateModalVisible(false);
         form.resetFields();
         fetchNotifications();
-      } else {
-        toast.error(response.message || "Unable to create notification.");
       }
     } catch {
-      toast.error("An error occurred while creating the notification.");
+      toast.error("Unable to create notification.");
     }
   };
 
@@ -147,10 +149,8 @@ export function NotificationManagement() {
     try {
       const response = await reupNotification(id, true);
       if (response.isSuccess) {
-        toast.success(response.message || "Notification reupped successfully!");
+        toast.success(response.message);
         fetchNotifications();
-      } else {
-        toast.error(response.message);
       }
     } catch {
       toast.error("Unable to reup notification.");
@@ -174,22 +174,19 @@ export function NotificationManagement() {
         formData
       );
       if (response.isSuccess) {
-        toast.success(
-          response.message || "Notification copied and created successfully!"
-        );
+        toast.success(response.message);
         setIsCopyModalVisible(false);
         copyForm.resetFields();
         fetchNotifications();
-      } else {
-        toast.error(response.message);
       }
     } catch {
       toast.error("Unable to copy notification.");
     }
   };
 
-  const openDetailModal = (record: NotificationResponseDTO) => {
-    setSelectedNotification(record);
+  const openDetailModal = async (record: NotificationResponseDTO) => {
+    const detail = await getNotificationDetailForAdmin(record.id);
+    setSelectedNotification(detail);
     setIsDetailModalVisible(true);
   };
 
@@ -297,7 +294,6 @@ export function NotificationManagement() {
         />
       </Table>
 
-      {/* Modal Create Notification */}
       <Modal
         title="Create Notification"
         open={isCreateModalVisible}
@@ -323,22 +319,22 @@ export function NotificationManagement() {
           <Form.Item
             name="recipientType"
             label="Recipient Type"
-            initialValue="All"
+            initialValue="System"
             rules={[{ required: true }]}
           >
             <Select>
-              <Option value="All">All Users</Option>
+              <Option value="System">System</Option>
               <Option value="Role">Specific Role</Option>
             </Select>
           </Form.Item>
           <Form.Item
             noStyle
-            shouldUpdate={(prevValues, currentValues) =>
-              prevValues.recipientType !== currentValues.recipientType
+            shouldUpdate={(prev, curr) =>
+              prev.recipientType !== curr.recipientType
             }
           >
             {({ getFieldValue }) =>
-              getFieldValue("recipientType") === "Role" ? (
+              getFieldValue("recipientType") === "Role" && (
                 <Form.Item
                   name="roleId"
                   label="Role"
@@ -352,7 +348,7 @@ export function NotificationManagement() {
                     ))}
                   </Select>
                 </Form.Item>
-              ) : null
+              )
             }
           </Form.Item>
           <Form.Item
@@ -368,7 +364,6 @@ export function NotificationManagement() {
         </Form>
       </Modal>
 
-      {/* Modal Detail Notification */}
       <Modal
         title={selectedNotification?.title}
         open={isDetailModalVisible}
@@ -376,25 +371,54 @@ export function NotificationManagement() {
         footer={null}
         width={600}
       >
-        <div style={{ maxHeight: "400px", overflowY: "auto" }}>
-          <div>{selectedNotification?.content}</div>
-          {selectedNotification?.attachment &&
-            (selectedNotification.attachment.includes(".jpg") ||
-            selectedNotification.attachment.includes(".png") ? (
-              <img
-                src={selectedNotification.attachment}
-                alt="Attachment"
-                style={{ maxWidth: "100%" }}
-              />
+        <div>
+          <p>
+            <strong>Content:</strong> {selectedNotification?.content || "N/A"}
+          </p>
+          <p>
+            <strong>Attachment:</strong>{" "}
+            {selectedNotification?.attachment ? (
+              selectedNotification.attachment.match(/\.(jpg|png)$/i) ? (
+                <img
+                  src={selectedNotification.attachment}
+                  alt="Attachment"
+                  style={{ maxWidth: "100%" }}
+                />
+              ) : (
+                <a href={selectedNotification.attachment} download>
+                  Download
+                </a>
+              )
             ) : (
-              <a href={selectedNotification.attachment} download>
-                Download
-              </a>
-            ))}
+              "N/A"
+            )}
+          </p>
+          <p>
+            <strong>Created At:</strong>{" "}
+            {new Date(selectedNotification?.createdAt || "").toLocaleString()}
+          </p>
+          <p>
+            <strong>Created By:</strong>{" "}
+            {selectedNotification?.createdBy?.userName || "N/A"}
+          </p>
+          <p>
+            <strong>Status:</strong> {selectedNotification?.status}
+          </p>
+          <p>
+            <strong>Send Email:</strong>{" "}
+            {selectedNotification?.sendEmail ? "Yes" : "No"}
+          </p>
+          <p>
+            <strong>Recipient Type:</strong>{" "}
+            {selectedNotification?.recipientType}
+          </p>
+          <p>
+            <strong>Recipients:</strong>{" "}
+            {selectedNotification?.recipientIds.length}
+          </p>
         </div>
       </Modal>
 
-      {/* Modal Copy Notification */}
       <Modal
         title="Copy Notification"
         open={isCopyModalVisible}
@@ -423,18 +447,18 @@ export function NotificationManagement() {
             rules={[{ required: true }]}
           >
             <Select>
-              <Option value="All">All Users</Option>
+              <Option value="System">System</Option>
               <Option value="Role">Specific Role</Option>
             </Select>
           </Form.Item>
           <Form.Item
             noStyle
-            shouldUpdate={(prevValues, currentValues) =>
-              prevValues.recipientType !== currentValues.recipientType
+            shouldUpdate={(prev, curr) =>
+              prev.recipientType !== curr.recipientType
             }
           >
             {({ getFieldValue }) =>
-              getFieldValue("recipientType") === "Role" ? (
+              getFieldValue("recipientType") === "Role" && (
                 <Form.Item
                   name="roleId"
                   label="Role"
@@ -448,7 +472,7 @@ export function NotificationManagement() {
                     ))}
                   </Select>
                 </Form.Item>
-              ) : null
+              )
             }
           </Form.Item>
           <Form.Item

@@ -49,7 +49,8 @@ const rasaInstance = axios.create({
 
 export const setupSignalRConnection = (
   endpoint: string,
-  callback: (data: any) => void
+  callback: (data: any) => void,
+  eventHandlers?: { [key: string]: (data: any) => void }
 ): HubConnection => {
   const token = Cookies.get("token");
   if (!token) {
@@ -61,12 +62,16 @@ export const setupSignalRConnection = (
     .withUrl(`http://localhost:5104${endpoint}`, {
       accessTokenFactory: () => token,
     })
-    .withAutomaticReconnect([0, 2000, 5000, 10000]) // Retry sau 0s, 2s, 5s, 10s
+    .withAutomaticReconnect([0, 2000, 5000, 10000])
     .build();
 
   connection.on("ReceiveUpdate", callback);
+  if (eventHandlers) {
+    Object.entries(eventHandlers).forEach(([event, handler]) => {
+      connection.on(event, handler);
+    });
+  }
 
-  // Delay nhỏ để đảm bảo backend sẵn sàng
   const startConnection = () => {
     setTimeout(() => {
       connection
@@ -74,12 +79,11 @@ export const setupSignalRConnection = (
         .then(() => console.log("SignalR Connected to " + endpoint))
         .catch((err) => {
           console.error("SignalR Connection Error:", err);
-          // Retry nếu lỗi
           if (err.message.includes("negotiation")) {
-            setTimeout(startConnection, 2000); // Retry sau 2s
+            setTimeout(startConnection, 2000);
           }
         });
-    }, 500); // Delay 500ms
+    }, 500);
   };
 
   startConnection();
