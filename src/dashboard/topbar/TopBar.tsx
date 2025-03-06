@@ -1,11 +1,12 @@
-import DropdownUser from "./DropdownUser";
+import React from "react";
 import { useDashboardContext } from "../Provider";
 import {
   IoSearch,
   IoShareSocialOutline,
   IoAddCircleOutline,
-  IoNotificationsOutline,
 } from "react-icons/io5";
+import { NotificationDropdown } from "./DropdownNotification";
+import DropdownUser from "./DropdownUser";
 
 export function TopBar() {
   const { openSidebar } = useDashboardContext();
@@ -42,9 +43,7 @@ export function TopBar() {
             <a href="#" className="block pr-5">
               <IoAddCircleOutline className="h-6 w-6 text-black" />
             </a>
-            <a href="#" className="relative block pr-5">
-              <IoNotificationsOutline className="h-6 w-6 text-black" />
-            </a>
+            <NotificationDropdown />
             <DropdownUser />
           </div>
         </div>
