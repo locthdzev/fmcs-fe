@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Button, Table, Select, Input, DatePicker, Pagination } from "antd";
-
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import {
   getAllInventoryHistories,
@@ -39,25 +38,74 @@ export function InventoryHistory() {
     try {
       let result;
       if (inventoryRecordIdFilter) {
-        result = await getInventoryHistoriesByInventoryRecordId(inventoryRecordIdFilter);
-        setHistories(result);
-        setFilteredHistories(result);
+        result = await getInventoryHistoriesByInventoryRecordId(
+          inventoryRecordIdFilter
+        );
+        const sortedResult = result.sort(
+          (a: InventoryHistoryResponseDTO, b: InventoryHistoryResponseDTO) => {
+            return (
+              new Date(b.changeDate).getTime() -
+              new Date(a.changeDate).getTime()
+            );
+          }
+        );
+        setHistories(sortedResult);
+        setFilteredHistories(sortedResult);
       } else if (dateRangeFilter) {
-        result = await getInventoryHistoriesByDateRange(dateRangeFilter[0], dateRangeFilter[1]);
-        setHistories(result);
-        setFilteredHistories(result);
+        result = await getInventoryHistoriesByDateRange(
+          dateRangeFilter[0],
+          dateRangeFilter[1]
+        );
+        const sortedResult = result.sort(
+          (a: InventoryHistoryResponseDTO, b: InventoryHistoryResponseDTO) => {
+            return (
+              new Date(b.changeDate).getTime() -
+              new Date(a.changeDate).getTime()
+            );
+          }
+        );
+        setHistories(sortedResult);
+        setFilteredHistories(sortedResult);
       } else if (changeTypeFilter) {
         result = await getInventoryHistoriesByChangeType(changeTypeFilter);
-        setHistories(result);
-        setFilteredHistories(result);
+        const sortedResult = result.sort(
+          (a: InventoryHistoryResponseDTO, b: InventoryHistoryResponseDTO) => {
+            return (
+              new Date(b.changeDate).getTime() -
+              new Date(a.changeDate).getTime()
+            );
+          }
+        );
+        setHistories(sortedResult);
+        setFilteredHistories(sortedResult);
       } else if (userIdFilter) {
         result = await getInventoryHistoriesByUserId(userIdFilter);
-        setHistories(result);
-        setFilteredHistories(result);
+        const sortedResult = result.sort(
+          (a: InventoryHistoryResponseDTO, b: InventoryHistoryResponseDTO) => {
+            return (
+              new Date(b.changeDate).getTime() -
+              new Date(a.changeDate).getTime()
+            );
+          }
+        );
+        setHistories(sortedResult);
+        setFilteredHistories(sortedResult);
       } else {
-        result = await getAllInventoryHistories(currentPage, pageSize, searchText);
-        setHistories(result.data);
-        setFilteredHistories(result.data);
+        result = await getAllInventoryHistories(
+          currentPage,
+          pageSize,
+          searchText
+        );
+        const sortedResult = result.data.sort(
+          (a: InventoryHistoryResponseDTO, b: InventoryHistoryResponseDTO) => {
+            return (
+              new Date(b.changeDate).getTime() -
+              new Date(a.changeDate).getTime()
+            );
+          }
+        );
+        setHistories(sortedResult);
+        setFilteredHistories(sortedResult);
         setTotal(result.totalRecords);
       }
     } catch (error) {
@@ -69,10 +117,10 @@ export function InventoryHistory() {
     fetchHistories();
 
     const connection = setupInventoryHistoryRealTime(
-        (newHistory: InventoryHistoryResponseDTO) => {
-          fetchHistories();
-        }
-      );
+      (newHistory: InventoryHistoryResponseDTO) => {
+        fetchHistories();
+      }
+    );
 
     return () => {
       connection.stop();
@@ -166,7 +214,6 @@ export function InventoryHistory() {
               dataIndex="changeDate"
               key="changeDate"
               render={(date) => new Date(date).toLocaleString("en-US")}
-              defaultSortOrder="descend"
               sorter={(a, b) =>
                 new Date(a.changeDate).getTime() -
                 new Date(b.changeDate).getTime()

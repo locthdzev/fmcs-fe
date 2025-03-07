@@ -9,7 +9,9 @@ export interface BatchNumberResponseDTO {
   expiryDate?: string;
   quantityReceived: number;
   createdAt: string;
+  createdBy?: { id?: string; userName?: string; role?: string };
   updatedAt?: string;
+  updatedBy?: { id?: string; userName?: string; role?: string };
   status?: string;
 }
 
@@ -26,10 +28,32 @@ export interface MergeBatchNumbersRequestDTO {
 export const getAllBatchNumbers = async (
   page: number = 1,
   pageSize: number = 10,
-  search?: string
+  search?: string,
+  sortBy: string = "CreatedAt",
+  ascending: boolean = false,
+  drugName?: string,
+  supplierName?: string,
+  status?: string,
+  manufacturingDateStart?: string,
+  manufacturingDateEnd?: string,
+  expiryDateStart?: string,
+  expiryDateEnd?: string
 ) => {
   const response = await api.get("/batchnumber-management/batchnumbers", {
-    params: { page, pageSize, search },
+    params: {
+      page,
+      pageSize,
+      search,
+      sortBy,
+      ascending,
+      drugName,
+      supplierName,
+      status,
+      manufacturingDateStart,
+      manufacturingDateEnd,
+      expiryDateStart,
+      expiryDateEnd,
+    },
   });
   return response.data;
 };
@@ -46,16 +70,6 @@ export const updateBatchNumber = async (
   const response = await api.put(
     `/batchnumber-management/batchnumbers/${id}`,
     data
-  );
-  return response.data;
-};
-
-export const toggleBatchNumberStatus = async (
-  id: string,
-  newStatus: string
-) => {
-  const response = await api.put(
-    `/batchnumber-management/batchnumbers/${id}/toggle-status?newStatus=${newStatus}`
   );
   return response.data;
 };
@@ -95,9 +109,14 @@ export const updateBatchNumberStatus = async (
   const response = await api.put(
     `/batchnumber-management/batchnumbers/${id}/status`,
     {},
-    {
-      params: { newStatus },
-    }
+    { params: { newStatus } }
   );
   return response.data;
+};
+
+export const getMergeableBatchGroups = async () => {
+  const response = await api.get(
+    "/batchnumber-management/batchnumbers/mergeable-groups"
+  );
+  return response.data.data;
 };

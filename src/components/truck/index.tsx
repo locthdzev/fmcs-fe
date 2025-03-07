@@ -593,7 +593,7 @@ export function Trucks() {
             showControls
             page={page}
             total={pages}
-            onChange={(newPage) => setPage(newPage)}
+            onChange={onPageChange}
             color="primary"
           />
         )}

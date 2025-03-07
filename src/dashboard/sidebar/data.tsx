@@ -22,6 +22,7 @@ import { BatchNumberIcon } from "./icons/BatchNumberIcon";
 import { InventoryRecordIcon } from "./icons/InventoryRecordIcon";
 import { InventoryHistoryIcon } from "./icons/InventoryHistoryIcon";
 import { InventoriesIcon } from "./icons/InventoriesIcon";
+import { NotificationIcon } from "./icons/NotificationIcon";
 
 export const data = [
   {
@@ -127,10 +128,11 @@ export const data = [
           },
         ],
       },
+      { title: "Notifications", icon: <NotificationIcon />, link: "/notification/management" },
       {
         title: "HealthInsurance",
         icon: <HealthInsuranceIcon />,
-        link: "/admin/credits",
+        link: "/health-insurance/management",
       },
       {
         title: "PeriodicHealthCheckups",
