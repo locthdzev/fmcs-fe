@@ -1,4 +1,5 @@
 import api, { setupSignalRConnection } from "./customize-axios";
+import Cookies from "js-cookie";
 
 export interface NotificationResponseDTO {
   id: string;
@@ -97,13 +98,44 @@ export const markAllNotificationsAsRead = async () => {
 
 export const setupNotificationRealTime = (callback: (data: any) => void) => {
   const eventHandlers = {
-    ReceiveNotificationUpdate: callback,
-    NewNotification: callback,
-    ReceiveNotificationDelete: callback,
-    NotificationStatusUpdated: callback,
-    NotificationReupped: callback,
-    NotificationCopied: callback,
-    AllNotificationsRead: callback
+    NewNotification: (data: any) => {
+      console.log("NewNotification event received:", data);
+      callback(data);
+    },
+    ReceiveNotificationUpdate: (data: any) => {
+      console.log("ReceiveNotificationUpdate event received:", data);
+      callback(data);
+    },
+    ReceiveNotificationDelete: (data: any) => {
+      console.log("ReceiveNotificationDelete event received:", data);
+      callback(data);
+    },
+    NotificationStatusUpdated: (data: any) => {
+      console.log("NotificationStatusUpdated event received:", data);
+      callback(data);
+    },
+    NotificationReupped: (data: any) => {
+      console.log("NotificationReupped event received:", data);
+      callback(data);
+    },
+    NotificationCopied: (data: any) => {
+      console.log("NotificationCopied event received:", data);
+      callback(data);
+    },
+    NotificationBadgeUpdate: async () => {
+      console.log("NotificationBadgeUpdate event received");
+      try {
+        const unreadCount = await getUnreadNotificationCount();
+        console.log("Updated unread count:", unreadCount);
+        callback({ unreadCount });
+      } catch (error) {
+        console.error("Error fetching unread count:", error);
+      }
+    },
+    AllNotificationsRead: (data: any) => {
+      console.log("AllNotificationsRead event received");
+      callback("AllNotificationsRead");
+    }
   };
   return setupSignalRConnection("/notificationHub", callback, eventHandlers);
 };
