@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Dropdown,
   DropdownTrigger,
@@ -16,6 +16,7 @@ import {
   setupNotificationRealTime,
   getUnreadNotificationCount,
 } from "@/api/notification";
+import Cookies from "js-cookie";
 
 interface NotificationDropdownProps {
   maxItems?: number;
@@ -64,21 +65,50 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       await fetchNotifications();
 
       const connection = setupNotificationRealTime((data: any) => {
+        console.log("SignalR notification data received in DropdownNotification:", data);
+        
         if (Array.isArray(data)) {
+          // Xử lý khi xóa thông báo
+          console.log("Processing notification deletion:", data);
           setNotifications((prev) => prev.filter((n) => !data.includes(n.id)));
-          fetchNotifications();
-        } else if (data && "unreadCount" in data) {
-          setNotifications((prev) =>
-            [data, ...prev.filter((n) => n.id !== data.id)].slice(0, maxItems)
-          );
-          setUnreadCount(data.unreadCount);
+        } else if (data && typeof data === "object") {
+          // Xử lý khi có thông báo mới hoặc cập nhật thông báo
+          console.log("Processing notification update or new notification:", data);
+          
+          // Nếu là sự kiện NewNotification
+          if (data.id && data.title) {
+            console.log("Adding/updating notification in list:", data.id);
+            setNotifications((prev) => {
+              const exists = prev.find((n) => n.id === data.id);
+              if (exists) {
+                console.log("Updating existing notification:", data.id);
+                return prev.map((n) => n.id === data.id ? { ...n, ...data } : n);
+              } else {
+                console.log("Adding new notification:", data.id);
+                return [data, ...prev.filter((n) => n.id !== data.id)].slice(0, maxItems);
+              }
+            });
+            
+            // Fetch lại danh sách thông báo để đảm bảo đồng bộ
+            fetchNotifications();
+          }
+          
+          // Cập nhật số lượng thông báo chưa đọc nếu có
+          if (data.unreadCount !== undefined) {
+            console.log("Updating unread count to:", data.unreadCount);
+            setUnreadCount(data.unreadCount);
+          }
         } else if (data === "AllNotificationsRead") {
+          console.log("Marking all notifications as read");
           setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
           setUnreadCount(0);
         }
       });
 
-      return () => connection.stop();
+      return () => {
+        console.log("Stopping SignalR connection");
+        connection.stop();
+      };
     };
 
     initialize();
