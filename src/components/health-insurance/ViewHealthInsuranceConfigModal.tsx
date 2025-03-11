@@ -28,9 +28,16 @@ const ViewHealthInsuranceConfigModal: React.FC<ViewHealthInsuranceConfigModalPro
       open={visible}
       onCancel={onClose}
       footer={<Button onClick={onClose}>Close</Button>}
+      width={800}
+      style={{ fontSize: '16px' }}
     >
       {config ? (
-        <Descriptions bordered>
+        <Descriptions 
+          bordered 
+          column={1}
+          labelStyle={{ width: '200px', fontSize: '16px' }}
+          contentStyle={{ fontSize: '16px' }}
+        >
           <Descriptions.Item label="Reminder Interval">{config.reminderInterval} days</Descriptions.Item>
           <Descriptions.Item label="Deadline Days">{config.deadlineDays} days</Descriptions.Item>
           <Descriptions.Item label="Warning Threshold Days">
@@ -38,7 +45,7 @@ const ViewHealthInsuranceConfigModal: React.FC<ViewHealthInsuranceConfigModalPro
           </Descriptions.Item>
         </Descriptions>
       ) : (
-        <p>Loading...</p>
+        <p style={{ fontSize: '16px' }}>Loading...</p>
       )}
     </Modal>
   );

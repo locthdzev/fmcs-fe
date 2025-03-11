@@ -199,12 +199,12 @@ export function HealthInsuranceManagement() {
             loading={loading}
             onChange={handleTableChange}
           >
-            <Column
+            {/* <Column
               title="User ID"
               dataIndex="userId"
               key="userId"
               sorter={(a, b) => a.userId.localeCompare(b.userId)}
-            />
+            /> */}
             <Column
               title="Insurance Number"
               dataIndex="healthInsuranceNumber"
