@@ -32,23 +32,46 @@ const HealthInsuranceHistoryModal: React.FC<HealthInsuranceHistoryModalProps> = 
       open={visible}
       onCancel={onClose}
       footer={<Button onClick={onClose}>Close</Button>}
-      width={800}
+      width={1000}
+      style={{ top: 20 }}
     >
-      <Table dataSource={history} rowKey="id" pagination={false}>
-        <Column title="Updated By" dataIndex={["updatedBy", "userName"]} key="updatedBy" />
+      <Table 
+        dataSource={history} 
+        rowKey="id" 
+        pagination={false}
+        bordered
+        scroll={{ y: 'calc(100vh - 300px)' }}
+      >
+        <Column 
+          title="Updated By" 
+          dataIndex={["updatedBy", "userName"]} 
+          key="updatedBy"
+          width={150} 
+        />
         <Column
           title="Updated At"
           dataIndex="updatedAt"
           key="updatedAt"
+          width={180}
           render={(date) => new Date(date).toLocaleString()}
         />
-        <Column title="Previous Status" dataIndex="previousStatus" key="previousStatus" />
-        <Column title="New Status" dataIndex="newStatus" key="newStatus" />
+        <Column 
+          title="Previous Status" 
+          dataIndex="previousStatus" 
+          key="previousStatus"
+          width={150} 
+        />
+        <Column 
+          title="New Status" 
+          dataIndex="newStatus" 
+          key="newStatus"
+          width={150} 
+        />
         <Column
           title="Change Details"
           dataIndex="changeDetails"
           key="changeDetails"
-          render={(text) => <pre>{text}</pre>}
+          render={(text) => <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</pre>}
         />
       </Table>
     </Modal>

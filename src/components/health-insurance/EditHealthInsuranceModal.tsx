@@ -46,7 +46,9 @@ const EditHealthInsuranceModal: React.FC<EditHealthInsuranceModalProps> = ({
       });
       setHasInsurance(insurance.status !== "NotApplicable");
       if (insurance.imageUrl) {
-        setFileList([{ uid: "-1", name: "image", url: insurance.imageUrl }]);
+        setFileList([{ uid: "-1", name: "image", status: "done", url: insurance.imageUrl }]);
+      } else {
+        setFileList([]);
       }
     } else {
       form.resetFields();
@@ -57,7 +59,18 @@ const EditHealthInsuranceModal: React.FC<EditHealthInsuranceModalProps> = ({
 
   const handleSubmit = async (values: any) => {
     try {
-      const imageFile = fileList[0]?.originFileObj;
+      const imageFile = fileList.length > 0 ? fileList[0].originFileObj : undefined;
+
+      // Debug: Kiểm tra fileList và imageFile
+      console.log("fileList:", fileList);
+      console.log("imageFile:", imageFile);
+
+      // Validation
+      if (values.hasInsurance && values.updateMethod === "FromImage" && !imageFile) {
+        toast.error("Please upload an image when updating from image!");
+        return;
+      }
+
       if (insurance) {
         const request: HealthInsuranceUpdateRequestDTO = {
           healthInsuranceNumber: values.healthInsuranceNumber,
@@ -105,18 +118,28 @@ const EditHealthInsuranceModal: React.FC<EditHealthInsuranceModalProps> = ({
           toast.error(response.message || "Unable to create health insurance");
         }
       }
-    } catch {
+    } catch (error) {
+      console.error("Submit error:", error);
       toast.error("An error occurred while saving health insurance");
     }
   };
 
   const uploadProps = {
-    onRemove: () => setFileList([]),
+    onRemove: () => {
+      setFileList([]);
+    },
     beforeUpload: (file: any) => {
       setFileList([file]);
-      return false;
+      return false; // Ngăn upload tự động
     },
     fileList,
+    onChange: (info: any) => {
+      // Cập nhật fileList khi thay đổi
+      let newFileList = [...info.fileList];
+      // Giới hạn chỉ 1 file
+      newFileList = newFileList.slice(-1);
+      setFileList(newFileList);
+    },
   };
 
   return (
@@ -180,14 +203,35 @@ const EditHealthInsuranceModal: React.FC<EditHealthInsuranceModalProps> = ({
               <DatePicker format="YYYY-MM-DD" />
             </Form.Item>
             {insurance && (
-              <Form.Item name="updateMethod" label="Update Method">
+              <Form.Item
+                name="updateMethod"
+                label="Update Method"
+                rules={[{ required: true, message: "Please select an update method!" }]}
+              >
                 <Select>
                   <Select.Option value="Manual">Manual</Select.Option>
                   <Select.Option value="FromImage">From Image</Select.Option>
                 </Select>
               </Form.Item>
             )}
-            <Form.Item label="Insurance Image">
+            <Form.Item
+              label="Insurance Image"
+              name="insuranceImage"
+              rules={[
+                {
+                  validator: (_, value) => {
+                    if (
+                      hasInsurance &&
+                      form.getFieldValue("updateMethod") === "FromImage" &&
+                      fileList.length === 0
+                    ) {
+                      return Promise.reject("Please upload an image when updating from image!");
+                    }
+                    return Promise.resolve();
+                  },
+                },
+              ]}
+            >
               <Upload {...uploadProps} accept="image/*">
                 <Button>Upload Image</Button>
               </Upload>
