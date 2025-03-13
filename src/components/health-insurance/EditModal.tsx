@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Modal, Form, Input, DatePicker, Select, Button, Row, Col, Upload, Image } from 'antd';
-import { HealthInsuranceResponseDTO, updateHealthInsuranceByAdmin } from '@/api/healthinsurance';
+import { Modal, Form, Input, DatePicker, Select, Button, Row, Col, Upload, Image, Descriptions, Divider } from 'antd';
+import { HealthInsuranceResponseDTO, updateHealthInsuranceByAdmin, requestHealthInsuranceUpdate } from '@/api/healthinsurance';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import { UploadOutlined } from '@ant-design/icons';
@@ -11,9 +11,10 @@ interface EditModalProps {
   insurance: HealthInsuranceResponseDTO | null;
   onClose: () => void;
   onSuccess: () => void;
+  isAdmin?: boolean;
 }
 
-export default function EditModal({ visible, insurance, onClose, onSuccess }: EditModalProps) {
+export default function EditModal({ visible, insurance, onClose, onSuccess, isAdmin = true }: EditModalProps) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File>();
@@ -63,9 +64,11 @@ export default function EditModal({ visible, insurance, onClose, onSuccess }: Ed
         issueDate: values.issueDate?.format('YYYY-MM-DD'),
       };
 
-      const response = await updateHealthInsuranceByAdmin(insurance!.id, formattedValues, imageFile);
+      const submitFunc = isAdmin ? updateHealthInsuranceByAdmin : requestHealthInsuranceUpdate;
+      const response = await submitFunc(insurance!.id, formattedValues, imageFile);
+      
       if (response.isSuccess) {
-        toast.success('Insurance updated successfully!');
+        toast.success(isAdmin ? 'Insurance updated successfully!' : 'Update request sent successfully!');
         onSuccess();
         onClose();
       } else {
@@ -88,9 +91,11 @@ export default function EditModal({ visible, insurance, onClose, onSuccess }: Ed
     }
   };
 
+  if (!insurance) return null;
+
   return (
     <Modal
-      title="Edit Health Insurance"
+      title={`${isAdmin ? 'Edit' : 'Request Update'} Health Insurance`}
       open={visible}
       onCancel={onClose}
       footer={[
@@ -98,11 +103,18 @@ export default function EditModal({ visible, insurance, onClose, onSuccess }: Ed
           Cancel
         </Button>,
         <Button key="submit" type="primary" loading={loading} onClick={handleSubmit}>
-          Save Changes
+          {isAdmin ? 'Save Changes' : 'Submit Request'}
         </Button>,
       ]}
       width={1200}
     >
+      <Descriptions title="Policyholder Information" bordered column={1} style={{ marginBottom: 24 }}>
+        <Descriptions.Item label="Full Name">{insurance.user.fullName}</Descriptions.Item>
+        <Descriptions.Item label="Email">{insurance.user.email}</Descriptions.Item>
+      </Descriptions>
+
+      <Divider />
+
       <Form
         form={form}
         layout="vertical"

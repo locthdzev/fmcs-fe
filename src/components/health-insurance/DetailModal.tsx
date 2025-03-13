@@ -24,10 +24,32 @@ const formatChangeDetails = (details: string) => {
     const changes = JSON.parse(details);
     return Object.entries(changes).map(([field, value]: [string, any]) => {
       if (typeof value === 'object' && value.Item1 !== undefined && value.Item2 !== undefined) {
-        return `${field}: ${value.Item1} → ${value.Item2}`;
+        if (field === 'ImageUrl') {
+          return (
+            <div>
+              <div>Previous Image:</div>
+              <Image src={value.Item1} style={{ maxWidth: '200px', marginBottom: '8px' }} />
+              <div>New Image:</div>
+              <Image src={value.Item2} style={{ maxWidth: '200px' }} />
+            </div>
+          );
+        }
+        return (
+          <div>
+            <strong>{field}:</strong>
+            <div style={{ marginLeft: 16 }}>
+              From: {value.Item1}<br />
+              To: {value.Item2}
+            </div>
+          </div>
+        );
       }
-      return `${field}: ${value}`;
-    }).join('\n');
+      return (
+        <div>
+          <strong>{field}:</strong> {value}
+        </div>
+      );
+    });
   } catch {
     return details;
   }

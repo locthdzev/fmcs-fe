@@ -18,7 +18,7 @@ export default function CreateModal({ visible, onClose, onSuccess }: CreateModal
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File>();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [userOptions, setUserOptions] = useState<{ value: string; label: string }[]>([]);
+  const [userOptions, setUserOptions] = useState<{ value: string; label: string; email: string }[]>([]);
 
   useEffect(() => {
     if (visible) {
@@ -36,7 +36,7 @@ export default function CreateModal({ visible, onClose, onSuccess }: CreateModal
       
       // Filter users without insurance
       const usersWithStatus = await Promise.all(
-        userRoleUsers.map(async (user) => {
+        userRoleUsers.map(async (user: UserProfile) => {
           const status = await getUserInsuranceStatus(user.id);
           return { user, hasInsurance: status.hasInsurance };
         })

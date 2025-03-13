@@ -25,11 +25,13 @@ import {
   restoreHealthInsurance,
   verifyHealthInsurance,
   createInitialHealthInsurances,
+  getHealthInsuranceConfig,
 } from "@/api/healthinsurance";
 import CreateModal from "./CreateModal";
 import DetailModal from "./DetailModal";
 import EditModal from "./EditModal";
-import { DownOutlined, SearchOutlined } from "@ant-design/icons";
+import ConfigModal from "./ConfigModal";
+import { DownOutlined, SearchOutlined, SettingOutlined } from "@ant-design/icons";
 import { getUsers, UserProfile } from "@/api/user";
 
 const { Option } = Select;
@@ -75,6 +77,7 @@ export function HealthInsuranceManagement() {
   const [visibleColumns, setVisibleColumns] = useState<string[]>(DEFAULT_VISIBLE_COLUMNS);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [isConfigModalVisible, setIsConfigModalVisible] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -433,6 +436,12 @@ export function HealthInsuranceManagement() {
             <Button onClick={exportHealthInsurances}>
               Export to Excel
             </Button>
+            <Button 
+              icon={<SettingOutlined />}
+              onClick={() => setIsConfigModalVisible(true)}
+            >
+              Settings
+            </Button>
           </Space>
         </Col>
       </Row>
@@ -522,6 +531,10 @@ export function HealthInsuranceManagement() {
           setSelectedInsurance(null);
         }}
         onSuccess={fetchInsurances}
+      />
+      <ConfigModal
+        visible={isConfigModalVisible}
+        onClose={() => setIsConfigModalVisible(false)}
       />
     </div>
   );
