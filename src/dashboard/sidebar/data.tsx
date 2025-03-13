@@ -132,7 +132,7 @@ export const data = [
       {
         title: "HealthInsurance",
         icon: <HealthInsuranceIcon />,
-        link: "/admin/credits",
+        link: "/health-insurance/management",
       },
       {
         title: "PeriodicHealthCheckups",
