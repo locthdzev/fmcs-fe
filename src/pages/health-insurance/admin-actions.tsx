@@ -1,5 +1,5 @@
 import React from "react";
-import { AdminActions } from "@/components/healthinsurance/AdminActions";
+import { AdminActions } from "@/components/health-insurance/AdminActions";
 
 export default function HealthInsuranceManagementPage() {
   return <AdminActions />;
