@@ -75,7 +75,7 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
   }, []);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLSelectElement> | { target: { name: string; value: string } }
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -174,7 +174,7 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
     setPendingRoles(pendingRoles.filter((role) => role !== roleId));
   };
 
-  const handlePendingAssignRole = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handlePendingAssignRole = (e: { target: { value: string } }) => {
     const roleId = e.target.value;
     if (roleId && !pendingRoles.includes(roleId)) {
       const role = allRoles.find((r) => r.id === roleId);
@@ -245,15 +245,14 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
                     label="Gender"
                     id="gender"
                     name="gender"
-                    value={formData.gender}
-                    defaultSelectedKeys={[formData.gender]}
-                    onChange={handleInputChange}
+                    selectedKeys={[formData.gender]}
+                    onChange={(e) => handleInputChange({ target: { name: 'gender', value: e.target.value } })}
                   >
                     {[
                       { value: "Male", label: "Male" },
                       { value: "Female", label: "Female" },
                     ].map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
+                      <SelectItem key={item.value} textValue={item.value}>
                         {item.label}
                       </SelectItem>
                     ))}
@@ -317,21 +316,24 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
                   </div>
                   <Select
                     variant="bordered"
-                    size="sm"
                     radius="sm"
                     className="w-full"
-                    label="Assign new role"
-                    value={selectedRole}
-                    defaultSelectedKeys={
-                      selectedRole ? [selectedRole] : undefined
-                    }
-                    onChange={handlePendingAssignRole}
+                    label="Assign Role"
+                    selectedKeys={selectedRole ? [selectedRole] : []}
+                    onChange={(e) => handlePendingAssignRole({ target: { value: e.target.value } })}
                   >
-                    {allRoles.map((role) => (
-                      <SelectItem key={role.id} value={role.id}>
-                        {role.roleName}
+                    <>
+                      <SelectItem key="" textValue="">
+                        Select a role
                       </SelectItem>
-                    ))}
+                      {allRoles
+                        .filter((role) => !pendingRoles.includes(role.roleName))
+                        .map((role) => (
+                          <SelectItem key={role.id} textValue={role.roleName}>
+                            {role.roleName}
+                          </SelectItem>
+                        ))}
+                    </>
                   </Select>
                 </div>
               </div>

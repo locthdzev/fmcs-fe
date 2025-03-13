@@ -45,7 +45,7 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLSelectElement> | { target: { name: string; value: string } }
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -175,14 +175,14 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
                 label="Gender"
                 id="gender"
                 name="gender"
-                value={formData.gender}
-                onChange={handleInputChange}
+                selectedKeys={[formData.gender]}
+                onChange={(e) => handleInputChange({ target: { name: 'gender', value: e.target.value } })}
               >
                 {[
                   { value: "Male", label: "Male" },
                   { value: "Female", label: "Female" },
                 ].map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
+                  <SelectItem key={item.value} textValue={item.value}>
                     {item.label}
                   </SelectItem>
                 ))}
