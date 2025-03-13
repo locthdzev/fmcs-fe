@@ -1,5 +1,5 @@
 import React from "react";
-import HealthInsuranceManagement from "@/components/health-insurance/HealthInsuranceManagement";
+import { HealthInsuranceManagement } from "@/components/healthinsurance";
 
 export default function HealthInsuranceManagementPage() {
   return <HealthInsuranceManagement />;
