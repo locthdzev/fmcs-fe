@@ -115,7 +115,6 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
                 isClearable
                 radius="sm"
                 variant="bordered"
-                isRequired
                 label="Full Name"
                 name="fullName"
                 value={formData.fullName}
@@ -127,7 +126,6 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
                 isClearable
                 radius="sm"
                 variant="bordered"
-                isRequired
                 label="Username"
                 name="userName"
                 value={formData.userName}
@@ -139,7 +137,6 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
                 isClearable
                 radius="sm"
                 variant="bordered"
-                isRequired
                 label="Email"
                 type="email"
                 name="email"
@@ -151,7 +148,6 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
               <Input
                 variant="bordered"
                 radius="sm"
-                isRequired
                 label="Password"
                 type={isVisible ? "text" : "password"}
                 name="password"
@@ -175,7 +171,6 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
               <Select
                 variant="bordered"
                 radius="sm"
-                isRequired
                 className="w-full"
                 label="Gender"
                 id="gender"
@@ -195,7 +190,6 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
               <Input
                 variant="bordered"
                 radius="sm"
-                isRequired
                 label="Date of Birth"
                 type="date"
                 name="dob"
@@ -207,7 +201,6 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
                 isClearable
                 variant="bordered"
                 radius="sm"
-                isRequired
                 label="Phone"
                 name="phone"
                 value={formData.phone}
@@ -219,7 +212,6 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({
                 isClearable
                 variant="bordered"
                 radius="sm"
-                isRequired
                 label="Address"
                 name="address"
                 value={formData.address}

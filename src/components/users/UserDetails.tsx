@@ -178,7 +178,7 @@ export const UserDetails: React.FC<Props> = ({ user, isOpen, onClose }) => {
           </div>
         </ModalBody>
         <ModalFooter className="pt-2">
-          <Button radius="sm" onClick={onClose}>
+          <Button radius="sm" variant="ghost" onClick={onClose}>
             Close
           </Button>
         </ModalFooter>

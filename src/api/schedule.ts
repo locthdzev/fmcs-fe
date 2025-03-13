@@ -2,8 +2,8 @@ import api from "./customize-axios";
 
 export interface ScheduleResponse {
   id: string;
-  staffId?: string;
-  shiftId?: string;
+  staffId: string;
+  shiftId: string;
   workDate: string;
   note?: string;
   status?: string;
@@ -11,9 +11,44 @@ export interface ScheduleResponse {
   updatedAt?: string;
 }
 
+export interface ScheduleTodayResponse {
+  id: string;
+  staffId: string;
+  shiftId: string;
+  workDate: string;
+  note?: string;
+  status?: string;
+  createdAt: string;
+  updatedAt?: string;
+  staffName?: string;
+  shiftName?: string;
+  shiftStartTime?: string;
+  shiftEndTime?: string;
+}
+
 export interface ScheduleCreateRequest {
-  staffId?: string;
-  shiftId?: string;
+  staffId: string;
+  shiftId: string;
+  workDate: string;
+  note?: string;
+  isRecurring: boolean;
+  recurringDays?: string[];
+  recurringEndDate?: string;
+}
+
+export interface ScheduleCreateMultipleRequest {
+  staffId: string;
+  shiftIds: string[];
+  workDate: string;
+  note?: string;
+  isRecurring: boolean;
+  recurringDays?: string[];
+  recurringEndDate?: string;
+}
+
+export interface ScheduleCreateMultipleForShiftRequest {
+  shiftId: string;
+  staffIds: string[];
   workDate: string;
   note?: string;
   isRecurring: boolean;
@@ -23,8 +58,8 @@ export interface ScheduleCreateRequest {
 
 export interface ScheduleUpdateRequest {
   id: string;
-  staffId?: string;
-  shiftId?: string;
+  staffId: string;
+  shiftId: string;
   workDate: string;
   note?: string;
   status?: string;
@@ -47,10 +82,49 @@ export const getSchedulesByDateRange = async (
   }
 };
 
+export const getStaffSchedulesForToday = async () => {
+  try {
+    const response = await api.get(
+      "/schedule-management/schedules/staff/today"
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const createSchedule = async (scheduleData: ScheduleCreateRequest) => {
   try {
     const response = await api.post(
       "/schedule-management/schedules",
+      scheduleData
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const createMultipleSchedulesForStaff = async (
+  scheduleData: ScheduleCreateMultipleRequest
+) => {
+  try {
+    const response = await api.post(
+      "/schedule-management/schedules/multiple-for-staff",
+      scheduleData
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const createMultipleSchedulesForShift = async (
+  scheduleData: ScheduleCreateMultipleForShiftRequest
+) => {
+  try {
+    const response = await api.post(
+      "/schedule-management/schedules/multiple-for-shift",
       scheduleData
     );
     return response.data;

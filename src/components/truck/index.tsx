@@ -116,12 +116,14 @@ export function Trucks() {
     direction: "ascending",
   });
 
+  const [isReady, setIsReady] = useState(false);
   const [page, setPage] = useState(1);
   const [trucks, setTrucks] = useState<TruckResponse[]>([]);
 
   const fetchTrucks = async () => {
     const data = await getTrucks();
     setTrucks(data);
+    setIsReady(true);
   };
 
   useEffect(() => {
@@ -463,12 +465,22 @@ export function Trucks() {
           <div className="flex gap-3">
             <div className="flex gap-2">
               {showActivate && (
-                <Button color="success" onClick={handleConfirmActivate}>
+                <Button
+                  radius="sm"
+                  variant="bordered"
+                  className="bg-success-100 text-success-600"
+                  onClick={handleConfirmActivate}
+                >
                   Activate Selected
                 </Button>
               )}
               {showDeactivate && (
-                <Button color="danger" onClick={handleConfirmDeactivate}>
+                <Button
+                  className="bg-danger-100 text-danger-600"
+                  radius="sm"
+                  variant="bordered"
+                  onClick={handleConfirmDeactivate}
+                >
                   Deactivate Selected
                 </Button>
               )}
@@ -477,8 +489,9 @@ export function Trucks() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Status
                 </Button>
@@ -501,8 +514,9 @@ export function Trucks() {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
+                  radius="sm"
                   endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
+                  variant="bordered"
                 >
                   Columns
                 </Button>
@@ -524,6 +538,7 @@ export function Trucks() {
             </Dropdown>
 
             <Button
+              radius="sm"
               color="primary"
               endContent={<PlusIcon />}
               onClick={() => setIsModalOpen(true)}
@@ -572,15 +587,16 @@ export function Trucks() {
                 filteredItems.length
               } selected`}
         </span>
-        <Pagination
-          isCompact
-          showControls
-          showShadow
-          color="primary"
-          page={page}
-          total={pages}
-          onChange={onPageChange}
-        />
+        {isReady && (
+          <Pagination
+            key={page}
+            showControls
+            page={page}
+            total={pages}
+            onChange={onPageChange}
+            color="primary"
+          />
+        )}
         <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
             isDisabled={pages === 1}
@@ -612,7 +628,7 @@ export function Trucks() {
 
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[800px]">
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalHeader>Add New Truck</ModalHeader>
             <ModalBody>
               <CreateTruckForm
@@ -634,7 +650,7 @@ export function Trucks() {
 
       {isEditModalOpen && (
         <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent className="max-w-[800px]">
+          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
             <ModalHeader>Edit Truck</ModalHeader>
             <ModalBody>
               <EditTruckForm
@@ -658,7 +674,7 @@ export function Trucks() {
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
       >
-        <ModalContent>
+        <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
           <ModalHeader>Confirm Action</ModalHeader>
           <ModalBody>
             Are you sure you want to{" "}

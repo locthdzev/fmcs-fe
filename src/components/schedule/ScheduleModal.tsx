@@ -1,5 +1,4 @@
-// src/components/schedule/ScheduleModal.tsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Modal,
   Form,
@@ -9,11 +8,16 @@ import {
   Button,
   Input,
   Switch,
+  Popover,
 } from "antd";
 import dayjs from "dayjs";
+import "dayjs/locale/vi";
 import { ScheduleCreateRequest } from "@/api/schedule";
 import { toast } from "react-toastify";
 import { ShiftResponse } from "@/api/shift";
+import { UserProfile } from "@/api/user";
+import CreateShiftModal from "../shift/CreateShiftModal";
+import { PlusIcon } from "./Icons";
 
 interface ScheduleModalProps {
   visible: boolean;
@@ -21,6 +25,14 @@ interface ScheduleModalProps {
   onSubmit: (values: ScheduleCreateRequest) => void;
   viewMode: "staff" | "shift";
   options: any[];
+  fullName?: string;
+  userName?: string;
+  selectedDate?: string;
+  shiftName?: string;
+  startTime?: string;
+  endTime?: string;
+  schedules: any[];
+  selectedRowId?: string;
 }
 
 const ScheduleModal: React.FC<ScheduleModalProps> = ({
@@ -29,8 +41,19 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   onSubmit,
   viewMode,
   options,
+  fullName,
+  userName,
+  selectedDate,
+  shiftName,
+  startTime,
+  endTime,
+  schedules,
+  selectedRowId,
 }) => {
   const [form] = Form.useForm();
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [isCreateShiftModalVisible, setIsCreateShiftModalVisible] =
+    useState(false);
 
   useEffect(() => {
     if (!visible) form.resetFields();
@@ -57,9 +80,33 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       });
   };
 
+  const isOptionDisabled = (optionId: string) => {
+    return schedules.some(
+      (schedule) =>
+        schedule[viewMode === "staff" ? "staffId" : "shiftId"] ===
+          selectedRowId &&
+        schedule[viewMode === "staff" ? "shiftId" : "staffId"] === optionId &&
+        dayjs(schedule.workDate).isSame(selectedDate, "day")
+    );
+  };
+
   return (
     <Modal
-      title={`Add ${viewMode === "staff" ? "Shift" : "Staff"}`}
+      title={
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span>{`Add ${viewMode === "staff" ? "Shifts" : "Staff"}`}</span>
+          {viewMode === "staff" && (
+            <Popover content="Create New Shift" placement="right">
+              <Button
+                type="text"
+                icon={<PlusIcon />}
+                className="hover:text-blue-600 rounded-full bg-gray-100 p-1"
+                onClick={() => setIsCreateShiftModalVisible(true)}
+              />
+            </Popover>
+          )}
+        </div>
+      }
       open={visible}
       onCancel={onCancel}
       footer={[
@@ -71,25 +118,50 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         </Button>,
       ]}
     >
+      <div style={{ marginBottom: "15px" }}>
+        {viewMode === "staff" && fullName && (
+          <p>
+            <strong>Staff:</strong> {fullName} {userName && `(${userName})`}
+          </p>
+        )}
+
+        {viewMode === "shift" && shiftName && (
+          <p>
+            <strong>Shift:</strong> {shiftName} ({startTime?.slice(0, 5)} -{" "}
+            {endTime?.slice(0, 5)})
+          </p>
+        )}
+
+        {selectedDate && (
+          <p>
+            <strong>Date:</strong>{" "}
+            {dayjs(selectedDate).format("dddd, DD/MM/YYYY")}
+          </p>
+        )}
+      </div>
       <Form form={form} layout="vertical">
         <Form.Item
-          name={viewMode === "staff" ? "shiftId" : "staffId"}
-          label={viewMode === "staff" ? "Select Shift" : "Select Staff"}
+          name={viewMode === "staff" ? "shiftIds" : "staffIds"}
+          label={viewMode === "staff" ? "Select Shifts" : "Select Staff"}
           rules={[{ required: true, message: "This field is required" }]}
+          style={{ marginBottom: "24px" }}
         >
           <Select
+            mode="multiple"
             showSearch
             optionFilterProp="label"
             options={options
               .filter(
                 (option) =>
-                  viewMode !== "staff" ||
-                  (option as ShiftResponse).status === "Active"
+                  viewMode === "staff"
+                    ? (option as ShiftResponse).status === "Active" // Chỉ lấy shift "Active"
+                    : (option as UserProfile).status === "Active" // Chỉ lấy staff "Active"
               )
               .map((option) => ({
                 value: option.id,
                 label:
                   viewMode === "staff" ? option.shiftName : option.fullName,
+                disabled: isOptionDisabled(option.id),
               }))}
           />
         </Form.Item>
@@ -98,12 +170,24 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           <Input.TextArea placeholder="Enter note..." />
         </Form.Item>
 
-        <Form.Item name="isRecurring" valuePropName="checked">
-          <Switch
-            checkedChildren="Repeat weekly"
-            unCheckedChildren="One time"
-          />
-        </Form.Item>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            marginBottom: "16px",
+          }}
+        >
+          <Form.Item name="isRecurring" valuePropName="checked" noStyle>
+            <Switch
+              checked={isRecurring}
+              onChange={(checked) => setIsRecurring(checked)}
+            />
+          </Form.Item>
+          <span style={{ marginLeft: "8px" }}>
+            {isRecurring ? "Repeat weekly" : "One time"}
+          </span>
+        </div>
+
         <Form.Item
           noStyle
           shouldUpdate={(prev, current) =>
@@ -145,6 +229,15 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           }
         </Form.Item>
       </Form>
+
+      <CreateShiftModal
+        visible={isCreateShiftModalVisible}
+        onClose={() => setIsCreateShiftModalVisible(false)}
+        onSuccess={() => {
+          setIsCreateShiftModalVisible(false);
+          // Refresh shifts list
+        }}
+      />
     </Modal>
   );
 };

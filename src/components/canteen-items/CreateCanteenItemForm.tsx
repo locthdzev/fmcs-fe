@@ -106,21 +106,31 @@ export const CreateCanteenItemForm: React.FC<CreateCanteenItemFormProps> = ({
     <form onSubmit={handleSubmit}>
       <div className="space-y-4">
         <Input
+        isClearable
+        radius="sm"
+        variant="bordered"
           label="Item Name"
           name="itemName"
           value={formData.itemName}
           onChange={handleInputChange}
+          onClear={() => setFormData({ ...formData, itemName: "" })}
           required
         />
 
         <Textarea
+        isClearable
+        radius="sm"
+        variant="bordered"
           label="Description"
           name="description"
           value={formData.description}
           onChange={handleInputChange}
+          onClear={() => setFormData({ ...formData, description: "" })}
         />
 
         <Input
+        radius="sm"
+        variant="bordered"
           label="Unit Price"
           name="unitPrice"
           type="number" // ✅ Đúng kiểu input cho số

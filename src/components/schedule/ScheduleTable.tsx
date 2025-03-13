@@ -28,7 +28,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
   onDelete,
 }) => {
   const getScheduleForCell = (rowId: string, date: Date) => {
-    return schedules.find(
+    return schedules.filter(
       (s) =>
         s[viewMode === "staff" ? "staffId" : "shiftId"] === rowId &&
         dayjs(s.workDate).isSame(date, "day")
@@ -47,15 +47,129 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
   const handleAdd = (date: string, rowId: string) => {
     try {
       onAdd(date, rowId);
-      //   toast.success("Schedule added successfully");
     } catch (error) {
       toast.error("Failed to add schedule");
     }
   };
 
+  const generateColor = (id: string) => {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const color = `hsl(${hash % 360}, 70%, 50%)`;
+    return color;
+  };
+
+  const renderCellContent = (
+    schedules: ScheduleResponse[],
+    isStaffView: boolean
+  ) => {
+    return schedules.map((schedule) => {
+      const relatedId =
+        (isStaffView ? schedule.shiftId : schedule.staffId) ?? "defaultId";
+      const relatedList = isStaffView
+        ? shifts
+        : staffs.filter((staff) => staff.status === "Active");
+      const relatedItem = relatedList.find((item) => {
+        if (isStaffView) {
+          return (
+            item.id === relatedId && (item as ShiftResponse).status === "Active"
+          );
+        }
+        return item.id === relatedId;
+      });
+
+      if (!relatedItem) return null;
+
+      let displayText;
+      let timeInfo = "";
+      if (relatedItem) {
+        if (isStaffView) {
+          const shift = relatedItem as ShiftResponse;
+          displayText = shift.shiftName;
+          timeInfo = `(${shift.startTime.slice(0, 5)} - ${shift.endTime.slice(
+            0,
+            5
+          )})`;
+        } else {
+          const staff = relatedItem as UserProfile;
+          displayText = `${staff.fullName}${
+            staff.userName ? ` (${staff.userName})` : ""
+          }`;
+        }
+      } else {
+        displayText = relatedId;
+      }
+
+      const color = generateColor(relatedId);
+
+      return (
+        <div
+          key={schedule.id}
+          style={{ textAlign: "center", marginBottom: "8px" }}
+        >
+          <Tag color={color} closable onClose={() => handleDelete(schedule.id)}>
+            {displayText}
+          </Tag>
+          {timeInfo && <div style={{ fontSize: 12 }}>{timeInfo}</div>}
+          <div style={{ fontSize: 12 }}>{schedule.note}</div>
+        </div>
+      );
+    });
+  };
+
+  const areAllOptionsAssigned = (rowId: string, date: Date) => {
+    if (viewMode === "staff") {
+      const existingShifts = schedules
+        .filter(
+          (s) => s.staffId === rowId && dayjs(s.workDate).isSame(date, "day")
+        )
+        .map((s) => s.shiftId)
+        .filter((shiftId) =>
+          shifts.some(
+            (shift) => shift.id === shiftId && shift.status === "Active"
+          )
+        );
+
+      const availableActiveShifts = shifts
+        .filter((shift) => shift.status === "Active")
+        .map((shift) => shift.id);
+
+      return (
+        availableActiveShifts.length > 0 &&
+        availableActiveShifts.every((shiftId) =>
+          existingShifts.includes(shiftId)
+        )
+      );
+    } else {
+      const existingStaffs = schedules
+        .filter(
+          (s) => s.shiftId === rowId && dayjs(s.workDate).isSame(date, "day")
+        )
+        .map((s) => s.staffId)
+        .filter((staffId) =>
+          staffs.some(
+            (staff) => staff.id === staffId && staff.status === "Active"
+          )
+        );
+
+      const availableActiveStaffs = staffs
+        .filter((staff) => staff.status === "Active")
+        .map((staff) => staff.id);
+
+      return (
+        availableActiveStaffs.length > 0 &&
+        availableActiveStaffs.every((staffId) =>
+          existingStaffs.includes(staffId)
+        )
+      );
+    }
+  };
+
   const columns = [
     {
-      title: viewMode === "staff" ? "Staff" : "Shift",
+      title: viewMode === "staff" ? "STAFF" : "SHIFT",
       dataIndex: "id",
       key: "id",
       render: (id: string, record: any) => (
@@ -70,7 +184,13 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
               )}
             </div>
           ) : (
-            (record as ShiftResponse).shiftName
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <div>{(record as ShiftResponse).shiftName}</div>
+              <div style={{ color: "#666", fontSize: "12px" }}>
+                ({(record as ShiftResponse).startTime.slice(0, 5)} -{" "}
+                {(record as ShiftResponse).endTime.slice(0, 5)})
+              </div>
+            </div>
           )}
         </div>
       ),
@@ -97,7 +217,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                   : {}
               }
             >
-              {dayjs(date).format("ddd")}
+              {dayjs(date).format("ddd").toUpperCase()}
               <br />
               {dayjs(date).format("DD/MM")}
             </div>
@@ -106,64 +226,34 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
         dataIndex: dateString,
         key: dateString,
         render: (_: any, record: any) => {
-          const schedule = getScheduleForCell(record.id, date);
-          if (schedule) {
-            const isStaffView = viewMode === "staff";
-            const relatedId = isStaffView ? schedule.shiftId : schedule.staffId;
-            const relatedList = isStaffView ? shifts : staffs;
-            const relatedItem = relatedList.find(
-              (item) => item.id === relatedId
-            );
-
-            let displayText;
-            if (relatedItem) {
-              if (isStaffView) {
-                displayText = (relatedItem as ShiftResponse).shiftName;
-              } else {
-                const staff = relatedItem as UserProfile;
-                displayText = `${staff.fullName}${
-                  staff.userName ? ` (${staff.userName})` : ""
-                }`;
-              }
-            } else {
-              displayText = relatedId;
-            }
-
-            return (
-              <div style={{ textAlign: "center" }}>
-                <Tag
-                  color={schedule.status === "ACTIVE" ? "green" : "red"}
-                  closable
-                  onClose={() => handleDelete(schedule.id)}
-                >
-                  {displayText}
-                </Tag>
-                <div style={{ fontSize: 12 }}>{schedule.note}</div>
-              </div>
-            );
-          }
+          const schedules = getScheduleForCell(record.id, date);
           return (
             <div
               style={{
                 position: "relative",
                 height: "100%",
                 display: "flex",
+                flexDirection: "column",
                 justifyContent: "center",
                 alignItems: "center",
+                gap: "8px",
               }}
             >
-              <Button
-                size="small"
-                onClick={() => handleAdd(dateString, record.id)}
-                style={{
-                  position: "absolute",
-                  opacity: 0,
-                  transition: "opacity 0.3s",
-                }}
-                className="schedule-add-button"
-              >
-                Add {viewMode === "staff" ? "Shift" : "Staff"}
-              </Button>
+              {schedules.length > 0 &&
+                renderCellContent(schedules, viewMode === "staff")}
+              {!areAllOptionsAssigned(record.id, date) && (
+                <Button
+                  size="small"
+                  onClick={() => handleAdd(dateString, record.id)}
+                  style={{
+                    opacity: 0,
+                    transition: "opacity 0.3s",
+                  }}
+                  className="schedule-add-button"
+                >
+                  Add {viewMode === "staff" ? "Shift" : "Staff"}
+                </Button>
+              )}
               <style>
                 {`
                   td:hover .schedule-add-button {
@@ -182,9 +272,14 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
     }),
   ];
 
+  const filteredRowData =
+    viewMode === "staff"
+      ? (rowData as UserProfile[]).filter((staff) => staff.status === "Active")
+      : rowData;
+
   return (
     <Table
-      dataSource={rowData}
+      dataSource={filteredRowData}
       columns={columns}
       rowKey="id"
       bordered

@@ -37,6 +37,13 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
     }));
   };
 
+  const handleClear = (name: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: "",
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -75,30 +82,46 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
     <form onSubmit={handleSubmit}>
       <div className="grid grid-cols-2 gap-4">
         <Input
+          radius="sm"
+          isClearable
+          variant="bordered"
           label="License Plate"
           name="licensePlate"
           value={formData.licensePlate}
           onChange={handleInputChange}
+          onClear={() => handleClear("licensePlate")}
           required
         />
         <Input
+          radius="sm"
+          isClearable
+          variant="bordered"
           label="Driver Name"
           name="driverName"
           value={formData.driverName}
           onChange={handleInputChange}
+          onClear={() => handleClear("driverName")}
         />
         <Input
+          radius="sm"
+          isClearable
+          variant="bordered"
           label="Driver Contact"
           name="driverContact"
           value={formData.driverContact}
           onChange={handleInputChange}
+          onClear={() => handleClear("driverContact")}
         />
         <div className="col-span-2">
           <Textarea
+            radius="sm"
+            isClearable
+            variant="bordered"
             label="Description"
             name="description"
             value={formData.description}
             onChange={handleInputChange}
+            onClear={() => handleClear("description")}
           />
         </div>
 

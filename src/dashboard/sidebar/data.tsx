@@ -18,6 +18,11 @@ import { PeriodicHealthCheckupsIcon } from "./icons/PeriodicHealthCheckupsIcon";
 import { TrucksIcon } from "./icons/TruckIcon";
 import { ScheduleIcon } from "./icons/ScheduleIcon";
 import { ShiftIcon } from "./icons/ShiftIcon";
+import { BatchNumberIcon } from "./icons/BatchNumberIcon";
+import { InventoryRecordIcon } from "./icons/InventoryRecordIcon";
+import { InventoryHistoryIcon } from "./icons/InventoryHistoryIcon";
+import { InventoriesIcon } from "./icons/InventoriesIcon";
+import { NotificationIcon } from "./icons/NotificationIcon";
 
 export const data = [
   {
@@ -42,7 +47,7 @@ export const data = [
             link: "/drug/management",
           },
           {
-            title: "DrugGruops",
+            title: "DrugGroups",
             icon: <DrugGroupIcon />,
             link: "/drug-group/management",
           },
@@ -99,13 +104,35 @@ export const data = [
             title: "Shifts",
             icon: <ShiftIcon />,
             link: "/shift/management",
-          }
+          },
         ],
       },
       {
+        title: "Inventories",
+        icon: <InventoriesIcon />,
+        submenu: [
+          {
+            title: "Batch Numbers",
+            icon: <BatchNumberIcon />,
+            link: "/batch-number/management",
+          },
+          {
+            title: "Inventory Records",
+            icon: <InventoryRecordIcon />,
+            link: "/inventory-record/management",
+          },
+          {
+            title: "Inventory History",
+            icon: <InventoryHistoryIcon />,
+            link: "/inventory-history",
+          },
+        ],
+      },
+      { title: "Notifications", icon: <NotificationIcon />, link: "/notification/management" },
+      {
         title: "HealthInsurance",
         icon: <HealthInsuranceIcon />,
-        link: "/admin/credits",
+        link: "/health-insurance/management",
       },
       {
         title: "PeriodicHealthCheckups",
