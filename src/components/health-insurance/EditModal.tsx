@@ -1,60 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, DatePicker, Select, Button, Row, Col, Upload, Divider } from 'antd';
-import { createHealthInsuranceManual } from '@/api/healthinsurance';
-import { getUsers, UserProfile } from '@/api/user';
-import { getUserInsuranceStatus } from '@/api/healthinsurance';
+import React, { useState } from 'react';
+import { Modal, Form, Input, DatePicker, Select, Button, Row, Col, Upload, Image } from 'antd';
+import { HealthInsuranceResponseDTO, updateHealthInsuranceByAdmin } from '@/api/healthinsurance';
 import { toast } from 'react-toastify';
+import moment from 'moment';
 import { UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 
-interface CreateModalProps {
+interface EditModalProps {
   visible: boolean;
+  insurance: HealthInsuranceResponseDTO | null;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function CreateModal({ visible, onClose, onSuccess }: CreateModalProps) {
+export default function EditModal({ visible, insurance, onClose, onSuccess }: EditModalProps) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File>();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [userOptions, setUserOptions] = useState<{ value: string; label: string }[]>([]);
 
-  useEffect(() => {
-    if (visible) {
-      fetchUsers();
-      form.resetFields();
-      setFileList([]);
-      setImageFile(undefined);
+  React.useEffect(() => {
+    if (visible && insurance) {
+      form.setFieldsValue({
+        healthInsuranceNumber: insurance.healthInsuranceNumber,
+        fullName: insurance.fullName,
+        dateOfBirth: insurance.dateOfBirth ? moment(insurance.dateOfBirth) : null,
+        gender: insurance.gender,
+        address: insurance.address,
+        healthcareProviderName: insurance.healthcareProviderName,
+        healthcareProviderCode: insurance.healthcareProviderCode,
+        validFrom: insurance.validFrom ? moment(insurance.validFrom) : null,
+        validTo: insurance.validTo ? moment(insurance.validTo) : null,
+        issueDate: insurance.issueDate ? moment(insurance.issueDate) : null,
+      });
+
+      if (insurance.imageUrl) {
+        setFileList([
+          {
+            uid: '-1',
+            name: 'Current Image',
+            status: 'done',
+            url: insurance.imageUrl,
+          },
+        ]);
+      } else {
+        setFileList([]);
+      }
     }
-  }, [visible, form]);
-
-  const fetchUsers = async () => {
-    try {
-      const users = await getUsers();
-      const userRoleUsers = users.filter((user: UserProfile) => user.roles.includes('User'));
-      
-      // Filter users without insurance
-      const usersWithStatus = await Promise.all(
-        userRoleUsers.map(async (user) => {
-          const status = await getUserInsuranceStatus(user.id);
-          return { user, hasInsurance: status.hasInsurance };
-        })
-      );
-
-      const availableUsers = usersWithStatus
-        .filter(({ hasInsurance }) => !hasInsurance)
-        .map(({ user }) => ({
-          value: user.id,
-          label: user.fullName,
-          email: user.email
-        }));
-
-      setUserOptions(availableUsers);
-    } catch (error) {
-      toast.error("Unable to load users");
-    }
-  };
+  }, [visible, insurance, form]);
 
   const handleSubmit = async () => {
     try {
@@ -62,6 +55,7 @@ export default function CreateModal({ visible, onClose, onSuccess }: CreateModal
       setLoading(true);
 
       const formattedValues = {
+        hasInsurance: true,
         ...values,
         dateOfBirth: values.dateOfBirth?.format('YYYY-MM-DD'),
         validFrom: values.validFrom?.format('YYYY-MM-DD'),
@@ -69,16 +63,16 @@ export default function CreateModal({ visible, onClose, onSuccess }: CreateModal
         issueDate: values.issueDate?.format('YYYY-MM-DD'),
       };
 
-      const response = await createHealthInsuranceManual(formattedValues, imageFile);
+      const response = await updateHealthInsuranceByAdmin(insurance!.id, formattedValues, imageFile);
       if (response.isSuccess) {
-        toast.success('Insurance created successfully!');
+        toast.success('Insurance updated successfully!');
         onSuccess();
         onClose();
       } else {
         toast.error(response.message);
       }
     } catch (error) {
-      toast.error('Failed to create insurance');
+      toast.error('Failed to update insurance');
     } finally {
       setLoading(false);
     }
@@ -96,7 +90,7 @@ export default function CreateModal({ visible, onClose, onSuccess }: CreateModal
 
   return (
     <Modal
-      title="Create Health Insurance"
+      title="Edit Health Insurance"
       open={visible}
       onCancel={onClose}
       footer={[
@@ -104,7 +98,7 @@ export default function CreateModal({ visible, onClose, onSuccess }: CreateModal
           Cancel
         </Button>,
         <Button key="submit" type="primary" loading={loading} onClick={handleSubmit}>
-          Create
+          Save Changes
         </Button>,
       ]}
       width={1200}
@@ -115,28 +109,6 @@ export default function CreateModal({ visible, onClose, onSuccess }: CreateModal
       >
         <Row gutter={24}>
           <Col span={8}>
-            <Form.Item
-              name="userId"
-              label="Policyholder"
-              rules={[{ required: true, message: 'Please select a policyholder!' }]}
-            >
-              <Select
-                showSearch
-                placeholder="Search by name"
-                optionFilterProp="label"
-                options={userOptions}
-                filterOption={(input, option) => 
-                  (option?.label?.toString() || '').toLowerCase().includes(input.toLowerCase())
-                }
-                optionRender={(option) => (
-                  <div>
-                    <div>{option.data.label}</div>
-                    <div style={{ color: '#666', fontSize: '12px' }}>{option.data.email}</div>
-                  </div>
-                )}
-              />
-            </Form.Item>
-
             <Form.Item
               name="healthInsuranceNumber"
               label="Insurance Number"
@@ -230,12 +202,22 @@ export default function CreateModal({ visible, onClose, onSuccess }: CreateModal
                 beforeUpload={() => false}
                 maxCount={1}
               >
-                <Button icon={<UploadOutlined />}>Upload Image</Button>
+                <Button icon={<UploadOutlined />}>Upload New Image</Button>
               </Upload>
+              {insurance?.imageUrl && !fileList.length && (
+                <div style={{ marginTop: 8 }}>
+                  <p>Current Image:</p>
+                  <Image
+                    src={insurance.imageUrl}
+                    alt="Current Insurance"
+                    style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
+                  />
+                </div>
+              )}
             </Form.Item>
           </Col>
         </Row>
       </Form>
     </Modal>
   );
-}
+} 

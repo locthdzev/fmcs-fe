@@ -24,9 +24,11 @@ import {
   softDeleteHealthInsurances,
   restoreHealthInsurance,
   verifyHealthInsurance,
+  createInitialHealthInsurances,
 } from "@/api/healthinsurance";
 import CreateModal from "./CreateModal";
 import DetailModal from "./DetailModal";
+import EditModal from "./EditModal";
 import { DownOutlined, SearchOutlined } from "@ant-design/icons";
 import { getUsers, UserProfile } from "@/api/user";
 
@@ -59,6 +61,7 @@ export function HealthInsuranceManagement() {
   const [loading, setLoading] = useState(false);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [selectedInsurance, setSelectedInsurance] = useState<HealthInsuranceResponseDTO | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -174,6 +177,20 @@ export function HealthInsuranceManagement() {
     }
   };
 
+  const handleCreateInitial = async () => {
+    try {
+      const response = await createInitialHealthInsurances();
+      if (response.isSuccess) {
+        toast.success("Initial insurances created successfully!");
+        fetchInsurances();
+      } else {
+        toast.error(response.message);
+      }
+    } catch (error) {
+      toast.error("Unable to create initial insurances.");
+    }
+  };
+
   const handleColumnVisibilityChange = (key: string) => {
     const newVisibleColumns = visibleColumns.includes(key)
       ? visibleColumns.filter((col) => col !== key)
@@ -242,33 +259,38 @@ export function HealthInsuranceManagement() {
       key: "actions",
       title: "Actions",
       render: (record: HealthInsuranceResponseDTO) => (
-        <div>
+        <Space>
           <Button
             onClick={() => {
               setSelectedInsurance(record);
               setIsDetailModalVisible(true);
             }}
-            style={{ marginRight: 8 }}
           >
             View
+          </Button>
+          <Button
+            onClick={() => {
+              setSelectedInsurance(record);
+              setIsEditModalVisible(true);
+            }}
+          >
+            Edit
           </Button>
           {record.status === "Submitted" && (
             <>
               <Button
                 onClick={() => handleVerify(record.id, "Verified")}
-                style={{ marginLeft: 8 }}
               >
                 Verify
               </Button>
               <Button
                 onClick={() => handleVerify(record.id, "Rejected")}
-                style={{ marginLeft: 8 }}
               >
                 Reject
               </Button>
             </>
           )}
-        </div>
+        </Space>
       ),
     },
   ];
@@ -394,12 +416,20 @@ export function HealthInsuranceManagement() {
                 </Button>
               </Popconfirm>
             )}
-            <Button
-              type="primary"
-              onClick={() => setIsCreateModalVisible(true)}
-            >
-              Create Manual
-            </Button>
+            <Dropdown overlay={
+              <Menu>
+                <Menu.Item key="manual" onClick={() => setIsCreateModalVisible(true)}>
+                  Create Manual
+                </Menu.Item>
+                <Menu.Item key="initial" onClick={handleCreateInitial}>
+                  Create Initial
+                </Menu.Item>
+              </Menu>
+            }>
+              <Button type="primary">
+                Create <DownOutlined />
+              </Button>
+            </Dropdown>
             <Button onClick={exportHealthInsurances}>
               Export to Excel
             </Button>
@@ -479,7 +509,18 @@ export function HealthInsuranceManagement() {
       <DetailModal
         visible={isDetailModalVisible}
         insurance={selectedInsurance}
-        onClose={() => setIsDetailModalVisible(false)}
+        onClose={() => {
+          setIsDetailModalVisible(false);
+          setSelectedInsurance(null);
+        }}
+      />
+      <EditModal
+        visible={isEditModalVisible}
+        insurance={selectedInsurance}
+        onClose={() => {
+          setIsEditModalVisible(false);
+          setSelectedInsurance(null);
+        }}
         onSuccess={fetchInsurances}
       />
     </div>
