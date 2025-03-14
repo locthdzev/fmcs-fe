@@ -8,7 +8,7 @@ import {
   Col,
   Tag,
   Button,
-  Modal,
+  Popconfirm,
   Tooltip,
 } from "antd";
 import { toast } from "react-toastify";
@@ -141,22 +141,21 @@ export function SoftDeletedList() {
     {
       title: "Actions",
       render: (record: HealthInsuranceResponseDTO) => (
-        <Button
-          type="primary"
-          icon={<UndoOutlined />}
-          loading={restoringId === record.id}
-          onClick={() => {
-            Modal.confirm({
-              title: "Restore Insurance",
-              content: "Are you sure you want to restore this insurance?",
-              okText: "Yes",
-              cancelText: "No",
-              onOk: () => handleRestore(record.id),
-            });
-          }}
+        <Popconfirm
+          title="Restore Insurance"
+          description="Are you sure you want to restore this insurance?"
+          onConfirm={() => handleRestore(record.id)}
+          okText="Yes"
+          cancelText="No"
         >
-          Restore
-        </Button>
+          <Button
+            type="primary"
+            icon={<UndoOutlined />}
+            loading={restoringId === record.id}
+          >
+            Restore
+          </Button>
+        </Popconfirm>
       ),
     },
   ];

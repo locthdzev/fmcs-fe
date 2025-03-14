@@ -10,6 +10,7 @@ import {
   Button,
   Modal,
   Tooltip,
+  Popconfirm,
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -18,8 +19,9 @@ import {
   HealthInsuranceResponseDTO,
   setupHealthInsuranceRealTime,
   resendUpdateRequest,
+  softDeleteHealthInsurances,
 } from "@/api/healthinsurance";
-import { SearchOutlined, RedoOutlined, WarningOutlined } from "@ant-design/icons";
+import { SearchOutlined, RedoOutlined, WarningOutlined, DeleteOutlined } from "@ant-design/icons";
 
 const formatDate = (date: string | undefined) => {
   if (!date) return "";
@@ -87,6 +89,20 @@ export function ExpiredUpdateList() {
     }
   };
 
+  const handleSoftDelete = async (id: string) => {
+    try {
+      const response = await softDeleteHealthInsurances([id]);
+      if (response.isSuccess) {
+        toast.success("Insurance soft deleted successfully!");
+        fetchInsurances();
+      } else {
+        toast.error(response.message || "Failed to soft delete insurance");
+      }
+    } catch (error) {
+      toast.error("Unable to soft delete insurance.");
+    }
+  };
+
   const columns = [
     {
       title: "Policyholder",
@@ -129,22 +145,39 @@ export function ExpiredUpdateList() {
     {
       title: "Actions",
       render: (record: HealthInsuranceResponseDTO) => (
-        <Button
-          type="primary"
-          icon={<RedoOutlined />}
-          loading={resendingId === record.id}
-          onClick={() => {
-            Modal.confirm({
-              title: "Resend Update Request",
-              content: "Are you sure you want to resend the update request to this user?",
-              okText: "Yes",
-              cancelText: "No",
-              onOk: () => handleResendRequest(record.id),
-            });
-          }}
-        >
-          Resend Request
-        </Button>
+        <Space>
+          <Button
+            type="primary"
+            icon={<RedoOutlined />}
+            loading={resendingId === record.id}
+            onClick={() => {
+              Modal.confirm({
+                title: "Resend Update Request",
+                content: "Are you sure you want to resend the update request to this user?",
+                okText: "Yes",
+                cancelText: "No",
+                onOk: () => handleResendRequest(record.id),
+              });
+            }}
+          >
+            Resend Request
+          </Button>
+          <Popconfirm
+            title="Soft Delete Insurance"
+            description="Are you sure you want to soft delete this insurance?"
+            onConfirm={() => handleSoftDelete(record.id)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+            >
+              Delete
+            </Button>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];

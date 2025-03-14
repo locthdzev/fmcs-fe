@@ -8,7 +8,7 @@ import {
   Col,
   Tag,
   Button,
-  Modal,
+  Popconfirm,
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -17,8 +17,9 @@ import {
   HealthInsuranceResponseDTO,
   setupHealthInsuranceRealTime,
   sendHealthInsuranceUpdateRequest,
+  softDeleteHealthInsurances,
 } from "@/api/healthinsurance";
-import { SearchOutlined, SendOutlined } from "@ant-design/icons";
+import { SearchOutlined, SendOutlined, DeleteOutlined } from "@ant-design/icons";
 
 const formatDate = (date: string | undefined) => {
   if (!date) return "";
@@ -70,19 +71,37 @@ export function InitialInsuranceList() {
   }, [fetchInsurances]);
 
   const handleSendUpdateRequest = async () => {
+    console.log("handleSendUpdateRequest called");
     try {
       setIsSendingRequest(true);
+      console.log("Calling sendHealthInsuranceUpdateRequest API");
       const response = await sendHealthInsuranceUpdateRequest();
+      console.log("API response:", response);
       if (response.isSuccess) {
-        toast.success("Update requests sent successfully!");
+        toast.success("Update requests sent to all pending users successfully!");
         fetchInsurances();
       } else {
-        toast.error(response.message);
+        toast.error(response.message || "Failed to send update requests");
       }
     } catch (error) {
+      console.error("Error in sendHealthInsuranceUpdateRequest:", error);
       toast.error("Unable to send update requests.");
     } finally {
       setIsSendingRequest(false);
+    }
+  };
+
+  const handleSoftDelete = async (id: string) => {
+    try {
+      const response = await softDeleteHealthInsurances([id]);
+      if (response.isSuccess) {
+        toast.success("Insurance soft deleted successfully!");
+        fetchInsurances();
+      } else {
+        toast.error(response.message || "Failed to soft delete insurance");
+      }
+    } catch (error) {
+      toast.error("Unable to soft delete insurance.");
     }
   };
 
@@ -130,24 +149,26 @@ export function InitialInsuranceList() {
     },
     {
       title: "Actions",
-      render: () => (
-        <Button
-          type="link"
-          icon={<SendOutlined />}
-          onClick={() => {
-            Modal.confirm({
-              title: "Send Update Request",
-              content: "Are you sure you want to send update requests to all pending users?",
-              okText: "Yes",
-              cancelText: "No",
-              onOk: handleSendUpdateRequest,
-            });
-          }}
-        >
-          Send Request
-        </Button>
+      render: (record: HealthInsuranceResponseDTO) => (
+        <Space>
+          <Popconfirm
+            title="Soft Delete Insurance"
+            description="Are you sure you want to soft delete this insurance?"
+            onConfirm={() => handleSoftDelete(record.id)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+            >
+              Delete
+            </Button>
+          </Popconfirm>
+        </Space>
       ),
-    },
+    }
   ];
 
   const topContent = (
@@ -160,22 +181,21 @@ export function InitialInsuranceList() {
             onChange={(e) => setSearchText(e.target.value)}
             prefix={<SearchOutlined />}
           />
-          <Button
-            type="primary"
-            icon={<SendOutlined />}
-            loading={isSendingRequest}
-            onClick={() => {
-              Modal.confirm({
-                title: "Send Update Request",
-                content: "Are you sure you want to send update requests to all pending users?",
-                okText: "Yes",
-                cancelText: "No",
-                onOk: handleSendUpdateRequest,
-              });
-            }}
+          <Popconfirm
+            title="Send Update Request"
+            description="Are you sure you want to send update requests to all pending users?"
+            onConfirm={handleSendUpdateRequest}
+            okText="Yes"
+            cancelText="No"
           >
-            Send All Requests
-          </Button>
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              loading={isSendingRequest}
+            >
+              Send All Requests
+            </Button>
+          </Popconfirm>
         </Space>
       </Col>
       <Col>
