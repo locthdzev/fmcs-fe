@@ -23,6 +23,7 @@ import { InventoryRecordIcon } from "./icons/InventoryRecordIcon";
 import { InventoryHistoryIcon } from "./icons/InventoryHistoryIcon";
 import { InventoriesIcon } from "./icons/InventoriesIcon";
 import { NotificationIcon } from "./icons/NotificationIcon";
+import { HealthIcon } from "./icons/HealthIcon";
 
 export const data = [
   {
@@ -30,6 +31,7 @@ export const data = [
     items: [
       { title: "Home", icon: <HomeIcon />, link: "/home" },
       { title: "Status", icon: <StatusIcon />, link: "/admin/status" },
+      { title: "My Insurance", icon: <HealthIcon />, link: "/health-insurance/my-insurance" },
     ],
   },
   {
