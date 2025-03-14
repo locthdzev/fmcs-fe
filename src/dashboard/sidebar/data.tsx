@@ -143,24 +143,39 @@ export const data = [
             link: "/health-insurance/management",
           },
           {
+            title: "Initial",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/initial",
+          },
+          {
+            title: "Expired Update",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/expired-update",
+          },
+          {
+            title: "Soft Deleted",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/soft-deleted",
+          },
+          {
+            title: "Verification",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/verification",
+          },
+          {
+            title: "No Insurance",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/no-insurance",
+          },
+          {
             title: "Update Requests",
             icon: <HealthInsuranceIcon />,
             link: "/health-insurance/update-requests",
           },
           {
-            title: "Config",
+            title: "History",
             icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/config",
-          },
-          {
-            title: "User Status",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/user-status",
-          },
-          {
-            title: "Admin Actions",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/admin-actions",
+            link: "/health-insurance/history",
           },
         ],
       },
