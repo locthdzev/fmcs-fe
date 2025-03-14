@@ -1,34 +1,45 @@
 import React, { useEffect, useState } from "react";
 import {
   Card,
-  Form,
-  Input,
-  DatePicker,
-  Select,
   Button,
-  Upload,
-  message,
   Descriptions,
   Image,
   Spin,
+  Row,
+  Col,
+  Tag,
+  Alert,
+  Divider,
+  Typography,
+  Space,
+  Statistic,
+  Badge,
+  Empty,
+  Modal,
 } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import {
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  EditOutlined,
+  ExclamationCircleOutlined,
+  FileImageOutlined,
+  InfoCircleOutlined,
+  MedicineBoxOutlined,
+  WarningOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 import {
   getCurrentUserHealthInsurance,
-  updateHealthInsurance,
-  requestHealthInsuranceUpdate,
 } from "@/api/healthinsurance";
 import { formatDate } from "@/utils/dateUtils";
+import UpdateRequestModal from "./UpdateRequestModal";
 
-const { Option } = Select;
+const { Title, Text, Paragraph } = Typography;
 
 export function UserHealthInsurance() {
-  const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
   const [insurance, setInsurance] = useState<any>(null);
-  const [imageFile, setImageFile] = useState<File | undefined>(undefined);
-  const [submitting, setSubmitting] = useState(false);
+  const [updateModalVisible, setUpdateModalVisible] = useState(false);
 
   useEffect(() => {
     fetchInsurance();
@@ -39,266 +50,257 @@ export function UserHealthInsurance() {
       const response = await getCurrentUserHealthInsurance();
       if (response.isSuccess) {
         setInsurance(response.data);
-        if (response.data.hasInsurance) {
-          form.setFieldsValue({
-            hasInsurance: response.data.hasInsurance,
-            healthInsuranceNumber: response.data.healthInsuranceNumber,
-            fullName: response.data.fullName,
-            dateOfBirth: response.data.dateOfBirth ? dayjs(response.data.dateOfBirth) : null,
-            gender: response.data.gender,
-            address: response.data.address,
-            healthcareProviderName: response.data.healthcareProviderName,
-            healthcareProviderCode: response.data.healthcareProviderCode,
-            validFrom: response.data.validFrom ? dayjs(response.data.validFrom) : null,
-            validTo: response.data.validTo ? dayjs(response.data.validTo) : null,
-            issueDate: response.data.issueDate ? dayjs(response.data.issueDate) : null,
-          });
-        }
       }
     } catch (error) {
-      message.error("Failed to fetch insurance information");
+      Modal.error({
+        title: 'Error',
+        content: 'Failed to fetch insurance information. Please try again later.',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const onFinish = async (values: any) => {
-    setSubmitting(true);
-    try {
-      const data = {
-        ...values,
-        dateOfBirth: values.dateOfBirth?.format("YYYY-MM-DD"),
-        validFrom: values.validFrom?.format("YYYY-MM-DD"),
-        validTo: values.validTo?.format("YYYY-MM-DD"),
-        issueDate: values.issueDate?.format("YYYY-MM-DD"),
-      };
-
-      let response;
-      if (insurance.verificationStatus === "Verified") {
-        response = await requestHealthInsuranceUpdate(insurance.id, data, imageFile);
-        if (response.isSuccess) {
-          message.success("Update request submitted successfully");
-        }
-      } else {
-        response = await updateHealthInsurance(insurance.id, data, imageFile);
-        if (response.isSuccess) {
-          message.success("Insurance updated successfully");
-          await fetchInsurance();
-        }
-      }
-    } catch (error) {
-      message.error("Failed to update insurance");
-    } finally {
-      setSubmitting(false);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Completed':
+        return <Badge status="success" text={<Text strong>{status}</Text>} />;
+      case 'Pending':
+        return <Badge status="processing" text={<Text strong>{status}</Text>} />;
+      case 'Submitted':
+        return <Badge status="warning" text={<Text strong>{status}</Text>} />;
+      case 'Expired':
+        return <Badge status="error" text={<Text strong>{status}</Text>} />;
+      default:
+        return <Badge status="default" text={<Text strong>{status}</Text>} />;
     }
   };
 
+  const getVerificationBadge = (status: string) => {
+    switch (status) {
+      case 'Verified':
+        return <Badge status="success" text={<Text strong>{status}</Text>} />;
+      case 'Unverified':
+        return <Badge status="warning" text={<Text strong>{status}</Text>} />;
+      case 'Rejected':
+        return <Badge status="error" text={<Text strong>{status}</Text>} />;
+      default:
+        return <Badge status="default" text={<Text strong>{status}</Text>} />;
+    }
+  };
+
+  const handleUpdateSuccess = () => {
+    setUpdateModalVisible(false);
+    fetchInsurance();
+  };
+
   if (loading) {
-    return <Spin size="large" />;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+        <Spin size="large" tip="Loading your insurance information..." />
+      </div>
+    );
   }
 
   if (!insurance) {
-    return <div>No insurance information found.</div>;
+    return (
+      <Card>
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="No insurance information found"
+        >
+          <Button type="primary" onClick={() => setUpdateModalVisible(true)}>
+            Add Insurance Information
+          </Button>
+        </Empty>
+      </Card>
+    );
   }
 
+  const isExpired = insurance.validTo && dayjs(insurance.validTo).isBefore(dayjs());
+  const isExpiringSoon = insurance.validTo && 
+    dayjs(insurance.validTo).isAfter(dayjs()) && 
+    dayjs(insurance.validTo).diff(dayjs(), 'day') <= 30;
+
   return (
-    <Card title="My Health Insurance">
-      {insurance && (
-        <Descriptions title="Current Information" bordered column={2} style={{ marginBottom: 24 }}>
-          <Descriptions.Item label="Status">{insurance.status}</Descriptions.Item>
-          <Descriptions.Item label="Verification Status">
-            {insurance.verificationStatus}
-          </Descriptions.Item>
-          {insurance.hasInsurance && (
-            <>
-              <Descriptions.Item label="Insurance Number">
-                {insurance.healthInsuranceNumber}
-              </Descriptions.Item>
-              <Descriptions.Item label="Full Name">{insurance.fullName}</Descriptions.Item>
-              <Descriptions.Item label="Date of Birth">
-                {formatDate(insurance.dateOfBirth)}
-              </Descriptions.Item>
-              <Descriptions.Item label="Gender">{insurance.gender}</Descriptions.Item>
-              <Descriptions.Item label="Address">{insurance.address}</Descriptions.Item>
-              <Descriptions.Item label="Healthcare Provider">
-                {insurance.healthcareProviderName} ({insurance.healthcareProviderCode})
-              </Descriptions.Item>
-              <Descriptions.Item label="Valid From">
-                {formatDate(insurance.validFrom)}
-              </Descriptions.Item>
-              <Descriptions.Item label="Valid To">{formatDate(insurance.validTo)}</Descriptions.Item>
-              <Descriptions.Item label="Issue Date">
-                {formatDate(insurance.issueDate)}
-              </Descriptions.Item>
-            </>
-          )}
-        </Descriptions>
-      )}
-
-      {insurance.imageUrl && (
-        <div style={{ marginBottom: 24 }}>
-          <h4>Current Insurance Image</h4>
-          <Image src={insurance.imageUrl} alt="Insurance" style={{ maxWidth: "100%" }} />
-        </div>
-      )}
-
-      <Card
+    <>
+      <Card 
         title={
-          insurance.verificationStatus === "Verified"
-            ? "Submit Update Request"
-            : "Update Insurance Information"
+          <Title level={4}>
+            <MedicineBoxOutlined /> My Health Insurance
+          </Title>
+        }
+        extra={
+          <Button 
+            type="primary" 
+            icon={<EditOutlined />} 
+            onClick={() => setUpdateModalVisible(true)}
+          >
+            {insurance.verificationStatus === "Verified" 
+              ? "Request Update" 
+              : "Update Information"}
+          </Button>
         }
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={onFinish}
-          initialValues={{ hasInsurance: insurance.hasInsurance }}
-        >
-          <Form.Item
-            name="hasInsurance"
-            label="Do you have health insurance?"
-            rules={[{ required: true, message: "Please select an option" }]}
-          >
-            <Select>
-              <Option value={true}>Yes</Option>
-              <Option value={false}>No</Option>
-            </Select>
-          </Form.Item>
+        {isExpired && (
+          <Alert
+            message="Insurance Expired"
+            description="Your health insurance has expired. Please update your insurance information."
+            type="error"
+            showIcon
+            icon={<ExclamationCircleOutlined />}
+            style={{ marginBottom: 16 }}
+          />
+        )}
 
-          <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) =>
-              prevValues.hasInsurance !== currentValues.hasInsurance
-            }
-          >
-            {({ getFieldValue }) =>
-              getFieldValue("hasInsurance") ? (
-                <>
-                  <Form.Item
-                    name="healthInsuranceNumber"
-                    label="Insurance Number"
-                    rules={[
-                      { required: true, message: "Please enter your insurance number" },
-                    ]}
-                  >
-                    <Input />
-                  </Form.Item>
+        {isExpiringSoon && (
+          <Alert
+            message="Insurance Expiring Soon"
+            description={`Your health insurance will expire on ${formatDate(insurance.validTo)}. Please consider renewing it soon.`}
+            type="warning"
+            showIcon
+            icon={<WarningOutlined />}
+            style={{ marginBottom: 16 }}
+          />
+        )}
 
-                  <Form.Item
-                    name="fullName"
-                    label="Full Name"
-                    rules={[{ required: true, message: "Please enter your full name" }]}
-                  >
-                    <Input />
-                  </Form.Item>
+        {insurance.status === "Pending" && (
+          <Alert
+            message="Action Required"
+            description="Your insurance information is pending. Please complete your submission."
+            type="info"
+            showIcon
+            icon={<InfoCircleOutlined />}
+            style={{ marginBottom: 16 }}
+          />
+        )}
 
-                  <Form.Item
-                    name="dateOfBirth"
-                    label="Date of Birth"
-                    rules={[{ required: true, message: "Please select your date of birth" }]}
-                  >
-                    <DatePicker style={{ width: "100%" }} />
-                  </Form.Item>
+        <Row gutter={[24, 24]}>
+          <Col xs={24} md={16}>
+            <Card 
+              type="inner" 
+              title={<Text strong><InfoCircleOutlined /> Insurance Status</Text>}
+              style={{ marginBottom: 16 }}
+            >
+              <Row gutter={[16, 16]}>
+                <Col span={12}>
+                  <Statistic 
+                    title="Status" 
+                    value={insurance.status} 
+                    valueRender={() => getStatusBadge(insurance.status)}
+                  />
+                </Col>
+                <Col span={12}>
+                  <Statistic 
+                    title="Verification" 
+                    value={insurance.verificationStatus} 
+                    valueRender={() => getVerificationBadge(insurance.verificationStatus)}
+                  />
+                </Col>
+                {insurance.deadline && (
+                  <Col span={24}>
+                    <Alert
+                      message={
+                        <Space>
+                          <ClockCircleOutlined />
+                          <Text strong>Deadline: {formatDate(insurance.deadline)}</Text>
+                        </Space>
+                      }
+                      type="info"
+                      style={{ marginTop: 8 }}
+                    />
+                  </Col>
+                )}
+              </Row>
+            </Card>
 
-                  <Form.Item
-                    name="gender"
-                    label="Gender"
-                    rules={[{ required: true, message: "Please select your gender" }]}
-                  >
-                    <Select>
-                      <Option value="Male">Male</Option>
-                      <Option value="Female">Female</Option>
-                      <Option value="Other">Other</Option>
-                    </Select>
-                  </Form.Item>
+            {insurance.hasInsurance && (
+              <Card 
+                type="inner" 
+                title={<Text strong><CheckCircleOutlined /> Insurance Details</Text>}
+              >
+                <Descriptions bordered column={{ xs: 1, sm: 2 }} size="small">
+                  <Descriptions.Item label="Insurance Number" span={2}>
+                    <Text copyable>{insurance.healthInsuranceNumber}</Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Full Name">
+                    {insurance.fullName}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Date of Birth">
+                    {formatDate(insurance.dateOfBirth)}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Gender">
+                    {insurance.gender}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Address">
+                    {insurance.address}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Healthcare Provider" span={2}>
+                    <div>
+                      <div>{insurance.healthcareProviderName}</div>
+                      <Text type="secondary">Code: {insurance.healthcareProviderCode}</Text>
+                    </div>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Valid From">
+                    {formatDate(insurance.validFrom)}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Valid To">
+                    <Space>
+                      {formatDate(insurance.validTo)}
+                      {isExpired && <Tag color="red">Expired</Tag>}
+                      {isExpiringSoon && <Tag color="orange">Expiring Soon</Tag>}
+                    </Space>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Issue Date">
+                    {formatDate(insurance.issueDate)}
+                  </Descriptions.Item>
+                </Descriptions>
+              </Card>
+            )}
+          </Col>
 
-                  <Form.Item
-                    name="address"
-                    label="Address"
-                    rules={[{ required: true, message: "Please enter your address" }]}
-                  >
-                    <Input />
-                  </Form.Item>
+          <Col xs={24} md={8}>
+            <Card 
+              type="inner" 
+              title={<Text strong><FileImageOutlined /> Insurance Card</Text>}
+              style={{ height: '100%' }}
+            >
+              {insurance.imageUrl ? (
+                <div style={{ textAlign: 'center' }}>
+                  <Image 
+                    src={insurance.imageUrl} 
+                    alt="Insurance Card" 
+                    style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain' }}
+                  />
+                </div>
+              ) : (
+                <Empty 
+                  image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                  description="No insurance image uploaded"
+                />
+              )}
+            </Card>
+          </Col>
+        </Row>
 
-                  <Form.Item
-                    name="healthcareProviderName"
-                    label="Healthcare Provider Name"
-                    rules={[
-                      { required: true, message: "Please enter healthcare provider name" },
-                    ]}
-                  >
-                    <Input />
-                  </Form.Item>
+        <Divider />
 
-                  <Form.Item
-                    name="healthcareProviderCode"
-                    label="Healthcare Provider Code"
-                    rules={[
-                      { required: true, message: "Please enter healthcare provider code" },
-                    ]}
-                  >
-                    <Input />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="validFrom"
-                    label="Valid From"
-                    rules={[{ required: true, message: "Please select valid from date" }]}
-                  >
-                    <DatePicker style={{ width: "100%" }} />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="validTo"
-                    label="Valid To"
-                    rules={[{ required: true, message: "Please select valid to date" }]}
-                  >
-                    <DatePicker style={{ width: "100%" }} />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="issueDate"
-                    label="Issue Date"
-                    rules={[{ required: true, message: "Please select issue date" }]}
-                  >
-                    <DatePicker style={{ width: "100%" }} />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="imageFile"
-                    label="Insurance Image"
-                    rules={[
-                      {
-                        required: !insurance.imageUrl,
-                        message: "Please upload your insurance image",
-                      },
-                    ]}
-                  >
-                    <Upload
-                      beforeUpload={(file) => {
-                        setImageFile(file);
-                        return false;
-                      }}
-                      maxCount={1}
-                    >
-                      <Button icon={<UploadOutlined />}>Click to Upload</Button>
-                    </Upload>
-                  </Form.Item>
-                </>
-              ) : null
-            }
-          </Form.Item>
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={submitting}>
-              {insurance.verificationStatus === "Verified"
-                ? "Submit Update Request"
-                : "Update Insurance"}
-            </Button>
-          </Form.Item>
-        </Form>
+        <Row>
+          <Col span={24}>
+            <Paragraph type="secondary">
+              <InfoCircleOutlined /> Last updated: {formatDate(insurance.updatedAt || insurance.createdAt)}
+              {insurance.updatedBy ? ` by ${insurance.updatedBy.userName}` : ''}
+            </Paragraph>
+          </Col>
+        </Row>
       </Card>
-    </Card>
+
+      <UpdateRequestModal
+        visible={updateModalVisible}
+        insurance={insurance}
+        onClose={() => setUpdateModalVisible(false)}
+        onSuccess={handleUpdateSuccess}
+      />
+    </>
   );
 } 
