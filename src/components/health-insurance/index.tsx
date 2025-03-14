@@ -102,35 +102,53 @@ export function HealthInsuranceManagement() {
   const fetchInsurances = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getAllHealthInsurances(
-        currentPage,
-        pageSize,
-        searchText,
-        sortBy,
-        ascending,
-        statusFilter,
-        userFilter
+      // Fetch both Completed+Verified and Expired insurances
+      const [completedResult, expiredResult] = await Promise.all([
+        getAllHealthInsurances(
+          currentPage,
+          pageSize,
+          searchText,
+          sortBy,
+          ascending,
+          "Completed",
+          userFilter
+        ),
+        getAllHealthInsurances(
+          currentPage,
+          pageSize,
+          searchText,
+          sortBy,
+          ascending,
+          "Expired",
+          userFilter
+        ),
+      ]);
+
+      // Filter completed insurances to only include verified ones
+      const verifiedInsurances = completedResult.data.filter(
+        (insurance: HealthInsuranceResponseDTO) => insurance.verificationStatus === "Verified"
       );
-      setInsurances(result.data);
-      setTotal(result.totalRecords);
+
+      // Combine and sort the results
+      const combinedInsurances = [...verifiedInsurances, ...expiredResult.data];
+      const sortedInsurances = combinedInsurances.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return ascending ? dateA - dateB : dateB - dateA;
+      });
+
+      setInsurances(sortedInsurances);
+      setTotal(verifiedInsurances.length + expiredResult.totalRecords);
     } catch (error) {
       toast.error("Unable to load health insurances.");
     } finally {
       setLoading(false);
     }
-  }, [
-    currentPage,
-    pageSize,
-    searchText,
-    sortBy,
-    ascending,
-    statusFilter,
-    userFilter,
-  ]);
+  }, [currentPage, pageSize, searchText, sortBy, ascending, userFilter]);
 
   useEffect(() => {
     fetchInsurances();
-    const connection = setupHealthInsuranceRealTime((updatedInsurance) => {
+    const connection = setupHealthInsuranceRealTime(() => {
       fetchInsurances();
     });
     return () => {
@@ -475,9 +493,7 @@ export function HealthInsuranceManagement() {
     <Row justify="space-between" align="middle" style={{ marginTop: 16 }}>
       <Col>
         <span style={{ color: 'rgba(0, 0, 0, 0.45)' }}>
-          {selectedRowKeys.length > 0 
-            ? `Selected ${selectedRowKeys.length} of ${total}`
-            : ''}
+          Showing only Completed+Verified and Expired insurances
         </span>
       </Col>
       <Col>

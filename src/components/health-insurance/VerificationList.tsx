@@ -11,96 +11,87 @@ import {
   Modal,
   Image,
   Descriptions,
-  Form,
+  Tag,
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
 import {
-  getUpdateRequests,
-  UpdateRequestDTO,
-  reviewUpdateRequest,
+  getAllHealthInsurances,
+  HealthInsuranceResponseDTO,
+  verifyHealthInsurance,
   setupHealthInsuranceRealTime,
 } from "@/api/healthinsurance";
 import { SearchOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
-const { TextArea } = Input;
 
 const formatDate = (date: string | undefined) => {
   if (!date) return "";
   return moment(date).format("DD/MM/YYYY");
 };
 
-const formatDateTime = (date: string | undefined) => {
-  if (!date) return "";
-  return moment(date).format("DD/MM/YYYY HH:mm:ss");
-};
-
-export function UpdateRequestList() {
-  const [requests, setRequests] = useState<UpdateRequestDTO[]>([]);
+export function VerificationList() {
+  const [insurances, setInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>();
-  const [selectedRequest, setSelectedRequest] = useState<UpdateRequestDTO | null>(null);
+  const [selectedInsurance, setSelectedInsurance] = useState<HealthInsuranceResponseDTO | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
 
-  const fetchRequests = useCallback(async () => {
+  const fetchInsurances = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getUpdateRequests(
+      const result = await getAllHealthInsurances(
         currentPage,
         pageSize,
         searchText,
-        "RequestedAt",
+        "CreatedAt",
         false,
-        statusFilter
+        "Submitted"
       );
-      setRequests(result.data);
+      setInsurances(result.data);
       setTotal(result.totalRecords);
     } catch (error) {
-      toast.error("Unable to load update requests.");
+      toast.error("Unable to load health insurances.");
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, searchText, statusFilter]);
+  }, [currentPage, pageSize, searchText]);
 
   useEffect(() => {
-    fetchRequests();
+    fetchInsurances();
     const connection = setupHealthInsuranceRealTime(() => {
-      fetchRequests();
+      fetchInsurances();
     });
     return () => {
       connection.stop();
     };
-  }, [fetchRequests]);
+  }, [fetchInsurances]);
 
-  const handleReview = async (requestId: string, isApproved: boolean) => {
+  const handleVerify = async (id: string, status: string) => {
     try {
-      const response = await reviewUpdateRequest(requestId, isApproved, isApproved ? undefined : rejectionReason);
+      const response = await verifyHealthInsurance(id, status);
       if (response.isSuccess) {
-        toast.success(isApproved ? "Request approved!" : "Request rejected!");
-        fetchRequests();
+        toast.success(`Insurance ${status.toLowerCase()}!`);
+        fetchInsurances();
         setIsModalVisible(false);
-        setRejectionReason("");
       } else {
         toast.error(response.message);
       }
     } catch (error) {
-      toast.error("Unable to review request.");
+      toast.error("Unable to verify insurance.");
     }
   };
 
   const columns = [
     {
-      title: "Requested By",
-      render: (record: UpdateRequestDTO) => (
+      title: "Policyholder",
+      render: (record: HealthInsuranceResponseDTO) => (
         <div>
-          <div>{record.requestedBy.userName}</div>
-          <div className="text-gray-500">{record.requestedBy.email}</div>
+          <div>{record.user.fullName}</div>
+          <div className="text-gray-500">{record.user.email}</div>
         </div>
       ),
     },
@@ -113,24 +104,21 @@ export function UpdateRequestList() {
       dataIndex: "fullName",
     },
     {
-      title: "Requested At",
-      render: (record: UpdateRequestDTO) => formatDateTime(record.requestedAt),
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
+      title: "Valid Period",
+      render: (record: HealthInsuranceResponseDTO) =>
+        `${formatDate(record.validFrom)} - ${formatDate(record.validTo)}`,
     },
     {
       title: "Actions",
-      render: (record: UpdateRequestDTO) => (
+      render: (record: HealthInsuranceResponseDTO) => (
         <Space>
           <Button
             onClick={() => {
-              setSelectedRequest(record);
+              setSelectedInsurance(record);
               setIsModalVisible(true);
             }}
           >
-            Review
+            Verify
           </Button>
         </Space>
       ),
@@ -147,22 +135,11 @@ export function UpdateRequestList() {
             onChange={(e) => setSearchText(e.target.value)}
             prefix={<SearchOutlined />}
           />
-          <Select
-            placeholder="Filter by status"
-            value={statusFilter}
-            onChange={setStatusFilter}
-            allowClear
-            style={{ width: 150 }}
-          >
-            <Option value="Pending">Pending</Option>
-            <Option value="Approved">Approved</Option>
-            <Option value="Rejected">Rejected</Option>
-          </Select>
         </Space>
       </Col>
       <Col>
         <span style={{ color: "rgba(0, 0, 0, 0.45)" }}>
-          Total {total} requests
+          Total {total} pending verifications
         </span>
       </Col>
     </Row>
@@ -189,7 +166,7 @@ export function UpdateRequestList() {
       {topContent}
       <Table
         columns={columns}
-        dataSource={requests}
+        dataSource={insurances}
         loading={loading}
         pagination={false}
         rowKey="id"
@@ -198,92 +175,63 @@ export function UpdateRequestList() {
       {bottomContent}
 
       <Modal
-        title="Review Update Request"
+        title="Verify Health Insurance"
         open={isModalVisible}
-        onCancel={() => {
-          setIsModalVisible(false);
-          setRejectionReason("");
-        }}
+        onCancel={() => setIsModalVisible(false)}
         footer={[
-          <Button
-            key="reject"
-            danger
-            onClick={() => handleReview(selectedRequest?.id || "", false)}
-            disabled={!rejectionReason}
-          >
+          <Button key="reject" danger onClick={() => handleVerify(selectedInsurance?.id || "", "Rejected")}>
             Reject
           </Button>,
-          <Button
-            key="approve"
-            type="primary"
-            onClick={() => handleReview(selectedRequest?.id || "", true)}
-          >
-            Approve
+          <Button key="verify" type="primary" onClick={() => handleVerify(selectedInsurance?.id || "", "Verified")}>
+            Verify
           </Button>,
         ]}
         width={800}
       >
-        {selectedRequest && (
+        {selectedInsurance && (
           <div>
-            <Descriptions title="Request Information" bordered column={2}>
+            <Descriptions title="Insurance Information" bordered column={2}>
               <Descriptions.Item label="Insurance Number">
-                {selectedRequest.healthInsuranceNumber}
+                {selectedInsurance.healthInsuranceNumber}
               </Descriptions.Item>
               <Descriptions.Item label="Full Name">
-                {selectedRequest.fullName}
+                {selectedInsurance.fullName}
               </Descriptions.Item>
               <Descriptions.Item label="Date of Birth">
-                {formatDate(selectedRequest.dateOfBirth)}
+                {formatDate(selectedInsurance.dateOfBirth)}
               </Descriptions.Item>
               <Descriptions.Item label="Gender">
-                {selectedRequest.gender}
+                {selectedInsurance.gender}
               </Descriptions.Item>
               <Descriptions.Item label="Address">
-                {selectedRequest.address}
+                {selectedInsurance.address}
               </Descriptions.Item>
               <Descriptions.Item label="Healthcare Provider">
-                {selectedRequest.healthcareProviderName} ({selectedRequest.healthcareProviderCode})
+                {selectedInsurance.healthcareProviderName} ({selectedInsurance.healthcareProviderCode})
               </Descriptions.Item>
               <Descriptions.Item label="Valid From">
-                {formatDate(selectedRequest.validFrom)}
+                {formatDate(selectedInsurance.validFrom)}
               </Descriptions.Item>
               <Descriptions.Item label="Valid To">
-                {formatDate(selectedRequest.validTo)}
+                {formatDate(selectedInsurance.validTo)}
               </Descriptions.Item>
               <Descriptions.Item label="Issue Date">
-                {formatDate(selectedRequest.issueDate)}
-              </Descriptions.Item>
-              <Descriptions.Item label="Has Insurance">
-                {selectedRequest.hasInsurance ? "Yes" : "No"}
+                {formatDate(selectedInsurance.issueDate)}
               </Descriptions.Item>
             </Descriptions>
-            {selectedRequest.imageUrl && (
+            {selectedInsurance.imageUrl && (
               <div style={{ marginTop: 16 }}>
                 <h4>Insurance Image</h4>
                 <Image
-                  src={selectedRequest.imageUrl}
+                  src={selectedInsurance.imageUrl}
                   alt="Insurance"
                   style={{ maxWidth: "100%" }}
                 />
               </div>
             )}
-            <Form layout="vertical" style={{ marginTop: 16 }}>
-              <Form.Item
-                label="Rejection Reason"
-                required={true}
-                rules={[{ required: true, message: "Please provide a rejection reason" }]}
-              >
-                <TextArea
-                  rows={4}
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Enter reason for rejection..."
-                />
-              </Form.Item>
-            </Form>
           </div>
         )}
       </Modal>
     </div>
   );
-}
+} 
