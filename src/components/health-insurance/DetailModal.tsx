@@ -69,10 +69,17 @@ export default function DetailModal({ visible, insurance, onClose }: DetailModal
     if (!insurance) return;
     setLoading(true);
     try {
-      const historyData = await getHealthInsuranceHistory(insurance.id);
-      setHistory(historyData);
+      const response = await getHealthInsuranceHistory(insurance.id);
+      // Extract the data array from the response
+      if (response.isSuccess && Array.isArray(response.data)) {
+        setHistory(response.data);
+      } else {
+        console.error("Invalid history data format:", response);
+        setHistory([]);
+      }
     } catch (error) {
-      console.error("Unable to load history.");
+      console.error("Unable to load history:", error);
+      setHistory([]);
     } finally {
       setLoading(false);
     }
