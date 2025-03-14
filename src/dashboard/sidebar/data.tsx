@@ -22,6 +22,7 @@ import { BatchNumberIcon } from "./icons/BatchNumberIcon";
 import { InventoryRecordIcon } from "./icons/InventoryRecordIcon";
 import { InventoryHistoryIcon } from "./icons/InventoryHistoryIcon";
 import { InventoriesIcon } from "./icons/InventoriesIcon";
+import { NotificationIcon } from "./icons/NotificationIcon";
 
 export const data = [
   {
@@ -128,9 +129,40 @@ export const data = [
         ],
       },
       {
-        title: "HealthInsurance",
+        title: "Notifications",
+        icon: <NotificationIcon />,
+        link: "/notification/management",
+      },
+      {
+        title: "HealthInsurances",
         icon: <HealthInsuranceIcon />,
-        link: "/admin/credits",
+        submenu: [
+          {
+            title: "List",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/management",
+          },
+          {
+            title: "Update Requests",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/update-requests",
+          },
+          {
+            title: "Config",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/config",
+          },
+          {
+            title: "User Status",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/user-status",
+          },
+          {
+            title: "Admin Actions",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/admin-actions",
+          },
+        ],
       },
       {
         title: "PeriodicHealthCheckups",

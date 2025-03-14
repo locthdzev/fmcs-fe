@@ -72,9 +72,8 @@ const EditBatchNumberModal: React.FC<EditBatchNumberModalProps> = ({
             { required: true, message: "Please select manufacturing date!" },
             ({ getFieldValue }) => ({
               validator(_, value) {
-                if (!value || !getFieldValue("expiryDate")) {
+                if (!value || !getFieldValue("expiryDate"))
                   return Promise.resolve();
-                }
                 if (value.isAfter(getFieldValue("expiryDate"))) {
                   return Promise.reject(
                     new Error(
@@ -96,9 +95,8 @@ const EditBatchNumberModal: React.FC<EditBatchNumberModalProps> = ({
             { required: true, message: "Please select expiry date!" },
             ({ getFieldValue }) => ({
               validator(_, value) {
-                if (!value || !getFieldValue("manufacturingDate")) {
+                if (!value || !getFieldValue("manufacturingDate"))
                   return Promise.resolve();
-                }
                 if (getFieldValue("manufacturingDate").isAfter(value)) {
                   return Promise.reject(
                     new Error(
@@ -117,4 +115,5 @@ const EditBatchNumberModal: React.FC<EditBatchNumberModalProps> = ({
     </Modal>
   );
 };
+
 export default EditBatchNumberModal;
