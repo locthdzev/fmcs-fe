@@ -128,11 +128,41 @@ export const data = [
           },
         ],
       },
-      { title: "Notifications", icon: <NotificationIcon />, link: "/notification/management" },
       {
-        title: "HealthInsurance",
+        title: "Notifications",
+        icon: <NotificationIcon />,
+        link: "/notification/management",
+      },
+      {
+        title: "HealthInsurances",
         icon: <HealthInsuranceIcon />,
-        link: "/health-insurance/management",
+        submenu: [
+          {
+            title: "List",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/management",
+          },
+          {
+            title: "Update Requests",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/update-requests",
+          },
+          {
+            title: "Config",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/config",
+          },
+          {
+            title: "User Status",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/user-status",
+          },
+          {
+            title: "Admin Actions",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/admin-actions",
+          },
+        ],
       },
       {
         title: "PeriodicHealthCheckups",
