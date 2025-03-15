@@ -109,10 +109,8 @@ export const getAllHealthInsurances = async (
 };
 
 export const getHealthInsuranceById = async (id: string) => {
-  const response = await api.get(
-    `/health-insurance-management/insurances/${id}`
-  );
-  return response.data.data;
+  const response = await api.get(`/health-insurance-management/insurances/${id}`);
+  return response.data;
 };
 
 export const createHealthInsuranceManual = async (
