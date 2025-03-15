@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
-import { Modal, Form, Input, DatePicker, Select, Button, Row, Col, Upload, Image, Descriptions, Divider } from 'antd';
+import { Modal, Form, Input, DatePicker, Select, Button, Row, Col, Upload, Image, Descriptions, Divider, Card, Typography, Space, Avatar } from 'antd';
 import { HealthInsuranceResponseDTO, updateHealthInsuranceByAdmin, requestHealthInsuranceUpdate } from '@/api/healthinsurance';
 import { toast } from 'react-toastify';
 import moment from 'moment';
-import { UploadOutlined } from '@ant-design/icons';
+import { 
+  UploadOutlined,
+  UserOutlined,
+  IdcardOutlined,
+  CalendarOutlined,
+  HomeOutlined,
+  MedicineBoxOutlined,
+  NumberOutlined,
+  FileImageOutlined,
+  UserSwitchOutlined,
+  EditOutlined,
+  MailOutlined
+} from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 
 interface EditModalProps {
@@ -95,7 +107,14 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
 
   return (
     <Modal
-      title={`${isAdmin ? 'Edit' : 'Request Update'} Health Insurance`}
+      title={
+        <Typography.Title level={4} style={{ margin: 0 }}>
+          <Space>
+            <EditOutlined />
+            {isAdmin ? 'Edit Health Insurance' : 'Request Insurance Update'}
+          </Space>
+        </Typography.Title>
+      }
       open={visible}
       onCancel={onClose}
       footer={[
@@ -107,13 +126,26 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
         </Button>,
       ]}
       width={1200}
+      centered
     >
-      <Descriptions title="Policyholder Information" bordered column={1} style={{ marginBottom: 24 }}>
-        <Descriptions.Item label="Full Name">{insurance.user.fullName}</Descriptions.Item>
-        <Descriptions.Item label="Email">{insurance.user.email}</Descriptions.Item>
-      </Descriptions>
-
-      <Divider />
+      <Card className="shadow-sm mb-4">
+        <Row align="middle" gutter={16}>
+          <Col>
+            <Avatar size={64} icon={<UserOutlined />} className="bg-blue-500" />
+          </Col>
+          <Col flex="1">
+            <Typography.Title level={5} style={{ margin: 0 }}>
+              {insurance.user.fullName}
+            </Typography.Title>
+            <Typography.Text type="secondary">
+              <Space>
+                <MailOutlined />
+                {insurance.user.email}
+              </Space>
+            </Typography.Text>
+          </Col>
+        </Row>
+      </Card>
 
       <Form
         form={form}
@@ -121,112 +153,184 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
       >
         <Row gutter={24}>
           <Col span={8}>
-            <Form.Item
-              name="healthInsuranceNumber"
-              label="Insurance Number"
-              rules={[{ required: true, message: 'Please input insurance number!' }]}
-            >
-              <Input />
-            </Form.Item>
-
-            <Form.Item
-              name="fullName"
-              label="Full Name"
-              rules={[{ required: true, message: 'Please input full name!' }]}
-            >
-              <Input />
-            </Form.Item>
-
-            <Form.Item
-              name="dateOfBirth"
-              label="Date of Birth"
-              rules={[{ required: true, message: 'Please select date of birth!' }]}
-            >
-              <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-            </Form.Item>
-
-            <Form.Item
-              name="gender"
-              label="Gender"
-              rules={[{ required: true, message: 'Please select gender!' }]}
-            >
-              <Select>
-                <Select.Option value="Male">Male</Select.Option>
-                <Select.Option value="Female">Female</Select.Option>
-                <Select.Option value="Other">Other</Select.Option>
-              </Select>
-            </Form.Item>
-          </Col>
-
-          <Col span={8}>
-            <Form.Item
-              name="address"
-              label="Address"
-            >
-              <Input.TextArea rows={4} />
-            </Form.Item>
-
-            <Form.Item
-              name="healthcareProviderName"
-              label="Healthcare Provider Name"
-            >
-              <Input />
-            </Form.Item>
-
-            <Form.Item
-              name="healthcareProviderCode"
-              label="Healthcare Provider Code"
-            >
-              <Input />
-            </Form.Item>
-          </Col>
-
-          <Col span={8}>
-            <Form.Item
-              name="validFrom"
-              label="Valid From"
-              rules={[{ required: true, message: 'Please select valid from date!' }]}
-            >
-              <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-            </Form.Item>
-
-            <Form.Item
-              name="validTo"
-              label="Valid To"
-              rules={[{ required: true, message: 'Please select valid to date!' }]}
-            >
-              <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-            </Form.Item>
-
-            <Form.Item
-              name="issueDate"
-              label="Issue Date"
-              rules={[{ required: true, message: 'Please select issue date!' }]}
-            >
-              <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-            </Form.Item>
-
-            <Form.Item label="Insurance Image">
-              <Upload
-                accept="image/*"
-                fileList={fileList}
-                onChange={handleUploadChange}
-                beforeUpload={() => false}
-                maxCount={1}
+            <Card title={<Space><UserOutlined /> Personal Information</Space>} className="shadow-sm">
+              <Form.Item
+                name="healthInsuranceNumber"
+                label={
+                  <Space>
+                    <IdcardOutlined />
+                    Insurance Number
+                  </Space>
+                }
+                rules={[{ required: true, message: 'Please input insurance number!' }]}
               >
-                <Button icon={<UploadOutlined />}>Upload New Image</Button>
-              </Upload>
-              {insurance?.imageUrl && !fileList.length && (
-                <div style={{ marginTop: 8 }}>
-                  <p>Current Image:</p>
-                  <Image
-                    src={insurance.imageUrl}
-                    alt="Current Insurance"
-                    style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
-                  />
-                </div>
-              )}
-            </Form.Item>
+                <Input placeholder="Enter insurance number" />
+              </Form.Item>
+
+              <Form.Item
+                name="fullName"
+                label={
+                  <Space>
+                    <UserOutlined />
+                    Full Name
+                  </Space>
+                }
+                rules={[{ required: true, message: 'Please input full name!' }]}
+              >
+                <Input placeholder="Enter full name" />
+              </Form.Item>
+
+              <Form.Item
+                name="dateOfBirth"
+                label={
+                  <Space>
+                    <CalendarOutlined />
+                    Date of Birth
+                  </Space>
+                }
+                rules={[{ required: true, message: 'Please select date of birth!' }]}
+              >
+                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+              </Form.Item>
+
+              <Form.Item
+                name="gender"
+                label={
+                  <Space>
+                    <UserSwitchOutlined />
+                    Gender
+                  </Space>
+                }
+                rules={[{ required: true, message: 'Please select gender!' }]}
+              >
+                <Select placeholder="Select gender">
+                  <Select.Option value="Male">Male</Select.Option>
+                  <Select.Option value="Female">Female</Select.Option>
+                  <Select.Option value="Other">Other</Select.Option>
+                </Select>
+              </Form.Item>
+            </Card>
+          </Col>
+
+          <Col span={8}>
+            <Card title={<Space><HomeOutlined /> Contact Information</Space>} className="shadow-sm">
+              <Form.Item
+                name="address"
+                label={
+                  <Space>
+                    <HomeOutlined />
+                    Address
+                  </Space>
+                }
+              >
+                <Input.TextArea 
+                  rows={4} 
+                  placeholder="Enter address"
+                  style={{ resize: 'none' }}
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="healthcareProviderName"
+                label={
+                  <Space>
+                    <MedicineBoxOutlined />
+                    Healthcare Provider Name
+                  </Space>
+                }
+              >
+                <Input placeholder="Enter healthcare provider name" />
+              </Form.Item>
+
+              <Form.Item
+                name="healthcareProviderCode"
+                label={
+                  <Space>
+                    <NumberOutlined />
+                    Healthcare Provider Code
+                  </Space>
+                }
+              >
+                <Input placeholder="Enter healthcare provider code" />
+              </Form.Item>
+            </Card>
+          </Col>
+
+          <Col span={8}>
+            <Card title={<Space><CalendarOutlined /> Insurance Details</Space>} className="shadow-sm">
+              <Form.Item
+                name="validFrom"
+                label={
+                  <Space>
+                    <CalendarOutlined />
+                    Valid From
+                  </Space>
+                }
+                rules={[{ required: true, message: 'Please select valid from date!' }]}
+              >
+                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+              </Form.Item>
+
+              <Form.Item
+                name="validTo"
+                label={
+                  <Space>
+                    <CalendarOutlined />
+                    Valid To
+                  </Space>
+                }
+                rules={[{ required: true, message: 'Please select valid to date!' }]}
+              >
+                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+              </Form.Item>
+
+              <Form.Item
+                name="issueDate"
+                label={
+                  <Space>
+                    <CalendarOutlined />
+                    Issue Date
+                  </Space>
+                }
+                rules={[{ required: true, message: 'Please select issue date!' }]}
+              >
+                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+              </Form.Item>
+
+              <Form.Item 
+                label={
+                  <Space>
+                    <FileImageOutlined />
+                    Insurance Image
+                  </Space>
+                }
+              >
+                <Upload
+                  accept="image/*"
+                  fileList={fileList}
+                  onChange={handleUploadChange}
+                  beforeUpload={() => false}
+                  maxCount={1}
+                  className="upload-list-inline"
+                >
+                  <Button icon={<UploadOutlined />} block>
+                    Click to Upload New Image
+                  </Button>
+                </Upload>
+                {insurance?.imageUrl && !fileList.length && (
+                  <Card className="mt-4">
+                    <Typography.Text type="secondary">Current Image:</Typography.Text>
+                    <div className="mt-2">
+                      <Image
+                        src={insurance.imageUrl}
+                        alt="Current Insurance"
+                        style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
+                      />
+                    </div>
+                  </Card>
+                )}
+              </Form.Item>
+            </Card>
           </Col>
         </Row>
       </Form>

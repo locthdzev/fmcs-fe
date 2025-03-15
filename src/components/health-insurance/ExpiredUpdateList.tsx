@@ -11,6 +11,10 @@ import {
   Modal,
   Tooltip,
   Popconfirm,
+  Card,
+  Typography,
+  Badge,
+  Divider
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -21,7 +25,19 @@ import {
   resendUpdateRequest,
   softDeleteHealthInsurances,
 } from "@/api/healthinsurance";
-import { SearchOutlined, RedoOutlined, WarningOutlined, DeleteOutlined } from "@ant-design/icons";
+import { 
+  SearchOutlined, 
+  RedoOutlined, 
+  WarningOutlined, 
+  DeleteOutlined,
+  UserOutlined,
+  CalendarOutlined,
+  ClockCircleOutlined,
+  ExclamationCircleOutlined,
+  SyncOutlined
+} from "@ant-design/icons";
+
+const { Title, Text } = Typography;
 
 const formatDate = (date: string | undefined) => {
   if (!date) return "";
@@ -105,45 +121,92 @@ export function ExpiredUpdateList() {
 
   const columns = [
     {
-      title: "Policyholder",
+      title: (
+        <div className="flex items-center">
+          <UserOutlined className="mr-2" />
+          Policyholder
+        </div>
+      ),
       render: (record: HealthInsuranceResponseDTO) => (
-        <div>
-          <div>{record.user.fullName}</div>
-          <div className="text-gray-500">{record.user.email}</div>
+        <div className="flex items-start space-x-3">
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+            <UserOutlined className="text-blue-500" />
+          </div>
+          <div>
+            <Text strong className="block">{record.user.fullName}</Text>
+            <Text type="secondary" className="text-sm">{record.user.email}</Text>
+          </div>
         </div>
       ),
     },
     {
-      title: "Insurance Number",
+      title: (
+        <div className="flex items-center">
+          <SyncOutlined className="mr-2" />
+          Insurance Number
+        </div>
+      ),
       dataIndex: "healthInsuranceNumber",
-    },
-    {
-      title: "Valid Period",
-      render: (record: HealthInsuranceResponseDTO) => (
-        <Space direction="vertical" size={0}>
-          <div>From: {formatDate(record.validFrom)}</div>
-          <div>To: {formatDate(record.validTo)}</div>
-        </Space>
+      render: (text: string) => (
+        <Text strong className="text-blue-600">{text}</Text>
       ),
     },
     {
-      title: "Status",
+      title: (
+        <div className="flex items-center">
+          <CalendarOutlined className="mr-2" />
+          Valid Period
+        </div>
+      ),
       render: (record: HealthInsuranceResponseDTO) => (
-        <Tag icon={<WarningOutlined />} color="error">
+        <div className="space-y-1">
+          <div className="flex items-center">
+            <Badge status="success" />
+            <Text className="ml-2">From: {formatDate(record.validFrom)}</Text>
+          </div>
+          <div className="flex items-center">
+            <Badge status="error" />
+            <Text className="ml-2">To: {formatDate(record.validTo)}</Text>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: (
+        <div className="flex items-center">
+          <WarningOutlined className="mr-2" />
+          Status
+        </div>
+      ),
+      render: (record: HealthInsuranceResponseDTO) => (
+        <Tag icon={<WarningOutlined />} color="error" className="px-3 py-1">
           {record.status}
         </Tag>
       ),
     },
     {
-      title: "Deadline",
+      title: (
+        <div className="flex items-center">
+          <ClockCircleOutlined className="mr-2" />
+          Deadline
+        </div>
+      ),
       render: (record: HealthInsuranceResponseDTO) => (
         <Tooltip title={moment(record.deadline).fromNow()}>
-          <Tag color="red">{formatDateTime(record.deadline)}</Tag>
+          <div className="flex items-center space-x-2">
+            <ExclamationCircleOutlined className="text-red-500" />
+            <Text type="danger">{formatDateTime(record.deadline)}</Text>
+          </div>
         </Tooltip>
       ),
     },
     {
-      title: "Actions",
+      title: (
+        <div className="flex items-center">
+          <SyncOutlined className="mr-2" />
+          Actions
+        </div>
+      ),
       render: (record: HealthInsuranceResponseDTO) => (
         <Space>
           <Button
@@ -156,23 +219,27 @@ export function ExpiredUpdateList() {
                 content: "Are you sure you want to resend the update request to this user?",
                 okText: "Yes",
                 cancelText: "No",
+                icon: <ExclamationCircleOutlined className="text-blue-500" />,
                 onOk: () => handleResendRequest(record.id),
               });
             }}
+            className="bg-blue-500 hover:bg-blue-600"
           >
             Resend Request
           </Button>
           <Popconfirm
-            title="Soft Delete Insurance"
-            description="Are you sure you want to soft delete this insurance?"
+            title="Delete Insurance"
+            description="Are you sure you want to delete this insurance?"
             onConfirm={() => handleSoftDelete(record.id)}
             okText="Yes"
             cancelText="No"
+            icon={<ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />}
           >
             <Button
               type="text"
               danger
               icon={<DeleteOutlined />}
+              className="hover:bg-red-50"
             >
               Delete
             </Button>
@@ -183,52 +250,62 @@ export function ExpiredUpdateList() {
   ];
 
   const topContent = (
-    <Row gutter={[16, 16]} align="middle" justify="space-between">
-      <Col>
-        <Space>
-          <Input
-            placeholder="Search by insurance number"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            prefix={<SearchOutlined />}
-          />
-        </Space>
-      </Col>
-      <Col>
-        <span style={{ color: "rgba(0, 0, 0, 0.45)" }}>
-          Total {total} expired insurances
-        </span>
-      </Col>
-    </Row>
+    <Card className="mb-4">
+      <div className="flex flex-col space-y-4">
+        <div className="flex items-center justify-between">
+          <Title level={5} className="mb-0">Expired Insurance List</Title>
+          <Text type="secondary">Total: {total}</Text>
+        </div>
+        <Divider className="my-3" />
+        <Row gutter={[16, 16]} align="middle" justify="space-between">
+          <Col>
+            <Space size="middle">
+              <Input.Search
+                placeholder="Search by insurance number"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: 300 }}
+                className="search-input"
+              />
+            </Space>
+          </Col>
+        </Row>
+      </div>
+    </Card>
   );
 
   const bottomContent = (
-    <Row justify="end" style={{ marginTop: 16 }}>
-      <Pagination
-        current={currentPage}
-        pageSize={pageSize}
-        total={total}
-        onChange={(page, size) => {
-          setCurrentPage(page);
-          setPageSize(size);
-        }}
-        showSizeChanger
-        showTotal={(total) => `Total ${total} items`}
-      />
-    </Row>
+    <Card className="mt-4">
+      <Row justify="end">
+        <Pagination
+          current={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onChange={(page, size) => {
+            setCurrentPage(page);
+            setPageSize(size);
+          }}
+          showSizeChanger
+          showTotal={(total) => `Total ${total} records`}
+          className="pagination-custom"
+        />
+      </Row>
+    </Card>
   );
 
   return (
-    <div>
+    <div className="space-y-4">
       {topContent}
-      <Table
-        columns={columns}
-        dataSource={insurances}
-        loading={loading}
-        pagination={false}
-        rowKey="id"
-        style={{ marginTop: 16 }}
-      />
+      <Card bodyStyle={{ padding: 0 }}>
+        <Table
+          columns={columns}
+          dataSource={insurances}
+          loading={loading}
+          pagination={false}
+          rowKey="id"
+          className="custom-table"
+        />
+      </Card>
       {bottomContent}
     </div>
   );

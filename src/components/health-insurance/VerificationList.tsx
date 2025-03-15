@@ -12,6 +12,11 @@ import {
   Image,
   Descriptions,
   Tag,
+  Card,
+  Typography,
+  Badge,
+  Divider,
+  Tooltip,
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -21,8 +26,21 @@ import {
   verifyHealthInsurance,
   setupHealthInsuranceRealTime,
 } from "@/api/healthinsurance";
-import { SearchOutlined } from "@ant-design/icons";
+import {
+  SearchOutlined,
+  UserOutlined,
+  CalendarOutlined,
+  IdcardOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  FileImageOutlined,
+  ExclamationCircleOutlined,
+  HomeOutlined,
+  MedicineBoxOutlined,
+  GlobalOutlined,
+} from "@ant-design/icons";
 
+const { Title, Text } = Typography;
 const { Option } = Select;
 
 const formatDate = (date: string | undefined) => {
@@ -87,147 +105,299 @@ export function VerificationList() {
 
   const columns = [
     {
-      title: "Policyholder",
+      title: (
+        <div className="flex items-center">
+          <UserOutlined className="mr-2" />
+          Policyholder
+        </div>
+      ),
       render: (record: HealthInsuranceResponseDTO) => (
-        <div>
-          <div>{record.user.fullName}</div>
-          <div className="text-gray-500">{record.user.email}</div>
+        <div className="flex items-start space-x-3">
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+            <UserOutlined className="text-blue-500" />
+          </div>
+          <div>
+            <Text strong className="block">{record.user.fullName}</Text>
+            <Text type="secondary" className="text-sm">{record.user.email}</Text>
+          </div>
         </div>
       ),
     },
     {
-      title: "Insurance Number",
+      title: (
+        <div className="flex items-center">
+          <IdcardOutlined className="mr-2" />
+          Insurance Number
+        </div>
+      ),
       dataIndex: "healthInsuranceNumber",
+      render: (text: string) => (
+        <Text strong className="text-blue-600">{text}</Text>
+      ),
     },
     {
-      title: "Full Name",
+      title: (
+        <div className="flex items-center">
+          <UserOutlined className="mr-2" />
+          Full Name
+        </div>
+      ),
       dataIndex: "fullName",
+      render: (text: string) => (
+        <Text strong>{text}</Text>
+      ),
     },
     {
-      title: "Valid Period",
-      render: (record: HealthInsuranceResponseDTO) =>
-        `${formatDate(record.validFrom)} - ${formatDate(record.validTo)}`,
-    },
-    {
-      title: "Actions",
+      title: (
+        <div className="flex items-center">
+          <CalendarOutlined className="mr-2" />
+          Valid Period
+        </div>
+      ),
       render: (record: HealthInsuranceResponseDTO) => (
-        <Space>
-          <Button
-            onClick={() => {
-              setSelectedInsurance(record);
-              setIsModalVisible(true);
-            }}
-          >
-            Verify
-          </Button>
-        </Space>
+        <div className="space-y-1">
+          <div className="flex items-center">
+            <Badge status="processing" />
+            <Text className="ml-2">From: {formatDate(record.validFrom)}</Text>
+          </div>
+          <div className="flex items-center">
+            <Badge status="warning" />
+            <Text className="ml-2">To: {formatDate(record.validTo)}</Text>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: (
+        <div className="flex items-center">
+          <CheckCircleOutlined className="mr-2" />
+          Actions
+        </div>
+      ),
+      render: (record: HealthInsuranceResponseDTO) => (
+        <Button
+          type="primary"
+          icon={<CheckCircleOutlined />}
+          onClick={() => {
+            setSelectedInsurance(record);
+            setIsModalVisible(true);
+          }}
+          className="bg-blue-500 hover:bg-blue-600"
+        >
+          Verify
+        </Button>
       ),
     },
   ];
 
   const topContent = (
-    <Row gutter={[16, 16]} align="middle" justify="space-between">
-      <Col>
-        <Space>
-          <Input
-            placeholder="Search by insurance number"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            prefix={<SearchOutlined />}
-          />
-        </Space>
-      </Col>
-      <Col>
-        <span style={{ color: "rgba(0, 0, 0, 0.45)" }}>
-          Total {total} pending verifications
-        </span>
-      </Col>
-    </Row>
+    <Card className="mb-4">
+      <div className="flex flex-col space-y-4">
+        <div className="flex items-center justify-between">
+          <Title level={5} className="mb-0">Insurance Verification List</Title>
+          <Text type="secondary">Total: {total} pending</Text>
+        </div>
+        <Divider className="my-3" />
+        <Row gutter={[16, 16]} align="middle" justify="space-between">
+          <Col>
+            <Space size="middle">
+              <Input.Search
+                placeholder="Search by insurance number"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: 300 }}
+                className="search-input"
+              />
+            </Space>
+          </Col>
+        </Row>
+      </div>
+    </Card>
   );
 
   const bottomContent = (
-    <Row justify="end" style={{ marginTop: 16 }}>
-      <Pagination
-        current={currentPage}
-        pageSize={pageSize}
-        total={total}
-        onChange={(page, size) => {
-          setCurrentPage(page);
-          setPageSize(size);
-        }}
-        showSizeChanger
-        showTotal={(total) => `Total ${total} items`}
-      />
-    </Row>
+    <Card className="mt-4">
+      <Row justify="end">
+        <Pagination
+          current={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onChange={(page, size) => {
+            setCurrentPage(page);
+            setPageSize(size);
+          }}
+          showSizeChanger
+          showTotal={(total) => `Total ${total} records`}
+          className="pagination-custom"
+        />
+      </Row>
+    </Card>
   );
 
   return (
-    <div>
+    <div className="space-y-4">
       {topContent}
-      <Table
-        columns={columns}
-        dataSource={insurances}
-        loading={loading}
-        pagination={false}
-        rowKey="id"
-        style={{ marginTop: 16 }}
-      />
+      <Card bodyStyle={{ padding: 0 }}>
+        <Table
+          columns={columns}
+          dataSource={insurances}
+          loading={loading}
+          pagination={false}
+          rowKey="id"
+          className="custom-table"
+        />
+      </Card>
       {bottomContent}
 
       <Modal
-        title="Verify Health Insurance"
+        title={
+          <div className="flex items-center space-x-2">
+            <FileImageOutlined className="text-blue-500" />
+            <Text strong>Insurance Verification Details</Text>
+          </div>
+        }
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         footer={[
-          <Button key="reject" danger onClick={() => handleVerify(selectedInsurance?.id || "", "Rejected")}>
+          <Button 
+            key="reject" 
+            danger 
+            icon={<CloseCircleOutlined />}
+            onClick={() => handleVerify(selectedInsurance?.id || "", "Rejected")}
+          >
             Reject
           </Button>,
-          <Button key="verify" type="primary" onClick={() => handleVerify(selectedInsurance?.id || "", "Verified")}>
+          <Button 
+            key="verify" 
+            type="primary" 
+            icon={<CheckCircleOutlined />}
+            onClick={() => handleVerify(selectedInsurance?.id || "", "Verified")}
+            className="bg-green-500 hover:bg-green-600"
+          >
             Verify
           </Button>,
         ]}
         width={800}
+        className="verification-modal"
       >
         {selectedInsurance && (
-          <div>
-            <Descriptions title="Insurance Information" bordered column={2}>
-              <Descriptions.Item label="Insurance Number">
-                {selectedInsurance.healthInsuranceNumber}
-              </Descriptions.Item>
-              <Descriptions.Item label="Full Name">
-                {selectedInsurance.fullName}
-              </Descriptions.Item>
-              <Descriptions.Item label="Date of Birth">
-                {formatDate(selectedInsurance.dateOfBirth)}
-              </Descriptions.Item>
-              <Descriptions.Item label="Gender">
-                {selectedInsurance.gender}
-              </Descriptions.Item>
-              <Descriptions.Item label="Address">
-                {selectedInsurance.address}
-              </Descriptions.Item>
-              <Descriptions.Item label="Healthcare Provider">
-                {selectedInsurance.healthcareProviderName} ({selectedInsurance.healthcareProviderCode})
-              </Descriptions.Item>
-              <Descriptions.Item label="Valid From">
-                {formatDate(selectedInsurance.validFrom)}
-              </Descriptions.Item>
-              <Descriptions.Item label="Valid To">
-                {formatDate(selectedInsurance.validTo)}
-              </Descriptions.Item>
-              <Descriptions.Item label="Issue Date">
-                {formatDate(selectedInsurance.issueDate)}
-              </Descriptions.Item>
-            </Descriptions>
+          <div className="space-y-6">
+            <Card className="shadow-sm">
+              <Descriptions title={
+                <div className="flex items-center space-x-2 mb-4">
+                  <IdcardOutlined className="text-blue-500" />
+                  <Text strong>Insurance Information</Text>
+                </div>
+              } bordered column={2}>
+                <Descriptions.Item 
+                  label={
+                    <div className="flex items-center space-x-2">
+                      <IdcardOutlined />
+                      <span>Insurance Number</span>
+                    </div>
+                  }
+                >
+                  <Text strong>{selectedInsurance.healthInsuranceNumber}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item 
+                  label={
+                    <div className="flex items-center space-x-2">
+                      <UserOutlined />
+                      <span>Full Name</span>
+                    </div>
+                  }
+                >
+                  <Text strong>{selectedInsurance.fullName}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item 
+                  label={
+                    <div className="flex items-center space-x-2">
+                      <CalendarOutlined />
+                      <span>Date of Birth</span>
+                    </div>
+                  }
+                >
+                  {formatDate(selectedInsurance.dateOfBirth)}
+                </Descriptions.Item>
+                <Descriptions.Item 
+                  label={
+                    <div className="flex items-center space-x-2">
+                      <UserOutlined />
+                      <span>Gender</span>
+                    </div>
+                  }
+                >
+                  {selectedInsurance.gender}
+                </Descriptions.Item>
+                <Descriptions.Item 
+                  label={
+                    <div className="flex items-center space-x-2">
+                      <HomeOutlined />
+                      <span>Address</span>
+                    </div>
+                  }
+                  span={2}
+                >
+                  {selectedInsurance.address}
+                </Descriptions.Item>
+                <Descriptions.Item 
+                  label={
+                    <div className="flex items-center space-x-2">
+                      <MedicineBoxOutlined />
+                      <span>Healthcare Provider</span>
+                    </div>
+                  }
+                  span={2}
+                >
+                  <Space>
+                    <Text strong>{selectedInsurance.healthcareProviderName}</Text>
+                    <Tag color="blue">{selectedInsurance.healthcareProviderCode}</Tag>
+                  </Space>
+                </Descriptions.Item>
+                <Descriptions.Item 
+                  label={
+                    <div className="flex items-center space-x-2">
+                      <CalendarOutlined />
+                      <span>Valid Period</span>
+                    </div>
+                  }
+                  span={2}
+                >
+                  <Space>
+                    <Badge status="processing" text={`From: ${formatDate(selectedInsurance.validFrom)}`} />
+                    <Badge status="warning" text={`To: ${formatDate(selectedInsurance.validTo)}`} />
+                  </Space>
+                </Descriptions.Item>
+                <Descriptions.Item 
+                  label={
+                    <div className="flex items-center space-x-2">
+                      <GlobalOutlined />
+                      <span>Issue Date</span>
+                    </div>
+                  }
+                >
+                  {formatDate(selectedInsurance.issueDate)}
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+
             {selectedInsurance.imageUrl && (
-              <div style={{ marginTop: 16 }}>
-                <h4>Insurance Image</h4>
+              <Card 
+                title={
+                  <div className="flex items-center space-x-2">
+                    <FileImageOutlined className="text-blue-500" />
+                    <Text strong>Insurance Image</Text>
+                  </div>
+                }
+                className="shadow-sm"
+              >
                 <Image
                   src={selectedInsurance.imageUrl}
                   alt="Insurance"
                   style={{ maxWidth: "100%" }}
+                  className="rounded-lg"
                 />
-              </div>
+              </Card>
             )}
           </div>
         )}

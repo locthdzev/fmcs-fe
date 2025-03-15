@@ -9,6 +9,11 @@ import {
   Tag,
   Button,
   Popconfirm,
+  Card,
+  Typography,
+  Badge,
+  Tooltip,
+  Divider
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -19,7 +24,19 @@ import {
   sendHealthInsuranceUpdateRequest,
   softDeleteHealthInsurances,
 } from "@/api/healthinsurance";
-import { SearchOutlined, SendOutlined, DeleteOutlined } from "@ant-design/icons";
+import {
+  SearchOutlined,
+  SendOutlined,
+  DeleteOutlined,
+  UserOutlined,
+  ClockCircleOutlined,
+  CalendarOutlined,
+  ExclamationCircleOutlined,
+  CheckCircleOutlined,
+  SyncOutlined
+} from "@ant-design/icons";
+
+const { Title, Text } = Typography;
 
 const formatDate = (date: string | undefined) => {
   if (!date) return "";
@@ -29,6 +46,52 @@ const formatDate = (date: string | undefined) => {
 const formatDateTime = (datetime: string | undefined) => {
   if (!datetime) return "";
   return moment(datetime).format("DD/MM/YYYY HH:mm:ss");
+};
+
+const getStatusColor = (status: string | undefined) => {
+  if (!status) return "default";
+  switch (status) {
+    case "Pending":
+      return "warning";
+    case "Completed":
+      return "success";
+    case "Expired":
+      return "error";
+    default:
+      return "default";
+  }
+};
+
+const getDeadlineStatus = (deadline: string | undefined) => {
+  if (!deadline) return {
+    color: 'default',
+    icon: <ClockCircleOutlined />,
+    text: 'No deadline'
+  };
+  
+  const now = moment();
+  const deadlineDate = moment(deadline);
+  const daysUntil = deadlineDate.diff(now, 'days');
+
+  if (deadlineDate.isBefore(now)) {
+    return {
+      color: 'red',
+      icon: <ExclamationCircleOutlined />,
+      text: 'Expired'
+    };
+  } else if (daysUntil <= 3) {
+    return {
+      color: 'orange',
+      icon: <ClockCircleOutlined />,
+      text: `${daysUntil} days left`
+    };
+  } else {
+    return {
+      color: 'green',
+      icon: <CheckCircleOutlined />,
+      text: `${daysUntil} days left`
+    };
+  }
 };
 
 export function InitialInsuranceList() {
@@ -107,61 +170,119 @@ export function InitialInsuranceList() {
 
   const columns = [
     {
-      title: "Policyholder",
+      title: (
+        <div className="flex items-center">
+          <UserOutlined className="mr-2" />
+          Policyholder
+        </div>
+      ),
       render: (record: HealthInsuranceResponseDTO) => (
-        <div>
-          <div>{record.user.fullName}</div>
-          <div className="text-gray-500">{record.user.email}</div>
+        <div className="flex items-start space-x-3">
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+            <UserOutlined className="text-blue-500" />
+          </div>
+          <div>
+            <Text strong className="block">{record.user.fullName}</Text>
+            <Text type="secondary" className="text-sm">{record.user.email}</Text>
+          </div>
         </div>
       ),
     },
     {
-      title: "Status",
+      title: (
+        <div className="flex items-center">
+          <SyncOutlined className="mr-2" />
+          Status
+        </div>
+      ),
+      width: 150,
       render: (record: HealthInsuranceResponseDTO) => (
-        <Tag color={record.status === "Pending" ? "gold" : "green"}>
-          {record.status}
-        </Tag>
+        <Badge
+          status={getStatusColor(record.status)}
+          text={
+            <Text style={{ color: record.status === 'Pending' ? '#faad14' : record.status === 'Completed' ? '#52c41a' : '#ff4d4f' }}>
+              {record.status}
+            </Text>
+          }
+        />
       ),
     },
     {
-      title: "Created At",
-      render: (record: HealthInsuranceResponseDTO) => formatDateTime(record.createdAt),
+      title: (
+        <div className="flex items-center">
+          <CalendarOutlined className="mr-2" />
+          Created Date
+        </div>
+      ),
+      width: 200,
+      render: (record: HealthInsuranceResponseDTO) => (
+        <div className="flex flex-col">
+          <Text strong>{moment(record.createdAt).format('DD/MM/YYYY')}</Text>
+          <Text type="secondary" className="text-sm">{moment(record.createdAt).format('HH:mm:ss')}</Text>
+        </div>
+      ),
     },
     {
-      title: "Created By",
+      title: (
+        <div className="flex items-center">
+          <UserOutlined className="mr-2" />
+          Created By
+        </div>
+      ),
+      width: 200,
       render: (record: HealthInsuranceResponseDTO) =>
         record.createdBy ? (
-          <div>
-            <div>{record.createdBy.userName}</div>
-            <div className="text-gray-500">{record.createdBy.email}</div>
+          <div className="flex items-start space-x-3">
+            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+              <UserOutlined className="text-green-500" />
+            </div>
+            <div>
+              <Text strong className="block">{record.createdBy.userName}</Text>
+              <Text type="secondary" className="text-sm">{record.createdBy.email}</Text>
+            </div>
           </div>
         ) : (
-          "System"
+          <Tag color="default">System</Tag>
         ),
     },
     {
-      title: "Deadline",
-      render: (record: HealthInsuranceResponseDTO) => (
-        <Tag color={moment(record.deadline).isBefore(moment()) ? "red" : "blue"}>
-          {formatDateTime(record.deadline)}
-        </Tag>
+      title: (
+        <div className="flex items-center">
+          <ClockCircleOutlined className="mr-2" />
+          Deadline
+        </div>
       ),
+      width: 150,
+      render: (record: HealthInsuranceResponseDTO) => {
+        const status = getDeadlineStatus(record.deadline);
+        return (
+          <Tooltip title={formatDateTime(record.deadline)}>
+            <div className="flex items-center space-x-2">
+              {status.icon}
+              <Text style={{ color: status.color }}>{status.text}</Text>
+            </div>
+          </Tooltip>
+        );
+      },
     },
     {
       title: "Actions",
+      width: 120,
       render: (record: HealthInsuranceResponseDTO) => (
         <Space>
           <Popconfirm
-            title="Soft Delete Insurance"
-            description="Are you sure you want to soft delete this insurance?"
+            title="Delete Insurance"
+            description="Are you sure you want to delete this insurance?"
             onConfirm={() => handleSoftDelete(record.id)}
             okText="Yes"
             cancelText="No"
+            icon={<ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />}
           >
             <Button
               type="text"
               danger
               icon={<DeleteOutlined />}
+              className="hover:bg-red-50"
             >
               Delete
             </Button>
@@ -172,67 +293,79 @@ export function InitialInsuranceList() {
   ];
 
   const topContent = (
-    <Row gutter={[16, 16]} align="middle" justify="space-between">
-      <Col>
-        <Space>
-          <Input
-            placeholder="Search by name or email"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            prefix={<SearchOutlined />}
-          />
-          <Popconfirm
-            title="Send Update Request"
-            description="Are you sure you want to send update requests to all pending users?"
-            onConfirm={handleSendUpdateRequest}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button
-              type="primary"
-              icon={<SendOutlined />}
-              loading={isSendingRequest}
-            >
-              Send All Requests
-            </Button>
-          </Popconfirm>
-        </Space>
-      </Col>
-      <Col>
-        <span style={{ color: "rgba(0, 0, 0, 0.45)" }}>
-          Total {total} initial insurances
-        </span>
-      </Col>
-    </Row>
+    <Card className="mb-4">
+      <div className="flex flex-col space-y-4">
+        <div className="flex items-center justify-between">
+          <Title level={5} className="mb-0">Initial Insurance List</Title>
+          <Text type="secondary">Total: {total}</Text>
+        </div>
+        <Divider className="my-3" />
+        <Row gutter={[16, 16]} align="middle" justify="space-between">
+          <Col>
+            <Space size="middle">
+              <Input.Search
+                placeholder="Search by name or email"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: 300 }}
+                className="search-input"
+              />
+              <Popconfirm
+                title="Send Update Request"
+                description="Are you sure you want to send update requests to all pending users?"
+                onConfirm={handleSendUpdateRequest}
+                okText="Yes"
+                cancelText="No"
+                icon={<ExclamationCircleOutlined style={{ color: '#1890ff' }} />}
+              >
+                <Button
+                  type="primary"
+                  icon={<SendOutlined />}
+                  loading={isSendingRequest}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Send All Requests
+                </Button>
+              </Popconfirm>
+            </Space>
+          </Col>
+        </Row>
+      </div>
+    </Card>
   );
 
   const bottomContent = (
-    <Row justify="end" style={{ marginTop: 16 }}>
-      <Pagination
-        current={currentPage}
-        pageSize={pageSize}
-        total={total}
-        onChange={(page, size) => {
-          setCurrentPage(page);
-          setPageSize(size);
-        }}
-        showSizeChanger
-        showTotal={(total) => `Total ${total} items`}
-      />
-    </Row>
+    <Card className="mt-4">
+      <Row justify="end">
+        <Pagination
+          current={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onChange={(page, size) => {
+            setCurrentPage(page);
+            setPageSize(size);
+          }}
+          showSizeChanger
+          showTotal={(total) => `Total ${total} records`}
+          className="pagination-custom"
+        />
+      </Row>
+    </Card>
   );
 
   return (
-    <div>
+    <div className="space-y-4">
       {topContent}
-      <Table
-        columns={columns}
-        dataSource={insurances}
-        loading={loading}
-        pagination={false}
-        rowKey="id"
-        style={{ marginTop: 16 }}
-      />
+      <Card bodyStyle={{ padding: 0 }}>
+        <Table
+          columns={columns}
+          dataSource={insurances}
+          loading={loading}
+          pagination={false}
+          rowKey="id"
+          className="custom-table"
+        />
+      </Card>
       {bottomContent}
     </div>
   );
