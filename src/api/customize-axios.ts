@@ -59,7 +59,7 @@ export const setupSignalRConnection = (
   }
 
   const connection = new HubConnectionBuilder()
-    .withUrl(`http://localhost:5104${endpoint}`, {
+    .withUrl(`https://api.truongvu.id.vn${endpoint}`, {
       accessTokenFactory: () => token,
     })
     .withAutomaticReconnect([0, 2000, 5000, 10000])

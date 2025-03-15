@@ -10,6 +10,10 @@ import {
   Button,
   Popconfirm,
   Tooltip,
+  Card,
+  Typography,
+  Badge,
+  Divider,
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -19,7 +23,19 @@ import {
   setupHealthInsuranceRealTime,
   restoreHealthInsurance,
 } from "@/api/healthinsurance";
-import { SearchOutlined, UndoOutlined, DeleteOutlined } from "@ant-design/icons";
+import {
+  SearchOutlined,
+  UndoOutlined,
+  DeleteOutlined,
+  UserOutlined,
+  CalendarOutlined,
+  ClockCircleOutlined,
+  ExclamationCircleOutlined,
+  MailOutlined,
+  IdcardOutlined,
+} from "@ant-design/icons";
+
+const { Title, Text } = Typography;
 
 const formatDate = (date: string | undefined) => {
   if (!date) return "";
@@ -89,57 +105,114 @@ export function SoftDeletedList() {
 
   const columns = [
     {
-      title: "Policyholder",
+      title: (
+        <div className="flex items-center">
+          <UserOutlined className="mr-2" />
+          Policyholder
+        </div>
+      ),
       render: (record: HealthInsuranceResponseDTO) => (
-        <div>
-          <div>{record.user.fullName}</div>
-          <div className="text-gray-500">{record.user.email}</div>
+        <div className="flex items-start space-x-3">
+          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+            <UserOutlined className="text-gray-500" />
+          </div>
+          <div>
+            <Text strong className="block">{record.user.fullName}</Text>
+            <Text type="secondary" className="text-sm">{record.user.email}</Text>
+          </div>
         </div>
       ),
     },
     {
-      title: "Insurance Number",
+      title: (
+        <div className="flex items-center">
+          <IdcardOutlined className="mr-2" />
+          Insurance Number
+        </div>
+      ),
       dataIndex: "healthInsuranceNumber",
-    },
-    {
-      title: "Valid Period",
-      render: (record: HealthInsuranceResponseDTO) => (
-        <Space direction="vertical" size={0}>
-          <div>From: {formatDate(record.validFrom)}</div>
-          <div>To: {formatDate(record.validTo)}</div>
-        </Space>
+      render: (text: string) => (
+        <Text strong className="text-gray-600">{text}</Text>
       ),
     },
     {
-      title: "Status",
+      title: (
+        <div className="flex items-center">
+          <CalendarOutlined className="mr-2" />
+          Valid Period
+        </div>
+      ),
       render: (record: HealthInsuranceResponseDTO) => (
-        <Tag icon={<DeleteOutlined />} color="default">
+        <div className="space-y-1">
+          <div className="flex items-center">
+            <Badge status="default" />
+            <Text className="ml-2">From: {formatDate(record.validFrom)}</Text>
+          </div>
+          <div className="flex items-center">
+            <Badge status="default" />
+            <Text className="ml-2">To: {formatDate(record.validTo)}</Text>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: (
+        <div className="flex items-center">
+          <DeleteOutlined className="mr-2" />
+          Status
+        </div>
+      ),
+      render: (record: HealthInsuranceResponseDTO) => (
+        <Tag icon={<DeleteOutlined />} color="default" className="px-3 py-1">
           Soft Deleted
         </Tag>
       ),
     },
     {
-      title: "Deleted At",
+      title: (
+        <div className="flex items-center">
+          <ClockCircleOutlined className="mr-2" />
+          Deleted At
+        </div>
+      ),
       render: (record: HealthInsuranceResponseDTO) => (
         <Tooltip title={moment(record.updatedAt).fromNow()}>
-          <span>{formatDateTime(record.updatedAt)}</span>
+          <div className="flex items-center space-x-2">
+            <ClockCircleOutlined className="text-gray-500" />
+            <Text>{formatDateTime(record.updatedAt)}</Text>
+          </div>
         </Tooltip>
       ),
     },
     {
-      title: "Deleted By",
+      title: (
+        <div className="flex items-center">
+          <MailOutlined className="mr-2" />
+          Deleted By
+        </div>
+      ),
       render: (record: HealthInsuranceResponseDTO) =>
         record.updatedBy ? (
-          <div>
-            <div>{record.updatedBy.userName}</div>
-            <div className="text-gray-500">{record.updatedBy.email}</div>
+          <div className="flex items-start space-x-3">
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+              <UserOutlined className="text-gray-500" />
+            </div>
+            <div>
+              <Text strong className="block">{record.updatedBy.userName}</Text>
+              <Text type="secondary" className="text-sm">{record.updatedBy.email}</Text>
+            </div>
           </div>
         ) : (
-          "System"
+          <Text type="secondary">System</Text>
         ),
     },
     {
-      title: "Actions",
+      title: (
+        <div className="flex items-center">
+          <UndoOutlined className="mr-2" />
+          Actions
+        </div>
+      ),
       render: (record: HealthInsuranceResponseDTO) => (
         <Popconfirm
           title="Restore Insurance"
@@ -147,11 +220,13 @@ export function SoftDeletedList() {
           onConfirm={() => handleRestore(record.id)}
           okText="Yes"
           cancelText="No"
+          icon={<ExclamationCircleOutlined style={{ color: '#52c41a' }} />}
         >
           <Button
             type="primary"
             icon={<UndoOutlined />}
             loading={restoringId === record.id}
+            className="bg-green-500 hover:bg-green-600"
           >
             Restore
           </Button>
@@ -161,52 +236,62 @@ export function SoftDeletedList() {
   ];
 
   const topContent = (
-    <Row gutter={[16, 16]} align="middle" justify="space-between">
-      <Col>
-        <Space>
-          <Input
-            placeholder="Search by insurance number"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            prefix={<SearchOutlined />}
-          />
-        </Space>
-      </Col>
-      <Col>
-        <span style={{ color: "rgba(0, 0, 0, 0.45)" }}>
-          Total {total} soft-deleted insurances
-        </span>
-      </Col>
-    </Row>
+    <Card className="mb-4">
+      <div className="flex flex-col space-y-4">
+        <div className="flex items-center justify-between">
+          <Title level={5} className="mb-0">Soft Deleted Insurance List</Title>
+          <Text type="secondary">Total: {total}</Text>
+        </div>
+        <Divider className="my-3" />
+        <Row gutter={[16, 16]} align="middle" justify="space-between">
+          <Col>
+            <Space size="middle">
+              <Input.Search
+                placeholder="Search by insurance number"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: 300 }}
+                className="search-input"
+              />
+            </Space>
+          </Col>
+        </Row>
+      </div>
+    </Card>
   );
 
   const bottomContent = (
-    <Row justify="end" style={{ marginTop: 16 }}>
-      <Pagination
-        current={currentPage}
-        pageSize={pageSize}
-        total={total}
-        onChange={(page, size) => {
-          setCurrentPage(page);
-          setPageSize(size);
-        }}
-        showSizeChanger
-        showTotal={(total) => `Total ${total} items`}
-      />
-    </Row>
+    <Card className="mt-4">
+      <Row justify="end">
+        <Pagination
+          current={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onChange={(page, size) => {
+            setCurrentPage(page);
+            setPageSize(size);
+          }}
+          showSizeChanger
+          showTotal={(total) => `Total ${total} records`}
+          className="pagination-custom"
+        />
+      </Row>
+    </Card>
   );
 
   return (
-    <div>
+    <div className="space-y-4">
       {topContent}
-      <Table
-        columns={columns}
-        dataSource={insurances}
-        loading={loading}
-        pagination={false}
-        rowKey="id"
-        style={{ marginTop: 16 }}
-      />
+      <Card bodyStyle={{ padding: 0 }}>
+        <Table
+          columns={columns}
+          dataSource={insurances}
+          loading={loading}
+          pagination={false}
+          rowKey="id"
+          className="custom-table"
+        />
+      </Card>
       {bottomContent}
     </div>
   );
