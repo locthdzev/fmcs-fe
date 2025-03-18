@@ -182,9 +182,50 @@ export const data = [
         ],
       },
       {
+        title: "Health Check Results",
+        icon: <PeriodicHealthCheckupsIcon />,
+        submenu: [
+          {
+            title: "Management",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/management",
+          },
+          {
+            title: "Waiting for Approval",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/pending",
+          },
+          {
+            title: "Follow-up Required",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/follow-up",
+          },
+          {
+            title: "No Follow-up Required",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/no-follow-up",
+          },
+          {
+            title: "Cancelled for Adjustment",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/adjustment",
+          },
+          {
+            title: "Soft Deleted",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/soft-deleted",
+          },
+          {
+            title: "History",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/history",
+          },
+        ],
+      },
+      {
         title: "PeriodicHealthCheckups",
         icon: <PeriodicHealthCheckupsIcon />,
-        link: "/admin/credits",
+        link: "/periodic-health-checkup/management",
       },
     ],
   },
