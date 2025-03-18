@@ -24,6 +24,7 @@ import { InventoryHistoryIcon } from "./icons/InventoryHistoryIcon";
 import { InventoriesIcon } from "./icons/InventoriesIcon";
 import { NotificationIcon } from "./icons/NotificationIcon";
 import { AppointmentIcon } from "./icons/AppointmentIcon";
+import { HealthIcon } from "./icons/HealthIcon";
 
 export const data = [
   {
@@ -31,6 +32,7 @@ export const data = [
     items: [
       { title: "Home", icon: <HomeIcon />, link: "/home" },
       { title: "Status", icon: <StatusIcon />, link: "/admin/status" },
+      { title: "My Insurance", icon: <HealthIcon />, link: "/health-insurance/my-insurance" },
     ],
   },
   {
@@ -147,16 +149,102 @@ export const data = [
           },
         ],
       },
-      { title: "Notifications", icon: <NotificationIcon />, link: "/notification/management" },
       {
-        title: "HealthInsurance",
+        title: "Notifications",
+        icon: <NotificationIcon />,
+        link: "/notification/management",
+      },
+      {
+        title: "HealthInsurances",
         icon: <HealthInsuranceIcon />,
-        link: "/health-insurance/management",
+        submenu: [
+          {
+            title: "List",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/management",
+          },
+          {
+            title: "Initial",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/initial",
+          },
+          {
+            title: "Expired Update",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/expired-update",
+          },
+          {
+            title: "Soft Deleted",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/soft-deleted",
+          },
+          {
+            title: "Verification",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/verification",
+          },
+          {
+            title: "No Insurance",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/no-insurance",
+          },
+          {
+            title: "Update Requests",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/update-requests",
+          },
+          {
+            title: "History",
+            icon: <HealthInsuranceIcon />,
+            link: "/health-insurance/history",
+          },
+        ],
+      },
+      {
+        title: "Health Check Results",
+        icon: <PeriodicHealthCheckupsIcon />,
+        submenu: [
+          {
+            title: "Management",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/management",
+          },
+          {
+            title: "Waiting for Approval",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/pending",
+          },
+          {
+            title: "Follow-up Required",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/follow-up",
+          },
+          {
+            title: "No Follow-up Required",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/no-follow-up",
+          },
+          {
+            title: "Cancelled for Adjustment",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/adjustment",
+          },
+          {
+            title: "Soft Deleted",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/soft-deleted",
+          },
+          {
+            title: "History",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/history",
+          },
+        ],
       },
       {
         title: "PeriodicHealthCheckups",
         icon: <PeriodicHealthCheckupsIcon />,
-        link: "/admin/credits",
+        link: "/periodic-health-checkup/management",
       },
     ],
   },
