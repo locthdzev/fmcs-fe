@@ -192,9 +192,9 @@ export function HealthInsuranceDetails() {
                   <Col span={24}>
                     <div className="flex items-center mb-2">
                       <UserOutlined className="text-blue-500 mr-2" />
-                      <Text strong>{insurance.user.fullName}</Text>
+                      <Text strong>{insurance.user?.fullName || 'N/A'}</Text>
                     </div>
-                    <Text type="secondary" className="ml-6">{insurance.user.email}</Text>
+                    <Text type="secondary" className="ml-6">{insurance.user?.email || 'N/A'}</Text>
                   </Col>
                 </Row>
               </div>
