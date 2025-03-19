@@ -109,10 +109,8 @@ export const getAllHealthInsurances = async (
 };
 
 export const getHealthInsuranceById = async (id: string) => {
-  const response = await api.get(
-    `/health-insurance-management/insurances/${id}`
-  );
-  return response.data.data;
+  const response = await api.get(`/health-insurance-management/insurances/${id}`);
+  return response.data;
 };
 
 export const createHealthInsuranceManual = async (
@@ -266,7 +264,7 @@ export const getHealthInsuranceHistory = async (id: string) => {
   const response = await api.get(
     `/health-insurance-management/insurances/${id}/history`
   );
-  return response.data.data;
+  return response.data;
 };
 
 export const getAllHealthInsuranceHistories = async (
@@ -333,4 +331,11 @@ export const setupHealthInsuranceRealTime = (
   callback: (data: HealthInsuranceResponseDTO) => void
 ) => {
   return setupSignalRConnection("/healthInsuranceHub", callback);
+};
+
+export const getCurrentUserHealthInsurance = async () => {
+  const response = await api.get(
+    "/health-insurance-management/insurances/current"
+  );
+  return response.data;
 };

@@ -1,6 +1,6 @@
 import React from "react";
 import { UpdateRequestList } from "@/components/health-insurance/UpdateRequestList";
 
-export default function HealthInsuranceManagementPage() {
+export default function UpdateRequestsPage() {
   return <UpdateRequestList />;
 }

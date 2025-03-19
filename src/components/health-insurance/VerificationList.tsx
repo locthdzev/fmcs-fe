@@ -11,20 +11,19 @@ import {
   Modal,
   Image,
   Descriptions,
-  Form,
+  Tag,
   Card,
   Typography,
   Badge,
   Divider,
-  Tag,
   Tooltip,
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
 import {
-  getUpdateRequests,
-  UpdateRequestDTO,
-  reviewUpdateRequest,
+  getAllHealthInsurances,
+  HealthInsuranceResponseDTO,
+  verifyHealthInsurance,
   setupHealthInsuranceRealTime,
 } from "@/api/healthinsurance";
 import {
@@ -39,80 +38,68 @@ import {
   HomeOutlined,
   MedicineBoxOutlined,
   GlobalOutlined,
-  ClockCircleOutlined,
-  MailOutlined,
-  FilterOutlined,
 } from "@ant-design/icons";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
-const { TextArea } = Input;
 
 const formatDate = (date: string | undefined) => {
   if (!date) return "";
   return moment(date).format("DD/MM/YYYY");
 };
 
-const formatDateTime = (date: string | undefined) => {
-  if (!date) return "";
-  return moment(date).format("DD/MM/YYYY HH:mm:ss");
-};
-
-export function UpdateRequestList() {
-  const [requests, setRequests] = useState<UpdateRequestDTO[]>([]);
+export function VerificationList() {
+  const [insurances, setInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>();
-  const [selectedRequest, setSelectedRequest] = useState<UpdateRequestDTO | null>(null);
+  const [selectedInsurance, setSelectedInsurance] = useState<HealthInsuranceResponseDTO | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
 
-  const fetchRequests = useCallback(async () => {
+  const fetchInsurances = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getUpdateRequests(
+      const result = await getAllHealthInsurances(
         currentPage,
         pageSize,
         searchText,
-        "RequestedAt",
+        "CreatedAt",
         false,
-        statusFilter
+        "Submitted"
       );
-      setRequests(result.data);
+      setInsurances(result.data);
       setTotal(result.totalRecords);
     } catch (error) {
-      toast.error("Unable to load update requests.");
+      toast.error("Unable to load health insurances.");
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, searchText, statusFilter]);
+  }, [currentPage, pageSize, searchText]);
 
   useEffect(() => {
-    fetchRequests();
+    fetchInsurances();
     const connection = setupHealthInsuranceRealTime(() => {
-      fetchRequests();
+      fetchInsurances();
     });
     return () => {
       connection.stop();
     };
-  }, [fetchRequests]);
+  }, [fetchInsurances]);
 
-  const handleReview = async (requestId: string, isApproved: boolean) => {
+  const handleVerify = async (id: string, status: string) => {
     try {
-      const response = await reviewUpdateRequest(requestId, isApproved, isApproved ? undefined : rejectionReason);
+      const response = await verifyHealthInsurance(id, status);
       if (response.isSuccess) {
-        toast.success(isApproved ? "Request approved!" : "Request rejected!");
-        fetchRequests();
+        toast.success(`Insurance ${status.toLowerCase()}!`);
+        fetchInsurances();
         setIsModalVisible(false);
-        setRejectionReason("");
       } else {
         toast.error(response.message);
       }
     } catch (error) {
-      toast.error("Unable to review request.");
+      toast.error("Unable to verify insurance.");
     }
   };
 
@@ -121,20 +108,17 @@ export function UpdateRequestList() {
       title: (
         <div className="flex items-center">
           <UserOutlined className="mr-2" />
-          Requested By
+          Policyholder
         </div>
       ),
-      render: (record: UpdateRequestDTO) => (
+      render: (record: HealthInsuranceResponseDTO) => (
         <div className="flex items-start space-x-3">
           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
             <UserOutlined className="text-blue-500" />
           </div>
           <div>
-            <Text strong className="block">{record.requestedBy.userName}</Text>
-            <div className="flex items-center space-x-2">
-              <MailOutlined className="text-gray-400" />
-              <Text type="secondary" className="text-sm">{record.requestedBy.email}</Text>
-            </div>
+            <Text strong className="block">{record.user.fullName}</Text>
+            <Text type="secondary" className="text-sm">{record.user.email}</Text>
           </div>
         </div>
       ),
@@ -166,40 +150,22 @@ export function UpdateRequestList() {
     {
       title: (
         <div className="flex items-center">
-          <ClockCircleOutlined className="mr-2" />
-          Requested At
+          <CalendarOutlined className="mr-2" />
+          Valid Period
         </div>
       ),
-      render: (record: UpdateRequestDTO) => (
-        <Tooltip title={moment(record.requestedAt).fromNow()}>
-          <div className="flex items-center space-x-2">
-            <ClockCircleOutlined className="text-gray-400" />
-            <Text>{formatDateTime(record.requestedAt)}</Text>
+      render: (record: HealthInsuranceResponseDTO) => (
+        <div className="space-y-1">
+          <div className="flex items-center">
+            <Badge status="processing" />
+            <Text className="ml-2">From: {formatDate(record.validFrom)}</Text>
           </div>
-        </Tooltip>
-      ),
-    },
-    {
-      title: (
-        <div className="flex items-center">
-          <ExclamationCircleOutlined className="mr-2" />
-          Status
+          <div className="flex items-center">
+            <Badge status="warning" />
+            <Text className="ml-2">To: {formatDate(record.validTo)}</Text>
+          </div>
         </div>
       ),
-      dataIndex: "status",
-      render: (status: string) => {
-        const statusConfig = {
-          Pending: { color: 'warning', icon: <ClockCircleOutlined /> },
-          Approved: { color: 'success', icon: <CheckCircleOutlined /> },
-          Rejected: { color: 'error', icon: <CloseCircleOutlined /> },
-        };
-        const config = statusConfig[status as keyof typeof statusConfig];
-        return (
-          <Tag icon={config.icon} color={config.color} className="px-3 py-1">
-            {status}
-          </Tag>
-        );
-      },
     },
     {
       title: (
@@ -208,18 +174,17 @@ export function UpdateRequestList() {
           Actions
         </div>
       ),
-      render: (record: UpdateRequestDTO) => (
+      render: (record: HealthInsuranceResponseDTO) => (
         <Button
           type="primary"
           icon={<CheckCircleOutlined />}
           onClick={() => {
-            setSelectedRequest(record);
+            setSelectedInsurance(record);
             setIsModalVisible(true);
           }}
           className="bg-blue-500 hover:bg-blue-600"
-          disabled={record.status !== "Pending"}
         >
-          Review
+          Verify
         </Button>
       ),
     },
@@ -229,11 +194,8 @@ export function UpdateRequestList() {
     <Card className="mb-4">
       <div className="flex flex-col space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <FileImageOutlined className="text-blue-500 text-xl" />
-            <Title level={5} className="mb-0">Insurance Update Requests</Title>
-          </div>
-          <Badge count={total} showZero className="site-badge-count-4" />
+          <Title level={5} className="mb-0">Insurance Verification List</Title>
+          <Text type="secondary">Total: {total} pending</Text>
         </div>
         <Divider className="my-3" />
         <Row gutter={[16, 16]} align="middle" justify="space-between">
@@ -246,24 +208,6 @@ export function UpdateRequestList() {
                 style={{ width: 300 }}
                 className="search-input"
               />
-              <Select
-                placeholder="Filter by status"
-                value={statusFilter}
-                onChange={setStatusFilter}
-                allowClear
-                style={{ width: 150 }}
-                suffixIcon={<FilterOutlined />}
-              >
-                <Option value="Pending">
-                  <ClockCircleOutlined className="mr-2" />Pending
-                </Option>
-                <Option value="Approved">
-                  <CheckCircleOutlined className="mr-2" />Approved
-                </Option>
-                <Option value="Rejected">
-                  <CloseCircleOutlined className="mr-2" />Rejected
-                </Option>
-              </Select>
             </Space>
           </Col>
         </Row>
@@ -296,7 +240,7 @@ export function UpdateRequestList() {
       <Card bodyStyle={{ padding: 0 }}>
         <Table
           columns={columns}
-          dataSource={requests}
+          dataSource={insurances}
           loading={loading}
           pagination={false}
           rowKey="id"
@@ -309,44 +253,40 @@ export function UpdateRequestList() {
         title={
           <div className="flex items-center space-x-2">
             <FileImageOutlined className="text-blue-500" />
-            <Text strong>Review Insurance Update Request</Text>
+            <Text strong>Insurance Verification Details</Text>
           </div>
         }
         open={isModalVisible}
-        onCancel={() => {
-          setIsModalVisible(false);
-          setRejectionReason("");
-        }}
+        onCancel={() => setIsModalVisible(false)}
         footer={[
-          <Button
-            key="reject"
-            danger
+          <Button 
+            key="reject" 
+            danger 
             icon={<CloseCircleOutlined />}
-            onClick={() => handleReview(selectedRequest?.id || "", false)}
-            disabled={!rejectionReason}
+            onClick={() => handleVerify(selectedInsurance?.id || "", "Rejected")}
           >
             Reject
           </Button>,
-          <Button
-            key="approve"
-            type="primary"
+          <Button 
+            key="verify" 
+            type="primary" 
             icon={<CheckCircleOutlined />}
-            onClick={() => handleReview(selectedRequest?.id || "", true)}
+            onClick={() => handleVerify(selectedInsurance?.id || "", "Verified")}
             className="bg-green-500 hover:bg-green-600"
           >
-            Approve
+            Verify
           </Button>,
         ]}
         width={800}
-        className="review-modal"
+        className="verification-modal"
       >
-        {selectedRequest && (
+        {selectedInsurance && (
           <div className="space-y-6">
             <Card className="shadow-sm">
               <Descriptions title={
                 <div className="flex items-center space-x-2 mb-4">
                   <IdcardOutlined className="text-blue-500" />
-                  <Text strong>Request Information</Text>
+                  <Text strong>Insurance Information</Text>
                 </div>
               } bordered column={2}>
                 <Descriptions.Item 
@@ -357,7 +297,7 @@ export function UpdateRequestList() {
                     </div>
                   }
                 >
-                  <Text strong>{selectedRequest.healthInsuranceNumber}</Text>
+                  <Text strong>{selectedInsurance.healthInsuranceNumber}</Text>
                 </Descriptions.Item>
                 <Descriptions.Item 
                   label={
@@ -367,7 +307,7 @@ export function UpdateRequestList() {
                     </div>
                   }
                 >
-                  <Text strong>{selectedRequest.fullName}</Text>
+                  <Text strong>{selectedInsurance.fullName}</Text>
                 </Descriptions.Item>
                 <Descriptions.Item 
                   label={
@@ -377,7 +317,7 @@ export function UpdateRequestList() {
                     </div>
                   }
                 >
-                  {formatDate(selectedRequest.dateOfBirth)}
+                  {formatDate(selectedInsurance.dateOfBirth)}
                 </Descriptions.Item>
                 <Descriptions.Item 
                   label={
@@ -387,7 +327,7 @@ export function UpdateRequestList() {
                     </div>
                   }
                 >
-                  {selectedRequest.gender}
+                  {selectedInsurance.gender}
                 </Descriptions.Item>
                 <Descriptions.Item 
                   label={
@@ -398,7 +338,7 @@ export function UpdateRequestList() {
                   }
                   span={2}
                 >
-                  {selectedRequest.address}
+                  {selectedInsurance.address}
                 </Descriptions.Item>
                 <Descriptions.Item 
                   label={
@@ -410,8 +350,8 @@ export function UpdateRequestList() {
                   span={2}
                 >
                   <Space>
-                    <Text strong>{selectedRequest.healthcareProviderName}</Text>
-                    <Tag color="blue">{selectedRequest.healthcareProviderCode}</Tag>
+                    <Text strong>{selectedInsurance.healthcareProviderName}</Text>
+                    <Tag color="blue">{selectedInsurance.healthcareProviderCode}</Tag>
                   </Space>
                 </Descriptions.Item>
                 <Descriptions.Item 
@@ -424,8 +364,8 @@ export function UpdateRequestList() {
                   span={2}
                 >
                   <Space>
-                    <Badge status="processing" text={`From: ${formatDate(selectedRequest.validFrom)}`} />
-                    <Badge status="warning" text={`To: ${formatDate(selectedRequest.validTo)}`} />
+                    <Badge status="processing" text={`From: ${formatDate(selectedInsurance.validFrom)}`} />
+                    <Badge status="warning" text={`To: ${formatDate(selectedInsurance.validTo)}`} />
                   </Space>
                 </Descriptions.Item>
                 <Descriptions.Item 
@@ -436,24 +376,12 @@ export function UpdateRequestList() {
                     </div>
                   }
                 >
-                  {formatDate(selectedRequest.issueDate)}
-                </Descriptions.Item>
-                <Descriptions.Item 
-                  label={
-                    <div className="flex items-center space-x-2">
-                      <ExclamationCircleOutlined />
-                      <span>Has Insurance</span>
-                    </div>
-                  }
-                >
-                  <Tag color={selectedRequest.hasInsurance ? "success" : "error"}>
-                    {selectedRequest.hasInsurance ? "Yes" : "No"}
-                  </Tag>
+                  {formatDate(selectedInsurance.issueDate)}
                 </Descriptions.Item>
               </Descriptions>
             </Card>
 
-            {selectedRequest.imageUrl && (
+            {selectedInsurance.imageUrl && (
               <Card 
                 title={
                   <div className="flex items-center space-x-2">
@@ -464,41 +392,16 @@ export function UpdateRequestList() {
                 className="shadow-sm"
               >
                 <Image
-                  src={selectedRequest.imageUrl}
+                  src={selectedInsurance.imageUrl}
                   alt="Insurance"
                   style={{ maxWidth: "100%" }}
                   className="rounded-lg"
                 />
               </Card>
             )}
-
-            <Card 
-              title={
-                <div className="flex items-center space-x-2">
-                  <CloseCircleOutlined className="text-red-500" />
-                  <Text strong>Rejection Reason</Text>
-                </div>
-              }
-              className="shadow-sm"
-            >
-              <Form layout="vertical">
-                <Form.Item
-                  required={true}
-                  rules={[{ required: true, message: "Please provide a rejection reason" }]}
-                >
-                  <TextArea
-                    rows={4}
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
-                    placeholder="Enter reason for rejection..."
-                    className="rejection-reason"
-                  />
-                </Form.Item>
-              </Form>
-            </Card>
           </div>
         )}
       </Modal>
     </div>
   );
-}
+} 

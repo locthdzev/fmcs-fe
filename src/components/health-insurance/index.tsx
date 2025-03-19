@@ -13,6 +13,11 @@ import {
   Space,
   Row,
   Col,
+  Card,
+  Typography,
+  Badge,
+  Tag,
+  Tooltip,
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -28,11 +33,23 @@ import {
   getHealthInsuranceConfig,
 } from "@/api/healthinsurance";
 import CreateModal from "./CreateModal";
-import DetailModal from "./DetailModal";
 import EditModal from "./EditModal";
 import ConfigModal from "./ConfigModal";
-import { DownOutlined, SearchOutlined, SettingOutlined } from "@ant-design/icons";
+import { 
+  DownOutlined, 
+  SearchOutlined, 
+  SettingOutlined,
+  PlusOutlined,
+  ExportOutlined,
+  EyeOutlined,
+  EditOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  DeleteOutlined,
+  FilterOutlined,
+} from "@ant-design/icons";
 import { getUsers, UserProfile } from "@/api/user";
+import { useRouter } from 'next/router';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -58,11 +75,39 @@ const DEFAULT_VISIBLE_COLUMNS = [
   "actions",
 ];
 
+const getStatusColor = (status: string | undefined) => {
+  switch (status) {
+    case 'Completed':
+      return 'success';
+    case 'Pending':
+      return 'processing';
+    case 'Expired':
+      return 'error';
+    case 'SoftDeleted':
+      return 'default';
+    default:
+      return 'default';
+  }
+};
+
+const getVerificationStatusColor = (status: string | undefined) => {
+  switch (status) {
+    case 'Verified':
+      return 'success';
+    case 'Rejected':
+      return 'error';
+    case 'Pending':
+      return 'warning';
+    default:
+      return 'default';
+  }
+};
+
 export function HealthInsuranceManagement() {
+  const router = useRouter();
   const [insurances, setInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
-  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [selectedInsurance, setSelectedInsurance] = useState<HealthInsuranceResponseDTO | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,7 +121,6 @@ export function HealthInsuranceManagement() {
   const [ascending, setAscending] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(DEFAULT_VISIBLE_COLUMNS);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [dropdownVisible, setDropdownVisible] = useState(false);
   const [isConfigModalVisible, setIsConfigModalVisible] = useState(false);
 
   const fetchUsers = useCallback(async () => {
@@ -102,35 +146,53 @@ export function HealthInsuranceManagement() {
   const fetchInsurances = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getAllHealthInsurances(
-        currentPage,
-        pageSize,
-        searchText,
-        sortBy,
-        ascending,
-        statusFilter,
-        userFilter
+      // Fetch both Completed+Verified and Expired insurances
+      const [completedResult, expiredResult] = await Promise.all([
+        getAllHealthInsurances(
+          currentPage,
+          pageSize,
+          searchText,
+          sortBy,
+          ascending,
+          "Completed",
+          userFilter
+        ),
+        getAllHealthInsurances(
+          currentPage,
+          pageSize,
+          searchText,
+          sortBy,
+          ascending,
+          "Expired",
+          userFilter
+        ),
+      ]);
+
+      // Filter completed insurances to only include verified ones
+      const verifiedInsurances = completedResult.data.filter(
+        (insurance: HealthInsuranceResponseDTO) => insurance.verificationStatus === "Verified"
       );
-      setInsurances(result.data);
-      setTotal(result.totalRecords);
+
+      // Combine and sort the results
+      const combinedInsurances = [...verifiedInsurances, ...expiredResult.data];
+      const sortedInsurances = combinedInsurances.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return ascending ? dateA - dateB : dateB - dateA;
+      });
+
+      setInsurances(sortedInsurances);
+      setTotal(verifiedInsurances.length + expiredResult.totalRecords);
     } catch (error) {
       toast.error("Unable to load health insurances.");
     } finally {
       setLoading(false);
     }
-  }, [
-    currentPage,
-    pageSize,
-    searchText,
-    sortBy,
-    ascending,
-    statusFilter,
-    userFilter,
-  ]);
+  }, [currentPage, pageSize, searchText, sortBy, ascending, userFilter]);
 
   useEffect(() => {
     fetchInsurances();
-    const connection = setupHealthInsuranceRealTime((updatedInsurance) => {
+    const connection = setupHealthInsuranceRealTime(() => {
       fetchInsurances();
     });
     return () => {
@@ -207,90 +269,101 @@ export function HealthInsuranceManagement() {
       title: "Policyholder",
       render: (record: HealthInsuranceResponseDTO) => (
         <div className="flex flex-col">
-          <span>{record.user.fullName}</span>
-          <span className="text-gray-500">{record.user.email}</span>
+          <Typography.Text strong>{record.user.fullName}</Typography.Text>
+          <Typography.Text type="secondary" className="text-sm">{record.user.email}</Typography.Text>
         </div>
       ),
     },
-    { key: "healthInsuranceNumber", title: "Insurance Number", dataIndex: "healthInsuranceNumber" },
+    { 
+      key: "healthInsuranceNumber", 
+      title: "Insurance Number", 
+      render: (record: HealthInsuranceResponseDTO) => (
+        <Tooltip title="Click to view details">
+          <Typography.Link onClick={() => router.push(`/health-insurance/${record.id}`)}>
+            {record.healthInsuranceNumber}
+          </Typography.Link>
+        </Tooltip>
+      )
+    },
     { key: "fullName", title: "Full Name", dataIndex: "fullName" },
-    { 
-      key: "dateOfBirth",
-      title: "Date of Birth", 
-      render: (record: HealthInsuranceResponseDTO) => formatDate(record.dateOfBirth)
-    },
-    { key: "gender", title: "Gender", dataIndex: "gender" },
-    { key: "address", title: "Address", dataIndex: "address" },
-    { 
-      key: "healthcareProvider",
-      title: "Healthcare Provider", 
-      render: (record: HealthInsuranceResponseDTO) => 
-        `${record.healthcareProviderName || ''} (${record.healthcareProviderCode || ''})` 
-    },
     { 
       key: "validPeriod",
       title: "Valid Period",
-      render: (record: HealthInsuranceResponseDTO) => 
-        `${formatDate(record.validFrom)} - ${formatDate(record.validTo)}`
+      render: (record: HealthInsuranceResponseDTO) => (
+        <Space direction="vertical" size="small">
+          <Typography.Text>From: {formatDate(record.validFrom)}</Typography.Text>
+          <Typography.Text>To: {formatDate(record.validTo)}</Typography.Text>
+        </Space>
+      )
     },
     { 
-      key: "issueDate",
-      title: "Issue Date", 
-      render: (record: HealthInsuranceResponseDTO) => formatDate(record.issueDate)
+      key: "status", 
+      title: "Status", 
+      render: (record: HealthInsuranceResponseDTO) => (
+        <Tag color={getStatusColor(record.status)}>
+          {record.status}
+        </Tag>
+      )
     },
     { 
-      key: "createdInfo",
-      title: "Created Info",
-      render: (record: HealthInsuranceResponseDTO) => 
-        `${formatDateTime(record.createdAt)}${record.createdBy ? ` by ${record.createdBy.userName}` : ''}`
+      key: "verificationStatus", 
+      title: "Verification", 
+      render: (record: HealthInsuranceResponseDTO) => (
+        <Badge 
+          status={getVerificationStatusColor(record.verificationStatus) as any} 
+          text={record.verificationStatus} 
+        />
+      )
     },
-    { 
-      key: "updatedInfo",
-      title: "Updated Info",
-      render: (record: HealthInsuranceResponseDTO) => 
-        record.updatedAt ? `${formatDateTime(record.updatedAt)}${record.updatedBy ? ` by ${record.updatedBy.userName}` : ''}` : null
-    },
-    { key: "status", title: "Status", dataIndex: "status" },
-    { key: "verificationStatus", title: "Verification Status", dataIndex: "verificationStatus" },
     { 
       key: "deadline",
       title: "Deadline", 
-      render: (record: HealthInsuranceResponseDTO) => 
-        record.deadline ? formatDate(record.deadline) : 'No deadline'
+      render: (record: HealthInsuranceResponseDTO) => (
+        <Typography.Text type={moment(record.deadline).isBefore(moment()) ? "danger" : "success"}>
+          {formatDate(record.deadline) || 'No deadline'}
+        </Typography.Text>
+      )
     },
     {
       key: "actions",
       title: "Actions",
       render: (record: HealthInsuranceResponseDTO) => (
         <Space>
-          <Button
-            onClick={() => {
-              setSelectedInsurance(record);
-              setIsDetailModalVisible(true);
-            }}
-          >
-            View
-          </Button>
-          <Button
-            onClick={() => {
-              setSelectedInsurance(record);
-              setIsEditModalVisible(true);
-            }}
-          >
-            Edit
-          </Button>
+          <Tooltip title="View Details">
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              onClick={() => router.push(`/health-insurance/${record.id}`)}
+            />
+          </Tooltip>
+          <Tooltip title="Edit">
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={() => {
+                setSelectedInsurance(record);
+                setIsEditModalVisible(true);
+              }}
+            />
+          </Tooltip>
           {record.status === "Submitted" && (
             <>
-              <Button
-                onClick={() => handleVerify(record.id, "Verified")}
-              >
-                Verify
-              </Button>
-              <Button
-                onClick={() => handleVerify(record.id, "Rejected")}
-              >
-                Reject
-              </Button>
+              <Tooltip title="Verify">
+                <Button
+                  type="text"
+                  icon={<CheckCircleOutlined />}
+                  className="text-green-600"
+                  onClick={() => handleVerify(record.id, "Verified")}
+                />
+              </Tooltip>
+              <Tooltip title="Reject">
+                <Button
+                  type="text"
+                  icon={<CloseCircleOutlined />}
+                  className="text-red-600"
+                  onClick={() => handleVerify(record.id, "Rejected")}
+                />
+              </Tooltip>
             </>
           )}
         </Space>
@@ -331,16 +404,21 @@ export function HealthInsuranceManagement() {
   };
 
   const topContent = (
-    <div className="flex flex-col gap-4">
-      <Row gutter={[16, 16]} align="middle">
+    <Card className="mb-4 shadow-sm">
+      <Row gutter={[16, 16]}>
         <Col span={24}>
-          <Space size="middle">
-            <Input
+          <Typography.Title level={4} className="mb-4">
+            Health Insurance Management
+          </Typography.Title>
+        </Col>
+        <Col span={24}>
+          <Space size="middle" wrap>
+            <Input.Search
               placeholder="Search by insurance number"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               style={{ width: 250 }}
-              prefix={<SearchOutlined />}
+              allowClear
             />
             <Select
               showSearch
@@ -363,78 +441,63 @@ export function HealthInsuranceManagement() {
               onChange={(value) => setStatusFilter(value)}
               style={{ width: 150 }}
               allowClear
+              suffixIcon={<FilterOutlined />}
             >
-              <Option value="Pending">Pending</Option>
-              <Option value="Completed">Completed</Option>
-              <Option value="Expired">Expired</Option>
-              <Option value="SoftDeleted">Soft Deleted</Option>
+              <Option value="Pending">
+                <Badge status="processing" text="Pending" />
+              </Option>
+              <Option value="Completed">
+                <Badge status="success" text="Completed" />
+              </Option>
+              <Option value="Expired">
+                <Badge status="error" text="Expired" />
+              </Option>
+              <Option value="SoftDeleted">
+                <Badge status="default" text="Soft Deleted" />
+              </Option>
             </Select>
             <Dropdown
               overlay={
-                <Menu
-                  onClick={(e) => e.domEvent.stopPropagation()}
-                  getPopupContainer={(trigger) => trigger.parentElement || document.body}
-                >
+                <Menu>
                   <Menu.ItemGroup title="Show Columns">
                     {ALL_COLUMNS.map((column) => (
-                      <Menu.Item 
-                        key={column.key}
-                        style={{ padding: 0 }}
-                      >
-                        <div 
-                          style={{ padding: '5px 12px' }}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleColumnVisibilityChange(column.key);
-                          }}
+                      <Menu.Item key={column.key}>
+                        <Checkbox 
+                          checked={visibleColumns.includes(column.key)}
+                          onChange={() => handleColumnVisibilityChange(column.key)}
                         >
-                          <Checkbox 
-                            checked={visibleColumns.includes(column.key)}
-                          >
-                            {column.title}
-                          </Checkbox>
-                        </div>
+                          {column.title}
+                        </Checkbox>
                       </Menu.Item>
                     ))}
                   </Menu.ItemGroup>
                 </Menu>
               }
               trigger={['click']}
-              open={dropdownVisible}
-              onOpenChange={setDropdownVisible}
-              getPopupContainer={(trigger) => trigger.parentElement || document.body}
             >
-              <Button>
-                Columns <DownOutlined />
+              <Button icon={<SettingOutlined />}>
+                Columns
               </Button>
             </Dropdown>
-            {selectedRowKeys.length > 0 && (
-              <Popconfirm
-                title="Are you sure to delete the selected insurances?"
-                onConfirm={handleBulkDelete}
-              >
-                <Button danger>
-                  Delete Selected
-                </Button>
-              </Popconfirm>
-            )}
             <Dropdown overlay={
               <Menu>
                 <Menu.Item key="manual" onClick={() => setIsCreateModalVisible(true)}>
-                  Create Manual
+                  <PlusOutlined /> Create Manual
                 </Menu.Item>
                 <Menu.Item key="initial" onClick={handleCreateInitial}>
-                  Create Initial
+                  <PlusOutlined /> Create Initial
                 </Menu.Item>
               </Menu>
             }>
-              <Button type="primary">
-                Create <DownOutlined />
+              <Button type="primary" icon={<PlusOutlined />}>
+                Create
               </Button>
             </Dropdown>
-            <Button onClick={exportHealthInsurances}>
-              Export to Excel
+            <Button 
+              icon={<ExportOutlined />}
+              onClick={exportHealthInsurances}
+            >
+              Export
             </Button>
             <Button 
               icon={<SettingOutlined />}
@@ -444,84 +507,98 @@ export function HealthInsuranceManagement() {
             </Button>
           </Space>
         </Col>
-      </Row>
-      <Row justify="space-between" align="middle">
-        <Col>
-          <span style={{ color: 'rgba(0, 0, 0, 0.45)' }}>
-            Total {total} insurances
-          </span>
+        <Col span={24}>
+          <Row justify="space-between" align="middle">
+            <Col>
+              <Space>
+                {selectedRowKeys.length > 0 && (
+                  <Popconfirm
+                    title="Are you sure to delete the selected insurances?"
+                    onConfirm={handleBulkDelete}
+                  >
+                    <Button 
+                      danger 
+                      type="primary"
+                      icon={<DeleteOutlined />}
+                      className="hover:opacity-90"
+                    >
+                      Delete Selected ({selectedRowKeys.length})
+                    </Button>
+                  </Popconfirm>
+                )}
+              </Space>
+            </Col>
+            <Col>
+              <Space align="center">
+                <Typography.Text type="secondary">
+                  Rows per page:
+                </Typography.Text>
+                <Select
+                  value={pageSize}
+                  onChange={(value) => {
+                    setPageSize(value);
+                    setCurrentPage(1);
+                  }}
+                  className="min-w-[80px]"
+                >
+                  <Option value={5}>5</Option>
+                  <Option value={10}>10</Option>
+                  <Option value={15}>15</Option>
+                </Select>
+              </Space>
+            </Col>
+          </Row>
         </Col>
-        <Col>
-          <Space align="center">
-            <span style={{ color: 'rgba(0, 0, 0, 0.45)' }}>Rows per page:</span>
-            <Select
-              value={pageSize}
-              onChange={(value) => {
-                setPageSize(value);
-                setCurrentPage(1);
-              }}
-            >
-              <Option value={5}>5</Option>
-              <Option value={10}>10</Option>
-              <Option value={15}>15</Option>
-            </Select>
-          </Space>
-        </Col>
       </Row>
-    </div>
+    </Card>
   );
 
   const bottomContent = (
-    <Row justify="space-between" align="middle" style={{ marginTop: 16 }}>
-      <Col>
-        <span style={{ color: 'rgba(0, 0, 0, 0.45)' }}>
-          {selectedRowKeys.length > 0 
-            ? `Selected ${selectedRowKeys.length} of ${total}`
-            : ''}
-        </span>
-      </Col>
-      <Col>
-        <Pagination
-          current={currentPage}
-          pageSize={pageSize}
-          total={total}
-          onChange={(page, size) => {
-            setCurrentPage(page);
-            setPageSize(size);
-          }}
-          showSizeChanger={false}
-        />
-      </Col>
-    </Row>
+    <Card className="mt-4 shadow-sm">
+      <Row justify="space-between" align="middle">
+        <Col>
+          <Typography.Text type="secondary">
+            Total {total} insurances | Showing only Completed+Verified and Expired insurances
+          </Typography.Text>
+        </Col>
+        <Col>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={total}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger={false}
+          />
+        </Col>
+      </Row>
+    </Card>
   );
 
   return (
-    <div>
+    <div className="p-6">
       {topContent}
-      <Table
-        columns={columns}
-        dataSource={filteredInsurances}
-        loading={loading}
-        pagination={false}
-        rowKey="id"
-        rowSelection={{
-          selectedRowKeys,
-          onChange: (keys) => setSelectedRowKeys(keys),
-        }}
-      />
+      <Card className="shadow-sm">
+        <Table
+          columns={columns}
+          dataSource={filteredInsurances}
+          loading={loading}
+          pagination={false}
+          rowKey="id"
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys) => setSelectedRowKeys(keys),
+          }}
+          className="border rounded-lg"
+        />
+      </Card>
       {bottomContent}
       <CreateModal
         visible={isCreateModalVisible}
         onClose={() => setIsCreateModalVisible(false)}
         onSuccess={fetchInsurances}
-      />
-      <DetailModal
-        visible={isDetailModalVisible}
-        insurance={selectedInsurance}
-        onClose={() => {
-          setIsDetailModalVisible(false);
-          setSelectedInsurance(null);
-        }}
       />
       <EditModal
         visible={isEditModalVisible}

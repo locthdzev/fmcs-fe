@@ -51,8 +51,10 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
   const [allRoles, setAllRoles] = useState<{ id: string; roleName: string }[]>(
     []
   );
-  const [pendingRoles, setPendingRoles] = useState<string[]>([...user.roles]);
+  const [pendingRoles, setPendingRoles] = useState<{id: string; roleName: string}[]>([]);
   const [selectedRole, setSelectedRole] = useState("");
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
 
   const roleColorMap: Record<string, string> = {
     Admin: "bg-red-100 text-red-800",
@@ -73,6 +75,22 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
     };
     fetchRoles();
   }, []);
+
+  useEffect(() => {
+    if (allRoles.length > 0) {
+      const uniqueRoles = [...new Set(user.roles)];
+      const mappedRoles = uniqueRoles.map(roleName => {
+        const role = allRoles.find(r => r.roleName === roleName);
+        return role || { id: '', roleName };
+      });
+      
+      const uniqueMappedRoles = mappedRoles.filter((role, index, self) => 
+        index === self.findIndex(r => r.id === role.id)
+      );
+      
+      setPendingRoles(uniqueMappedRoles);
+    }
+  }, [allRoles, user.roles]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -117,8 +135,8 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
     // Check if there are any changes in roles
     const hasRoleChanges =
       pendingRoles.length !== user.roles.length ||
-      pendingRoles.some((role) => !user.roles.includes(role)) ||
-      user.roles.some((role) => !pendingRoles.includes(role));
+      pendingRoles.some((role) => !user.roles.includes(role.roleName)) ||
+      user.roles.some((role) => !pendingRoles.some(r => r.roleName === role));
 
     if (!hasFormDataChanges && !hasRoleChanges) {
       toast.info("No changes detected");
@@ -134,25 +152,22 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
       }
 
       if (hasRoleChanges) {
+        const currentRoleNames = user.roles;
+        const pendingRoleNames = pendingRoles.map(r => r.roleName);
+
         const rolesToAdd = pendingRoles.filter(
-          (role) => !user.roles.includes(role)
+          (role) => !currentRoleNames.includes(role.roleName)
         );
-        const rolesToRemove = user.roles.filter(
-          (role) => !pendingRoles.includes(role)
+        const rolesToRemove = allRoles.filter(
+          (role) => currentRoleNames.includes(role.roleName) && !pendingRoleNames.includes(role.roleName)
         );
 
-        for (const roleId of rolesToAdd) {
-          const role = allRoles.find((r) => r.roleName === roleId);
-          if (role) {
-            await assignRoleToUser(user.id, role.id);
-          }
+        for (const role of rolesToAdd) {
+          await assignRoleToUser(user.id, role.id);
         }
 
-        for (const roleId of rolesToRemove) {
-          const role = allRoles.find((r) => r.roleName === roleId);
-          if (role) {
-            await unassignRoleFromUser(user.id, role.id);
-          }
+        for (const role of rolesToRemove) {
+          await unassignRoleFromUser(user.id, role.id);
         }
       }
 
@@ -166,20 +181,21 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
     }
   };
 
-  const handlePendingUnassignRole = (roleId: string) => {
+  const handlePendingUnassignRole = (roleToRemove: {id: string; roleName: string}) => {
     if (pendingRoles.length <= 1) {
       toast.error("User must have at least one role");
       return;
     }
-    setPendingRoles(pendingRoles.filter((role) => role !== roleId));
+    setPendingRoles(pendingRoles.filter(role => role.id !== roleToRemove.id));
   };
 
   const handlePendingAssignRole = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.preventDefault();
     const roleId = e.target.value;
-    if (roleId && !pendingRoles.includes(roleId)) {
+    if (roleId && !pendingRoles.some(r => r.id === roleId)) {
       const role = allRoles.find((r) => r.id === roleId);
       if (role) {
-        setPendingRoles([...pendingRoles, role.roleName]);
+        setPendingRoles([...pendingRoles, role]);
       }
     }
     setSelectedRole("");
@@ -192,11 +208,29 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
     }));
   };
 
+  // Thêm hàm debug
+  const debugEvent = (event: any, source: string) => {
+    console.log(`[DEBUG ${source}]`, {
+      type: event.type,
+      target: event.target,
+      currentTarget: event.currentTarget,
+      defaultPrevented: event.defaultPrevented,
+    });
+  };
+
+  // Thêm hàm xử lý thêm role mới
+  const handleAddRole = (roleToAdd: { id: string; roleName: string }) => {
+    if (!pendingRoles.some(r => r.id === roleToAdd.id)) {
+      setPendingRoles([...pendingRoles, roleToAdd]);
+      setShowRoleDropdown(false);
+    }
+  };
+
   return (
-    <Modal isOpen={true} onOpenChange={onClose} className="max-w-3xl">
+    <Modal isOpen={true} onOpenChange={onClose} className="max-w-3xl max-h-[90vh]">
       <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
         <ModalHeader>Edit User</ModalHeader>
-        <ModalBody>
+        <ModalBody className="max-h-[70vh] overflow-y-auto">
           <Tabs
             selectedKey={activeTab}
             onSelectionChange={(key) => setActiveTab(String(key))}
@@ -253,7 +287,7 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
                       { value: "Male", label: "Male" },
                       { value: "Female", label: "Female" },
                     ].map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
+                      <SelectItem key={item.value} id={item.value}>
                         {item.label}
                       </SelectItem>
                     ))}
@@ -297,15 +331,15 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
             <Tab key="roles" title="Assign & Unassign Role">
               <div className="p-4">
                 <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mb-4">
                     {pendingRoles.map((role, index) => (
                       <div
                         key={index}
                         className={`${
-                          roleColorMap[role] || roleColorMap.Unknown
+                          roleColorMap[role.roleName] || roleColorMap.Unknown
                         } px-3 py-1 rounded-full flex items-center`}
                       >
-                        <span>{role}</span>
+                        <span>{role.roleName}</span>
                         <button
                           onClick={() => handlePendingUnassignRole(role)}
                           className="ml-2 hover:opacity-80"
@@ -315,24 +349,51 @@ export const EditUserForm: React.FC<EditUserFormProps> = ({
                       </div>
                     ))}
                   </div>
-                  <Select
-                    variant="bordered"
-                    size="sm"
-                    radius="sm"
-                    className="w-full"
-                    label="Assign new role"
-                    value={selectedRole}
-                    defaultSelectedKeys={
-                      selectedRole ? [selectedRole] : undefined
-                    }
-                    onChange={handlePendingAssignRole}
-                  >
-                    {allRoles.map((role) => (
-                      <SelectItem key={role.id} value={role.id}>
-                        {role.roleName}
-                      </SelectItem>
-                    ))}
-                  </Select>
+                  
+                  <div className="relative">
+                    <Button 
+                      variant="bordered" 
+                      radius="sm" 
+                      className="w-full flex justify-between"
+                      onClick={() => setIsRoleModalOpen(true)}
+                    >
+                      <span>Assign new role</span>
+                      <span>▼</span>
+                    </Button>
+                    
+                    <Modal 
+                      isOpen={isRoleModalOpen} 
+                      onOpenChange={(open) => setIsRoleModalOpen(open)}
+                      className="max-w-md"
+                    >
+                      <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
+                        <ModalHeader>Select Role</ModalHeader>
+                        <ModalBody>
+                          <div className="grid grid-cols-1 gap-2">
+                            {allRoles
+                              .filter(role => !pendingRoles.some(pr => pr.id === role.id))
+                              .map((role) => (
+                                <button 
+                                  key={role.id}
+                                  className="px-4 py-2 text-left hover:bg-gray-100 rounded-md"
+                                  onClick={() => {
+                                    handleAddRole(role);
+                                    setIsRoleModalOpen(false);
+                                  }}
+                                >
+                                  {role.roleName}
+                                </button>
+                              ))}
+                          </div>
+                        </ModalBody>
+                        <ModalFooter>
+                          <Button radius="sm" onClick={() => setIsRoleModalOpen(false)}>
+                            Đóng
+                          </Button>
+                        </ModalFooter>
+                      </ModalContent>
+                    </Modal>
+                  </div>
                 </div>
               </div>
             </Tab>
