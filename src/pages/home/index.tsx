@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import { Typography, Card, Row, Col, Statistic, Button, List, Avatar, Tag, Spin, Divider } from "antd";
 import { PieChart, Pie, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { UserOutlined, MedicineBoxOutlined, CalendarOutlined, SafetyCertificateOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/router';
-import { UserContext } from '@/context/UserContext';
+import { UserContext } from "@/context/UserContext";
 import { getHealthCheckResultsStatistics } from "@/api/healthcheckresult";
 import moment from "moment";
 import { Cell } from 'recharts';
@@ -12,26 +12,9 @@ const { Title, Text } = Typography;
 
 export default function HomePage() {
   const router = useRouter();
-  const userContext = useContext(UserContext);
+  const userContext = React.useContext(UserContext);
   const [loading, setLoading] = useState(true);
   const [statistics, setStatistics] = useState<any>(null);
-
-  const getHighestRole = (roles: string[]) => {
-    const roleHierarchy = ["Admin", "Manager", "Staff", "User"];
-    for (const role of roleHierarchy) {
-      if (roles.includes(role)) {
-        return role;
-      }
-    }
-    return "User";
-  };
-
-  useEffect(() => {
-    if (userContext?.user && userContext.user.role) {
-      const highestRole = getHighestRole(userContext.user.role);
-      router.push(`/home/${highestRole.toLowerCase()}`);
-    }
-  }, [userContext, router]);
 
   useEffect(() => {
     const fetchStatistics = async () => {
@@ -308,9 +291,8 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Spin size="large" />
-        <p className="ml-2">Redirecting to your homepage...</p>
+      <div className="flex items-center justify-center h-screen">
+        <Spin size="large" tip="Đang tải..." />
       </div>
     );
   }
