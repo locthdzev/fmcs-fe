@@ -161,14 +161,6 @@ export interface HealthCheckResultHistoryResponseDTO {
   changeDetails?: string;
 }
 
-export interface EditCancelledHealthCheckResultDTO {
-  diagnosis: string;
-  treatmentPlan: string;
-  followUpRequired: boolean;
-  followUpDate?: string;
-  notes?: string;
-}
-
 // API Functions
 export const getAllHealthCheckResults = async (
   page: number = 1,
@@ -185,33 +177,43 @@ export const getAllHealthCheckResults = async (
   followUpEndDate?: string,
   followUpStatus?: string
 ) => {
-  const response = await api.get("/healthcheckresult-management/healthcheckresults", {
-    params: {
-      page,
-      pageSize,
-      userSearch,
-      staffSearch,
-      sortBy,
-      ascending,
-      status,
-      checkupStartDate,
-      checkupEndDate,
-      followUpRequired,
-      followUpStartDate,
-      followUpEndDate,
-      followUpStatus,
-    },
-  });
+  const response = await api.get(
+    "/healthcheckresult-management/healthcheckresults",
+    {
+      params: {
+        page,
+        pageSize,
+        userSearch,
+        staffSearch,
+        sortBy,
+        ascending,
+        status,
+        checkupStartDate,
+        checkupEndDate,
+        followUpRequired,
+        followUpStartDate,
+        followUpEndDate,
+        followUpStatus,
+      },
+    }
+  );
   return response.data;
 };
 
 export const getHealthCheckResultById = async (id: string) => {
-  const response = await api.get(`/healthcheckresult-management/healthcheckresults/${id}`);
+  const response = await api.get(
+    `/healthcheckresult-management/healthcheckresults/${id}`
+  );
   return response.data;
 };
 
-export const createHealthCheckResult = async (data: HealthCheckResultsCreateRequestDTO) => {
-  const response = await api.post("/healthcheckresult-management/healthcheckresults", data);
+export const createHealthCheckResult = async (
+  data: HealthCheckResultsCreateRequestDTO
+) => {
+  const response = await api.post(
+    "/healthcheckresult-management/healthcheckresults",
+    data
+  );
   return response.data;
 };
 
@@ -284,7 +286,9 @@ export const scheduleFollowUp = async (id: string, followUpDate: string) => {
 };
 
 export const getHealthCheckResultsStatistics = async () => {
-  const response = await api.get("/healthcheckresult-management/healthcheckresults/statistics");
+  const response = await api.get(
+    "/healthcheckresult-management/healthcheckresults/statistics"
+  );
   return response.data;
 };
 
@@ -295,27 +299,33 @@ export const approveHealthCheckResult = async (id: string) => {
   return response.data;
 };
 
-export const cancelCompletelyHealthCheckResult = async (id: string, reason: string) => {
+export const cancelCompletelyHealthCheckResult = async (
+  id: string,
+  reason: string
+) => {
   const response = await api.post(
     `/healthcheckresult-management/healthcheckresults/${id}/cancel-completely`,
     JSON.stringify(reason),
     {
       headers: {
-        'Content-Type': 'application/json'
-      }
+        "Content-Type": "application/json",
+      },
     }
   );
   return response.data;
 };
 
-export const cancelForAdjustmentHealthCheckResult = async (id: string, reason: string) => {
+export const cancelForAdjustmentHealthCheckResult = async (
+  id: string,
+  reason: string
+) => {
   const response = await api.post(
     `/healthcheckresult-management/healthcheckresults/${id}/cancel-for-adjustment`,
     JSON.stringify(reason),
     {
       headers: {
-        'Content-Type': 'application/json'
-      }
+        "Content-Type": "application/json",
+      },
     }
   );
   return response.data;
@@ -335,7 +345,9 @@ export const cancelFollowUp = async (id: string) => {
   return response.data;
 };
 
-export const softDeleteHealthCheckResults = async (healthCheckResultIds: string[]) => {
+export const softDeleteHealthCheckResults = async (
+  healthCheckResultIds: string[]
+) => {
   const response = await api.post(
     "/healthcheckresult-management/healthcheckresults/soft-delete",
     healthCheckResultIds
@@ -351,20 +363,25 @@ export const getSoftDeletedHealthCheckResults = async (
   sortBy: string = "CheckupDate",
   ascending: boolean = false
 ) => {
-  const response = await api.get("/healthcheckresult-management/healthcheckresults/soft-deleted", {
-    params: {
-      page,
-      pageSize,
-      userSearch,
-      staffSearch,
-      sortBy,
-      ascending,
-    },
-  });
+  const response = await api.get(
+    "/healthcheckresult-management/healthcheckresults/soft-deleted",
+    {
+      params: {
+        page,
+        pageSize,
+        userSearch,
+        staffSearch,
+        sortBy,
+        ascending,
+      },
+    }
+  );
   return response.data;
 };
 
-export const restoreSoftDeletedHealthCheckResults = async (healthCheckResultIds: string[]) => {
+export const restoreSoftDeletedHealthCheckResults = async (
+  healthCheckResultIds: string[]
+) => {
   const response = await api.post(
     "/healthcheckresult-management/healthcheckresults/restore",
     healthCheckResultIds
@@ -386,43 +403,48 @@ export const exportHealthCheckResultsToExcel = async (
   followUpStartDate?: string,
   followUpEndDate?: string
 ) => {
-  const response = await api.get("/healthcheckresult-management/healthcheckresults/export-excel", {
-    params: {
-      page,
-      pageSize,
-      userSearch,
-      staffSearch,
-      sortBy,
-      ascending,
-      status,
-      checkupStartDate,
-      checkupEndDate,
-      followUpRequired,
-      followUpStartDate,
-      followUpEndDate,
+  const response = await api.get(
+    "/healthcheckresult-management/healthcheckresults/export-excel",
+    {
+      params: {
+        page,
+        pageSize,
+        userSearch,
+        staffSearch,
+        sortBy,
+        ascending,
+        status,
+        checkupStartDate,
+        checkupEndDate,
+        followUpRequired,
+        followUpStartDate,
+        followUpEndDate,
+      },
     }
-  });
-  
+  );
+
   if (response.data && response.data.isSuccess && response.data.data) {
     // Sử dụng URL trả về từ API để mở trang download trực tiếp
-    window.open(response.data.data, '_blank');
+    window.open(response.data.data, "_blank");
   } else {
     toast.error(response.data.message || "Không thể xuất file Excel");
   }
-  
+
   return response.data;
 };
 
 export const exportHealthCheckResultToPDF = async (id: string) => {
-  const response = await api.get(`/healthcheckresult-management/healthcheckresults/${id}/export-pdf`);
-  
+  const response = await api.get(
+    `/healthcheckresult-management/healthcheckresults/${id}/export-pdf`
+  );
+
   if (response.data && response.data.isSuccess && response.data.data) {
     // Sử dụng URL trả về từ API để mở trang download trực tiếp
-    window.open(response.data.data, '_blank');
+    window.open(response.data.data, "_blank");
   } else {
     toast.error(response.data.message || "Không thể xuất file PDF");
   }
-  
+
   return response.data;
 };
 
@@ -432,14 +454,17 @@ export const getAllHealthCheckResultHistories = async (
   sortBy: string = "ActionDate",
   ascending: boolean = false
 ) => {
-  const response = await api.get("/healthcheckresult-management/healthcheckresults/histories", {
-    params: {
-      page,
-      pageSize,
-      sortBy,
-      ascending,
-    },
-  });
+  const response = await api.get(
+    "/healthcheckresult-management/healthcheckresults/histories",
+    {
+      params: {
+        page,
+        pageSize,
+        sortBy,
+        ascending,
+      },
+    }
+  );
   return response.data;
 };
 
@@ -449,13 +474,3 @@ export const getHealthCheckResultHistoriesByResultId = async (id: string) => {
   );
   return response.data;
 };
-
-export const editCancelledHealthCheckResult = async (id: string, data: EditCancelledHealthCheckResultDTO) => {
-  try {
-    const response = await api.put(`/healthcheckresult-management/healthcheckresults/${id}/edit-cancelled`, data);
-    return response.data;
-  } catch (error) {
-    console.error("Error editing cancelled health check result:", error);
-    throw error;
-  }
-}; 
