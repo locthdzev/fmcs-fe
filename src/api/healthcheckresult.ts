@@ -2,7 +2,6 @@ import api from "./customize-axios";
 import { exportToExcel } from "./export";
 import { toast } from "react-toastify";
 
-// Interfaces
 export interface UserInfo {
   id: string;
   userName: string;
@@ -424,10 +423,9 @@ export const exportHealthCheckResultsToExcel = async (
   );
 
   if (response.data && response.data.isSuccess && response.data.data) {
-    // Sử dụng URL trả về từ API để mở trang download trực tiếp
     window.open(response.data.data, "_blank");
   } else {
-    toast.error(response.data.message || "Không thể xuất file Excel");
+    toast.error(response.data.message || "Cannot export Excel file");
   }
 
   return response.data;
@@ -439,10 +437,9 @@ export const exportHealthCheckResultToPDF = async (id: string) => {
   );
 
   if (response.data && response.data.isSuccess && response.data.data) {
-    // Sử dụng URL trả về từ API để mở trang download trực tiếp
     window.open(response.data.data, "_blank");
   } else {
-    toast.error(response.data.message || "Không thể xuất file PDF");
+    toast.error(response.data.message || "Cannot export Excel file");
   }
 
   return response.data;
