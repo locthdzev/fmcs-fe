@@ -15,17 +15,13 @@ import {
   Badge,
   Tag,
   Tooltip,
-  Empty,
-  Form,
-  Modal,
-  Input as AntInput
+  Empty
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
 import {
   getAllHealthCheckResults,
-  HealthCheckResultsResponseDTO,
-  editCancelledHealthCheckResult
+  HealthCheckResultsResponseDTO
 } from "@/api/healthcheckresult";
 import { 
   SearchOutlined, 
@@ -35,11 +31,12 @@ import {
   InfoCircleOutlined
 } from "@ant-design/icons";
 import { useRouter } from 'next/router';
+import EditModal from "./EditModal";
+import { getUsers } from "@/api/user";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { Title, Text, Paragraph } = Typography;
-const { TextArea } = AntInput;
 
 const formatDate = (date: string | undefined) => {
   if (!date) return '';
@@ -65,7 +62,8 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
   const [ascending, setAscending] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentResult, setCurrentResult] = useState<HealthCheckResultsResponseDTO | null>(null);
-  const [form] = Form.useForm();
+  const [userOptions, setUserOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
+  const [staffOptions, setStaffOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
 
   const fetchHealthCheckResults = useCallback(async () => {
     setLoading(true);
@@ -109,41 +107,49 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
   useEffect(() => {
     fetchHealthCheckResults();
   }, [fetchHealthCheckResults]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        // Lấy danh sách người dùng
+        const users = await getUsers();
+        
+        // Lọc ra người dùng thông thường (không phải staff)
+        const normalUsers = users.filter((user: any) => 
+          user.roles && !user.roles.some((role: string) => role === "Medical_Staff" || role === "Admin")
+        );
+        setUserOptions(normalUsers.map((user: any) => ({
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email
+        })));
+        
+        // Lấy danh sách staff y tế
+        const medicalStaff = users.filter((user: any) => 
+          user.roles && user.roles.some((role: string) => role === "Medical_Staff")
+        );
+        setStaffOptions(medicalStaff.map((staff: any) => ({
+          id: staff.id,
+          fullName: staff.fullName,
+          email: staff.email
+        })));
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+        toast.error("Không thể tải danh sách người dùng");
+      }
+    };
+    
+    fetchUsers();
+  }, []);
   
   const handleEdit = (record: HealthCheckResultsResponseDTO) => {
     setCurrentResult(record);
-    form.setFieldsValue({
-      diagnosis: record.diagnosis || '',
-      treatmentPlan: record.treatmentPlan || '',
-      followUpRequired: record.followUpRequired || false,
-      followUpDate: record.followUpDate ? moment(record.followUpDate) : null,
-      notes: record.notes || ''
-    });
     setIsModalVisible(true);
   };
   
-  const handleSubmitEdit = async (values: any) => {
-    if (!currentResult) return;
-    
-    try {
-      const data = {
-        ...values,
-        followUpDate: values.followUpRequired && values.followUpDate ? 
-          values.followUpDate.format('YYYY-MM-DD') : undefined
-      };
-      
-      const response = await editCancelledHealthCheckResult(currentResult.id, data);
-      
-      if (response.isSuccess) {
-        toast.success("Health check result updated successfully");
-        setIsModalVisible(false);
-        fetchHealthCheckResults();
-      } else {
-        toast.error(response.message || "Failed to update health check result");
-      }
-    } catch (error) {
-      toast.error("Failed to update health check result");
-    }
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    setCurrentResult(null);
   };
   
   const columns = [
@@ -329,85 +335,14 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         </Row>
       </Card>
       
-      <Modal
-        title="Edit Health Check Result"
-        open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        footer={null}
-        width={800}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmitEdit}
-        >
-          <Form.Item
-            name="diagnosis"
-            label="Diagnosis"
-            rules={[{ required: true, message: 'Please enter the diagnosis' }]}
-          >
-            <TextArea rows={4} />
-          </Form.Item>
-          
-          <Form.Item
-            name="treatmentPlan"
-            label="Treatment Plan"
-            rules={[{ required: true, message: 'Please enter the treatment plan' }]}
-          >
-            <TextArea rows={4} />
-          </Form.Item>
-          
-          <Form.Item
-            name="followUpRequired"
-            valuePropName="checked"
-            label="Follow-up Required"
-          >
-            <Select>
-              <Option value={true}>Yes</Option>
-              <Option value={false}>No</Option>
-            </Select>
-          </Form.Item>
-          
-          <Form.Item
-            name="followUpDate"
-            label="Follow-up Date"
-            dependencies={['followUpRequired']}
-            rules={[
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (getFieldValue('followUpRequired') && !value) {
-                    return Promise.reject('Please select a follow-up date');
-                  }
-                  return Promise.resolve();
-                },
-              }),
-            ]}
-          >
-            <DatePicker 
-              disabled={Form.useWatch('followUpRequired', form) !== true}
-              disabledDate={(current) => current && current < moment().endOf('day')}
-            />
-          </Form.Item>
-          
-          <Form.Item
-            name="notes"
-            label="Additional Notes"
-          >
-            <TextArea rows={3} />
-          </Form.Item>
-          
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                Submit
-              </Button>
-              <Button onClick={() => setIsModalVisible(false)}>
-                Cancel
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
+      <EditModal
+        visible={isModalVisible}
+        onClose={handleCloseModal}
+        onSuccess={fetchHealthCheckResults}
+        healthCheckResult={currentResult}
+        userOptions={userOptions}
+        staffOptions={staffOptions}
+      />
     </div>
   );
 }; 
