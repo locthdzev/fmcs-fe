@@ -1,5 +1,5 @@
 import { useEffect, useState, createContext, ReactNode } from "react";
-import { jwtDecode } from "jwt-decode"; // Fixed import
+import jwtDecode from "jwt-decode"; // Fixed import
 import Cookies from "js-cookie";
 import router from "next/router";
 
