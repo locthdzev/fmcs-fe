@@ -113,6 +113,7 @@ const formatDateTime = (datetime: string | undefined) => {
 };
 
 const DEFAULT_VISIBLE_COLUMNS = [
+  "code",
   "patient",
   "checkupDate",
   "staff",
@@ -151,6 +152,7 @@ export function HealthCheckResultManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
+  const [codeSearch, setCodeSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
@@ -199,9 +201,49 @@ export function HealthCheckResultManagement() {
         setStatistics(response.data);
       } else {
         toast.error(response.message || "Không thể tải thống kê");
+        // Handle the error case gracefully with default data
+        setStatistics({
+          totalResults: 0,
+          statusDistribution: {
+            waitingForApproval: 0,
+            followUpRequired: 0,
+            noFollowUpRequired: 0,
+            completed: 0,
+            cancelledCompletely: 0,
+            cancelledForAdjustment: 0,
+            softDeleted: 0
+          },
+          followUpStatistics: {
+            totalFollowUps: 0,
+            upcomingFollowUps: 0,
+            overdueFollowUps: 0,
+            followUpsToday: 0
+          },
+          monthlyDistribution: []
+        });
       }
     } catch (error) {
       toast.error("Không thể tải thống kê");
+      // Handle the error case gracefully with default data
+      setStatistics({
+        totalResults: 0,
+        statusDistribution: {
+          waitingForApproval: 0,
+          followUpRequired: 0,
+          noFollowUpRequired: 0,
+          completed: 0,
+          cancelledCompletely: 0,
+          cancelledForAdjustment: 0,
+          softDeleted: 0
+        },
+        followUpStatistics: {
+          totalFollowUps: 0,
+          upcomingFollowUps: 0,
+          overdueFollowUps: 0,
+          followUpsToday: 0
+        },
+        monthlyDistribution: []
+      });
     } finally {
       setStatsLoading(false);
     }
@@ -223,6 +265,7 @@ export function HealthCheckResultManagement() {
       const response = await getAllHealthCheckResults(
         currentPage,
         pageSize,
+        codeSearch || undefined,
         userSearch || undefined,
         staffSearch || undefined,
         sortBy,
@@ -258,6 +301,7 @@ export function HealthCheckResultManagement() {
   }, [
     currentPage,
     pageSize,
+    codeSearch,
     userSearch,
     staffSearch,
     sortBy,
@@ -396,6 +440,7 @@ export function HealthCheckResultManagement() {
       await exportHealthCheckResultsToExcel(
         currentPage,
         pageSize,
+        codeSearch || undefined,
         userSearch || undefined,
         staffSearch || undefined,
         sortBy,
@@ -408,11 +453,19 @@ export function HealthCheckResultManagement() {
         followUpEndDate
       );
     } catch (error) {
-      toast.error("Không thể xuất file Excel");
+      toast.error("Không thể xuất Excel");
     }
   };
 
   const ALL_COLUMNS = [
+    {
+      key: "code",
+      title: "Mã kết quả khám",
+      render: (record: HealthCheckResultsResponseDTO) => (
+        <span>{record.healthCheckResultCode}</span>
+      ),
+      hidden: !visibleColumns.includes("code"),
+    },
     {
       key: "patient",
       title: "Bệnh nhân",
@@ -843,24 +896,35 @@ export function HealthCheckResultManagement() {
             Quản lý kết quả khám
           </Typography.Title>
         </Col>
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <Input
+            placeholder="Tìm theo mã kết quả khám"
+            value={codeSearch}
+            onChange={(e) => setCodeSearch(e.target.value)}
+            prefix={<SearchOutlined />}
+            allowClear
+          />
+        </Col>
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <Input
+            placeholder="Tìm theo bệnh nhân"
+            value={userSearch}
+            onChange={(e) => setUserSearch(e.target.value)}
+            prefix={<SearchOutlined />}
+            allowClear
+          />
+        </Col>
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <Input
+            placeholder="Tìm theo bác sĩ/y tá"
+            value={staffSearch}
+            onChange={(e) => setStaffSearch(e.target.value)}
+            prefix={<SearchOutlined />}
+            allowClear
+          />
+        </Col>
         <Col span={24}>
           <Space size="middle" wrap>
-            <Input
-              placeholder="Tìm theo bệnh nhân"
-              value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
-              prefix={<SearchOutlined />}
-              style={{ width: 200 }}
-              allowClear
-            />
-            <Input
-              placeholder="Tìm theo bác sĩ/y tá"
-              value={staffSearch}
-              onChange={(e) => setStaffSearch(e.target.value)}
-              prefix={<SearchOutlined />}
-              style={{ width: 200 }}
-              allowClear
-            />
             <Select
               placeholder="Lọc theo trạng thái"
               onChange={(value) => {

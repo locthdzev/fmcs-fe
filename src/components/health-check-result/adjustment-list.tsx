@@ -64,6 +64,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
   const [currentResult, setCurrentResult] = useState<HealthCheckResultsResponseDTO | null>(null);
   const [userOptions, setUserOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
   const [staffOptions, setStaffOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
+  const [codeSearch, setCodeSearch] = useState("");
 
   const fetchHealthCheckResults = useCallback(async () => {
     setLoading(true);
@@ -74,6 +75,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
       const response = await getAllHealthCheckResults(
         currentPage,
         pageSize,
+        codeSearch || undefined,
         userSearch || undefined,
         staffSearch || undefined,
         sortBy,
@@ -97,6 +99,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
   }, [
     currentPage,
     pageSize,
+    codeSearch,
     userSearch,
     staffSearch,
     sortBy,
@@ -153,6 +156,11 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
   };
   
   const columns = [
+    {
+      title: "Health Check Result Code",
+      dataIndex: "healthCheckResultCode",
+      render: (code: string) => <Text copyable>{code}</Text>,
+    },
     {
       title: "Patient",
       dataIndex: "user",
@@ -244,7 +252,15 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
           <Col span={24}>
             <Space size="middle" wrap>
               <Input
-                placeholder="Search by patient"
+                placeholder="Tìm theo mã kết quả khám"
+                value={codeSearch}
+                onChange={(e) => setCodeSearch(e.target.value)}
+                prefix={<SearchOutlined />}
+                style={{ width: 200 }}
+                allowClear
+              />
+              <Input
+                placeholder="Tìm theo bệnh nhân"
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
                 prefix={<SearchOutlined />}

@@ -22,10 +22,52 @@ export default function HomePage() {
         const response = await getHealthCheckResultsStatistics();
         if (response.isSuccess) {
           setStatistics(response.data);
+        } else {
+          console.error("Failed to load statistics:", response.message);
+          // Handle the error case gracefully with default data
+          setStatistics({
+            totalResults: 0,
+            statusDistribution: {
+              waitingForApproval: 0,
+              followUpRequired: 0,
+              noFollowUpRequired: 0,
+              completed: 0,
+              cancelledCompletely: 0,
+              cancelledForAdjustment: 0,
+              softDeleted: 0
+            },
+            followUpStatistics: {
+              totalFollowUps: 0,
+              upcomingFollowUps: 0,
+              overdueFollowUps: 0,
+              followUpsToday: 0
+            },
+            monthlyDistribution: []
+          });
         }
         setLoading(false);
       } catch (error) {
         console.error("Error fetching statistics:", error);
+        // Handle the error case gracefully with default data
+        setStatistics({
+          totalResults: 0,
+          statusDistribution: {
+            waitingForApproval: 0,
+            followUpRequired: 0,
+            noFollowUpRequired: 0,
+            completed: 0,
+            cancelledCompletely: 0,
+            cancelledForAdjustment: 0,
+            softDeleted: 0
+          },
+          followUpStatistics: {
+            totalFollowUps: 0,
+            upcomingFollowUps: 0,
+            overdueFollowUps: 0,
+            followUpsToday: 0
+          },
+          monthlyDistribution: []
+        });
         setLoading(false);
       }
     };
