@@ -78,6 +78,17 @@ import { useRouter } from 'next/router';
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
+// Define status constants to use in the component
+const staticHealthCheckResultStatus = {
+  WAITING_FOR_APPROVAL: "Waiting for Approval",
+  COMPLETED: "Completed",
+  FOLLOW_UP_REQUIRED: "FollowUpRequired",
+  CANCELLED_COMPLETELY: "CancelledCompletely",
+  CANCELLED_FOR_ADJUSTMENT: "CancelledForAdjustment",
+  NO_FOLLOW_UP_REQUIRED: "NoFollowUpRequired",
+  SOFT_DELETED: "SoftDeleted",
+};
+
 // Đăng ký các thành phần ChartJS
 ChartJS.register(
   ArcElement,
@@ -102,6 +113,7 @@ const formatDateTime = (datetime: string | undefined) => {
 };
 
 const DEFAULT_VISIBLE_COLUMNS = [
+  "code",
   "patient",
   "checkupDate",
   "staff",
@@ -140,9 +152,12 @@ export function HealthCheckResultManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
+  const [codeSearch, setCodeSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | undefined>(undefined);
+  const [showDefaultFilter, setShowDefaultFilter] = useState(true);
   const [sortBy, setSortBy] = useState("CheckupDate");
   const [ascending, setAscending] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(DEFAULT_VISIBLE_COLUMNS);
@@ -186,9 +201,49 @@ export function HealthCheckResultManagement() {
         setStatistics(response.data);
       } else {
         toast.error(response.message || "Không thể tải thống kê");
+        // Handle the error case gracefully with default data
+        setStatistics({
+          totalResults: 0,
+          statusDistribution: {
+            waitingForApproval: 0,
+            followUpRequired: 0,
+            noFollowUpRequired: 0,
+            completed: 0,
+            cancelledCompletely: 0,
+            cancelledForAdjustment: 0,
+            softDeleted: 0
+          },
+          followUpStatistics: {
+            totalFollowUps: 0,
+            upcomingFollowUps: 0,
+            overdueFollowUps: 0,
+            followUpsToday: 0
+          },
+          monthlyDistribution: []
+        });
       }
     } catch (error) {
       toast.error("Không thể tải thống kê");
+      // Handle the error case gracefully with default data
+      setStatistics({
+        totalResults: 0,
+        statusDistribution: {
+          waitingForApproval: 0,
+          followUpRequired: 0,
+          noFollowUpRequired: 0,
+          completed: 0,
+          cancelledCompletely: 0,
+          cancelledForAdjustment: 0,
+          softDeleted: 0
+        },
+        followUpStatistics: {
+          totalFollowUps: 0,
+          upcomingFollowUps: 0,
+          overdueFollowUps: 0,
+          followUpsToday: 0
+        },
+        monthlyDistribution: []
+      });
     } finally {
       setStatsLoading(false);
     }
@@ -210,6 +265,7 @@ export function HealthCheckResultManagement() {
       const response = await getAllHealthCheckResults(
         currentPage,
         pageSize,
+        codeSearch || undefined,
         userSearch || undefined,
         staffSearch || undefined,
         sortBy,
@@ -223,8 +279,17 @@ export function HealthCheckResultManagement() {
       );
 
       if (response.isSuccess) {
-        setHealthCheckResults(response.data);
-        setTotal(response.totalRecords);
+        if (showDefaultFilter && !statusFilter) {
+          const filteredResults = response.data.filter(
+            (result: HealthCheckResultsResponseDTO) => 
+              result.status === 'Completed' || result.status === 'CancelledCompletely'
+          );
+          setHealthCheckResults(filteredResults);
+          setTotal(filteredResults.length);
+        } else {
+          setHealthCheckResults(response.data);
+          setTotal(response.totalRecords);
+        }
       } else {
         toast.error(response.message || "Không thể tải danh sách kết quả khám");
       }
@@ -236,6 +301,7 @@ export function HealthCheckResultManagement() {
   }, [
     currentPage,
     pageSize,
+    codeSearch,
     userSearch,
     staffSearch,
     sortBy,
@@ -244,6 +310,7 @@ export function HealthCheckResultManagement() {
     checkupDateRange,
     followUpRequired,
     followUpDateRange,
+    showDefaultFilter,
   ]);
 
   useEffect(() => {
@@ -373,6 +440,7 @@ export function HealthCheckResultManagement() {
       await exportHealthCheckResultsToExcel(
         currentPage,
         pageSize,
+        codeSearch || undefined,
         userSearch || undefined,
         staffSearch || undefined,
         sortBy,
@@ -385,11 +453,19 @@ export function HealthCheckResultManagement() {
         followUpEndDate
       );
     } catch (error) {
-      toast.error("Không thể xuất file Excel");
+      toast.error("Không thể xuất Excel");
     }
   };
 
   const ALL_COLUMNS = [
+    {
+      key: "code",
+      title: "Mã kết quả khám",
+      render: (record: HealthCheckResultsResponseDTO) => (
+        <span>{record.healthCheckResultCode}</span>
+      ),
+      hidden: !visibleColumns.includes("code"),
+    },
     {
       key: "patient",
       title: "Bệnh nhân",
@@ -820,48 +896,86 @@ export function HealthCheckResultManagement() {
             Quản lý kết quả khám
           </Typography.Title>
         </Col>
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <Input
+            placeholder="Tìm theo mã kết quả khám"
+            value={codeSearch}
+            onChange={(e) => setCodeSearch(e.target.value)}
+            prefix={<SearchOutlined />}
+            allowClear
+          />
+        </Col>
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <Input
+            placeholder="Tìm theo bệnh nhân"
+            value={userSearch}
+            onChange={(e) => setUserSearch(e.target.value)}
+            prefix={<SearchOutlined />}
+            allowClear
+          />
+        </Col>
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <Input
+            placeholder="Tìm theo bác sĩ/y tá"
+            value={staffSearch}
+            onChange={(e) => setStaffSearch(e.target.value)}
+            prefix={<SearchOutlined />}
+            allowClear
+          />
+        </Col>
         <Col span={24}>
           <Space size="middle" wrap>
-            <Input
-              placeholder="Tìm theo bệnh nhân"
-              value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
-              prefix={<SearchOutlined />}
-              style={{ width: 200 }}
-              allowClear
-            />
-            <Input
-              placeholder="Tìm theo bác sĩ/y tá"
-              value={staffSearch}
-              onChange={(e) => setStaffSearch(e.target.value)}
-              prefix={<SearchOutlined />}
-              style={{ width: 200 }}
-              allowClear
-            />
             <Select
               placeholder="Lọc theo trạng thái"
-              onChange={(value) => setStatusFilter(value)}
-              style={{ width: 150 }}
+              onChange={(value) => {
+                if (value === 'ALL') {
+                  setStatusFilter(undefined);
+                  setShowDefaultFilter(false);
+                } else if (value === 'DEFAULT') {
+                  setStatusFilter(undefined);
+                  setShowDefaultFilter(true);
+                } else {
+                  setStatusFilter(value);
+                  setShowDefaultFilter(false);
+                }
+                setSelectedStatusFilter(value);
+              }}
+              style={{ width: 200 }}
               allowClear
+              value={selectedStatusFilter}
+              onClear={() => {
+                setStatusFilter(undefined);
+                setShowDefaultFilter(true);
+                setSelectedStatusFilter(undefined);
+              }}
               suffixIcon={<FilterOutlined />}
             >
-              <Option value="Pending">
-                <Badge status="warning" text="Pending" />
+              <Option value="DEFAULT">
+                <Badge status="default" text="Mặc định (Hoàn thành & Đã hủy)" />
               </Option>
-              <Option value="Approved">
-                <Badge status="processing" text="Approved" />
+              <Option value="ALL">
+                <Badge status="default" text="Tất cả trạng thái" />
+              </Option>
+              <Option value="Waiting for Approval">
+                <Badge status="warning" text="Chờ phê duyệt" />
               </Option>
               <Option value="Completed">
-                <Badge status="success" text="Completed" />
+                <Badge status="success" text="Hoàn thành" />
               </Option>
-              <Option value="Cancelled">
-                <Badge status="error" text="Cancelled" />
+              <Option value="FollowUpRequired">
+                <Badge status="processing" text="Yêu cầu tái khám" />
+              </Option>
+              <Option value="CancelledCompletely">
+                <Badge status="error" text="Đã hủy hoàn toàn" />
               </Option>
               <Option value="CancelledForAdjustment">
-                <Badge color="orange" text="CancelledForAdjustment" />
+                <Badge color="orange" text="Hủy để điều chỉnh" />
+              </Option>
+              <Option value="NoFollowUpRequired">
+                <Badge status="default" text="Không yêu cầu tái khám" />
               </Option>
               <Option value="SoftDeleted">
-                <Badge status="default" text="SoftDeleted" />
+                <Badge status="default" text="Đã xóa tạm thời" />
               </Option>
             </Select>
             <RangePicker

@@ -15,10 +15,13 @@ import {
   Badge,
   Empty,
   Skeleton,
+  Input,
+  DatePicker,
 } from "antd";
 import { toast } from "react-toastify";
 import {
   getAllHealthCheckResultHistories,
+  exportAllHealthCheckResultHistoriesToExcel,
   HealthCheckResultHistoryResponseDTO,
 } from "@/api/healthcheckresult";
 import {
@@ -28,12 +31,15 @@ import {
   CloseCircleOutlined,
   EditOutlined,
   PlusOutlined,
+  SearchOutlined,
+  FileExcelOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import moment from "moment";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 export const HealthCheckResultHistory: React.FC = () => {
   const router = useRouter();
@@ -44,13 +50,38 @@ export const HealthCheckResultHistory: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [sortBy, setSortBy] = useState("ActionDate");
   const [ascending, setAscending] = useState(false);
+  
+  // New search filters
+  const [healthCheckResultCode, setHealthCheckResultCode] = useState<string | undefined>();
+  const [action, setAction] = useState<string | undefined>();
+  const [actionDateRange, setActionDateRange] = useState<[moment.Moment | null, moment.Moment | null] | null>(null);
+  const [performedBySearch, setPerformedBySearch] = useState<string | undefined>();
+  const [previousStatus, setPreviousStatus] = useState<string | undefined>();
+  const [newStatus, setNewStatus] = useState<string | undefined>();
+  const [rejectionReason, setRejectionReason] = useState<string | undefined>();
+  const [exportLoading, setExportLoading] = useState(false);
 
   const fetchHistories = useCallback(async () => {
     setLoading(true);
     try {
+      const actionStartDate = actionDateRange && actionDateRange[0] 
+        ? actionDateRange[0].format('YYYY-MM-DD') 
+        : undefined;
+      const actionEndDate = actionDateRange && actionDateRange[1] 
+        ? actionDateRange[1].format('YYYY-MM-DD') 
+        : undefined;
+        
       const response = await getAllHealthCheckResultHistories(
         currentPage,
         pageSize,
+        healthCheckResultCode,
+        action,
+        actionStartDate,
+        actionEndDate,
+        performedBySearch,
+        previousStatus,
+        newStatus,
+        rejectionReason,
         sortBy,
         ascending
       );
@@ -66,11 +97,54 @@ export const HealthCheckResultHistory: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, sortBy, ascending]);
+  }, [
+    currentPage, 
+    pageSize, 
+    sortBy, 
+    ascending, 
+    healthCheckResultCode, 
+    action,
+    actionDateRange,
+    performedBySearch,
+    previousStatus,
+    newStatus,
+    rejectionReason
+  ]);
 
   useEffect(() => {
     fetchHistories();
   }, [fetchHistories]);
+
+  const handleExport = async () => {
+    setExportLoading(true);
+    try {
+      const actionStartDate = actionDateRange && actionDateRange[0] 
+        ? actionDateRange[0].format('YYYY-MM-DD') 
+        : undefined;
+      const actionEndDate = actionDateRange && actionDateRange[1] 
+        ? actionDateRange[1].format('YYYY-MM-DD') 
+        : undefined;
+        
+      await exportAllHealthCheckResultHistoriesToExcel(
+        currentPage,
+        pageSize,
+        healthCheckResultCode,
+        action,
+        actionStartDate,
+        actionEndDate,
+        performedBySearch,
+        previousStatus,
+        newStatus,
+        rejectionReason,
+        sortBy,
+        ascending
+      );
+    } catch (error) {
+      toast.error("Không thể xuất file Excel");
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   const formatDate = (date: string | undefined) => {
     if (!date) return '';
@@ -100,6 +174,11 @@ export const HealthCheckResultHistory: React.FC = () => {
   };
 
   const columns = [
+    {
+      title: "Mã kết quả khám",
+      dataIndex: "healthCheckResultCode",
+      width: '15%',
+    },
     {
       title: "Thao tác",
       render: (record: HealthCheckResultHistoryResponseDTO) => (
@@ -187,6 +266,103 @@ export const HealthCheckResultHistory: React.FC = () => {
               </Title>
             </Space>
           </Col>
+          
+          {/* Search filters */}
+          <Col span={24}>
+            <Row gutter={[16, 16]}>
+              <Col span={8}>
+                <Input
+                  placeholder="Tìm theo mã kết quả khám"
+                  prefix={<SearchOutlined />}
+                  value={healthCheckResultCode}
+                  onChange={(e) => setHealthCheckResultCode(e.target.value)}
+                  allowClear
+                />
+              </Col>
+              <Col span={8}>
+                <Input
+                  placeholder="Tìm theo người thực hiện"
+                  prefix={<SearchOutlined />}
+                  value={performedBySearch}
+                  onChange={(e) => setPerformedBySearch(e.target.value)}
+                  allowClear
+                />
+              </Col>
+              <Col span={8}>
+                <Select
+                  placeholder="Loại thao tác"
+                  value={action}
+                  onChange={(value) => setAction(value)}
+                  style={{ width: '100%' }}
+                  allowClear
+                >
+                  <Option value="Created">Tạo mới</Option>
+                  <Option value="Updated">Cập nhật</Option>
+                  <Option value="Approved">Phê duyệt</Option>
+                  <Option value="Cancelled">Hủy bỏ</Option>
+                </Select>
+              </Col>
+              <Col span={8}>
+                <RangePicker 
+                  style={{ width: '100%' }}
+                  placeholder={['Từ ngày', 'Đến ngày']}
+                  onChange={(dates) => setActionDateRange(dates as [moment.Moment | null, moment.Moment | null] | null)}
+                />
+              </Col>
+              <Col span={8}>
+                <Select
+                  placeholder="Trạng thái trước"
+                  value={previousStatus}
+                  onChange={(value) => setPreviousStatus(value)}
+                  style={{ width: '100%' }}
+                  allowClear
+                >
+                  <Option value="WaitingForApproval">Chờ phê duyệt</Option>
+                  <Option value="Approved">Đã phê duyệt</Option>
+                  <Option value="Completed">Hoàn thành</Option>
+                  <Option value="CancelledCompletely">Hủy hoàn toàn</Option>
+                  <Option value="CancelledForAdjustment">Hủy để điều chỉnh</Option>
+                </Select>
+              </Col>
+              <Col span={8}>
+                <Select
+                  placeholder="Trạng thái sau"
+                  value={newStatus}
+                  onChange={(value) => setNewStatus(value)}
+                  style={{ width: '100%' }}
+                  allowClear
+                >
+                  <Option value="WaitingForApproval">Chờ phê duyệt</Option>
+                  <Option value="Approved">Đã phê duyệt</Option>
+                  <Option value="Completed">Hoàn thành</Option>
+                  <Option value="CancelledCompletely">Hủy hoàn toàn</Option>
+                  <Option value="CancelledForAdjustment">Hủy để điều chỉnh</Option>
+                </Select>
+              </Col>
+              <Col span={24}>
+                <Space>
+                  <Button 
+                    type="primary" 
+                    icon={<SearchOutlined />} 
+                    onClick={() => {
+                      setCurrentPage(1);
+                      fetchHistories();
+                    }}
+                  >
+                    Tìm kiếm
+                  </Button>
+                  <Button 
+                    icon={<FileExcelOutlined />} 
+                    onClick={handleExport}
+                    loading={exportLoading}
+                  >
+                    Xuất Excel
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
+          </Col>
+          
           <Col span={24}>
             <Space size="middle" wrap>
               <Select
