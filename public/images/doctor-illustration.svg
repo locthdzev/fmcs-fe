@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <!-- Background circle -->
+  <circle cx="250" cy="250" r="200" fill="#f0f9ff" />
+  
+  <!-- Doctor figure -->
+  <g>
+    <!-- Head -->
+    <circle cx="250" cy="150" r="60" fill="#ffe0b2" />
+    
+    <!-- Hair -->
+    <path d="M250 110 C 200 110, 190 180, 210 190 L 290 190 C 310 180, 300 110, 250 110" fill="#4a4a4a" />
+    
+    <!-- Face -->
+    <circle cx="225" cy="145" r="5" fill="#333" /> <!-- Left eye -->
+    <circle cx="275" cy="145" r="5" fill="#333" /> <!-- Right eye -->
+    <path d="M240 170 C 250 180, 260 180, 270 170" stroke="#333" stroke-width="3" fill="none" /> <!-- Smile -->
+    
+    <!-- Stethoscope -->
+    <path d="M220 230 C 220 260, 280 260, 280 230" stroke="#2196f3" stroke-width="6" fill="none" />
+    <circle cx="220" cy="230" r="10" fill="#2196f3" />
+    <path d="M220 230 L 220 280" stroke="#2196f3" stroke-width="4" fill="none" />
+    
+    <!-- Body/Lab coat -->
+    <path d="M190 200 L 170 350 L 330 350 L 310 200" fill="#ffffff" stroke="#e0e0e0" stroke-width="2" />
+    <rect x="230" y="200" width="40" height="150" fill="#ffffff" />
+    
+    <!-- Collar -->
+    <path d="M230 210 L 250 240 L 270 210" fill="none" stroke="#e0e0e0" stroke-width="2" />
+    
+    <!-- Buttons -->
+    <circle cx="250" cy="250" r="5" fill="#e0e0e0" />
+    <circle cx="250" cy="280" r="5" fill="#e0e0e0" />
+    <circle cx="250" cy="310" r="5" fill="#e0e0e0" />
+  </g>
+  
+  <!-- Medical cross symbol -->
+  <g transform="translate(320, 160) scale(0.7)">
+    <rect x="40" y="0" width="20" height="80" fill="#ff5252" rx="5" ry="5" />
+    <rect x="0" y="40" width="100" height="20" fill="#ff5252" rx="5" ry="5" />
+    <circle cx="50" cy="50" r="40" fill="none" stroke="#ff5252" stroke-width="5" />
+  </g>
+</svg> 
