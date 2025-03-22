@@ -48,7 +48,6 @@ import {
   HealthCheckResultsStatisticsDTO,
   softDeleteHealthCheckResults,
   restoreSoftDeletedHealthCheckResults,
-  exportHealthCheckResultsToExcel,
   exportHealthCheckResultsToExcelWithConfig,
   HealthCheckResultExportConfigDTO,
   approveHealthCheckResult,

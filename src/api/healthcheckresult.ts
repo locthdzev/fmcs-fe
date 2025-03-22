@@ -399,51 +399,6 @@ export const restoreSoftDeletedHealthCheckResults = async (
   return response.data;
 };
 
-export const exportHealthCheckResultsToExcel = async (
-  page: number = 1,
-  pageSize: number = 10,
-  codeSearch?: string,
-  userSearch?: string,
-  staffSearch?: string,
-  sortBy: string = "CheckupDate",
-  ascending: boolean = false,
-  status?: string,
-  checkupStartDate?: string,
-  checkupEndDate?: string,
-  followUpRequired?: boolean,
-  followUpStartDate?: string,
-  followUpEndDate?: string
-) => {
-  const response = await api.get(
-    "/healthcheckresult-management/healthcheckresults/export-excel",
-    {
-      params: {
-        page,
-        pageSize,
-        codeSearch,
-        userSearch,
-        staffSearch,
-        sortBy,
-        ascending,
-        status,
-        checkupStartDate,
-        checkupEndDate,
-        followUpRequired,
-        followUpStartDate,
-        followUpEndDate,
-      },
-    }
-  );
-
-  if (response.data && response.data.isSuccess && response.data.data) {
-    window.open(response.data.data, "_blank");
-  } else {
-    toast.error(response.data.message || "Cannot export Excel file");
-  }
-
-  return response.data;
-};
-
 export const exportHealthCheckResultsToExcelWithConfig = async (
   config: HealthCheckResultExportConfigDTO,
   page: number = 1,
