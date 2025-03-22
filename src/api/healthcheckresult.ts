@@ -163,6 +163,18 @@ export interface HealthCheckResultHistoryResponseDTO {
   changeDetails?: string;
 }
 
+export interface HealthCheckResultHistoryExportConfigDTO {
+  exportAllPages: boolean;
+  includeAction: boolean;
+  includeActionDate: boolean;
+  includePerformedBy: boolean;
+  includePreviousStatus: boolean;
+  includeNewStatus: boolean;
+  includeRejectionReason: boolean;
+  includeChangeDetails: boolean;
+  groupByHealthCheckResultCode: boolean;
+}
+
 // API Functions
 export const getAllHealthCheckResults = async (
   page: number = 1,
@@ -476,7 +488,8 @@ export const getHealthCheckResultHistoriesByResultId = async (id: string) => {
   return response.data;
 };
 
-export const exportAllHealthCheckResultHistoriesToExcel = async (
+export const exportAllHealthCheckResultHistoriesToExcelWithConfig = async (
+  config: HealthCheckResultHistoryExportConfigDTO,
   page: number = 1,
   pageSize: number = 10,
   healthCheckResultCode?: string,
@@ -490,33 +503,43 @@ export const exportAllHealthCheckResultHistoriesToExcel = async (
   sortBy: string = "ActionDate",
   ascending: boolean = false
 ) => {
-  const response = await api.get(
-    "/healthcheckresult-management/healthcheckresults/histories/export-excel",
-    {
-      params: {
-        page,
-        pageSize,
-        healthCheckResultCode,
-        action,
-        actionStartDate,
-        actionEndDate,
-        performedBySearch,
-        previousStatus,
-        newStatus,
-        rejectionReason,
-        sortBy,
-        ascending,
-      },
+  try {
+    const response = await api.post(
+      "/healthcheckresult-management/healthcheckresults/histories/export-excel-config",
+      config,
+      {
+        params: {
+          page,
+          pageSize,
+          healthCheckResultCode,
+          action,
+          actionStartDate,
+          actionEndDate,
+          performedBySearch,
+          previousStatus,
+          newStatus,
+          rejectionReason,
+          sortBy,
+          ascending,
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data && response.data.isSuccess && response.data.data) {
+      window.open(response.data.data, "_blank");
+    } else {
+      toast.error(response.data.message || "Cannot export Excel file");
     }
-  );
 
-  if (response.data && response.data.isSuccess && response.data.data) {
-    window.open(response.data.data, "_blank");
-  } else {
-    toast.error(response.data.message || "Cannot export Excel file");
+    return response.data;
+  } catch (error: any) {
+    console.error("Export error:", error);
+    toast.error(error.response?.data?.message || "Cannot export Excel file");
+    throw error;
   }
-
-  return response.data;
 };
 
 export const exportHealthCheckResultHistoriesByResultIdToExcel = async (id: string) => {
