@@ -175,6 +175,19 @@ export interface HealthCheckResultHistoryExportConfigDTO {
   groupByHealthCheckResultCode: boolean;
 }
 
+export interface HealthCheckResultExportConfigDTO {
+  exportAllPages: boolean;
+  includeCode: boolean;
+  includeUser: boolean;
+  includeStaff: boolean;
+  includeCheckupDate: boolean;
+  includeFollowUp: boolean;
+  includeStatus: boolean;
+  includeCreatedAt: boolean;
+  includeUpdatedAt: boolean;
+  includeDetails: boolean;
+}
+
 // API Functions
 export const getAllHealthCheckResults = async (
   page: number = 1,
@@ -386,7 +399,8 @@ export const restoreSoftDeletedHealthCheckResults = async (
   return response.data;
 };
 
-export const exportHealthCheckResultsToExcel = async (
+export const exportHealthCheckResultsToExcelWithConfig = async (
+  config: HealthCheckResultExportConfigDTO,
   page: number = 1,
   pageSize: number = 10,
   codeSearch?: string,
@@ -401,34 +415,44 @@ export const exportHealthCheckResultsToExcel = async (
   followUpStartDate?: string,
   followUpEndDate?: string
 ) => {
-  const response = await api.get(
-    "/healthcheckresult-management/healthcheckresults/export-excel",
-    {
-      params: {
-        page,
-        pageSize,
-        codeSearch,
-        userSearch,
-        staffSearch,
-        sortBy,
-        ascending,
-        status,
-        checkupStartDate,
-        checkupEndDate,
-        followUpRequired,
-        followUpStartDate,
-        followUpEndDate,
-      },
+  try {
+    const response = await api.post(
+      "/healthcheckresult-management/healthcheckresults/export-excel-config",
+      config,
+      {
+        params: {
+          page,
+          pageSize,
+          codeSearch,
+          userSearch,
+          staffSearch,
+          sortBy,
+          ascending,
+          status,
+          checkupStartDate,
+          checkupEndDate,
+          followUpRequired,
+          followUpStartDate,
+          followUpEndDate,
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data && response.data.isSuccess && response.data.data) {
+      window.open(response.data.data, "_blank");
+    } else {
+      toast.error(response.data.message || "Cannot export Excel file");
     }
-  );
 
-  if (response.data && response.data.isSuccess && response.data.data) {
-    window.open(response.data.data, "_blank");
-  } else {
-    toast.error(response.data.message || "Cannot export Excel file");
+    return response.data;
+  } catch (error: any) {
+    console.error("Export error:", error);
+    toast.error(error.response?.data?.message || "Cannot export Excel file");
+    throw error;
   }
-
-  return response.data;
 };
 
 export const exportHealthCheckResultToPDF = async (id: string) => {
