@@ -23,6 +23,7 @@ import { InventoryRecordIcon } from "./icons/InventoryRecordIcon";
 import { InventoryHistoryIcon } from "./icons/InventoryHistoryIcon";
 import { InventoriesIcon } from "./icons/InventoriesIcon";
 import { NotificationIcon } from "./icons/NotificationIcon";
+import { AppointmentIcon } from "./icons/AppointmentIcon";
 import { HealthIcon } from "./icons/HealthIcon";
 
 export const data = [
@@ -92,6 +93,24 @@ export const data = [
           },
         ],
       },
+
+      {
+        title: "Manage Appointments",
+        icon: <AppointmentIcon />,
+        submenu: [
+          {
+            title: "Manage Appointments",
+            icon: <AppointmentIcon />,
+            link: "/appointment/management",
+          },
+          {
+            title: "Appointment",
+            icon: <AppointmentIcon />,
+            link: "/appointment",
+          },
+        ],
+      },
+
       {
         title: "Schedules",
         icon: <ScheduleIcon />,

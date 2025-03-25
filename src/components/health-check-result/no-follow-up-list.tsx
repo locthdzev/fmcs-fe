@@ -60,6 +60,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
   const [checkupDateRange, setCheckupDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
   const [sortBy, setSortBy] = useState("CheckupDate");
   const [ascending, setAscending] = useState(false);
+  const [codeSearch, setCodeSearch] = useState("");
 
   const fetchHealthCheckResults = useCallback(async () => {
     setLoading(true);
@@ -70,6 +71,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       const response = await getAllHealthCheckResults(
         currentPage,
         pageSize,
+        codeSearch || undefined,
         userSearch || undefined,
         staffSearch || undefined,
         sortBy,
@@ -98,7 +100,8 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
     staffSearch,
     sortBy,
     ascending,
-    checkupDateRange
+    checkupDateRange,
+    codeSearch
   ]);
 
   useEffect(() => {
@@ -134,6 +137,11 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
   };
 
   const columns = [
+    {
+      title: "Health Check Result Code",
+      dataIndex: "healthCheckResultCode",
+      render: (code: string) => <Text copyable>{code}</Text>,
+    },
     {
       title: "Patient",
       dataIndex: "user",
@@ -236,7 +244,15 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
           <Col span={24}>
             <Space size="middle" wrap>
               <Input
-                placeholder="Search by patient"
+                placeholder="Tìm theo mã kết quả khám"
+                value={codeSearch}
+                onChange={(e) => setCodeSearch(e.target.value)}
+                prefix={<SearchOutlined />}
+                style={{ width: 200 }}
+                allowClear
+              />
+              <Input
+                placeholder="Tìm theo bệnh nhân"
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
                 prefix={<SearchOutlined />}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Fragment } from "react";
 import {
   Button,
   Table,
@@ -22,6 +22,9 @@ import {
   Divider,
   Empty,
   Spin,
+  Modal,
+  Form,
+  Alert,
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -45,7 +48,8 @@ import {
   HealthCheckResultsStatisticsDTO,
   softDeleteHealthCheckResults,
   restoreSoftDeletedHealthCheckResults,
-  exportHealthCheckResultsToExcel,
+  exportHealthCheckResultsToExcelWithConfig,
+  HealthCheckResultExportConfigDTO,
   approveHealthCheckResult,
   completeHealthCheckResult,
   cancelCompletelyHealthCheckResult,
@@ -78,6 +82,17 @@ import { useRouter } from 'next/router';
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
+// Define status constants to use in the component
+const staticHealthCheckResultStatus = {
+  WAITING_FOR_APPROVAL: "Waiting for Approval",
+  COMPLETED: "Completed",
+  FOLLOW_UP_REQUIRED: "FollowUpRequired",
+  CANCELLED_COMPLETELY: "CancelledCompletely",
+  CANCELLED_FOR_ADJUSTMENT: "CancelledForAdjustment",
+  NO_FOLLOW_UP_REQUIRED: "NoFollowUpRequired",
+  SOFT_DELETED: "SoftDeleted",
+};
+
 // Đăng ký các thành phần ChartJS
 ChartJS.register(
   ArcElement,
@@ -102,6 +117,7 @@ const formatDateTime = (datetime: string | undefined) => {
 };
 
 const DEFAULT_VISIBLE_COLUMNS = [
+  "code",
   "patient",
   "checkupDate",
   "staff",
@@ -109,6 +125,19 @@ const DEFAULT_VISIBLE_COLUMNS = [
   "status",
   "actions",
 ];
+
+const DEFAULT_EXPORT_CONFIG = {
+  exportAllPages: true,
+  includeCode: true,
+  includeUser: true,
+  includeStaff: true,
+  includeCheckupDate: true,
+  includeFollowUp: true,
+  includeStatus: true,
+  includeCreatedAt: true,
+  includeUpdatedAt: true,
+  includeDetails: true
+};
 
 const getStatusColor = (status: string | undefined) => {
   switch (status) {
@@ -140,9 +169,12 @@ export function HealthCheckResultManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
+  const [codeSearch, setCodeSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | undefined>(undefined);
+  const [showDefaultFilter, setShowDefaultFilter] = useState(true);
   const [sortBy, setSortBy] = useState("CheckupDate");
   const [ascending, setAscending] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(DEFAULT_VISIBLE_COLUMNS);
@@ -152,6 +184,12 @@ export function HealthCheckResultManagement() {
   const [followUpDateRange, setFollowUpDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
   const [userOptions, setUserOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
   const [staffOptions, setStaffOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
+  const [healthCheckCodes, setHealthCheckCodes] = useState<string[]>([]);
+  const [healthCheckStaff, setHealthCheckStaff] = useState<{ id: string; fullName: string; email: string }[]>([]);
+  const [showExportConfigModal, setShowExportConfigModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportConfig, setExportConfig] = useState<HealthCheckResultExportConfigDTO>(DEFAULT_EXPORT_CONFIG);
+  const [form] = Form.useForm();
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -186,18 +224,105 @@ export function HealthCheckResultManagement() {
         setStatistics(response.data);
       } else {
         toast.error(response.message || "Không thể tải thống kê");
+        // Handle the error case gracefully with default data
+        setStatistics({
+          totalResults: 0,
+          statusDistribution: {
+            waitingForApproval: 0,
+            followUpRequired: 0,
+            noFollowUpRequired: 0,
+            completed: 0,
+            cancelledCompletely: 0,
+            cancelledForAdjustment: 0,
+            softDeleted: 0
+          },
+          followUpStatistics: {
+            totalFollowUps: 0,
+            upcomingFollowUps: 0,
+            overdueFollowUps: 0,
+            followUpsToday: 0
+          },
+          monthlyDistribution: []
+        });
       }
     } catch (error) {
       toast.error("Không thể tải thống kê");
+      // Handle the error case gracefully with default data
+      setStatistics({
+        totalResults: 0,
+        statusDistribution: {
+          waitingForApproval: 0,
+          followUpRequired: 0,
+          noFollowUpRequired: 0,
+          completed: 0,
+          cancelledCompletely: 0,
+          cancelledForAdjustment: 0,
+          softDeleted: 0
+        },
+        followUpStatistics: {
+          totalFollowUps: 0,
+          upcomingFollowUps: 0,
+          overdueFollowUps: 0,
+          followUpsToday: 0
+        },
+        monthlyDistribution: []
+      });
     } finally {
       setStatsLoading(false);
+    }
+  }, []);
+
+  const fetchHealthCheckCodesAndStaff = useCallback(async () => {
+    try {
+      // Fetch tất cả kết quả khám (không phân trang)
+      const response = await getAllHealthCheckResults(
+        1,
+        1000, // Số lượng lớn để lấy tất cả
+        undefined,
+        undefined,
+        undefined,
+        "Code",
+        true,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
+      );
+
+      if (response.isSuccess) {
+        // Lấy danh sách các mã duy nhất
+        const uniqueCodes = Array.from(new Set(
+          response.data.map((result: HealthCheckResultsResponseDTO) => result.healthCheckResultCode)
+        )) as string[];
+        setHealthCheckCodes(uniqueCodes);
+
+        // Lấy danh sách healthcare staff duy nhất từ kết quả khám
+        const staffMap = new Map<string, { id: string; fullName: string; email: string }>();
+        response.data.forEach((result: HealthCheckResultsResponseDTO) => {
+          if (result.staff && !staffMap.has(result.staff.id)) {
+            staffMap.set(result.staff.id, {
+              id: result.staff.id,
+              fullName: result.staff.fullName,
+              email: result.staff.email
+            });
+          }
+        });
+        
+        const uniqueStaff = Array.from(staffMap.values());
+        setHealthCheckStaff(uniqueStaff);
+      }
+    } catch (error) {
+      console.error("Không thể tải danh sách mã kết quả khám và staff:", error);
     }
   }, []);
 
   useEffect(() => {
     fetchUsers();
     fetchStatistics();
-  }, [fetchUsers, fetchStatistics]);
+    fetchHealthCheckCodesAndStaff();
+  }, [fetchUsers, fetchStatistics, fetchHealthCheckCodesAndStaff]);
 
   const fetchHealthCheckResults = useCallback(async () => {
     setLoading(true);
@@ -210,6 +335,7 @@ export function HealthCheckResultManagement() {
       const response = await getAllHealthCheckResults(
         currentPage,
         pageSize,
+        codeSearch || undefined,
         userSearch || undefined,
         staffSearch || undefined,
         sortBy,
@@ -223,8 +349,17 @@ export function HealthCheckResultManagement() {
       );
 
       if (response.isSuccess) {
-        setHealthCheckResults(response.data);
-        setTotal(response.totalRecords);
+        if (showDefaultFilter && !statusFilter) {
+          const filteredResults = response.data.filter(
+            (result: HealthCheckResultsResponseDTO) => 
+              result.status === 'Completed' || result.status === 'CancelledCompletely'
+          );
+          setHealthCheckResults(filteredResults);
+          setTotal(filteredResults.length);
+        } else {
+          setHealthCheckResults(response.data);
+          setTotal(response.totalRecords);
+        }
       } else {
         toast.error(response.message || "Không thể tải danh sách kết quả khám");
       }
@@ -236,6 +371,7 @@ export function HealthCheckResultManagement() {
   }, [
     currentPage,
     pageSize,
+    codeSearch,
     userSearch,
     staffSearch,
     sortBy,
@@ -244,6 +380,7 @@ export function HealthCheckResultManagement() {
     checkupDateRange,
     followUpRequired,
     followUpDateRange,
+    showDefaultFilter,
   ]);
 
   useEffect(() => {
@@ -364,32 +501,164 @@ export function HealthCheckResultManagement() {
   };
 
   const handleExport = async () => {
+    setExportLoading(true);
     try {
       const checkupStartDate = checkupDateRange[0] ? checkupDateRange[0].format('YYYY-MM-DD') : undefined;
       const checkupEndDate = checkupDateRange[1] ? checkupDateRange[1].format('YYYY-MM-DD') : undefined;
       const followUpStartDate = followUpDateRange[0] ? followUpDateRange[0].format('YYYY-MM-DD') : undefined;
       const followUpEndDate = followUpDateRange[1] ? followUpDateRange[1].format('YYYY-MM-DD') : undefined;
-
-      await exportHealthCheckResultsToExcel(
-        currentPage,
-        pageSize,
-        userSearch || undefined,
-        staffSearch || undefined,
-        sortBy,
-        ascending,
-        statusFilter,
-        checkupStartDate,
-        checkupEndDate,
-        followUpRequired,
-        followUpStartDate,
-        followUpEndDate
-      );
+      
+      // Đảm bảo đã load đầy đủ dữ liệu cho dropdown
+      if (healthCheckCodes.length === 0 || healthCheckStaff.length === 0) {
+        await fetchHealthCheckCodesAndStaff();
+      }
+      
+      // Cập nhật giá trị ban đầu cho form
+      form.setFieldsValue({
+        exportAllPages: true, // Mặc định chọn xuất tất cả
+        includeCode: true,
+        includeUser: true,
+        includeStaff: true,
+        includeCheckupDate: true,
+        includeFollowUp: true,
+        includeStatus: true,
+        includeCreatedAt: true,
+        includeUpdatedAt: true,
+        includeDetails: true,
+        // Giá trị lọc
+        filterCodeSearch: codeSearch,
+        filterUserSearch: userSearch,
+        filterStaffSearch: staffSearch,
+        filterStatus: statusFilter,
+        filterCheckupDateRange: checkupDateRange,
+        filterFollowUpRequired: followUpRequired,
+        filterFollowUpDateRange: followUpDateRange,
+        // Tùy chọn sắp xếp
+        sortOption: sortBy,
+        sortDirection: ascending ? "asc" : "desc"
+      });
+      
+      // Đặt giá trị mặc định cho exportConfig
+      setExportConfig({
+        ...DEFAULT_EXPORT_CONFIG,
+        exportAllPages: true // Đảm bảo chọn xuất tất cả
+      });
+      
+      setShowExportConfigModal(true);
+      setExportLoading(false);
     } catch (error) {
-      toast.error("Không thể xuất file Excel");
+      toast.error("Không thể xuất Excel");
+      setExportLoading(false);
     }
   };
 
+  const closeConfigModal = () => {
+    // Reset form và export config khi đóng modal
+    form.setFieldsValue({
+      ...DEFAULT_EXPORT_CONFIG,
+      exportAllPages: true // Đảm bảo mặc định là xuất tất cả
+    });
+    setExportConfig({
+      ...DEFAULT_EXPORT_CONFIG,
+      exportAllPages: true
+    });
+    setShowExportConfigModal(false);
+    setExportLoading(false);
+  };
+
+  const handleExportWithConfig = async () => {
+    setExportLoading(true);
+    try {
+      const values = form.getFieldsValue();
+      
+      // Build export configuration
+      const config = {
+        exportAllPages: values.exportAllPages || false,
+        includeCode: values.includeCode !== false,
+        includeUser: values.includeUser !== false,
+        includeStaff: values.includeStaff !== false,
+        includeCheckupDate: values.includeCheckupDate !== false,
+        includeFollowUp: values.includeFollowUp !== false,
+        includeStatus: values.includeStatus !== false,
+        includeCreatedAt: values.includeCreatedAt !== false,
+        includeUpdatedAt: values.includeUpdatedAt !== false,
+        includeDetails: values.includeDetails !== false,
+      };
+      
+      // Xử lý dữ liệu ngày tháng
+      const filterCheckupDateRange = values.filterCheckupDateRange;
+      const filterFollowUpDateRange = values.filterFollowUpDateRange;
+      
+      const modalCheckupStartDate = filterCheckupDateRange && filterCheckupDateRange[0] 
+        ? filterCheckupDateRange[0].format('YYYY-MM-DD') 
+        : undefined;
+      const modalCheckupEndDate = filterCheckupDateRange && filterCheckupDateRange[1] 
+        ? filterCheckupDateRange[1].format('YYYY-MM-DD') 
+        : undefined;
+      const modalFollowUpStartDate = filterFollowUpDateRange && filterFollowUpDateRange[0] 
+        ? filterFollowUpDateRange[0].format('YYYY-MM-DD') 
+        : undefined;
+      const modalFollowUpEndDate = filterFollowUpDateRange && filterFollowUpDateRange[1] 
+        ? filterFollowUpDateRange[1].format('YYYY-MM-DD') 
+        : undefined;
+      
+      // Xác định thứ tự sắp xếp
+      const modalSortBy = values.sortOption || sortBy;
+      const modalAscending = values.sortDirection === "asc";
+      
+      // Cập nhật lại giá trị sortBy và ascending
+      setSortBy(modalSortBy);
+      setAscending(modalAscending);
+
+      const checkupStartDate = checkupDateRange[0] ? checkupDateRange[0].format('YYYY-MM-DD') : undefined;
+      const checkupEndDate = checkupDateRange[1] ? checkupDateRange[1].format('YYYY-MM-DD') : undefined;
+      const followUpStartDate = followUpDateRange[0] ? followUpDateRange[0].format('YYYY-MM-DD') : undefined;
+      const followUpEndDate = followUpDateRange[1] ? followUpDateRange[1].format('YYYY-MM-DD') : undefined;
+      
+      // Sử dụng các giá trị từ modal thay vì giá trị ngoài
+      await exportHealthCheckResultsToExcelWithConfig(
+        config,
+        currentPage,
+        pageSize,
+        values.exportAllPages ? undefined : values.filterCodeSearch || codeSearch || undefined,
+        values.exportAllPages ? undefined : values.filterUserSearch || userSearch || undefined,
+        values.exportAllPages ? undefined : values.filterStaffSearch || staffSearch || undefined,
+        modalSortBy,
+        modalAscending,
+        values.exportAllPages ? undefined : values.filterStatus || statusFilter,
+        values.exportAllPages ? undefined : modalCheckupStartDate || checkupStartDate,
+        values.exportAllPages ? undefined : modalCheckupEndDate || checkupEndDate,
+        values.exportAllPages ? undefined : values.filterFollowUpRequired === undefined ? followUpRequired : values.filterFollowUpRequired,
+        values.exportAllPages ? undefined : modalFollowUpStartDate || followUpStartDate,
+        values.exportAllPages ? undefined : modalFollowUpEndDate || followUpEndDate
+      );
+      
+      closeConfigModal();
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Không thể xuất Excel");
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleExportConfigChange = (changedValues: any) => {
+    setExportConfig(prev => ({ ...prev, ...changedValues }));
+  };
+
+  const isExportAllPages = () => {
+    return form.getFieldValue('exportAllPages');
+  };
+
   const ALL_COLUMNS = [
+    {
+      key: "code",
+      title: "Mã kết quả khám",
+      render: (record: HealthCheckResultsResponseDTO) => (
+        <span>{record.healthCheckResultCode}</span>
+      ),
+      hidden: !visibleColumns.includes("code"),
+    },
     {
       key: "patient",
       title: "Bệnh nhân",
@@ -820,48 +1089,86 @@ export function HealthCheckResultManagement() {
             Quản lý kết quả khám
           </Typography.Title>
         </Col>
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <Input
+            placeholder="Tìm theo mã kết quả khám"
+            value={codeSearch}
+            onChange={(e) => setCodeSearch(e.target.value)}
+            prefix={<SearchOutlined />}
+            allowClear
+          />
+        </Col>
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <Input
+            placeholder="Tìm theo bệnh nhân"
+            value={userSearch}
+            onChange={(e) => setUserSearch(e.target.value)}
+            prefix={<SearchOutlined />}
+            allowClear
+          />
+        </Col>
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <Input
+            placeholder="Tìm theo bác sĩ/y tá"
+            value={staffSearch}
+            onChange={(e) => setStaffSearch(e.target.value)}
+            prefix={<SearchOutlined />}
+            allowClear
+          />
+        </Col>
         <Col span={24}>
           <Space size="middle" wrap>
-            <Input
-              placeholder="Tìm theo bệnh nhân"
-              value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
-              prefix={<SearchOutlined />}
-              style={{ width: 200 }}
-              allowClear
-            />
-            <Input
-              placeholder="Tìm theo bác sĩ/y tá"
-              value={staffSearch}
-              onChange={(e) => setStaffSearch(e.target.value)}
-              prefix={<SearchOutlined />}
-              style={{ width: 200 }}
-              allowClear
-            />
             <Select
               placeholder="Lọc theo trạng thái"
-              onChange={(value) => setStatusFilter(value)}
-              style={{ width: 150 }}
+              onChange={(value) => {
+                if (value === 'ALL') {
+                  setStatusFilter(undefined);
+                  setShowDefaultFilter(false);
+                } else if (value === 'DEFAULT') {
+                  setStatusFilter(undefined);
+                  setShowDefaultFilter(true);
+                } else {
+                  setStatusFilter(value);
+                  setShowDefaultFilter(false);
+                }
+                setSelectedStatusFilter(value);
+              }}
+              style={{ width: 200 }}
               allowClear
+              value={selectedStatusFilter}
+              onClear={() => {
+                setStatusFilter(undefined);
+                setShowDefaultFilter(true);
+                setSelectedStatusFilter(undefined);
+              }}
               suffixIcon={<FilterOutlined />}
             >
-              <Option value="Pending">
-                <Badge status="warning" text="Pending" />
+              <Option value="DEFAULT">
+                <Badge status="default" text="Mặc định (Hoàn thành & Đã hủy)" />
               </Option>
-              <Option value="Approved">
-                <Badge status="processing" text="Approved" />
+              <Option value="ALL">
+                <Badge status="default" text="Tất cả trạng thái" />
+              </Option>
+              <Option value="Waiting for Approval">
+                <Badge status="warning" text="Chờ phê duyệt" />
               </Option>
               <Option value="Completed">
-                <Badge status="success" text="Completed" />
+                <Badge status="success" text="Hoàn thành" />
               </Option>
-              <Option value="Cancelled">
-                <Badge status="error" text="Cancelled" />
+              <Option value="FollowUpRequired">
+                <Badge status="processing" text="Yêu cầu tái khám" />
+              </Option>
+              <Option value="CancelledCompletely">
+                <Badge status="error" text="Đã hủy hoàn toàn" />
               </Option>
               <Option value="CancelledForAdjustment">
-                <Badge color="orange" text="CancelledForAdjustment" />
+                <Badge color="orange" text="Hủy để điều chỉnh" />
+              </Option>
+              <Option value="NoFollowUpRequired">
+                <Badge status="default" text="Không yêu cầu tái khám" />
               </Option>
               <Option value="SoftDeleted">
-                <Badge status="default" text="SoftDeleted" />
+                <Badge status="default" text="Đã xóa tạm thời" />
               </Option>
             </Select>
             <RangePicker
@@ -1004,34 +1311,341 @@ export function HealthCheckResultManagement() {
   );
 
   return (
-    <div className="p-6">
-      {statisticsCards}
-      {topContent}
-      <Card className="shadow-sm">
-        <Table
-          columns={columns}
-          dataSource={healthCheckResults}
-          loading={loading}
-          pagination={false}
-          rowKey="id"
-          rowSelection={{
-            selectedRowKeys,
-            onChange: (keys) => setSelectedRowKeys(keys),
+    <Fragment>
+      <div className="p-6">
+        {statisticsCards}
+        {topContent}
+        <Card className="shadow-sm">
+          <Table
+            columns={columns}
+            dataSource={healthCheckResults}
+            loading={loading}
+            pagination={false}
+            rowKey="id"
+            rowSelection={{
+              selectedRowKeys,
+              onChange: (keys) => setSelectedRowKeys(keys),
+            }}
+            className="border rounded-lg"
+          />
+        </Card>
+        {bottomContent}
+        <CreateModal
+          visible={isCreateModalVisible}
+          onClose={() => setIsCreateModalVisible(false)}
+          onSuccess={() => {
+            fetchHealthCheckResults();
+            fetchStatistics();
           }}
-          className="border rounded-lg"
+          userOptions={userOptions}
+          staffOptions={staffOptions}
         />
-      </Card>
-      {bottomContent}
-      <CreateModal
-        visible={isCreateModalVisible}
-        onClose={() => setIsCreateModalVisible(false)}
-        onSuccess={() => {
-          fetchHealthCheckResults();
-          fetchStatistics();
-        }}
-        userOptions={userOptions}
-        staffOptions={staffOptions}
-      />
-    </div>
+      </div>
+      
+      <Modal
+        title="Cấu hình xuất file Excel"
+        open={showExportConfigModal}
+        onCancel={closeConfigModal}
+        width={800}
+        footer={[
+          <Button key="cancel" onClick={closeConfigModal}>
+            Hủy
+          </Button>,
+          <Button 
+            key="submit" 
+            type="primary" 
+            loading={exportLoading}
+            onClick={handleExportWithConfig}
+          >
+            Xuất file
+          </Button>
+        ]}
+        maskClosable={true}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={exportConfig}
+          onValuesChange={handleExportConfigChange}
+        >
+          <Row gutter={[16, 8]}>
+            <Col span={24}>
+              <Typography.Title level={5}>Tùy chọn cơ bản</Typography.Title>
+            </Col>
+            
+            <Col span={24}>
+              <Form.Item 
+                name="exportAllPages" 
+                valuePropName="checked"
+                style={{ marginBottom: "12px" }}
+              >
+                <Checkbox>Xuất tất cả dữ liệu (bỏ qua phân trang)</Checkbox>
+              </Form.Item>
+            </Col>
+            
+            <Col span={24} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
+              <Typography.Title level={5}>Bộ lọc dữ liệu</Typography.Title>
+            </Col>
+            
+            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
+              <Form.Item label="Tìm theo mã" name="filterCodeSearch">
+                <Select
+                  placeholder="Tìm theo mã kết quả khám"
+                  allowClear
+                  showSearch
+                  defaultValue={codeSearch || undefined}
+                  style={{ width: '100%' }}
+                  filterOption={(input, option) =>
+                    (option?.children as unknown as string)?.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                  }
+                >
+                  {healthCheckCodes.map(code => (
+                    <Option key={code} value={code}>
+                      {code}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            
+            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
+              <Form.Item label="Tìm theo bệnh nhân" name="filterUserSearch">
+                <Select
+                  placeholder="Tìm theo bệnh nhân"
+                  allowClear
+                  showSearch
+                  defaultValue={userSearch || undefined}
+                  style={{ width: '100%' }}
+                  filterOption={(input, option) =>
+                    (option?.children as unknown as string)?.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                  }
+                  optionFilterProp="children"
+                >
+                  {userOptions.map(user => (
+                    <Option key={user.id} value={user.fullName}>
+                      {user.fullName} ({user.email})
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            
+            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
+              <Form.Item label="Tìm theo bác sĩ/y tá" name="filterStaffSearch">
+                <Select
+                  placeholder="Tìm theo healthcare staff"
+                  allowClear
+                  showSearch
+                  defaultValue={staffSearch || undefined}
+                  style={{ width: '100%' }}
+                  filterOption={(input, option) =>
+                    (option?.children as unknown as string)?.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                  }
+                  optionFilterProp="children"
+                >
+                  {healthCheckStaff.map(staff => (
+                    <Option key={staff.id} value={staff.fullName}>
+                      {staff.fullName} ({staff.email})
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            
+            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
+              <Form.Item label="Trạng thái" name="filterStatus">
+                <Select
+                  placeholder="Trạng thái"
+                  allowClear
+                  style={{ width: '100%' }}
+                  defaultValue={statusFilter}
+                >
+                  <Option value="Waiting for Approval">Chờ phê duyệt</Option>
+                  <Option value="Completed">Hoàn thành</Option>
+                  <Option value="FollowUpRequired">Yêu cầu tái khám</Option>
+                  <Option value="CancelledCompletely">Đã hủy hoàn toàn</Option>
+                  <Option value="CancelledForAdjustment">Hủy để điều chỉnh</Option>
+                  <Option value="NoFollowUpRequired">Không yêu cầu tái khám</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            
+            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
+              <Form.Item label="Khoảng thời gian khám" name="filterCheckupDateRange">
+                <RangePicker
+                  placeholder={["Từ ngày khám", "Đến ngày khám"]}
+                  style={{ width: '100%' }}
+                  defaultValue={checkupDateRange as any}
+                />
+              </Form.Item>
+            </Col>
+            
+            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
+              <Form.Item label="Yêu cầu tái khám" name="filterFollowUpRequired">
+                <Select
+                  placeholder="Yêu cầu tái khám"
+                  allowClear
+                  style={{ width: '100%' }}
+                  defaultValue={followUpRequired}
+                >
+                  <Option value={true}>Có</Option>
+                  <Option value={false}>Không</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            
+            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
+              <Form.Item label="Khoảng thời gian tái khám" name="filterFollowUpDateRange">
+                <RangePicker
+                  placeholder={["Từ ngày tái khám", "Đến ngày tái khám"]}
+                  style={{ width: '100%' }}
+                  disabled={form.getFieldValue('filterFollowUpRequired') === false}
+                  defaultValue={followUpDateRange as any}
+                />
+              </Form.Item>
+            </Col>
+            
+            <Col span={24}>
+              <Typography.Title level={5}>Tùy chọn sắp xếp</Typography.Title>
+            </Col>
+            
+            <Col span={12}>
+              <Form.Item 
+                label="Sắp xếp theo"
+                name="sortOption"
+              >
+                <Select
+                  style={{ width: '100%' }}
+                  defaultValue={sortBy}
+                >
+                  <Option value="CheckupDate">Ngày khám</Option>
+                  <Option value="Code">Mã kết quả khám</Option>
+                  <Option value="CreatedAt">Thời gian tạo</Option>
+                  <Option value="UpdatedAt">Thời gian cập nhật</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            
+            <Col span={12}>
+              <Form.Item 
+                label="Thứ tự sắp xếp"
+                name="sortDirection"
+              >
+                <Select
+                  style={{ width: '100%' }}
+                  defaultValue={ascending ? "asc" : "desc"}
+                >
+                  <Option value="asc">Tăng dần</Option>
+                  <Option value="desc">Giảm dần</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            
+            <Col span={24}>
+              <Divider />
+              <Typography.Title level={5}>Chọn các cột hiển thị</Typography.Title>
+            </Col>
+            
+            <Col span={8}>
+              <Form.Item 
+                name="includeCode" 
+                valuePropName="checked"
+                style={{ marginBottom: "8px" }}
+              >
+                <Checkbox>Mã kết quả khám</Checkbox>
+              </Form.Item>
+            </Col>
+            
+            <Col span={8}>
+              <Form.Item 
+                name="includeUser" 
+                valuePropName="checked"
+                style={{ marginBottom: "8px" }}
+              >
+                <Checkbox>Thông tin bệnh nhân</Checkbox>
+              </Form.Item>
+            </Col>
+            
+            <Col span={8}>
+              <Form.Item 
+                name="includeStaff" 
+                valuePropName="checked"
+                style={{ marginBottom: "8px" }}
+              >
+                <Checkbox>Thông tin nhân viên y tế</Checkbox>
+              </Form.Item>
+            </Col>
+            
+            <Col span={8}>
+              <Form.Item 
+                name="includeCheckupDate" 
+                valuePropName="checked"
+                style={{ marginBottom: "8px" }}
+              >
+                <Checkbox>Ngày khám</Checkbox>
+              </Form.Item>
+            </Col>
+            
+            <Col span={8}>
+              <Form.Item 
+                name="includeFollowUp" 
+                valuePropName="checked"
+                style={{ marginBottom: "8px" }}
+              >
+                <Checkbox>Thông tin tái khám</Checkbox>
+              </Form.Item>
+            </Col>
+            
+            <Col span={8}>
+              <Form.Item 
+                name="includeStatus" 
+                valuePropName="checked"
+                style={{ marginBottom: "8px" }}
+              >
+                <Checkbox>Trạng thái</Checkbox>
+              </Form.Item>
+            </Col>
+            
+            <Col span={8}>
+              <Form.Item 
+                name="includeCreatedAt" 
+                valuePropName="checked"
+                style={{ marginBottom: "8px" }}
+              >
+                <Checkbox>Thời gian tạo</Checkbox>
+              </Form.Item>
+            </Col>
+            
+            <Col span={8}>
+              <Form.Item 
+                name="includeUpdatedAt" 
+                valuePropName="checked"
+                style={{ marginBottom: "8px" }}
+              >
+                <Checkbox>Thông tin cập nhật</Checkbox>
+              </Form.Item>
+            </Col>
+
+            <Col span={8}>
+              <Form.Item 
+                name="includeDetails" 
+                valuePropName="checked"
+                style={{ marginBottom: "8px" }}
+              >
+                <Checkbox>Chi tiết kết quả khám</Checkbox>
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Alert
+            message="Thông tin về định dạng Excel"
+            description="Khi chọn 'Chi tiết kết quả khám', các thông tin chi tiết sẽ được hiển thị cùng với kết quả khám trên cùng một worksheet. Mỗi kết quả khám có nhiều chi tiết sẽ được hiển thị trên nhiều dòng khác nhau."
+            type="info"
+            showIcon
+            style={{ marginTop: "16px" }}
+          />
+        </Form>
+      </Modal>
+    </Fragment>
   );
 } 
