@@ -246,6 +246,22 @@ export const data = [
         icon: <PeriodicHealthCheckupsIcon />,
         link: "/periodic-health-checkup/management",
       },
+      {
+        title: "Prescriptions",
+        icon: <DrugIcon />,
+        submenu: [
+          {
+            title: "Management",
+            icon: <DrugIcon />,
+            link: "/prescription/management",
+          },
+          {
+            title: "History",
+            icon: <ArchiveIcon />,
+            link: "/prescription/history",
+          },
+        ],
+      },
     ],
   },
   {
@@ -272,3 +288,4 @@ export const data = [
     ],
   },
 ];
+

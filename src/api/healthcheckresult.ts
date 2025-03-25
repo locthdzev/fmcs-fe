@@ -205,35 +205,55 @@ export const getAllHealthCheckResults = async (
   followUpEndDate?: string,
   followUpStatus?: string
 ) => {
-  const response = await api.get(
-    "/healthcheckresult-management/healthcheckresults",
-    {
-      params: {
-        page,
-        pageSize,
-        codeSearch,
-        userSearch,
-        staffSearch,
-        sortBy,
-        ascending,
-        status,
-        checkupStartDate,
-        checkupEndDate,
-        followUpRequired,
-        followUpStartDate,
-        followUpEndDate,
-        followUpStatus,
-      },
+  try {
+    const response = await api.get(
+      "/healthcheckresult-management/healthcheckresults",
+      {
+        params: {
+          page,
+          pageSize,
+          codeSearch,
+          userSearch,
+          staffSearch,
+          sortBy,
+          ascending,
+          status,
+          checkupStartDate,
+          checkupEndDate,
+          followUpRequired,
+          followUpStartDate,
+          followUpEndDate,
+          followUpStatus,
+        },
+      }
+    );
+    const data = response.data;
+    // Map isSuccess to success
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
     }
-  );
-  return response.data;
+    return data;
+  } catch (error) {
+    console.error("Error fetching health check results:", error);
+    throw error;
+  }
 };
 
 export const getHealthCheckResultById = async (id: string) => {
-  const response = await api.get(
-    `/healthcheckresult-management/healthcheckresults/${id}`
-  );
-  return response.data;
+  try {
+    const response = await api.get(
+      `/healthcheckresult-management/healthcheckresults/${id}`
+    );
+    const data = response.data;
+    // Map isSuccess to success
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching health check result:", error);
+    throw error;
+  }
 };
 
 export const createHealthCheckResult = async (
@@ -273,11 +293,17 @@ export const getHealthCheckResultsStatistics = async () => {
     const response = await api.get(
       "/healthcheckresult-management/healthcheckresults/statistics"
     );
-    return response.data;
+    const data = response.data;
+    // Map isSuccess to success
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
   } catch (error) {
     console.error("Error fetching statistics:", error);
     return {
       isSuccess: false,
+      success: false,
       message: "Failed to load statistics",
       data: {
         totalResults: 0,
@@ -358,11 +384,21 @@ export const cancelFollowUp = async (id: string) => {
 export const softDeleteHealthCheckResults = async (
   healthCheckResultIds: string[]
 ) => {
-  const response = await api.put(
-    "/healthcheckresult-management/healthcheckresults/soft-delete",
-    healthCheckResultIds
-  );
-  return response.data;
+  try {
+    const response = await api.put(
+      "/healthcheckresult-management/healthcheckresults/soft-delete",
+      healthCheckResultIds
+    );
+    const data = response.data;
+    // Map isSuccess to success
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error soft deleting health check results:", error);
+    throw error;
+  }
 };
 
 export const getSoftDeletedHealthCheckResults = async (
@@ -392,11 +428,21 @@ export const getSoftDeletedHealthCheckResults = async (
 export const restoreSoftDeletedHealthCheckResults = async (
   healthCheckResultIds: string[]
 ) => {
-  const response = await api.put(
-    "/healthcheckresult-management/healthcheckresults/restore",
-    healthCheckResultIds
-  );
-  return response.data;
+  try {
+    const response = await api.put(
+      "/healthcheckresult-management/healthcheckresults/restore",
+      healthCheckResultIds
+    );
+    const data = response.data;
+    // Map isSuccess to success
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error restoring health check results:", error);
+    throw error;
+  }
 };
 
 export const exportHealthCheckResultsToExcelWithConfig = async (
