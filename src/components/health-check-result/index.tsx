@@ -220,7 +220,7 @@ export function HealthCheckResultManagement() {
     setStatsLoading(true);
     try {
       const response = await getHealthCheckResultsStatistics();
-      if (response.isSuccess) {
+      if (response.success) {
         setStatistics(response.data);
       } else {
         toast.error(response.message || "Không thể tải thống kê");
@@ -291,7 +291,7 @@ export function HealthCheckResultManagement() {
         undefined
       );
 
-      if (response.isSuccess) {
+      if (response.success) {
         // Lấy danh sách các mã duy nhất
         const uniqueCodes = Array.from(new Set(
           response.data.map((result: HealthCheckResultsResponseDTO) => result.healthCheckResultCode)
@@ -348,7 +348,7 @@ export function HealthCheckResultManagement() {
         followUpEndDate
       );
 
-      if (response.isSuccess) {
+      if (response.success) {
         if (showDefaultFilter && !statusFilter) {
           const filteredResults = response.data.filter(
             (result: HealthCheckResultsResponseDTO) => 
