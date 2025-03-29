@@ -35,6 +35,7 @@ import {
   cancelFollowUp,
   getHealthCheckResultHistoriesByResultId,
   HealthCheckResultHistoryResponseDTO,
+  exportHealthCheckResultHistoriesByResultIdToExcel,
 } from "@/api/healthcheckresult";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -52,6 +53,7 @@ import {
   CheckSquareOutlined,
   CloseSquareOutlined,
   UserOutlined,
+  FileExcelOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
@@ -220,6 +222,16 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
     }
   };
 
+  const handleExportHistoryToExcel = async () => {
+    if (!id) return;
+    try {
+      await exportHealthCheckResultHistoriesByResultIdToExcel(id);
+      toast.success("Xuất lịch sử kết quả khám ra Excel thành công!");
+    } catch (error) {
+      toast.error("Không thể xuất lịch sử ra file Excel");
+    }
+  };
+
   const formatDate = (date: string | undefined) => {
     if (!date) return '';
     return moment(date).format('DD/MM/YYYY');
@@ -247,6 +259,13 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
       default:
         return 'default';
     }
+  };
+
+  const getActionColor = (action: string): string => {
+    if (action.includes('Created')) return 'green';
+    if (action.includes('Updated') || action.includes('Approved')) return 'blue';
+    if (action.includes('Cancelled') || action.includes('Rejected')) return 'red';
+    return 'gray';
   };
 
   const renderActionButtons = () => {
@@ -404,7 +423,7 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
                 Quay lại
               </Button>
               <Title level={4} style={{ margin: 0 }}>
-                Chi tiết kết quả khám
+                Chi tiết kết quả khám - {healthCheckResult.healthCheckResultCode}
               </Title>
               <Tag color={getStatusColor(healthCheckResult.status)} className="ml-2">
                 {healthCheckResult.status}
@@ -438,6 +457,9 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
           </Col>
           <Col xs={24} md={12}>
             <Descriptions title="Thông tin khám" bordered column={1} size="small">
+              <Descriptions.Item label="Mã kết quả khám">
+                {healthCheckResult.healthCheckResultCode}
+              </Descriptions.Item>
               <Descriptions.Item label="Ngày khám">
                 {formatDate(healthCheckResult.checkupDate)}
               </Descriptions.Item>
@@ -622,54 +644,48 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
           }
           key="history"
         >
-          <Card>
+          <Card className="shadow-sm">
+            <Row justify="space-between" align="middle" className="mb-4">
+              <Col>
+                <Title level={5}>Lịch sử kết quả khám</Title>
+              </Col>
+              <Col>
+                <Button 
+                  type="primary" 
+                  icon={<FileExcelOutlined />} 
+                  onClick={handleExportHistoryToExcel}
+                >
+                  Xuất Excel
+                </Button>
+              </Col>
+            </Row>
+            
             {historiesLoading ? (
               <Skeleton active paragraph={{ rows: 6 }} />
             ) : histories.length > 0 ? (
-              <Timeline mode="left">
+              <Timeline>
                 {histories.map((history) => (
-                  <Timeline.Item
+                  <Timeline.Item 
                     key={history.id}
-                    label={formatDateTime(history.actionDate)}
-                    color={
-                      history.action.includes("Created")
-                        ? "green"
-                        : history.action.includes("Updated") ||
-                          history.action.includes("Approved")
-                        ? "blue"
-                        : history.action.includes("Cancelled") ||
-                          history.action.includes("Rejected")
-                        ? "red"
-                        : "gray"
-                    }
+                    color={getActionColor(history.action)}
                   >
-                    <div>
+                    <div className="flex flex-col">
                       <Text strong>{history.action}</Text>
-                      <div>
-                        <Text type="secondary">
-                          Người thực hiện: {history.performedBy?.fullName || "N/A"}
-                        </Text>
-                      </div>
+                      <Text type="secondary">
+                        {formatDateTime(history.actionDate)} bởi {history.performedBy?.fullName}
+                      </Text>
                       {history.previousStatus && history.newStatus && (
-                        <div>
-                          <Text type="secondary">
-                            Trạng thái: {history.previousStatus} =&gt; {history.newStatus}
-                          </Text>
-                        </div>
+                        <Text>
+                          Trạng thái: <Tag color={getStatusColor(history.previousStatus)}>{history.previousStatus}</Tag>
+                          {" → "}
+                          <Tag color={getStatusColor(history.newStatus)}>{history.newStatus}</Tag>
+                        </Text>
                       )}
                       {history.rejectionReason && (
-                        <div>
-                          <Text type="secondary">
-                            Lý do từ chối: {history.rejectionReason}
-                          </Text>
-                        </div>
+                        <Text>Lý do: {history.rejectionReason}</Text>
                       )}
                       {history.changeDetails && (
-                        <div>
-                          <Text type="secondary">
-                            Chi tiết thay đổi: {history.changeDetails}
-                          </Text>
-                        </div>
+                        <Text>Chi tiết: {history.changeDetails}</Text>
                       )}
                     </div>
                   </Timeline.Item>

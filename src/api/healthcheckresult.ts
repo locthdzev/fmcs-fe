@@ -2,7 +2,6 @@ import api from "./customize-axios";
 import { exportToExcel } from "./export";
 import { toast } from "react-toastify";
 
-// Interfaces
 export interface UserInfo {
   id: string;
   userName: string;
@@ -60,6 +59,7 @@ export interface TreatmentPlanInfo {
 
 export interface HealthCheckResultsResponseDTO {
   id: string;
+  healthCheckResultCode: string;
   userId: string;
   user: {
     id: string;
@@ -94,6 +94,7 @@ export interface HealthCheckResultsResponseDTO {
 
 export interface HealthCheckResultsIdResponseDTO {
   id: string;
+  healthCheckResultCode: string;
   userId: string;
   user: UserInfo;
   checkupDate: string;
@@ -152,6 +153,7 @@ export interface HealthCheckResultsStatisticsDTO {
 export interface HealthCheckResultHistoryResponseDTO {
   id: string;
   healthCheckResultId: string;
+  healthCheckResultCode: string;
   action: string;
   actionDate: string;
   performedBy: StaffInfo;
@@ -161,18 +163,36 @@ export interface HealthCheckResultHistoryResponseDTO {
   changeDetails?: string;
 }
 
-export interface EditCancelledHealthCheckResultDTO {
-  diagnosis: string;
-  treatmentPlan: string;
-  followUpRequired: boolean;
-  followUpDate?: string;
-  notes?: string;
+export interface HealthCheckResultHistoryExportConfigDTO {
+  exportAllPages: boolean;
+  includeAction: boolean;
+  includeActionDate: boolean;
+  includePerformedBy: boolean;
+  includePreviousStatus: boolean;
+  includeNewStatus: boolean;
+  includeRejectionReason: boolean;
+  includeChangeDetails: boolean;
+  groupByHealthCheckResultCode: boolean;
+}
+
+export interface HealthCheckResultExportConfigDTO {
+  exportAllPages: boolean;
+  includeCode: boolean;
+  includeUser: boolean;
+  includeStaff: boolean;
+  includeCheckupDate: boolean;
+  includeFollowUp: boolean;
+  includeStatus: boolean;
+  includeCreatedAt: boolean;
+  includeUpdatedAt: boolean;
+  includeDetails: boolean;
 }
 
 // API Functions
 export const getAllHealthCheckResults = async (
   page: number = 1,
   pageSize: number = 10,
+  codeSearch?: string,
   userSearch?: string,
   staffSearch?: string,
   sortBy: string = "CheckupDate",
@@ -185,33 +205,64 @@ export const getAllHealthCheckResults = async (
   followUpEndDate?: string,
   followUpStatus?: string
 ) => {
-  const response = await api.get("/healthcheckresult-management/healthcheckresults", {
-    params: {
-      page,
-      pageSize,
-      userSearch,
-      staffSearch,
-      sortBy,
-      ascending,
-      status,
-      checkupStartDate,
-      checkupEndDate,
-      followUpRequired,
-      followUpStartDate,
-      followUpEndDate,
-      followUpStatus,
-    },
-  });
-  return response.data;
+  try {
+    const response = await api.get(
+      "/healthcheckresult-management/healthcheckresults",
+      {
+        params: {
+          page,
+          pageSize,
+          codeSearch,
+          userSearch,
+          staffSearch,
+          sortBy,
+          ascending,
+          status,
+          checkupStartDate,
+          checkupEndDate,
+          followUpRequired,
+          followUpStartDate,
+          followUpEndDate,
+          followUpStatus,
+        },
+      }
+    );
+    const data = response.data;
+    // Map isSuccess to success
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching health check results:", error);
+    throw error;
+  }
 };
 
 export const getHealthCheckResultById = async (id: string) => {
-  const response = await api.get(`/healthcheckresult-management/healthcheckresults/${id}`);
-  return response.data;
+  try {
+    const response = await api.get(
+      `/healthcheckresult-management/healthcheckresults/${id}`
+    );
+    const data = response.data;
+    // Map isSuccess to success
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching health check result:", error);
+    throw error;
+  }
 };
 
-export const createHealthCheckResult = async (data: HealthCheckResultsCreateRequestDTO) => {
-  const response = await api.post("/healthcheckresult-management/healthcheckresults", data);
+export const createHealthCheckResult = async (
+  data: HealthCheckResultsCreateRequestDTO
+) => {
+  const response = await api.post(
+    "/healthcheckresult-management/healthcheckresults",
+    data
+  );
   return response.data;
 };
 
@@ -226,54 +277,8 @@ export const updateHealthCheckResult = async (
   return response.data;
 };
 
-export const getHealthCheckResultsByUserId = async (
-  userId: string,
-  page: number = 1,
-  pageSize: number = 10,
-  sortBy: string = "CheckupDate",
-  ascending: boolean = false,
-  status?: string
-) => {
-  const response = await api.get(
-    `/healthcheckresult-management/healthcheckresults/user/${userId}`,
-    {
-      params: {
-        page,
-        pageSize,
-        sortBy,
-        ascending,
-        status,
-      },
-    }
-  );
-  return response.data;
-};
-
-export const getHealthCheckResultsByStaffId = async (
-  staffId: string,
-  page: number = 1,
-  pageSize: number = 10,
-  sortBy: string = "CheckupDate",
-  ascending: boolean = false,
-  status?: string
-) => {
-  const response = await api.get(
-    `/healthcheckresult-management/healthcheckresults/staff/${staffId}`,
-    {
-      params: {
-        page,
-        pageSize,
-        sortBy,
-        ascending,
-        status,
-      },
-    }
-  );
-  return response.data;
-};
-
 export const scheduleFollowUp = async (id: string, followUpDate: string) => {
-  const response = await api.post(
+  const response = await api.put(
     `/healthcheckresult-management/healthcheckresults/${id}/schedule-follow-up`,
     null,
     {
@@ -284,63 +289,116 @@ export const scheduleFollowUp = async (id: string, followUpDate: string) => {
 };
 
 export const getHealthCheckResultsStatistics = async () => {
-  const response = await api.get("/healthcheckresult-management/healthcheckresults/statistics");
-  return response.data;
+  try {
+    const response = await api.get(
+      "/healthcheckresult-management/healthcheckresults/statistics"
+    );
+    const data = response.data;
+    // Map isSuccess to success
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching statistics:", error);
+    return {
+      isSuccess: false,
+      success: false,
+      message: "Failed to load statistics",
+      data: {
+        totalResults: 0,
+        statusDistribution: {
+          waitingForApproval: 0,
+          followUpRequired: 0,
+          noFollowUpRequired: 0,
+          completed: 0,
+          cancelledCompletely: 0,
+          cancelledForAdjustment: 0,
+          softDeleted: 0
+        },
+        followUpStatistics: {
+          totalFollowUps: 0,
+          upcomingFollowUps: 0,
+          overdueFollowUps: 0,
+          followUpsToday: 0
+        },
+        monthlyDistribution: []
+      }
+    };
+  }
 };
 
 export const approveHealthCheckResult = async (id: string) => {
-  const response = await api.post(
+  const response = await api.put(
     `/healthcheckresult-management/healthcheckresults/${id}/approve`
   );
   return response.data;
 };
 
-export const cancelCompletelyHealthCheckResult = async (id: string, reason: string) => {
-  const response = await api.post(
+export const cancelCompletelyHealthCheckResult = async (
+  id: string,
+  reason: string
+) => {
+  const response = await api.put(
     `/healthcheckresult-management/healthcheckresults/${id}/cancel-completely`,
     JSON.stringify(reason),
     {
       headers: {
-        'Content-Type': 'application/json'
-      }
+        "Content-Type": "application/json",
+      },
     }
   );
   return response.data;
 };
 
-export const cancelForAdjustmentHealthCheckResult = async (id: string, reason: string) => {
-  const response = await api.post(
+export const cancelForAdjustmentHealthCheckResult = async (
+  id: string,
+  reason: string
+) => {
+  const response = await api.put(
     `/healthcheckresult-management/healthcheckresults/${id}/cancel-for-adjustment`,
     JSON.stringify(reason),
     {
       headers: {
-        'Content-Type': 'application/json'
-      }
+        "Content-Type": "application/json",
+      },
     }
   );
   return response.data;
 };
 
 export const completeHealthCheckResult = async (id: string) => {
-  const response = await api.post(
+  const response = await api.put(
     `/healthcheckresult-management/healthcheckresults/${id}/complete`
   );
   return response.data;
 };
 
 export const cancelFollowUp = async (id: string) => {
-  const response = await api.post(
+  const response = await api.put(
     `/healthcheckresult-management/healthcheckresults/${id}/cancel-follow-up`
   );
   return response.data;
 };
 
-export const softDeleteHealthCheckResults = async (healthCheckResultIds: string[]) => {
-  const response = await api.post(
-    "/healthcheckresult-management/healthcheckresults/soft-delete",
-    healthCheckResultIds
-  );
-  return response.data;
+export const softDeleteHealthCheckResults = async (
+  healthCheckResultIds: string[]
+) => {
+  try {
+    const response = await api.put(
+      "/healthcheckresult-management/healthcheckresults/soft-delete",
+      healthCheckResultIds
+    );
+    const data = response.data;
+    // Map isSuccess to success
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error soft deleting health check results:", error);
+    throw error;
+  }
 };
 
 export const getSoftDeletedHealthCheckResults = async (
@@ -351,30 +409,47 @@ export const getSoftDeletedHealthCheckResults = async (
   sortBy: string = "CheckupDate",
   ascending: boolean = false
 ) => {
-  const response = await api.get("/healthcheckresult-management/healthcheckresults/soft-deleted", {
-    params: {
-      page,
-      pageSize,
-      userSearch,
-      staffSearch,
-      sortBy,
-      ascending,
-    },
-  });
-  return response.data;
-};
-
-export const restoreSoftDeletedHealthCheckResults = async (healthCheckResultIds: string[]) => {
-  const response = await api.post(
-    "/healthcheckresult-management/healthcheckresults/restore",
-    healthCheckResultIds
+  const response = await api.get(
+    "/healthcheckresult-management/healthcheckresults/soft-deleted",
+    {
+      params: {
+        page,
+        pageSize,
+        userSearch,
+        staffSearch,
+        sortBy,
+        ascending,
+      },
+    }
   );
   return response.data;
 };
 
-export const exportHealthCheckResultsToExcel = async (
+export const restoreSoftDeletedHealthCheckResults = async (
+  healthCheckResultIds: string[]
+) => {
+  try {
+    const response = await api.put(
+      "/healthcheckresult-management/healthcheckresults/restore",
+      healthCheckResultIds
+    );
+    const data = response.data;
+    // Map isSuccess to success
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error restoring health check results:", error);
+    throw error;
+  }
+};
+
+export const exportHealthCheckResultsToExcelWithConfig = async (
+  config: HealthCheckResultExportConfigDTO,
   page: number = 1,
   pageSize: number = 10,
+  codeSearch?: string,
   userSearch?: string,
   staffSearch?: string,
   sortBy: string = "CheckupDate",
@@ -386,60 +461,93 @@ export const exportHealthCheckResultsToExcel = async (
   followUpStartDate?: string,
   followUpEndDate?: string
 ) => {
-  const response = await api.get("/healthcheckresult-management/healthcheckresults/export-excel", {
-    params: {
-      page,
-      pageSize,
-      userSearch,
-      staffSearch,
-      sortBy,
-      ascending,
-      status,
-      checkupStartDate,
-      checkupEndDate,
-      followUpRequired,
-      followUpStartDate,
-      followUpEndDate,
+  try {
+    const response = await api.post(
+      "/healthcheckresult-management/healthcheckresults/export-excel-config",
+      config,
+      {
+        params: {
+          page,
+          pageSize,
+          codeSearch,
+          userSearch,
+          staffSearch,
+          sortBy,
+          ascending,
+          status,
+          checkupStartDate,
+          checkupEndDate,
+          followUpRequired,
+          followUpStartDate,
+          followUpEndDate,
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data && response.data.isSuccess && response.data.data) {
+      window.open(response.data.data, "_blank");
+    } else {
+      toast.error(response.data.message || "Cannot export Excel file");
     }
-  });
-  
-  if (response.data && response.data.isSuccess && response.data.data) {
-    // Sử dụng URL trả về từ API để mở trang download trực tiếp
-    window.open(response.data.data, '_blank');
-  } else {
-    toast.error(response.data.message || "Không thể xuất file Excel");
+
+    return response.data;
+  } catch (error: any) {
+    console.error("Export error:", error);
+    toast.error(error.response?.data?.message || "Cannot export Excel file");
+    throw error;
   }
-  
-  return response.data;
 };
 
 export const exportHealthCheckResultToPDF = async (id: string) => {
-  const response = await api.get(`/healthcheckresult-management/healthcheckresults/${id}/export-pdf`);
-  
+  const response = await api.get(
+    `/healthcheckresult-management/healthcheckresults/${id}/export-pdf`
+  );
+
   if (response.data && response.data.isSuccess && response.data.data) {
-    // Sử dụng URL trả về từ API để mở trang download trực tiếp
-    window.open(response.data.data, '_blank');
+    window.open(response.data.data, "_blank");
   } else {
-    toast.error(response.data.message || "Không thể xuất file PDF");
+    toast.error(response.data.message || "Cannot export Excel file");
   }
-  
+
   return response.data;
 };
 
 export const getAllHealthCheckResultHistories = async (
   page: number = 1,
   pageSize: number = 10,
+  healthCheckResultCode?: string,
+  action?: string,
+  actionStartDate?: string,
+  actionEndDate?: string,
+  performedBySearch?: string,
+  previousStatus?: string,
+  newStatus?: string,
+  rejectionReason?: string,
   sortBy: string = "ActionDate",
   ascending: boolean = false
 ) => {
-  const response = await api.get("/healthcheckresult-management/healthcheckresults/histories", {
-    params: {
-      page,
-      pageSize,
-      sortBy,
-      ascending,
-    },
-  });
+  const response = await api.get(
+    "/healthcheckresult-management/healthcheckresults/histories",
+    {
+      params: {
+        page,
+        pageSize,
+        healthCheckResultCode,
+        action,
+        actionStartDate,
+        actionEndDate,
+        performedBySearch,
+        previousStatus,
+        newStatus,
+        rejectionReason,
+        sortBy,
+        ascending,
+      },
+    }
+  );
   return response.data;
 };
 
@@ -450,12 +558,70 @@ export const getHealthCheckResultHistoriesByResultId = async (id: string) => {
   return response.data;
 };
 
-export const editCancelledHealthCheckResult = async (id: string, data: EditCancelledHealthCheckResultDTO) => {
+export const exportAllHealthCheckResultHistoriesToExcelWithConfig = async (
+  config: HealthCheckResultHistoryExportConfigDTO,
+  page: number = 1,
+  pageSize: number = 10,
+  healthCheckResultCode?: string,
+  action?: string,
+  actionStartDate?: string,
+  actionEndDate?: string,
+  performedBySearch?: string,
+  previousStatus?: string,
+  newStatus?: string,
+  rejectionReason?: string,
+  sortBy: string = "ActionDate",
+  ascending: boolean = false
+) => {
   try {
-    const response = await api.put(`/healthcheckresult-management/healthcheckresults/${id}/edit-cancelled`, data);
+    const response = await api.post(
+      "/healthcheckresult-management/healthcheckresults/histories/export-excel-config",
+      config,
+      {
+        params: {
+          page,
+          pageSize,
+          healthCheckResultCode,
+          action,
+          actionStartDate,
+          actionEndDate,
+          performedBySearch,
+          previousStatus,
+          newStatus,
+          rejectionReason,
+          sortBy,
+          ascending,
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data && response.data.isSuccess && response.data.data) {
+      window.open(response.data.data, "_blank");
+    } else {
+      toast.error(response.data.message || "Cannot export Excel file");
+    }
+
     return response.data;
-  } catch (error) {
-    console.error("Error editing cancelled health check result:", error);
+  } catch (error: any) {
+    console.error("Export error:", error);
+    toast.error(error.response?.data?.message || "Cannot export Excel file");
     throw error;
   }
-}; 
+};
+
+export const exportHealthCheckResultHistoriesByResultIdToExcel = async (id: string) => {
+  const response = await api.get(
+    `/healthcheckresult-management/healthcheckresults/${id}/histories/export-excel`
+  );
+
+  if (response.data && response.data.isSuccess && response.data.data) {
+    window.open(response.data.data, "_blank");
+  } else {
+    toast.error(response.data.message || "Cannot export Excel file");
+  }
+
+  return response.data;
+};
