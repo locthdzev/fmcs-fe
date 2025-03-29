@@ -7,9 +7,22 @@ import {
 } from "react-icons/io5";
 import { NotificationDropdown } from "./DropdownNotification";
 import DropdownUser from "./DropdownUser";
+import { Breadcrumb } from "antd";
+import { useRouter } from "next/router";
 
 export function TopBar() {
   const { openSidebar } = useDashboardContext();
+  const router = useRouter();
+  const pathSegments = router.pathname.split('/').filter(Boolean);
+
+  const breadcrumbItems = pathSegments.map((segment, index) => {
+    const path = '/' + pathSegments.slice(0, index + 1).join('/');
+    const title = segment.charAt(0).toUpperCase() + segment.slice(1);
+    return {
+      title,
+      href: path
+    };
+  });
 
   return (
     <header className="relative z-10 h-20 items-center bg-gray-100 shadow-lg shadow-gray-200">
@@ -27,12 +40,11 @@ export function TopBar() {
             </button>
           </div>
           <div className="container relative left-0 flex w-3/4">
-            <div className="group relative ml-8 hidden w-full items-center md:flex lg:w-72">
-              <IoSearch className="pointer-events-none absolute left-0 ml-4 hidden h-4 w-4 text-black sm:block" />
-              <input
-                type="text"
-                className="block w-full rounded-2xl bg-gray-200 py-1.5 pl-10 pr-4 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Search"
+            <div className="group relative ml-8 flex w-full items-center">
+              <Breadcrumb
+                items={breadcrumbItems}
+                className="text-black"
+                separator=">"
               />
             </div>
           </div>
