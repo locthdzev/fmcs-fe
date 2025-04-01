@@ -262,6 +262,22 @@ export const data = [
           },
         ],
       },
+      {
+        title: "Treatment Plans",
+        icon: <HealthIcon />,
+        submenu: [
+          {
+            title: "Management",
+            icon: <HealthIcon />,
+            link: "/treatment-plan/management",
+          },
+          {
+            title: "History",
+            icon: <ArchiveIcon />,
+            link: "/treatment-plan/history",
+          },
+        ],
+      },
     ],
   },
   {
