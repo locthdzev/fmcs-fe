@@ -61,7 +61,8 @@ import {
   ReloadOutlined,
   DownloadOutlined,
   TableOutlined,
-  FileExcelOutlined
+  FileExcelOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 
 const { TabPane } = Tabs;
@@ -97,6 +98,7 @@ export function TreatmentPlanStatistics() {
   const [monthlyChartType, setMonthlyChartType] = useState<string>('line');
   const [drugChartType, setDrugChartType] = useState<string>('bar');
   const [staffChartType, setStaffChartType] = useState<string>('bar');
+  const [patientDistChartType, setPatientDistChartType] = useState<string>('pie');
   const [activeTab, setActiveTab] = useState<string>('1');
 
   useEffect(() => {
@@ -289,9 +291,6 @@ export function TreatmentPlanStatistics() {
             )
           }))}
         />
-        <AntTooltip title="Export Chart">
-          <Button icon={<DownloadOutlined />} onClick={() => exportChart(type)} />
-        </AntTooltip>
       </Space>
     );
 
@@ -421,28 +420,63 @@ export function TreatmentPlanStatistics() {
   const tabItems = [
     {
       key: '1',
-      label: 'Status Distribution',
+      label: (
+        <Space align="center">
+          Status Distribution
+          <AntTooltip title="Shows distribution of treatment plans by their status (e.g., Active, Completed, Cancelled)">
+            <QuestionCircleOutlined />
+          </AntTooltip>
+        </Space>
+      ),
       content: renderChart('status', statusChartData, statusChartType, setStatusChartType)
     },
     {
       key: '2',
-      label: 'Monthly Distribution',
+      label: (
+        <Space align="center">
+          Monthly Distribution
+          <AntTooltip title="Shows number of treatment plans created in each month">
+            <QuestionCircleOutlined />
+          </AntTooltip>
+        </Space>
+      ),
       content: renderChart('monthly', monthlyChartData, monthlyChartType, setMonthlyChartType)
     },
     {
       key: '3',
-      label: 'Top Drugs',
+      label: (
+        <Space align="center">
+          Top Drugs
+          <AntTooltip title="Shows the most frequently used drugs in treatment plans">
+            <QuestionCircleOutlined />
+          </AntTooltip>
+        </Space>
+      ),
       content: renderChart('drugs', drugChartData, drugChartType, setDrugChartType)
     },
     {
       key: '4',
-      label: 'Top Staff',
+      label: (
+        <Space align="center">
+          Top Staff
+          <AntTooltip title="Shows staff members who created the most treatment plans">
+            <QuestionCircleOutlined />
+          </AntTooltip>
+        </Space>
+      ),
       content: renderChart('staff', userChartData, staffChartType, setStaffChartType)
     },
     {
       key: '5',
-      label: 'Patient Distribution',
-      content: renderChart('patient', patientDistributionData, 'pie', () => {})
+      label: (
+        <Space align="center">
+          Patient Distribution
+          <AntTooltip title="Shows distribution of patients by the number of treatment plans they have">
+            <QuestionCircleOutlined />
+          </AntTooltip>
+        </Space>
+      ),
+      content: renderChart('patient', patientDistributionData, patientDistChartType, setPatientDistChartType)
     }
   ];
 
@@ -545,7 +579,14 @@ export function TreatmentPlanStatistics() {
         <Col xs={24} sm={12} md={6}>
           <Card hoverable className="statistic-card" style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
-              title={<Title level={5}>Total Treatment Plans</Title>}
+              title={
+                <Space align="center">
+                  <Title level={5} style={{ margin: 0 }}>Total Treatment Plans</Title>
+                  <AntTooltip title="Total number of treatment plans in the selected time period">
+                    <QuestionCircleOutlined style={{ fontSize: '14px', color: token.colorTextSecondary }} />
+                  </AntTooltip>
+                </Space>
+              }
               value={statistics.totalTreatmentPlans}
               prefix={<Badge status="default" />}
               valueStyle={{ color: token.colorTextHeading }}
@@ -562,31 +603,21 @@ export function TreatmentPlanStatistics() {
         <Col xs={24} sm={12} md={6}>
           <Card hoverable className="statistic-card" style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
-              title={<Title level={5}>Active Treatment Plans</Title>}
+              title={
+                <Space align="center">
+                  <Title level={5} style={{ margin: 0 }}>Active Treatment Plans</Title>
+                  <AntTooltip title="Number of treatment plans currently in progress or active status">
+                    <QuestionCircleOutlined style={{ fontSize: '14px', color: token.colorTextSecondary }} />
+                  </AntTooltip>
+                </Space>
+              }
               value={statistics.totalActiveTreatmentPlans}
               prefix={<Badge status="processing" />}
-              valueStyle={{ color: "#3f8600" }}
-            />
-            <div style={{ marginTop: '10px' }}>
-              <Progress 
-                percent={(statistics.totalActiveTreatmentPlans / statistics.totalTreatmentPlans) * 100} 
-                showInfo={false} 
-                strokeColor="#3f8600" 
-              />
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card hoverable className="statistic-card" style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <Statistic
-              title={<Title level={5}>Completed Treatment Plans</Title>}
-              value={statistics.totalCompletedTreatmentPlans}
-              prefix={<Badge status="success" />}
               valueStyle={{ color: "#1677ff" }}
             />
             <div style={{ marginTop: '10px' }}>
               <Progress 
-                percent={(statistics.totalCompletedTreatmentPlans / statistics.totalTreatmentPlans) * 100} 
+                percent={(statistics.totalActiveTreatmentPlans / statistics.totalTreatmentPlans) * 100} 
                 showInfo={false} 
                 strokeColor="#1677ff" 
               />
@@ -596,7 +627,38 @@ export function TreatmentPlanStatistics() {
         <Col xs={24} sm={12} md={6}>
           <Card hoverable className="statistic-card" style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
-              title={<Title level={5}>Cancelled Treatment Plans</Title>}
+              title={
+                <Space align="center">
+                  <Title level={5} style={{ margin: 0 }}>Completed Treatment Plans</Title>
+                  <AntTooltip title="Number of treatment plans that have been successfully completed">
+                    <QuestionCircleOutlined style={{ fontSize: '14px', color: token.colorTextSecondary }} />
+                  </AntTooltip>
+                </Space>
+              }
+              value={statistics.totalCompletedTreatmentPlans}
+              prefix={<Badge status="success" />}
+              valueStyle={{ color: "#52c41a" }}
+            />
+            <div style={{ marginTop: '10px' }}>
+              <Progress 
+                percent={(statistics.totalCompletedTreatmentPlans / statistics.totalTreatmentPlans) * 100} 
+                showInfo={false} 
+                strokeColor="#52c41a" 
+              />
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card hoverable className="statistic-card" style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+            <Statistic
+              title={
+                <Space align="center">
+                  <Title level={5} style={{ margin: 0 }}>Cancelled Treatment Plans</Title>
+                  <AntTooltip title="Number of treatment plans that were cancelled before completion">
+                    <QuestionCircleOutlined style={{ fontSize: '14px', color: token.colorTextSecondary }} />
+                  </AntTooltip>
+                </Space>
+              }
               value={statistics.totalCancelledTreatmentPlans}
               prefix={<Badge status="error" />}
               valueStyle={{ color: "#cf1322" }}
@@ -616,7 +678,14 @@ export function TreatmentPlanStatistics() {
         <Col xs={24} sm={12} md={6}>
           <Card hoverable className="statistic-card" style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
-              title={<Title level={5}>Average Duration (days)</Title>}
+              title={
+                <Space align="center">
+                  <Title level={5} style={{ margin: 0 }}>Average Duration (days)</Title>
+                  <AntTooltip title="Average number of days between the start and end dates of treatment plans">
+                    <QuestionCircleOutlined style={{ fontSize: '14px', color: token.colorTextSecondary }} />
+                  </AntTooltip>
+                </Space>
+              }
               value={statistics.averageDuration?.toFixed(2) || 0}
               precision={2}
               valueStyle={{ color: token.colorInfo }}
@@ -633,7 +702,14 @@ export function TreatmentPlanStatistics() {
         <Col xs={24} sm={12} md={6}>
           <Card hoverable className="statistic-card" style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
-              title={<Title level={5}>Completion Rate (%)</Title>}
+              title={
+                <Space align="center">
+                  <Title level={5} style={{ margin: 0 }}>Completion Rate (%)</Title>
+                  <AntTooltip title="Percentage of treatment plans that were successfully completed out of the total plans">
+                    <QuestionCircleOutlined style={{ fontSize: '14px', color: token.colorTextSecondary }} />
+                  </AntTooltip>
+                </Space>
+              }
               value={statistics.completionRate?.toFixed(2) || 0}
               precision={2}
               valueStyle={{ color: "#1677ff" }}
@@ -651,7 +727,14 @@ export function TreatmentPlanStatistics() {
         <Col xs={24} sm={12} md={6}>
           <Card hoverable className="statistic-card" style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
-              title={<Title level={5}>Cancellation Rate (%)</Title>}
+              title={
+                <Space align="center">
+                  <Title level={5} style={{ margin: 0 }}>Cancellation Rate (%)</Title>
+                  <AntTooltip title="Percentage of treatment plans that were cancelled out of the total plans">
+                    <QuestionCircleOutlined style={{ fontSize: '14px', color: token.colorTextSecondary }} />
+                  </AntTooltip>
+                </Space>
+              }
               value={statistics.cancellationRate?.toFixed(2) || 0}
               precision={2}
               valueStyle={{ color: "#cf1322" }}
@@ -669,7 +752,14 @@ export function TreatmentPlanStatistics() {
         <Col xs={24} sm={12} md={6}>
           <Card hoverable className="statistic-card" style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
-              title={<Title level={5}>Avg Plans Per Patient</Title>}
+              title={
+                <Space align="center">
+                  <Title level={5} style={{ margin: 0 }}>Avg Plans Per Patient</Title>
+                  <AntTooltip title="Average number of treatment plans per patient, indicating how many treatments patients typically receive">
+                    <QuestionCircleOutlined style={{ fontSize: '14px', color: token.colorTextSecondary }} />
+                  </AntTooltip>
+                </Space>
+              }
               value={statistics.averageTreatmentPlansPerPatient?.toFixed(2) || 0}
               precision={2}
               valueStyle={{ color: token.colorSuccess }}
