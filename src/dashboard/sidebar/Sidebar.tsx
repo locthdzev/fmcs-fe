@@ -14,7 +14,7 @@ const style = {
   },
   container: "pb-32 lg:pb-12",
   close: "duration-700 ease-out hidden transition-all lg:w-24",
-  open: "absolute duration-500 ease-in transition-all w-8/12 z-40 sm:w-5/12 md:w-64",
+  open: "absolute duration-500 ease-in transition-all w-9/12 z-40 sm:w-6/12 md:w-72",
   default:
     "h-screen overflow-y-auto text-orange-500 top-0 lg:absolute bg-gradient-to-b from-white via-gray-200 to-orange-300 lg:block lg:z-40 rounded-r-2xl shadow-lg shadow-gray-500/50",
 };

@@ -13,15 +13,39 @@ import { useRouter } from "next/router";
 export function TopBar() {
   const { openSidebar } = useDashboardContext();
   const router = useRouter();
-  const pathSegments = router.pathname.split('/').filter(Boolean);
+  const pathSegments = router.pathname.split("/").filter(Boolean);
 
-  const breadcrumbItems = pathSegments.map((segment, index) => {
-    const path = '/' + pathSegments.slice(0, index + 1).join('/');
+  // Tạo breadcrumb items và xử lý trường hợp trùng lặp
+  const breadcrumbItems = [];
+
+  // Thêm Home vào đầu chỉ khi không phải trang home
+  if (
+    pathSegments.length === 0 ||
+    (pathSegments.length > 0 && pathSegments[0] !== "home")
+  ) {
+    breadcrumbItems.push({
+      title: "Home",
+      href: "/home",
+    });
+  }
+
+  // Thêm các phần còn lại của đường dẫn
+  pathSegments.forEach((segment, index) => {
+    // Bỏ qua nếu là "home" và đã có Home ở đầu breadcrumb
+    if (index === 0 && segment === "home" && breadcrumbItems.length > 0) {
+      return;
+    }
+
+    const path = "/" + pathSegments.slice(0, index + 1).join("/");
     const title = segment.charAt(0).toUpperCase() + segment.slice(1);
-    return {
-      title,
-      href: path
-    };
+    const isLast = index === pathSegments.length - 1;
+
+    breadcrumbItems.push({
+      title: (
+        <span className={isLast ? "font-bold text-gray-500" : ""}>{title}</span>
+      ),
+      href: path,
+    });
   });
 
   return (
