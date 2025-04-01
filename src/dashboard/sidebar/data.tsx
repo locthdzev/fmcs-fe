@@ -31,7 +31,17 @@ export const data = [
     groupTitle: "Main",
     items: [
       { title: "Home", icon: <HomeIcon />, link: "/home" },
-      { title: "Status", icon: <StatusIcon />, link: "/admin/status" },
+      {
+        title: "Statitics",
+        icon: <StatusIcon />,
+        submenu: [
+          {
+            title: "Treatment Plans",
+            icon: <StatusIcon />,
+            link: "/statitics/treatment-plan-statitics",
+          },
+        ],
+      },
       {
         title: "My Insurance",
         icon: <HealthIcon />,

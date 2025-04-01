@@ -44,7 +44,6 @@ import {
   cancelTreatmentPlan,
   softDeleteTreatmentPlans,
   restoreSoftDeletedTreatmentPlans,
-  getTreatmentPlanStatistics,
   exportTreatmentPlanToPDF,
   exportTreatmentPlansToExcelWithConfig,
   TreatmentPlanResponseDTO,
@@ -53,21 +52,6 @@ import {
   UserInfo,
 } from "@/api/treatment-plan";
 import { DrugResponse, getDrugs } from "@/api/drug";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  Legend,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  ResponsiveContainer,
-} from "recharts";
 import { getUsers, UserProfile } from "@/api/user";
 
 const { RangePicker } = DatePicker;
@@ -91,8 +75,6 @@ export function TreatmentPlanManagement() {
   const [selectedTreatmentPlans, setSelectedTreatmentPlans] = useState<
     string[]
   >([]);
-  const [statistics, setStatistics] =
-    useState<TreatmentPlanStatisticsDTO | null>(null);
   const [searchForm] = Form.useForm();
   const [columnVisibility, setColumnVisibility] = useState<
     Record<string, boolean>
@@ -151,7 +133,6 @@ export function TreatmentPlanManagement() {
 
   useEffect(() => {
     fetchTreatmentPlans();
-    fetchStatistics();
   }, [
     currentPage,
     pageSize,
@@ -332,29 +313,6 @@ export function TreatmentPlanManagement() {
     setUpdatedByOptions(Array.from(uniqueUpdatedBy.values()));
   };
 
-  const fetchStatistics = async () => {
-    try {
-      const response = await getTreatmentPlanStatistics();
-      if (response.success || response.isSuccess) {
-        setStatistics({
-          totalTreatmentPlans: response.data.totalCount || 0,
-          totalActiveTreatmentPlans:
-            response.data.statusDistribution?.InProgress || 0,
-          totalCompletedTreatmentPlans:
-            response.data.statusDistribution?.Completed || 0,
-          totalCancelledTreatmentPlans:
-            response.data.statusDistribution?.Cancelled || 0,
-          treatmentPlansByStatus: response.data.statusDistribution || {},
-          treatmentPlansByMonth: response.data.monthlyDistribution || {},
-          treatmentPlansByDrug: response.data.top5Drugs || {},
-          treatmentPlansByUser: response.data.top5Staff || {},
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching statistics:", error);
-    }
-  };
-
   // Handle form field changes
   const handleFormFieldChange = (field: string, value: any) => {
     switch (field) {
@@ -421,7 +379,6 @@ export function TreatmentPlanManagement() {
   const handleCreateSuccess = () => {
     setCreateModalVisible(false);
     fetchTreatmentPlans();
-    fetchStatistics();
   };
 
   const handleColumnVisibilityChange = (key: string) => {
@@ -437,7 +394,6 @@ export function TreatmentPlanManagement() {
       if (response.success) {
         toast.success("Treatment plan soft deleted successfully");
         fetchTreatmentPlans();
-        fetchStatistics();
       } else {
         toast.error(response.message || "Failed to soft delete treatment plan");
       }
@@ -453,7 +409,6 @@ export function TreatmentPlanManagement() {
       if (response.success) {
         toast.success("Treatment plan restored successfully");
         fetchTreatmentPlans();
-        fetchStatistics();
       } else {
         toast.error(response.message || "Failed to restore treatment plan");
       }
@@ -469,7 +424,6 @@ export function TreatmentPlanManagement() {
       if (response.success) {
         toast.success("Treatment plan cancelled successfully");
         fetchTreatmentPlans();
-        fetchStatistics();
       } else {
         toast.error(response.message || "Failed to cancel treatment plan");
       }
@@ -491,7 +445,6 @@ export function TreatmentPlanManagement() {
         toast.success("Selected treatment plans soft deleted successfully");
         setSelectedTreatmentPlans([]);
         fetchTreatmentPlans();
-        fetchStatistics();
       } else {
         toast.error(
           response.message || "Failed to soft delete treatment plans"
@@ -517,7 +470,6 @@ export function TreatmentPlanManagement() {
         toast.success("Selected treatment plans restored successfully");
         setSelectedTreatmentPlans([]);
         fetchTreatmentPlans();
-        fetchStatistics();
       } else {
         toast.error(response.message || "Failed to restore treatment plans");
       }
@@ -676,196 +628,6 @@ export function TreatmentPlanManagement() {
     );
   };
 
-  const renderStatistics = () => {
-    if (!statistics) return null;
-
-    // Xử lý dữ liệu cho biểu đồ trạng thái
-    const statusChartData = Object.entries(
-      statistics.treatmentPlansByStatus || {}
-    ).map(([status, count]) => ({
-      name: status,
-      value: count,
-    }));
-
-    // Xử lý dữ liệu cho biểu đồ hàng tháng
-    const monthlyChartData = Object.entries(
-      statistics.treatmentPlansByMonth || {}
-    ).map(([month, count]) => ({
-      name: month,
-      count: count,
-    }));
-
-    // Xử lý dữ liệu cho biểu đồ thuốc hàng đầu
-    const drugChartData = Object.entries(
-      statistics.treatmentPlansByDrug || {}
-    ).map(([drug, count]) => ({
-      name: drug,
-      count: count,
-    }));
-
-    // Xử lý dữ liệu cho biểu đồ người dùng hàng đầu
-    const userChartData = Object.entries(
-      statistics.treatmentPlansByUser || {}
-    ).map(([user, count]) => ({
-      name: user,
-      count: count,
-    }));
-
-    return (
-      <>
-        <Row gutter={16} className="mb-6">
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="Total Treatment Plans"
-                value={statistics.totalTreatmentPlans}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="Active Treatment Plans"
-                value={statistics.totalActiveTreatmentPlans}
-                valueStyle={{ color: "#3f8600" }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="Completed Treatment Plans"
-                value={statistics.totalCompletedTreatmentPlans}
-                valueStyle={{ color: "#1677ff" }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="Cancelled Treatment Plans"
-                value={statistics.totalCancelledTreatmentPlans}
-                valueStyle={{ color: "#cf1322" }}
-              />
-            </Card>
-          </Col>
-        </Row>
-
-        <Card className="mb-6">
-          <Tabs defaultActiveKey="1">
-            <TabPane tab="Status Distribution" key="1">
-              <Row>
-                <Col span={12}>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={statusChartData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) =>
-                          `${name}: ${(percent * 100).toFixed(0)}%`
-                        }
-                      >
-                        {statusChartData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip
-                        formatter={(value, name) => [
-                          `${value} plans`,
-                          `Status: ${name}`,
-                        ]}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </Col>
-                <Col span={12}>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart
-                      data={statusChartData}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <RechartsTooltip
-                        formatter={(value) => [`${value} plans`]}
-                      />
-                      <Legend />
-                      <Bar
-                        dataKey="value"
-                        fill="#8884d8"
-                        name="Number of Plans"
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </Col>
-              </Row>
-            </TabPane>
-            <TabPane tab="Monthly Distribution" key="2">
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                  data={monthlyChartData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <RechartsTooltip formatter={(value) => [`${value} plans`]} />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#8884d8"
-                    name="Number of Plans"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </TabPane>
-            <TabPane tab="Top Drugs" key="3">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={drugChartData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <RechartsTooltip formatter={(value) => [`${value} plans`]} />
-                  <Legend />
-                  <Bar dataKey="count" fill="#82ca9d" name="Number of Plans" />
-                </BarChart>
-              </ResponsiveContainer>
-            </TabPane>
-            <TabPane tab="Top Staff" key="4">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={userChartData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <RechartsTooltip formatter={(value) => [`${value} plans`]} />
-                  <Legend />
-                  <Bar dataKey="count" fill="#ffc658" name="Number of Plans" />
-                </BarChart>
-              </ResponsiveContainer>
-            </TabPane>
-          </Tabs>
-        </Card>
-      </>
-    );
-  };
-
   const columns = [
     {
       title: "Treatment Plan Code",
@@ -984,8 +746,6 @@ export function TreatmentPlanManagement() {
   return (
     <div className="p-6">
       <Title level={2}>Treatment Plan Management</Title>
-
-      {renderStatistics()}
 
       <Card className="mb-6">
         <Form form={searchForm} layout="vertical">
