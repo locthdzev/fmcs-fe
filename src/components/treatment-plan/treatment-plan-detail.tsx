@@ -24,6 +24,7 @@ import {
   updateTreatmentPlan,
   TreatmentPlanUpdateRequestDTO,
   exportTreatmentPlanToPDF,
+  getTreatmentPlanHistoriesByTreatmentPlanId,
 } from "@/api/treatment-plan";
 import { getAllTreatmentPlanHistories, TreatmentPlanHistoryResponseDTO } from "@/api/treatment-plan";
 import { EditOutlined, DeleteOutlined, UndoOutlined, FilePdfOutlined } from "@ant-design/icons";
@@ -67,25 +68,18 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
 
   const fetchHistories = async () => {
     try {
-      const response = await getAllTreatmentPlanHistories(
-        1,
-        100,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        "ActionDate",
-        false,
-        treatmentPlan?.treatmentPlanCode
-      );
+      setLoading(true);
+      const response = await getTreatmentPlanHistoriesByTreatmentPlanId(id);
       if (response.success) {
-        setHistories(response.data.items || response.data);
+        setHistories(response.data);
+      } else {
+        toast.error(response.message || "Failed to fetch histories");
       }
     } catch (error) {
       console.error("Error fetching histories:", error);
       toast.error("Failed to fetch histories");
+    } finally {
+      setLoading(false);
     }
   };
 
