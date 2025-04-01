@@ -536,3 +536,23 @@ export const exportPrescriptionHistoriesToExcelWithConfig = async (
     throw error;
   }
 };
+
+export const getDrugsByHealthCheckResultId = async (healthCheckResultId: string) => {
+  try {
+    const response = await api.get(`/prescription-management/prescriptions/health-check-result/${healthCheckResultId}/drugs`);
+    const data = response.data;
+    // Map isSuccess to success if needed
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching drugs from prescriptions:", error);
+    return {
+      success: false,
+      isSuccess: false,
+      message: "Failed to fetch drugs from prescriptions",
+      data: []
+    };
+  }
+};
