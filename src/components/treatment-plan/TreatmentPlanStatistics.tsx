@@ -5,7 +5,12 @@ import {
   Col,
   Statistic,
   Tabs,
-  Spin
+  Spin,
+  DatePicker,
+  Button,
+  Space,
+  Divider,
+  Typography
 } from "antd";
 import {
   BarChart,
@@ -23,22 +28,28 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { getTreatmentPlanStatistics } from "@/api/treatment-plan";
+import type { DatePickerProps, RangePickerProps } from 'antd/es/date-picker';
+import dayjs from 'dayjs';
 
 const { TabPane } = Tabs;
+const { RangePicker } = DatePicker;
+const { Title, Text } = Typography;
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7300'];
 
 export function TreatmentPlanStatistics() {
   const [statistics, setStatistics] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
+  const [activeDateFilter, setActiveDateFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchStatistics();
   }, []);
 
-  const fetchStatistics = async () => {
+  const fetchStatistics = async (startDate?: Date, endDate?: Date) => {
     setLoading(true);
     try {
-      const response = await getTreatmentPlanStatistics();
+      const response = await getTreatmentPlanStatistics(startDate, endDate);
       if (response && response.isSuccess && response.data) {
         // Map the response to match the expected format
         const formattedData = {
@@ -54,7 +65,8 @@ export function TreatmentPlanStatistics() {
           completionRate: response.data.completionRate,
           cancellationRate: response.data.cancellationRate,
           averageTreatmentPlansPerPatient: response.data.averageTreatmentPlansPerPatient,
-          patientDistribution: response.data.patientDistribution || {}
+          patientDistribution: response.data.patientDistribution || {},
+          dateRange: response.data.dateRange || {}
         };
         setStatistics(formattedData);
       }
@@ -63,6 +75,71 @@ export function TreatmentPlanStatistics() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDateRangeChange = (dates: RangePickerProps['value']) => {
+    if (dates && dates[0] && dates[1]) {
+      const startDate = dates[0].toDate();
+      const endDate = dates[1].toDate();
+      setDateRange([startDate, endDate]);
+    } else {
+      setDateRange([null, null]);
+    }
+  };
+
+  const applyDateFilter = () => {
+    fetchStatistics(dateRange[0] || undefined, dateRange[1] || undefined);
+    setActiveDateFilter('custom');
+  };
+
+  const resetDateFilter = () => {
+    setDateRange([null, null]);
+    fetchStatistics();
+    setActiveDateFilter('all');
+  };
+
+  const applyQuickFilter = (period: string) => {
+    const today = new Date();
+    let startDate: Date | null = null;
+    let endDate: Date = today;
+
+    switch (period) {
+      case 'last7days':
+        startDate = new Date();
+        startDate.setDate(today.getDate() - 7);
+        setActiveDateFilter('last7days');
+        break;
+      case 'last30days':
+        startDate = new Date();
+        startDate.setDate(today.getDate() - 30);
+        setActiveDateFilter('last30days');
+        break;
+      case 'last3months':
+        startDate = new Date();
+        startDate.setMonth(today.getMonth() - 3);
+        setActiveDateFilter('last3months');
+        break;
+      case 'last6months':
+        startDate = new Date();
+        startDate.setMonth(today.getMonth() - 6);
+        setActiveDateFilter('last6months');
+        break;
+      case 'thisyear':
+        startDate = new Date(today.getFullYear(), 0, 1);
+        setActiveDateFilter('thisyear');
+        break;
+      case 'lastyear':
+        startDate = new Date(today.getFullYear() - 1, 0, 1);
+        endDate = new Date(today.getFullYear() - 1, 11, 31);
+        setActiveDateFilter('lastyear');
+        break;
+      default:
+        startDate = null;
+        setActiveDateFilter('all');
+    }
+
+    setDateRange([startDate, endDate]);
+    fetchStatistics(startDate || undefined, endDate);
   };
 
   if (loading) {
@@ -107,8 +184,86 @@ export function TreatmentPlanStatistics() {
     count: count as number,
   }));
 
+  // Format date range display
+  const formatDate = (date: Date | null) => {
+    return date ? dayjs(date).format('YYYY-MM-DD') : '';
+  };
+  
+  const dateRangeDisplay = dateRange[0] && dateRange[1] 
+    ? `${formatDate(dateRange[0])} to ${formatDate(dateRange[1])}` 
+    : 'All Time';
+
   return (
     <>
+      <Card className="mb-6">
+        <Title level={4}>Date Range Filter</Title>
+        <Row gutter={16} className="mb-3">
+          <Col span={24}>
+            <Space wrap>
+              <Button 
+                type={activeDateFilter === 'all' ? 'primary' : 'default'} 
+                onClick={() => applyQuickFilter('all')}
+              >
+                All Time
+              </Button>
+              <Button 
+                type={activeDateFilter === 'last7days' ? 'primary' : 'default'} 
+                onClick={() => applyQuickFilter('last7days')}
+              >
+                Last 7 Days
+              </Button>
+              <Button 
+                type={activeDateFilter === 'last30days' ? 'primary' : 'default'} 
+                onClick={() => applyQuickFilter('last30days')}
+              >
+                Last 30 Days
+              </Button>
+              <Button 
+                type={activeDateFilter === 'last3months' ? 'primary' : 'default'} 
+                onClick={() => applyQuickFilter('last3months')}
+              >
+                Last 3 Months
+              </Button>
+              <Button 
+                type={activeDateFilter === 'last6months' ? 'primary' : 'default'} 
+                onClick={() => applyQuickFilter('last6months')}
+              >
+                Last 6 Months
+              </Button>
+              <Button 
+                type={activeDateFilter === 'thisyear' ? 'primary' : 'default'} 
+                onClick={() => applyQuickFilter('thisyear')}
+              >
+                This Year
+              </Button>
+              <Button 
+                type={activeDateFilter === 'lastyear' ? 'primary' : 'default'} 
+                onClick={() => applyQuickFilter('lastyear')}
+              >
+                Last Year
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+        <Divider style={{ margin: '12px 0' }} />
+        <Row gutter={16} className="mb-3">
+          <Col span={16}>
+            <Space>
+              <Text>Custom Range:</Text>
+              <RangePicker 
+                value={dateRange[0] && dateRange[1] ? [dayjs(dateRange[0]), dayjs(dateRange[1])] : null}
+                onChange={handleDateRangeChange} 
+              />
+              <Button type="primary" onClick={applyDateFilter}>Apply</Button>
+              <Button onClick={resetDateFilter}>Reset</Button>
+            </Space>
+          </Col>
+          <Col span={8} style={{ textAlign: 'right' }}>
+            <Text strong>Current Filter: {dateRangeDisplay}</Text>
+          </Col>
+        </Row>
+      </Card>
+
       <Row gutter={16} className="mb-6">
         <Col span={6}>
           <Card>

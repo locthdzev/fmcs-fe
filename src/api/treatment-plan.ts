@@ -284,9 +284,23 @@ export const restoreSoftDeletedTreatmentPlans = async (treatmentPlanIds: string[
   }
 };
 
-export const getTreatmentPlanStatistics = async () => {
+export const getTreatmentPlanStatistics = async (startDate?: Date, endDate?: Date) => {
   try {
-    const response = await api.get("/treatment-plan-management/treatment-plans/statistics");
+    let url = "/treatment-plan-management/treatment-plans/statistics";
+    
+    // Add query parameters if dates are provided
+    if (startDate || endDate) {
+      const params = new URLSearchParams();
+      if (startDate) {
+        params.append('startDate', startDate.toISOString());
+      }
+      if (endDate) {
+        params.append('endDate', endDate.toISOString());
+      }
+      url += `?${params.toString()}`;
+    }
+    
+    const response = await api.get(url);
     const data = response.data;
     if (data.isSuccess !== undefined && data.success === undefined) {
       data.success = data.isSuccess;
