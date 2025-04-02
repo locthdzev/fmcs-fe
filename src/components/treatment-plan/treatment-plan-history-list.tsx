@@ -33,7 +33,7 @@ import {
   PerformedByInfo,
   getTreatmentPlanHistoriesByTreatmentPlanId,
 } from "@/api/treatment-plan";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
 import { 
   SearchOutlined, 
   ExportOutlined,
@@ -47,6 +47,7 @@ import {
   EditOutlined,
   PlusOutlined,
   CaretRightOutlined,
+  LinkOutlined,
 } from "@ant-design/icons";
 
 const { Option } = Select;
@@ -83,16 +84,21 @@ export function TreatmentPlanHistoryList() {
   const [total, setTotal] = useState(0);
   const [action, setAction] = useState<string | undefined>(undefined);
   const [performedBySearch, setPerformedBySearch] = useState("");
-  const [previousStatus, setPreviousStatus] = useState<string | undefined>(undefined);
+  const [previousStatus, setPreviousStatus] = useState<string | undefined>(
+    undefined
+  );
   const [newStatus, setNewStatus] = useState<string | undefined>(undefined);
   const [sortBy, setSortBy] = useState("ActionDate");
   const [ascending, setAscending] = useState(false);
   const [treatmentPlanCode, setTreatmentPlanCode] = useState("");
   const [healthCheckResultCode, setHealthCheckResultCode] = useState("");
-  const [actionDateRange, setActionDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+  const [actionDateRange, setActionDateRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null]
+  >([null, null]);
   const [showExportConfigModal, setShowExportConfigModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
-  const [exportConfig, setExportConfig] = useState<TreatmentPlanHistoryExportConfigDTO>({
+  const [exportConfig, setExportConfig] =
+    useState<TreatmentPlanHistoryExportConfigDTO>({
     exportAllPages: false,
     includeTreatmentPlanCode: true,
     includeHealthCheckCode: true,
@@ -143,42 +149,62 @@ export function TreatmentPlanHistoryList() {
       if (response.success) {
         // Extract unique treatment plan codes
         const histories = response.data.items || response.data || [];
-        const uniqueCodesMap = new Map<string, {code: string, id: string}>();
-        
+        const uniqueCodesMap = new Map<string, { code: string; id: string }>();
+
         histories.forEach((history: TreatmentPlanHistoryResponseDTO) => {
-          if (history.treatmentPlan && !uniqueCodesMap.has(history.treatmentPlan.treatmentPlanCode)) {
+          if (
+            history.treatmentPlan &&
+            !uniqueCodesMap.has(history.treatmentPlan.treatmentPlanCode)
+          ) {
             uniqueCodesMap.set(history.treatmentPlan.treatmentPlanCode, {
               code: history.treatmentPlan.treatmentPlanCode,
-              id: history.treatmentPlan.id
+              id: history.treatmentPlan.id,
             });
           }
         });
-        
+
         const uniqueCodes = Array.from(uniqueCodesMap.values());
 
         // Sort the unique codes based on the most recent action
         uniqueCodes.sort((a, b) => {
-          const aHistories = histories.filter((h: TreatmentPlanHistoryResponseDTO) => 
-            h.treatmentPlan && h.treatmentPlan.treatmentPlanCode === a.code
+          const aHistories = histories.filter(
+            (h: TreatmentPlanHistoryResponseDTO) =>
+              h.treatmentPlan && h.treatmentPlan.treatmentPlanCode === a.code
           );
-          const bHistories = histories.filter((h: TreatmentPlanHistoryResponseDTO) => 
-            h.treatmentPlan && h.treatmentPlan.treatmentPlanCode === b.code
+          const bHistories = histories.filter(
+            (h: TreatmentPlanHistoryResponseDTO) =>
+              h.treatmentPlan && h.treatmentPlan.treatmentPlanCode === b.code
           );
-          
-          const aLatest = aHistories.reduce((latest: TreatmentPlanHistoryResponseDTO | null, current: TreatmentPlanHistoryResponseDTO) => {
-            const latestDate = latest ? dayjs(latest.actionDate) : dayjs(0);
-            const currentDate = dayjs(current.actionDate);
-            return currentDate.isAfter(latestDate) ? current : latest;
-          }, null as TreatmentPlanHistoryResponseDTO | null);
-          
-          const bLatest = bHistories.reduce((latest: TreatmentPlanHistoryResponseDTO | null, current: TreatmentPlanHistoryResponseDTO) => {
-            const latestDate = latest ? dayjs(latest.actionDate) : dayjs(0);
-            const currentDate = dayjs(current.actionDate);
-            return currentDate.isAfter(latestDate) ? current : latest;
-          }, null as TreatmentPlanHistoryResponseDTO | null);
-          
+
+          const aLatest = aHistories.reduce(
+            (
+              latest: TreatmentPlanHistoryResponseDTO | null,
+              current: TreatmentPlanHistoryResponseDTO
+            ) => {
+              const latestDate = latest ? dayjs(latest.actionDate) : dayjs(0);
+              const currentDate = dayjs(current.actionDate);
+              return currentDate.isAfter(latestDate) ? current : latest;
+            },
+            null as TreatmentPlanHistoryResponseDTO | null
+          );
+
+          const bLatest = bHistories.reduce(
+            (
+              latest: TreatmentPlanHistoryResponseDTO | null,
+              current: TreatmentPlanHistoryResponseDTO
+            ) => {
+              const latestDate = latest ? dayjs(latest.actionDate) : dayjs(0);
+              const currentDate = dayjs(current.actionDate);
+              return currentDate.isAfter(latestDate) ? current : latest;
+            },
+            null as TreatmentPlanHistoryResponseDTO | null
+          );
+
           if (aLatest && bLatest) {
-            return dayjs(bLatest.actionDate).unix() - dayjs(aLatest.actionDate).unix();
+            return (
+              dayjs(bLatest.actionDate).unix() -
+              dayjs(aLatest.actionDate).unix()
+            );
           }
           return 0;
         });
@@ -192,7 +218,7 @@ export function TreatmentPlanHistoryList() {
         return {
           codes: paginatedCodes,
           total: total,
-          success: true
+          success: true,
         };
       }
       return { codes: [], total: 0, success: false };
@@ -206,13 +232,15 @@ export function TreatmentPlanHistoryList() {
   const fetchDistinctTreatmentPlans = useCallback(async () => {
     setLoading(true);
     try {
-      const actionStartDate = actionDateRange && actionDateRange[0] 
-        ? actionDateRange[0].format('YYYY-MM-DD') 
-        : undefined;
-      const actionEndDate = actionDateRange && actionDateRange[1] 
-        ? actionDateRange[1].format('YYYY-MM-DD') 
-        : undefined;
-        
+      const actionStartDate =
+        actionDateRange && actionDateRange[0]
+          ? actionDateRange[0].format("YYYY-MM-DD")
+          : undefined;
+      const actionEndDate =
+        actionDateRange && actionDateRange[1]
+          ? actionDateRange[1].format("YYYY-MM-DD")
+          : undefined;
+
       // Get distinct codes first
       const distinctCodesResult = await getDistinctTreatmentPlanCodes(
         currentPage,
@@ -220,29 +248,31 @@ export function TreatmentPlanHistoryList() {
         {
           treatmentPlanCode,
           healthCheckResultCode,
-          action,
+        action,
           actionStartDate,
           actionEndDate,
-          performedBySearch,
-          previousStatus,
-          newStatus,
-          sortBy,
-          ascending
+        performedBySearch,
+        previousStatus,
+        newStatus,
+        sortBy,
+        ascending,
         }
       );
-      
+
       if (distinctCodesResult.success) {
         // Create result groups from distinct codes
-        const groups: TreatmentPlanGroup[] = distinctCodesResult.codes.map(item => ({
-          code: item.code,
-          treatmentPlanId: item.id,
-          histories: [],
-          loading: true
-        }));
-        
+        const groups: TreatmentPlanGroup[] = distinctCodesResult.codes.map(
+          (item) => ({
+            code: item.code,
+            treatmentPlanId: item.id,
+            histories: [],
+            loading: true,
+          })
+        );
+
         setResultGroups(groups);
         setTotal(distinctCodesResult.total);
-        
+
         // Fetch detailed histories for each group
         for (const group of groups) {
           fetchHistoriesForTreatmentPlan(group.treatmentPlanId);
@@ -256,10 +286,10 @@ export function TreatmentPlanHistoryList() {
       setLoading(false);
     }
   }, [
-    currentPage, 
-    pageSize, 
-    sortBy, 
-    ascending, 
+    currentPage,
+    pageSize,
+    sortBy,
+    ascending,
     treatmentPlanCode,
     healthCheckResultCode,
     action,
@@ -272,35 +302,34 @@ export function TreatmentPlanHistoryList() {
   // Fetch all histories for a specific treatment plan
   const fetchHistoriesForTreatmentPlan = async (treatmentPlanId: string) => {
     try {
-      const response = await getTreatmentPlanHistoriesByTreatmentPlanId(treatmentPlanId);
-      
+      const response = await getTreatmentPlanHistoriesByTreatmentPlanId(
+        treatmentPlanId
+      );
+
       if (response.success) {
-        setResultGroups(prevGroups => 
-          prevGroups.map(group => 
-            group.treatmentPlanId === treatmentPlanId 
-              ? { ...group, histories: response.data, loading: false } 
+        setResultGroups((prevGroups) =>
+          prevGroups.map((group) =>
+            group.treatmentPlanId === treatmentPlanId
+              ? { ...group, histories: response.data, loading: false }
               : group
           )
         );
       } else {
-        toast.error(response.message || `Could not load histories for treatment plan`);
+        toast.error(
+          response.message || `Could not load histories for treatment plan`
+        );
       }
     } catch (error) {
       toast.error(`Could not load histories for treatment plan`);
     } finally {
       // Check if all groups are loaded
-      setLoading(resultGroups.some(group => group.loading));
+      setLoading(resultGroups.some((group) => group.loading));
     }
   };
 
   useEffect(() => {
     fetchDistinctTreatmentPlans();
-  }, [
-    currentPage,
-    pageSize,
-    sortBy,
-    ascending,
-  ]);
+  }, [currentPage, pageSize, sortBy, ascending]);
 
   // Event handlers
   const handleSearch = () => {
@@ -357,8 +386,8 @@ export function TreatmentPlanHistoryList() {
         includeChangeDetails: values.includeChangeDetails,
       };
 
-      const startActionDate = actionDateRange[0]?.format('YYYY-MM-DD');
-      const endActionDate = actionDateRange[1]?.format('YYYY-MM-DD');
+      const startActionDate = actionDateRange[0]?.format("YYYY-MM-DD");
+      const endActionDate = actionDateRange[1]?.format("YYYY-MM-DD");
 
       const response = await exportTreatmentPlanHistoriesToExcelWithConfig(
         exportConfigData,
@@ -378,7 +407,9 @@ export function TreatmentPlanHistoryList() {
 
       if (response.success && response.data) {
         window.open(response.data, "_blank");
-        toast.success("Treatment plan histories exported to Excel successfully");
+        toast.success(
+          "Treatment plan histories exported to Excel successfully"
+        );
       } else {
         toast.error(response.message || "Failed to export Excel file");
       }
@@ -395,74 +426,74 @@ export function TreatmentPlanHistoryList() {
 
   // Helper functions
   const formatDate = (date: string | undefined) => {
-    if (!date) return '';
-    return dayjs(date).format('DD/MM/YYYY');
+    if (!date) return "";
+    return dayjs(date).format("DD/MM/YYYY");
   };
 
   const formatDateTime = (datetime: string | undefined) => {
-    if (!datetime) return '';
-    return dayjs(datetime).format('DD/MM/YYYY HH:mm:ss');
+    if (!datetime) return "";
+    return dayjs(datetime).format("DD/MM/YYYY HH:mm:ss");
   };
 
   const getStatusColor = (status: string | undefined) => {
-    if (!status) return '';
-    
+    if (!status) return "";
+
     switch (status.toLowerCase()) {
-      case 'pending':
-        return 'orange';
-      case 'approved':
-        return 'green';
-      case 'rejected':
-        return 'red';
-      case 'completed':
-        return 'blue';
-      case 'cancelled':
-        return 'volcano';
+      case "pending":
+        return "orange";
+      case "approved":
+        return "green";
+      case "rejected":
+        return "red";
+      case "completed":
+        return "blue";
+      case "cancelled":
+        return "volcano";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const getActionColor = (action: string | undefined): string => {
-    if (!action) return '';
-    
+    if (!action) return "";
+
     switch (action.toLowerCase()) {
-      case 'created':
-        return 'green';
-      case 'updated':
-        return 'blue';
-      case 'deleted':
-        return 'red';
-      case 'approved':
-        return 'green';
-      case 'rejected':
-        return 'volcano';
-      case 'completed':
-        return 'cyan';
-      case 'cancelled':
-        return 'orange';
+      case "created":
+        return "green";
+      case "updated":
+        return "blue";
+      case "deleted":
+        return "red";
+      case "approved":
+        return "green";
+      case "rejected":
+        return "volcano";
+      case "completed":
+        return "cyan";
+      case "cancelled":
+        return "orange";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const getActionIcon = (action: string | undefined) => {
     if (!action) return null;
-    
+
     switch (action.toLowerCase()) {
-      case 'created':
+      case "created":
         return <PlusOutlined />;
-      case 'updated':
+      case "updated":
         return <EditOutlined />;
-      case 'deleted':
+      case "deleted":
         return <CloseCircleOutlined />;
-      case 'approved':
+      case "approved":
         return <CheckCircleOutlined />;
-      case 'rejected':
+      case "rejected":
         return <CloseCircleOutlined />;
-      case 'completed':
+      case "completed":
         return <CheckCircleOutlined />;
-      case 'cancelled':
+      case "cancelled":
         return <CloseCircleOutlined />;
       default:
         return <HistoryOutlined />;
@@ -484,95 +515,65 @@ export function TreatmentPlanHistoryList() {
         initialValues={exportConfig}
         onValuesChange={handleExportConfigChange}
       >
-        <Form.Item
-          name="exportAllPages"
-          valuePropName="checked"
-        >
+        <Form.Item name="exportAllPages" valuePropName="checked">
           <Checkbox>Export all pages (not just current page)</Checkbox>
         </Form.Item>
-        
+
         <Divider orientation="left">Fields to include</Divider>
-        
+
         <Row gutter={24}>
           <Col span={12}>
-            <Form.Item
-              name="includeTreatmentPlanCode"
-              valuePropName="checked"
-            >
-              <Checkbox>Treatment Plan Code</Checkbox>
-            </Form.Item>
+            <Form.Item name="includeTreatmentPlanCode" valuePropName="checked">
+          <Checkbox>Treatment Plan Code</Checkbox>
+        </Form.Item>
           </Col>
-          
+
           <Col span={12}>
-            <Form.Item
-              name="includeHealthCheckCode"
-              valuePropName="checked"
-            >
-              <Checkbox>Health Check Code</Checkbox>
-            </Form.Item>
+            <Form.Item name="includeHealthCheckCode" valuePropName="checked">
+          <Checkbox>Health Check Code</Checkbox>
+        </Form.Item>
           </Col>
-          
+
           <Col span={12}>
-            <Form.Item
-              name="includePatient"
-              valuePropName="checked"
-            >
+            <Form.Item name="includePatient" valuePropName="checked">
               <Checkbox>Patient Information</Checkbox>
-            </Form.Item>
+        </Form.Item>
           </Col>
-          
+
           <Col span={12}>
-            <Form.Item
-              name="includeAction"
-              valuePropName="checked"
-            >
-              <Checkbox>Action</Checkbox>
-            </Form.Item>
+            <Form.Item name="includeAction" valuePropName="checked">
+          <Checkbox>Action</Checkbox>
+        </Form.Item>
           </Col>
-          
+
           <Col span={12}>
-            <Form.Item
-              name="includeActionDate"
-              valuePropName="checked"
-            >
-              <Checkbox>Action Date</Checkbox>
-            </Form.Item>
+            <Form.Item name="includeActionDate" valuePropName="checked">
+          <Checkbox>Action Date</Checkbox>
+        </Form.Item>
           </Col>
-          
+
           <Col span={12}>
-            <Form.Item
-              name="includePerformedBy"
-              valuePropName="checked"
-            >
-              <Checkbox>Performed By</Checkbox>
-            </Form.Item>
+            <Form.Item name="includePerformedBy" valuePropName="checked">
+          <Checkbox>Performed By</Checkbox>
+        </Form.Item>
           </Col>
-          
+
           <Col span={12}>
-            <Form.Item
-              name="includePreviousStatus"
-              valuePropName="checked"
-            >
-              <Checkbox>Previous Status</Checkbox>
-            </Form.Item>
+            <Form.Item name="includePreviousStatus" valuePropName="checked">
+          <Checkbox>Previous Status</Checkbox>
+        </Form.Item>
           </Col>
-          
+
           <Col span={12}>
-            <Form.Item
-              name="includeNewStatus"
-              valuePropName="checked"
-            >
-              <Checkbox>New Status</Checkbox>
-            </Form.Item>
+            <Form.Item name="includeNewStatus" valuePropName="checked">
+          <Checkbox>New Status</Checkbox>
+        </Form.Item>
           </Col>
-          
+
           <Col span={12}>
-            <Form.Item
-              name="includeChangeDetails"
-              valuePropName="checked"
-            >
-              <Checkbox>Change Details</Checkbox>
-            </Form.Item>
+            <Form.Item name="includeChangeDetails" valuePropName="checked">
+          <Checkbox>Change Details</Checkbox>
+        </Form.Item>
           </Col>
         </Row>
       </Form>
@@ -581,63 +582,58 @@ export function TreatmentPlanHistoryList() {
 
   return (
     <div className="history-container" style={{ padding: "20px" }}>
-      <div style={{ marginBottom: 20 }}>
-        <Row align="middle" justify="space-between">
-          <Col>
-            <Space direction="horizontal" align="center">
-              <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.back()}
-              >
-                Back
-              </Button>
-              <Title level={4} style={{ margin: 0 }}>
-                <HistoryOutlined /> Treatment Plan History
-              </Title>
-            </Space>
-          </Col>
-          <Col>
-            <Button
-              type="primary"
-              icon={<FileExcelOutlined />}
-              onClick={handleOpenExportConfig}
-            >
-              Export to Excel
-            </Button>
-          </Col>
-        </Row>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.back()}
+          >
+            Back
+          </Button>
+          <HistoryOutlined style={{ fontSize: "24px" }} />
+          <h3 className="text-2xl font-bold">Treatment Plan History</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            type="primary"
+            icon={<FileExcelOutlined />}
+            onClick={handleOpenExportConfig}
+          >
+            Export to Excel
+          </Button>
+        </div>
       </div>
-
+      
       <Card style={{ marginBottom: 20 }} className="shadow-sm">
         <Row gutter={[16, 16]}>
           <Col span={24}>
             <Row gutter={[16, 16]}>
               <Col span={8}>
-                <Input
+            <Input
                   placeholder="Treatment Plan Code"
-                  value={treatmentPlanCode}
-                  onChange={(e) => setTreatmentPlanCode(e.target.value)}
-                  prefix={<SearchOutlined />}
-                  allowClear
-                />
-              </Col>
+              value={treatmentPlanCode}
+              onChange={(e) => setTreatmentPlanCode(e.target.value)}
+              prefix={<SearchOutlined />}
+              allowClear
+            />
+          </Col>
               <Col span={8}>
-                <Input
+            <Input
                   placeholder="Health Check Result Code"
-                  value={healthCheckResultCode}
-                  onChange={(e) => setHealthCheckResultCode(e.target.value)}
-                  prefix={<SearchOutlined />}
-                  allowClear
-                />
-              </Col>
+              value={healthCheckResultCode}
+              onChange={(e) => setHealthCheckResultCode(e.target.value)}
+              prefix={<SearchOutlined />}
+              allowClear
+            />
+          </Col>
               <Col span={8}>
-                <Select
+            <Select
                   placeholder="Action"
                   style={{ width: "100%" }}
-                  value={action}
-                  onChange={(value) => setAction(value)}
-                  allowClear
-                >
+              value={action}
+              onChange={(value) => setAction(value)}
+              allowClear
+            >
                   <Option value="Created">Created</Option>
                   <Option value="Updated">Updated</Option>
                   <Option value="Deleted">Deleted</Option>
@@ -645,69 +641,77 @@ export function TreatmentPlanHistoryList() {
                   <Option value="Rejected">Rejected</Option>
                   <Option value="Completed">Completed</Option>
                   <Option value="Cancelled">Cancelled</Option>
-                </Select>
-              </Col>
+            </Select>
+          </Col>
               <Col span={8}>
                 <RangePicker
                   style={{ width: "100%" }}
-                  placeholder={['From date', 'To date']}
+                  placeholder={["From date", "To date"]}
                   value={[
                     actionDateRange[0] ? actionDateRange[0] : null,
                     actionDateRange[1] ? actionDateRange[1] : null,
                   ]}
-                  onChange={(dates) => setActionDateRange(dates as [dayjs.Dayjs | null, dayjs.Dayjs | null])}
+                  onChange={(dates) =>
+                    setActionDateRange(
+                      dates as [dayjs.Dayjs | null, dayjs.Dayjs | null]
+                    )
+                  }
                 />
               </Col>
               <Col span={8}>
-                <Input
+            <Input
                   placeholder="Performed By"
-                  value={performedBySearch}
-                  onChange={(e) => setPerformedBySearch(e.target.value)}
-                  prefix={<SearchOutlined />}
-                  allowClear
-                />
-              </Col>
+              value={performedBySearch}
+              onChange={(e) => setPerformedBySearch(e.target.value)}
+              prefix={<SearchOutlined />}
+              allowClear
+            />
+          </Col>
               <Col span={8}>
-                <Select
+            <Select
                   placeholder="Previous Status"
                   style={{ width: "100%" }}
-                  value={previousStatus}
-                  onChange={(value) => setPreviousStatus(value)}
-                  allowClear
-                >
+              value={previousStatus}
+              onChange={(value) => setPreviousStatus(value)}
+              allowClear
+            >
                   <Option value="Pending">Pending</Option>
                   <Option value="Approved">Approved</Option>
                   <Option value="Rejected">Rejected</Option>
                   <Option value="Completed">Completed</Option>
                   <Option value="Cancelled">Cancelled</Option>
-                </Select>
-              </Col>
+            </Select>
+          </Col>
               <Col span={8}>
-                <Select
+            <Select
                   placeholder="New Status"
                   style={{ width: "100%" }}
-                  value={newStatus}
-                  onChange={(value) => setNewStatus(value)}
-                  allowClear
-                >
+              value={newStatus}
+              onChange={(value) => setNewStatus(value)}
+              allowClear
+            >
                   <Option value="Pending">Pending</Option>
                   <Option value="Approved">Approved</Option>
                   <Option value="Rejected">Rejected</Option>
                   <Option value="Completed">Completed</Option>
                   <Option value="Cancelled">Cancelled</Option>
-                </Select>
-              </Col>
-              <Col span={24}>
-                <Space>
-                  <Button type="primary" onClick={handleSearch} icon={<SearchOutlined />}>
-                    Search
-                  </Button>
-                  <Button onClick={handleReset}>Reset</Button>
-                </Space>
-              </Col>
-            </Row>
+            </Select>
           </Col>
-          
+              <Col span={24}>
+            <Space>
+                  <Button
+                    type="primary"
+                    onClick={handleSearch}
+                    icon={<SearchOutlined />}
+                  >
+                Search
+              </Button>
+              <Button onClick={handleReset}>Reset</Button>
+            </Space>
+          </Col>
+        </Row>
+          </Col>
+
           <Col span={24}>
             <Space size="middle" wrap>
               <Select
@@ -730,31 +734,6 @@ export function TreatmentPlanHistoryList() {
               </Select>
             </Space>
           </Col>
-          
-          <Col span={24}>
-            <Row justify="end" align="middle">
-              <Col>
-                <Space align="center">
-                  <Text type="secondary">
-                    Groups per page:
-                  </Text>
-                  <Select
-                    value={pageSize}
-                    onChange={(value) => {
-                      setPageSize(value);
-                      setCurrentPage(1);
-                    }}
-                    style={{ minWidth: "80px" }}
-                  >
-                    <Option value={5}>5</Option>
-                    <Option value={10}>10</Option>
-                    <Option value={15}>15</Option>
-                    <Option value={20}>20</Option>
-                  </Select>
-                </Space>
-              </Col>
-            </Row>
-          </Col>
         </Row>
       </Card>
 
@@ -765,71 +744,180 @@ export function TreatmentPlanHistoryList() {
       ) : resultGroups.length > 0 ? (
         <div>
           {resultGroups.map((group, index) => (
-            <Card 
-              key={group.treatmentPlanId} 
-              className="shadow-sm mb-4"
-            >
+            <Card key={group.treatmentPlanId} className="shadow-sm mb-4">
               <div className="border-b pb-3 mb-4">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Title level={5} style={{ margin: 0 }}>
-                    Treatment Plan Code: <a onClick={() => router.push(`/treatment-plan/${group.treatmentPlanId}`)} style={{ cursor: 'pointer', color: '#1890ff' }}>{group.code}</a>
-                  </Title>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Space size="large">
+                    <span>
+                      <Text type="secondary">Treatment Plan:</Text>{" "}
+                      <Button 
+                        type="link" 
+                        onClick={() => router.push(`/treatment-plan/${group.treatmentPlanId}`)}
+                        style={{ padding: 0 }}
+                      >
+                        {group.code}
+                      </Button>
+                    </span>
+                    
+                    {group.histories.length > 0 && 
+                     group.histories[0].treatmentPlan?.healthCheckResult && (
+                      <>
+                        <div style={{ display: "flex", alignItems: "center", color: "#8c8c8c" }}>
+                          <LinkOutlined style={{ fontSize: "14px" }} />
+                        </div>
+                        <span>
+                          <Text type="secondary">Health Check:</Text>{" "}
+                          <Button 
+                            type="link" 
+                            onClick={() => router.push(`/health-check-result/${group.histories[0].treatmentPlan?.healthCheckResult?.id}`)}
+                            style={{ padding: 0 }}
+                          >
+                            {group.histories[0].treatmentPlan.healthCheckResult.healthCheckResultCode}
+                          </Button>
+                        </span>
+                      </>
+                    )}
+                  </Space>
                 </div>
               </div>
-              
+
               {group.loading ? (
                 <Spin />
               ) : (
-                <Collapse 
+                <Collapse
                   defaultActiveKey={["1"]}
-                  expandIcon={({ isActive }) => <CaretRightOutlined rotate={isActive ? 90 : 0} />}
+                  expandIcon={({ isActive }) => (
+                    <CaretRightOutlined rotate={isActive ? 90 : 0} />
+                  )}
                 >
                   <Panel header="Action History" key="1">
                     <Timeline
                       mode="left"
-                      items={group.histories.sort((a, b) => 
-                        dayjs(b.actionDate).unix() - dayjs(a.actionDate).unix()
-                      ).map(history => ({
-                        color: getActionColor(history.action),
-                        dot: getActionIcon(history.action),
-                        children: (
-                          <Card size="small" className="mb-2 hover:shadow-md transition-shadow">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ fontWeight: 500 }}>{history.action}</div>
-                                <div style={{ fontSize: '14px', color: '#8c8c8c' }}>
-                                  {formatDateTime(history.actionDate)}
-                                </div>
-                              </div>
-                              
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '4px' }}>
-                                <div style={{ display: 'flex' }}>
-                                  <div style={{ width: '180px', color: '#8c8c8c' }}>Performed by:</div>
-                                  <div>{history.performedBy?.fullName} ({history.performedBy?.email})</div>
-                                </div>
-                                
-                                {history.previousStatus && history.newStatus && (
-                                  <div style={{ display: 'flex' }}>
-                                    <div style={{ width: '180px', color: '#8c8c8c' }}>Status:</div>
-                                    <div style={{ flex: 1 }}>
-                                      <Tag color={getStatusColor(history.previousStatus)}>{history.previousStatus}</Tag>
-                                      <Text type="secondary"> → </Text>
-                                      <Tag color={getStatusColor(history.newStatus)}>{history.newStatus}</Tag>
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {history.changeDetails && (
-                                  <div style={{ display: 'flex' }}>
-                                    <div style={{ width: '180px', color: '#8c8c8c' }}>Details:</div>
-                                    <div style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{history.changeDetails}</div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </Card>
+                      items={group.histories
+                        .sort(
+                          (a, b) =>
+                            dayjs(b.actionDate).unix() -
+                            dayjs(a.actionDate).unix()
                         )
-                      }))}
+                        .map((history) => ({
+                          color: getActionColor(history.action),
+                          dot: getActionIcon(history.action),
+                          children: (
+                            <Card
+                              size="small"
+                              className="mb-2 hover:shadow-md transition-shadow"
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: "8px",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <div style={{ fontWeight: 500 }}>
+                                    {history.action}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#8c8c8c",
+                                    }}
+                                  >
+                                    {formatDateTime(history.actionDate)}
+                                  </div>
+                                </div>
+
+                                <div
+                                  style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr",
+                                    gap: "4px",
+                                  }}
+                                >
+                                  <div style={{ display: "flex" }}>
+                                    <div
+                                      style={{
+                                        width: "180px",
+                                        color: "#8c8c8c",
+                                      }}
+                                    >
+                                      Performed by:
+                                    </div>
+                                    <div>
+                                      {history.performedBy?.fullName} (
+                                      {history.performedBy?.email})
+                                    </div>
+      </div>
+      
+                                  {history.previousStatus &&
+                                    history.newStatus && (
+                                      <div style={{ display: "flex" }}>
+                                        <div
+                                          style={{
+                                            width: "180px",
+                                            color: "#8c8c8c",
+                                          }}
+                                        >
+                                          Status:
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                          <Tag
+                                            color={getStatusColor(
+                                              history.previousStatus
+                                            )}
+                                          >
+                                            {history.previousStatus}
+                                          </Tag>
+                                          <Text type="secondary"> → </Text>
+                                          <Tag
+                                            color={getStatusColor(
+                                              history.newStatus
+                                            )}
+                                          >
+                                            {history.newStatus}
+                                          </Tag>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                  {history.changeDetails && (
+                                    <div style={{ display: "flex" }}>
+                                      <div
+                                        style={{
+                                          width: "180px",
+                                          color: "#8c8c8c",
+                                        }}
+                                      >
+                                        Details:
+                                      </div>
+                                      <div
+                                        style={{
+                                          flex: 1,
+                                          whiteSpace: "pre-wrap",
+                                        }}
+                                      >
+                                        {history.changeDetails}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </Card>
+                          ),
+                        }))}
                     />
                   </Panel>
                 </Collapse>
@@ -845,14 +933,30 @@ export function TreatmentPlanHistoryList() {
                 </Text>
               </Col>
               <Col>
-                <Pagination
-                  current={currentPage}
-                  pageSize={pageSize}
-                  total={total}
-                  onChange={handlePageChange}
-                  showSizeChanger={false}
-                  showTotal={(total) => `Total ${total} items`}
-                />
+                <Space align="center">
+                  <Text type="secondary">Groups per page:</Text>
+                  <Select
+                    value={pageSize}
+                    onChange={(value) => {
+                      setPageSize(value);
+                      setCurrentPage(1);
+                    }}
+                    style={{ minWidth: "80px" }}
+                  >
+                    <Option value={5}>5</Option>
+                    <Option value={10}>10</Option>
+                    <Option value={15}>15</Option>
+                    <Option value={20}>20</Option>
+                  </Select>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={total}
+            onChange={handlePageChange}
+                    showSizeChanger={false}
+            showTotal={(total) => `Total ${total} items`}
+          />
+                </Space>
               </Col>
             </Row>
           </Card>
