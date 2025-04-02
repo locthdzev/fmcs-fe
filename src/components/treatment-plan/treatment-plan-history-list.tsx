@@ -22,6 +22,7 @@ import {
   Checkbox,
   Collapse,
   Card,
+  Radio,
 } from "antd";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
@@ -34,8 +35,8 @@ import {
   getTreatmentPlanHistoriesByTreatmentPlanId,
 } from "@/api/treatment-plan";
 import { useRouter } from "next/router";
-import { 
-  SearchOutlined, 
+import {
+  SearchOutlined,
   ExportOutlined,
   EyeOutlined,
   FilterOutlined,
@@ -51,7 +52,12 @@ import {
   SyncOutlined,
   UndoOutlined,
   DeleteOutlined,
+  UserOutlined,
+  CalendarOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
 } from "@ant-design/icons";
+import { App } from "antd";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -80,45 +86,57 @@ const DEFAULT_EXPORT_CONFIG = {
 
 export function TreatmentPlanHistoryList() {
   const router = useRouter();
+  const { message } = App.useApp();
   const [resultGroups, setResultGroups] = useState<TreatmentPlanGroup[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
-  const [action, setAction] = useState<string | undefined>(undefined);
-  const [performedBySearch, setPerformedBySearch] = useState("");
-  const [previousStatus, setPreviousStatus] = useState<string | undefined>(
-    undefined
-  );
-  const [newStatus, setNewStatus] = useState<string | undefined>(undefined);
-  const [sortBy] = useState("ActionDate");
-  const [ascending, setAscending] = useState(false);
-  const [treatmentPlanCode, setTreatmentPlanCode] = useState("");
-  const [healthCheckResultCode, setHealthCheckResultCode] = useState("");
+  const [performedBySearch, setPerformedBySearch] = useState<string>("");
+  const [treatmentPlanCode, setTreatmentPlanCode] = useState<string>("");
+  const [healthCheckResultCode, setHealthCheckResultCode] =
+    useState<string>("");
   const [actionDateRange, setActionDateRange] = useState<
     [dayjs.Dayjs | null, dayjs.Dayjs | null]
   >([null, null]);
+  const [ascending, setAscending] = useState<boolean>(false);
+  const [sortBy] = useState("ActionDate");
   const [showExportConfigModal, setShowExportConfigModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [exportConfig, setExportConfig] =
     useState<TreatmentPlanHistoryExportConfigDTO>({
-    exportAllPages: false,
-    includeTreatmentPlanCode: true,
-    includeHealthCheckCode: true,
-    includePatient: true,
-    includeAction: true,
-    includeActionDate: true,
-    includePerformedBy: true,
-    includePreviousStatus: true,
-    includeNewStatus: true,
-    includeChangeDetails: true,
+      exportAllPages: false,
+      includeTreatmentPlanCode: true,
+      includeHealthCheckCode: true,
+      includePatient: true,
+      includeAction: true,
+      includeActionDate: true,
+      includePerformedBy: true,
+      includePreviousStatus: true,
+      includeNewStatus: true,
+      includeChangeDetails: true,
+    });
+
+  // Filter state to store temporary values
+  const [filterState, setFilterState] = useState({
+    healthCheckResultCode: "",
+    performedBySearch: "",
+    actionDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+    ascending: false,
   });
-  
+
   // Add state for dropdown options
-  const [uniqueTreatmentPlanCodes, setUniqueTreatmentPlanCodes] = useState<string[]>([]);
-  const [uniqueHealthCheckCodes, setUniqueHealthCheckCodes] = useState<string[]>([]);
-  const [uniquePerformers, setUniquePerformers] = useState<{id: string; fullName: string; email: string}[]>([]);
-  
+  const [uniqueTreatmentPlanCodes, setUniqueTreatmentPlanCodes] = useState<
+    string[]
+  >([]);
+  const [uniqueHealthCheckCodes, setUniqueHealthCheckCodes] = useState<
+    string[]
+  >([]);
+  const [uniquePerformers, setUniquePerformers] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
+
   const [form] = Form.useForm();
 
   // New function to get distinct treatment plan codes with pagination
@@ -128,12 +146,9 @@ export function TreatmentPlanHistoryList() {
     filters: {
       treatmentPlanCode?: string;
       healthCheckResultCode?: string;
-      action?: string;
       actionStartDate?: string;
       actionEndDate?: string;
       performedBySearch?: string;
-      previousStatus?: string;
-      newStatus?: string;
       sortBy?: string;
       ascending?: boolean;
     }
@@ -143,12 +158,12 @@ export function TreatmentPlanHistoryList() {
       const response = await getAllTreatmentPlanHistories(
         1, // Start with page 1
         1000, // Get a large number of records to extract unique codes
-        filters.action,
+        undefined, // action
         filters.actionStartDate,
         filters.actionEndDate,
         filters.performedBySearch,
-        filters.previousStatus,
-        filters.newStatus,
+        undefined,
+        undefined,
         filters.sortBy,
         filters.ascending,
         filters.treatmentPlanCode,
@@ -210,10 +225,11 @@ export function TreatmentPlanHistoryList() {
           );
 
           if (aLatest && bLatest) {
-            return (
-              dayjs(bLatest.actionDate).unix() -
-              dayjs(aLatest.actionDate).unix()
-            );
+            // Sử dụng tham số ascending để quyết định thứ tự sắp xếp
+            const comparison =
+              dayjs(aLatest.actionDate).unix() -
+              dayjs(bLatest.actionDate).unix();
+            return filters.ascending ? comparison : -comparison;
           }
           return 0;
         });
@@ -239,12 +255,26 @@ export function TreatmentPlanHistoryList() {
 
   // Fetch distinct treatment plan codes and their histories
   const fetchDistinctTreatmentPlans = useCallback(async () => {
+    console.log("Fetching with params:", {
+      treatmentPlanCode,
+      healthCheckResultCode,
+      actionDateRange: actionDateRange
+        ? [
+            actionDateRange[0]?.format("YYYY-MM-DD"),
+            actionDateRange[1]?.format("YYYY-MM-DD"),
+          ]
+        : [null, null],
+      performedBySearch,
+      ascending,
+    });
+
     setLoading(true);
     try {
       const actionStartDate =
         actionDateRange && actionDateRange[0]
           ? actionDateRange[0].format("YYYY-MM-DD")
           : undefined;
+
       const actionEndDate =
         actionDateRange && actionDateRange[1]
           ? actionDateRange[1].format("YYYY-MM-DD")
@@ -257,12 +287,9 @@ export function TreatmentPlanHistoryList() {
         {
           treatmentPlanCode,
           healthCheckResultCode,
-          action,
           actionStartDate,
           actionEndDate,
           performedBySearch,
-          previousStatus,
-          newStatus,
           sortBy,
           ascending,
         }
@@ -282,16 +309,22 @@ export function TreatmentPlanHistoryList() {
         setResultGroups(groups);
         setTotal(distinctCodesResult.total);
 
+        // If no groups found, just stop loading
+        if (groups.length === 0) {
+          setLoading(false);
+          return;
+        }
+
         // Fetch detailed histories for each group
         for (const group of groups) {
           fetchHistoriesForTreatmentPlan(group.treatmentPlanId);
         }
       } else {
-        toast.error("Could not load treatment plan codes");
+        message.error("Could not load treatment plan codes");
         setLoading(false);
       }
     } catch (error) {
-      toast.error("Could not load treatment plan codes");
+      message.error("Could not load treatment plan codes");
       setLoading(false);
     }
   }, [
@@ -300,10 +333,7 @@ export function TreatmentPlanHistoryList() {
     ascending,
     treatmentPlanCode,
     healthCheckResultCode,
-    action,
     performedBySearch,
-    previousStatus,
-    newStatus,
     actionDateRange,
   ]);
 
@@ -323,32 +353,32 @@ export function TreatmentPlanHistoryList() {
           )
         );
       } else {
-        toast.error(
+        message.error(
           response.message || `Could not load histories for treatment plan`
         );
       }
     } catch (error) {
-      toast.error(`Could not load histories for treatment plan`);
+      message.error(`Could not load histories for treatment plan`);
     } finally {
       // Check if all groups are loaded
-      setLoading(resultGroups.some((group) => group.loading));
+      setLoading((prevLoading) => {
+        if (!prevLoading) return false;
+        return resultGroups.some((group) => group.loading);
+      });
     }
   };
 
   useEffect(() => {
+    console.log("Pagination changed, fetching...");
     fetchDistinctTreatmentPlans();
-  }, [
-    currentPage,
-    pageSize,
-    ascending,
-    treatmentPlanCode,
-    healthCheckResultCode,
-    action,
-    performedBySearch,
-    previousStatus,
-    newStatus,
-    actionDateRange,
-  ]);
+  }, [currentPage, pageSize]);
+
+  // Initial data fetch when component mounts
+  useEffect(() => {
+    console.log("Component mounted, initializing...");
+    fetchUniqueValues();
+    fetchDistinctTreatmentPlans();
+  }, []);
 
   // Fetch distinct codes and performers for dropdown options
   const fetchUniqueValues = useCallback(async () => {
@@ -370,61 +400,80 @@ export function TreatmentPlanHistoryList() {
 
       if (response.success) {
         const histories = response.data.items || response.data || [];
-        
+
         // Extract unique treatment plan codes
         const treatmentPlanCodesSet = new Set<string>();
         const healthCheckCodesSet = new Set<string>();
-        const performersMap = new Map<string, {id: string; fullName: string; email: string}>();
-        
+        const performersMap = new Map<
+          string,
+          { id: string; fullName: string; email: string }
+        >();
+
         histories.forEach((history: TreatmentPlanHistoryResponseDTO) => {
           if (history.treatmentPlan) {
             treatmentPlanCodesSet.add(history.treatmentPlan.treatmentPlanCode);
-            
+
             if (history.treatmentPlan.healthCheckResult) {
-              healthCheckCodesSet.add(history.treatmentPlan.healthCheckResult.healthCheckResultCode);
+              healthCheckCodesSet.add(
+                history.treatmentPlan.healthCheckResult.healthCheckResultCode
+              );
             }
           }
-          
+
           if (history.performedBy) {
             performersMap.set(history.performedBy.id, {
               id: history.performedBy.id,
               fullName: history.performedBy.fullName,
-              email: history.performedBy.email
+              email: history.performedBy.email,
             });
           }
         });
-        
+
         setUniqueTreatmentPlanCodes(Array.from(treatmentPlanCodesSet));
         setUniqueHealthCheckCodes(Array.from(healthCheckCodesSet));
         setUniquePerformers(Array.from(performersMap.values()));
       }
     } catch (error) {
       console.error("Error fetching unique values:", error);
-      toast.error("Failed to load filter options");
+      message.error("Failed to load filter options");
     }
-  }, []);
-
-  useEffect(() => {
-    fetchUniqueValues();
   }, []);
 
   // Event handlers
   const handleSearch = () => {
+    console.log("Searching with:", {
+      treatmentPlanCode,
+      healthCheckResultCode,
+      performedBySearch,
+      actionDateRange,
+      ascending,
+    });
     setCurrentPage(1);
     fetchDistinctTreatmentPlans();
   };
 
   const handleReset = () => {
-    setAction(undefined);
+    console.log("Resetting all filters and fetching new data");
+    // Reset all actual filter values
     setPerformedBySearch("");
-    setPreviousStatus(undefined);
-    setNewStatus(undefined);
-    setAscending(false);
     setTreatmentPlanCode("");
     setHealthCheckResultCode("");
     setActionDateRange([null, null]);
     setCurrentPage(1);
-    fetchDistinctTreatmentPlans();
+    setAscending(false);
+
+    // Reset filter state
+    setFilterState({
+      healthCheckResultCode: "",
+      performedBySearch: "",
+      actionDateRange: [null, null],
+      ascending: false,
+    });
+
+    // Fetch data with reset filters - use setTimeout to ensure state updates first
+    setTimeout(() => {
+      fetchDistinctTreatmentPlans();
+    }, 0);
   };
 
   const handlePageChange = (page: number, pageSize?: number) => {
@@ -444,10 +493,169 @@ export function TreatmentPlanHistoryList() {
     setExportConfig({ ...exportConfig, ...changedValues });
   };
 
+  const openFilterModal = () => {
+    // Initialize filter state with current values - ensure we always sync when opening modal
+    setFilterState({
+      healthCheckResultCode: healthCheckResultCode || "",
+      performedBySearch: performedBySearch || "",
+      actionDateRange: actionDateRange || [null, null],
+      ascending: ascending,
+    });
+    setShowFilterModal(true);
+  };
+
+  const closeFilterModal = () => {
+    setShowFilterModal(false);
+  };
+
+  const applyFilters = () => {
+    // Apply filter state to actual state
+    console.log("Applying filters from modal:", filterState);
+
+    // Cập nhật các state thực với giá trị từ filterState
+    setHealthCheckResultCode(filterState.healthCheckResultCode);
+    setPerformedBySearch(filterState.performedBySearch);
+    setActionDateRange(filterState.actionDateRange);
+    setAscending(filterState.ascending);
+    setCurrentPage(1);
+
+    closeFilterModal();
+
+    // Gọi API tìm kiếm với các bộ lọc mới
+    // Cần đảm bảo sử dụng giá trị mới nhất từ filterState
+    const actionStartDate =
+      filterState.actionDateRange && filterState.actionDateRange[0]
+        ? filterState.actionDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+
+    const actionEndDate =
+      filterState.actionDateRange && filterState.actionDateRange[1]
+        ? filterState.actionDateRange[1].format("YYYY-MM-DD")
+        : undefined;
+
+    // Gọi API với giá trị từ filterState thay vì đợi state cập nhật
+    getDistinctTreatmentPlanCodes(
+      1, // Reset page to 1 when applying filters
+      pageSize,
+      {
+        treatmentPlanCode,
+        healthCheckResultCode: filterState.healthCheckResultCode,
+        actionStartDate,
+        actionEndDate,
+        performedBySearch: filterState.performedBySearch,
+        sortBy,
+        ascending: filterState.ascending,
+      }
+    )
+      .then((distinctCodesResult) => {
+        if (distinctCodesResult.success) {
+          // Create result groups from distinct codes
+          const groups: TreatmentPlanGroup[] = distinctCodesResult.codes.map(
+            (item) => ({
+              code: item.code,
+              treatmentPlanId: item.id,
+              histories: [],
+              loading: true,
+            })
+          );
+
+          setResultGroups(groups);
+          setTotal(distinctCodesResult.total);
+
+          // If no groups found, just stop loading
+          if (groups.length === 0) {
+            setLoading(false);
+            return;
+          }
+
+          // Fetch detailed histories for each group
+          for (const group of groups) {
+            fetchHistoriesForTreatmentPlan(group.treatmentPlanId);
+          }
+        } else {
+          message.error("Could not load treatment plan codes");
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        message.error("Could not load treatment plan codes");
+        setLoading(false);
+      });
+  };
+
+  const resetFilters = () => {
+    console.log("Resetting filter state in modal and applying immediately");
+
+    // Reset filter state trong modal
+    setFilterState({
+      healthCheckResultCode: "",
+      performedBySearch: "",
+      actionDateRange: [null, null],
+      ascending: false,
+    });
+
+    // Cập nhật state thực (trừ treatmentPlanCode)
+    setHealthCheckResultCode("");
+    setPerformedBySearch("");
+    setActionDateRange([null, null]);
+    setAscending(false);
+    setCurrentPage(1);
+
+    closeFilterModal();
+
+    // Gọi API với các bộ lọc đã reset nhưng giữ lại treatmentPlanCode
+    // Cần đảm bảo sử dụng giá trị mới
+    getDistinctTreatmentPlanCodes(
+      1, // Reset page to 1
+      pageSize,
+      {
+        treatmentPlanCode, // Giữ lại giá trị này
+        healthCheckResultCode: "",
+        actionStartDate: undefined,
+        actionEndDate: undefined,
+        performedBySearch: "",
+        sortBy,
+        ascending: false,
+      }
+    )
+      .then((distinctCodesResult) => {
+        // Xử lý kết quả như trong applyFilters
+        if (distinctCodesResult.success) {
+          const groups: TreatmentPlanGroup[] = distinctCodesResult.codes.map(
+            (item) => ({
+              code: item.code,
+              treatmentPlanId: item.id,
+              histories: [],
+              loading: true,
+            })
+          );
+
+          setResultGroups(groups);
+          setTotal(distinctCodesResult.total);
+
+          if (groups.length === 0) {
+            setLoading(false);
+            return;
+          }
+
+          for (const group of groups) {
+            fetchHistoriesForTreatmentPlan(group.treatmentPlanId);
+          }
+        } else {
+          message.error("Could not load treatment plan codes");
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        message.error("Could not load treatment plan codes");
+        setLoading(false);
+      });
+  };
+
   const handleExportWithConfig = async () => {
+    setExportLoading(true);
     try {
       const values = await form.validateFields();
-      setExportLoading(true);
 
       const exportConfigData: TreatmentPlanHistoryExportConfigDTO = {
         exportAllPages: values.exportAllPages,
@@ -462,19 +670,26 @@ export function TreatmentPlanHistoryList() {
         includeChangeDetails: values.includeChangeDetails,
       };
 
-      const startActionDate = actionDateRange[0]?.format("YYYY-MM-DD");
-      const endActionDate = actionDateRange[1]?.format("YYYY-MM-DD");
+      const startActionDate =
+        actionDateRange && actionDateRange[0]
+          ? actionDateRange[0].format("YYYY-MM-DD")
+          : undefined;
+
+      const endActionDate =
+        actionDateRange && actionDateRange[1]
+          ? actionDateRange[1].format("YYYY-MM-DD")
+          : undefined;
 
       const response = await exportTreatmentPlanHistoriesToExcelWithConfig(
         exportConfigData,
         currentPage,
         pageSize,
-        action,
+        undefined,
         startActionDate,
         endActionDate,
         performedBySearch,
-        previousStatus,
-        newStatus,
+        undefined,
+        undefined,
         sortBy,
         ascending,
         treatmentPlanCode,
@@ -483,27 +698,22 @@ export function TreatmentPlanHistoryList() {
 
       if (response.success && response.data) {
         window.open(response.data, "_blank");
-        toast.success(
+        message.success(
           "Treatment plan histories exported to Excel successfully"
         );
       } else {
-        toast.error(response.message || "Failed to export Excel file");
+        message.error(response.message || "Failed to export Excel file");
       }
-      
+
       setExportConfig(exportConfigData);
       closeExportConfigModal();
     } catch (error) {
       console.error("Export error:", error);
-      toast.error("Failed to export Excel file");
+      message.error("Failed to export Excel file");
     } finally {
       setExportLoading(false);
+      closeExportConfigModal();
     }
-  };
-
-  // Helper functions
-  const formatDate = (date: string | undefined) => {
-    if (!date) return "";
-    return dayjs(date).format("DD/MM/YYYY");
   };
 
   const formatDateTime = (datetime: string | undefined) => {
@@ -515,16 +725,14 @@ export function TreatmentPlanHistoryList() {
     if (!status) return "";
 
     switch (status.toLowerCase()) {
-      case "pending":
-        return "orange";
-      case "approved":
-        return "green";
-      case "rejected":
-        return "red";
-      case "completed":
+      case "inprogress":
         return "blue";
+      case "completed":
+        return "green";
       case "cancelled":
         return "volcano";
+      case "softdeleted":
+        return "gray";
       default:
         return "default";
     }
@@ -538,22 +746,14 @@ export function TreatmentPlanHistoryList() {
         return "green";
       case "updated":
         return "blue";
-      case "deleted":
-        return "red";
-      case "approved":
-        return "green";
-      case "rejected":
-        return "volcano";
-      case "completed":
-        return "cyan";
       case "cancelled":
         return "orange";
-      case "statuschange":
-        return "purple";
-      case "restore":
-        return "lime";
-      case "softdelete":
+      case "softdeleted":
         return "gray";
+      case "restored":
+        return "lime";
+      case "auto-completed":
+        return "cyan";
       default:
         return "default";
     }
@@ -567,22 +767,14 @@ export function TreatmentPlanHistoryList() {
         return <PlusOutlined />;
       case "updated":
         return <EditOutlined />;
-      case "deleted":
-        return <CloseCircleOutlined />;
-      case "approved":
-        return <CheckCircleOutlined />;
-      case "rejected":
-        return <CloseCircleOutlined />;
-      case "completed":
-        return <CheckCircleOutlined />;
       case "cancelled":
         return <CloseCircleOutlined />;
-      case "statuschange":
-        return <SyncOutlined />;
-      case "restore":
-        return <UndoOutlined />;
-      case "softdelete":
+      case "softdeleted":
         return <DeleteOutlined />;
+      case "restored":
+        return <UndoOutlined />;
+      case "auto-completed":
+        return <CheckCircleOutlined />;
       default:
         return <HistoryOutlined />;
     }
@@ -612,59 +804,272 @@ export function TreatmentPlanHistoryList() {
         <Row gutter={24}>
           <Col span={12}>
             <Form.Item name="includeTreatmentPlanCode" valuePropName="checked">
-          <Checkbox>Treatment Plan Code</Checkbox>
-        </Form.Item>
+              <Checkbox>Treatment Plan Code</Checkbox>
+            </Form.Item>
           </Col>
 
           <Col span={12}>
             <Form.Item name="includeHealthCheckCode" valuePropName="checked">
-          <Checkbox>Health Check Code</Checkbox>
-        </Form.Item>
+              <Checkbox>Health Check Code</Checkbox>
+            </Form.Item>
           </Col>
 
           <Col span={12}>
             <Form.Item name="includePatient" valuePropName="checked">
               <Checkbox>Patient Information</Checkbox>
-        </Form.Item>
+            </Form.Item>
           </Col>
 
           <Col span={12}>
             <Form.Item name="includeAction" valuePropName="checked">
-          <Checkbox>Action</Checkbox>
-        </Form.Item>
+              <Checkbox>Action</Checkbox>
+            </Form.Item>
           </Col>
 
           <Col span={12}>
             <Form.Item name="includeActionDate" valuePropName="checked">
-          <Checkbox>Action Date</Checkbox>
-        </Form.Item>
+              <Checkbox>Action Date</Checkbox>
+            </Form.Item>
           </Col>
 
           <Col span={12}>
             <Form.Item name="includePerformedBy" valuePropName="checked">
-          <Checkbox>Performed By</Checkbox>
-        </Form.Item>
+              <Checkbox>Performed By</Checkbox>
+            </Form.Item>
           </Col>
 
           <Col span={12}>
             <Form.Item name="includePreviousStatus" valuePropName="checked">
-          <Checkbox>Previous Status</Checkbox>
-        </Form.Item>
+              <Checkbox>Previous Status</Checkbox>
+            </Form.Item>
           </Col>
 
           <Col span={12}>
             <Form.Item name="includeNewStatus" valuePropName="checked">
-          <Checkbox>New Status</Checkbox>
-        </Form.Item>
+              <Checkbox>New Status</Checkbox>
+            </Form.Item>
           </Col>
 
           <Col span={12}>
             <Form.Item name="includeChangeDetails" valuePropName="checked">
-          <Checkbox>Change Details</Checkbox>
-        </Form.Item>
+              <Checkbox>Change Details</Checkbox>
+            </Form.Item>
           </Col>
         </Row>
       </Form>
+    </Modal>
+  );
+
+  const renderFilterModal = () => (
+    <Modal
+      title="Advanced Filters"
+      open={showFilterModal}
+      onOk={applyFilters}
+      onCancel={closeFilterModal}
+      width={600}
+      footer={[
+        <Button key="reset" onClick={resetFilters} icon={<UndoOutlined />}>
+          Reset
+        </Button>,
+        <Button key="apply" type="primary" onClick={applyFilters} icon={<CheckCircleOutlined />}>
+          Apply
+        </Button>,
+      ]}
+    >
+      <Row gutter={[16, 24]}>
+        <Col span={24}>
+          <div
+            style={{
+              marginBottom: "8px",
+              fontWeight: 500,
+              color: "#1890ff"
+            }}
+          >
+            Search Criteria
+          </div>
+          <Divider style={{ margin: "12px 0" }} />
+
+          <div className="filter-item" style={{ marginBottom: "16px" }}>
+            <div
+              className="filter-label"
+              style={{
+                marginBottom: "8px",
+                fontWeight: 500
+              }}
+            >
+              Health Check Code
+            </div>
+            <Select
+              showSearch
+              placeholder="Select or search Health Check Code"
+              value={filterState.healthCheckResultCode || undefined}
+              onChange={(value) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  healthCheckResultCode: value || "",
+                }))
+              }
+              style={{ width: "100%" }}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.label?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={uniqueHealthCheckCodes.map((code) => ({
+                value: code,
+                label: code,
+              }))}
+            />
+          </div>
+
+          <div className="filter-item" style={{ marginBottom: "16px" }}>
+            <div
+              className="filter-label"
+              style={{
+                marginBottom: "8px",
+                fontWeight: 500
+              }}
+            >
+              Performed By
+            </div>
+            <Select
+              showSearch
+              placeholder="Select or search staff member"
+              value={filterState.performedBySearch || undefined}
+              onChange={(value) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  performedBySearch: value || "",
+                }))
+              }
+              style={{ width: "100%" }}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.label?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              optionLabelProp="label"
+              options={uniquePerformers.map((performer) => ({
+                value: performer.fullName,
+                label: `${performer.fullName} (${performer.email})`,
+                email: performer.email,
+              }))}
+            />
+          </div>
+        </Col>
+
+        <Col span={24}>
+          <div
+            style={{
+              marginBottom: "8px",
+              fontWeight: 500,
+              color: "#1890ff"
+            }}
+          >
+            Date & Sorting
+          </div>
+          <Divider style={{ margin: "12px 0" }} />
+
+          <div className="filter-item" style={{ marginBottom: "16px" }}>
+            <div
+              className="filter-label"
+              style={{
+                marginBottom: "8px",
+                fontWeight: 500
+              }}
+            >
+              Action Date Range
+            </div>
+            <RangePicker
+              style={{ width: "100%" }}
+              placeholder={["From date", "To date"]}
+              value={filterState.actionDateRange}
+              onChange={(dates) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  actionDateRange: dates as [
+                    dayjs.Dayjs | null,
+                    dayjs.Dayjs | null
+                  ],
+                }))
+              }
+              format="DD/MM/YYYY"
+              allowClear
+              ranges={{
+                "Last 7 Days": [dayjs().subtract(6, "days"), dayjs()],
+                "Last 30 Days": [dayjs().subtract(29, "days"), dayjs()],
+                "This Month": [
+                  dayjs().startOf("month"),
+                  dayjs().endOf("month"),
+                ],
+              }}
+            />
+          </div>
+
+          <div className="filter-item">
+            <div
+              className="filter-label"
+              style={{
+                marginBottom: "8px",
+                fontWeight: 500,
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              <SortAscendingOutlined />
+              <span>Sort Direction</span>
+            </div>
+            <Radio.Group
+              value={filterState.ascending ? "asc" : "desc"}
+              onChange={(e) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  ascending: e.target.value === "asc",
+                }))
+              }
+              optionType="button"
+              buttonStyle="solid"
+              style={{ width: "100%" }}
+            >
+              <Radio.Button
+                value="asc"
+                style={{ width: "50%", textAlign: "center" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <SortAscendingOutlined />
+                  <span>Oldest First</span>
+                </div>
+              </Radio.Button>
+              <Radio.Button
+                value="desc"
+                style={{ width: "50%", textAlign: "center" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <SortDescendingOutlined />
+                  <span>Newest First</span>
+                </div>
+              </Radio.Button>
+            </Radio.Group>
+          </div>
+        </Col>
+      </Row>
     </Modal>
   );
 
@@ -672,194 +1077,154 @@ export function TreatmentPlanHistoryList() {
     <div className="history-container" style={{ padding: "20px" }}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() => router.back()}
-          >
+          <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>
             Back
           </Button>
           <HistoryOutlined style={{ fontSize: "24px" }} />
           <h3 className="text-2xl font-bold">Treatment Plan History</h3>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            type="primary"
-            icon={<FileExcelOutlined />}
-            onClick={handleOpenExportConfig}
-          >
-            Export to Excel
-          </Button>
-        </div>
       </div>
-      
-      <Card style={{ marginBottom: 20 }} className="shadow-sm">
-        <Row gutter={[16, 16]}>
-          <Col span={24}>
-            <Row gutter={[16, 16]}>
-              <Col span={8}>
-                <Select
-                  showSearch
-                  placeholder="Treatment Plan Code"
-                  value={treatmentPlanCode || undefined}
-                  onChange={(value) => setTreatmentPlanCode(value || "")}
-                  style={{ width: "100%" }}
-                  allowClear
-                  filterOption={(input, option) =>
-                    (option?.label?.toString().toLowerCase() || '').includes(input.toLowerCase())
-                  }
-                  options={uniqueTreatmentPlanCodes.map(code => ({
-                    value: code,
-                    label: code
-                  }))}
-                  prefix={<SearchOutlined />}
-                />
-              </Col>
-              <Col span={8}>
-                <Select
-                  showSearch
-                  placeholder="Health Check Result Code"
-                  value={healthCheckResultCode || undefined}
-                  onChange={(value) => setHealthCheckResultCode(value || "")}
-                  style={{ width: "100%" }}
-                  allowClear
-                  filterOption={(input, option) =>
-                    (option?.label?.toString().toLowerCase() || '').includes(input.toLowerCase())
-                  }
-                  options={uniqueHealthCheckCodes.map(code => ({
-                    value: code,
-                    label: code
-                  }))}
-                  prefix={<SearchOutlined />}
-                />
-              </Col>
-              <Col span={8}>
-                <Select
-                  placeholder="Action"
-                  style={{ width: "100%" }}
-                  value={action}
-                  onChange={(value) => setAction(value)}
-                  allowClear
-                >
-                  <Option value="Created">Created</Option>
-                  <Option value="Updated">Updated</Option>
-                  <Option value="Deleted">Deleted</Option>
-                  <Option value="Approved">Approved</Option>
-                  <Option value="Rejected">Rejected</Option>
-                  <Option value="Completed">Completed</Option>
-                  <Option value="Cancelled">Cancelled</Option>
-                  <Option value="StatusChange">Status Change</Option>
-                  <Option value="SoftDelete">Soft Delete</Option>
-                  <Option value="Restore">Restore</Option>
-                </Select>
-              </Col>
-              <Col span={8}>
-                <RangePicker
-                  style={{ width: "100%" }}
-                  placeholder={["From date", "To date"]}
-                  value={[
-                    actionDateRange[0] ? actionDateRange[0] : null,
-                    actionDateRange[1] ? actionDateRange[1] : null,
-                  ]}
-                  onChange={(dates) =>
-                    setActionDateRange(
-                      dates as [dayjs.Dayjs | null, dayjs.Dayjs | null]
-                    )
-                  }
-                />
-              </Col>
-              <Col span={8}>
-                <Select
-                  showSearch
-                  placeholder="Performed By"
-                  value={performedBySearch || undefined}
-                  onChange={(value) => setPerformedBySearch(value || "")}
-                  style={{ width: "100%" }}
-                  allowClear
-                  filterOption={(input, option) =>
-                    (option?.label?.toString().toLowerCase() || '').includes(input.toLowerCase())
-                  }
-                  optionLabelProp="label"
-                  options={uniquePerformers.map(performer => ({
-                    value: performer.fullName,
-                    label: `${performer.fullName} (${performer.email})`,
-                    email: performer.email
-                  }))}
-                  prefix={<SearchOutlined />}
-                />
-              </Col>
-              <Col span={8}>
-                <Select
-                  placeholder="Previous Status"
-                  style={{ width: "100%" }}
-                  value={previousStatus}
-                  onChange={(value) => setPreviousStatus(value)}
-                  allowClear
-                >
-                  <Option value="Pending">Pending</Option>
-                  <Option value="Approved">Approved</Option>
-                  <Option value="Rejected">Rejected</Option>
-                  <Option value="Completed">Completed</Option>
-                  <Option value="Cancelled">Cancelled</Option>
-                  <Option value="Deleted">Deleted</Option>
-                  <Option value="IN_PROGRESS">In Progress</Option>
-                  <Option value="SOFT_DELETED">Soft Deleted</Option>
-                </Select>
-              </Col>
-              <Col span={8}>
-                <Select
-                  placeholder="New Status"
-                  style={{ width: "100%" }}
-                  value={newStatus}
-                  onChange={(value) => setNewStatus(value)}
-                  allowClear
-                >
-                  <Option value="Pending">Pending</Option>
-                  <Option value="Approved">Approved</Option>
-                  <Option value="Rejected">Rejected</Option>
-                  <Option value="Completed">Completed</Option>
-                  <Option value="Cancelled">Cancelled</Option>
-                  <Option value="Deleted">Deleted</Option>
-                  <Option value="IN_PROGRESS">In Progress</Option>
-                  <Option value="SOFT_DELETED">Soft Deleted</Option>
-                </Select>
-              </Col>
-              <Col span={24}>
-                <Space>
-                  <Button
-                    type="primary"
-                    onClick={handleSearch}
-                    icon={<SearchOutlined />}
-                  >
-                    Search
-                  </Button>
-                  <Button onClick={handleReset}>Reset</Button>
-                </Space>
-              </Col>
-            </Row>
-          </Col>
 
-          <Col span={24}>
-            <Space size="middle" wrap>
+      <Card style={{ marginBottom: 20 }} className="shadow-sm">
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "4px",
+            }}
+          >
+            <Title level={5} style={{ margin: 0 }}>
+              Search & Filters
+            </Title>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <Select
-                placeholder="Sort by"
-                value="ActionDate"
-                disabled={true}
-                style={{ width: 150 }}
+                showSearch
+                placeholder="Search Treatment Plan Code"
+                value={treatmentPlanCode || undefined}
+                onChange={(value) => {
+                  // Lưu giá trị trước đó để so sánh
+                  const prevValue = treatmentPlanCode;
+                  console.log(
+                    "Treatment Plan Code changing from",
+                    prevValue,
+                    "to:",
+                    value
+                  );
+                  setTreatmentPlanCode(value || "");
+
+                  // Gọi API trực tiếp tại đây, không sử dụng các state để đảm bảo giá trị mới nhất
+                  const actionStartDate =
+                    actionDateRange && actionDateRange[0]
+                      ? actionDateRange[0].format("YYYY-MM-DD")
+                      : undefined;
+
+                  const actionEndDate =
+                    actionDateRange && actionDateRange[1]
+                      ? actionDateRange[1].format("YYYY-MM-DD")
+                      : undefined;
+
+                  // Reset về trang 1 khi tìm kiếm
+                  setCurrentPage(1);
+                  setLoading(true);
+
+                  getDistinctTreatmentPlanCodes(1, pageSize, {
+                    treatmentPlanCode: value || "",
+                    healthCheckResultCode,
+                    actionStartDate,
+                    actionEndDate,
+                    performedBySearch,
+                    sortBy,
+                    ascending,
+                  })
+                    .then((distinctCodesResult) => {
+                      if (distinctCodesResult.success) {
+                        const groups: TreatmentPlanGroup[] =
+                          distinctCodesResult.codes.map((item) => ({
+                            code: item.code,
+                            treatmentPlanId: item.id,
+                            histories: [],
+                            loading: true,
+                          }));
+
+                        setResultGroups(groups);
+                        setTotal(distinctCodesResult.total);
+
+                        if (groups.length === 0) {
+                          setLoading(false);
+                          return;
+                        }
+
+                        for (const group of groups) {
+                          fetchHistoriesForTreatmentPlan(group.treatmentPlanId);
+                        }
+                      } else {
+                        message.error("Could not load treatment plan codes");
+                        setLoading(false);
+                      }
+                    })
+                    .catch((error) => {
+                      message.error("Could not load treatment plan codes");
+                      setLoading(false);
+                    });
+                }}
+                style={{ width: "400px" }}
+                allowClear
+                filterOption={(input, option) =>
+                  (option?.label?.toString().toLowerCase() || "").includes(
+                    input.toLowerCase()
+                  )
+                }
+                options={uniqueTreatmentPlanCodes.map((code) => ({
+                  value: code,
+                  label: code,
+                }))}
+                prefix={<SearchOutlined />}
+              />
+
+              <Tooltip title="Advanced Filters">
+                <Button
+                  icon={
+                    <FilterOutlined
+                      style={{
+                        color:
+                          healthCheckResultCode ||
+                          performedBySearch ||
+                          (actionDateRange &&
+                            (actionDateRange[0] || actionDateRange[1]))
+                            ? "#1890ff"
+                            : undefined,
+                      }}
+                    />
+                  }
+                  onClick={openFilterModal}
+                >
+                  Filters
+                </Button>
+              </Tooltip>
+            </div>
+
+            <div style={{ marginLeft: "auto" }}>
+              <Button
+                type="primary"
+                icon={<FileExcelOutlined />}
+                onClick={handleOpenExportConfig}
               >
-                <Option value="ActionDate">Action Date</Option>
-              </Select>
-              <Select
-                placeholder="Order"
-                value={ascending ? "asc" : "desc"}
-                onChange={(value) => setAscending(value === "asc")}
-                style={{ width: 120 }}
-              >
-                <Option value="asc">Ascending</Option>
-                <Option value="desc">Descending</Option>
-              </Select>
-            </Space>
-          </Col>
-        </Row>
+                Export to Excel
+              </Button>
+            </div>
+          </div>
+        </div>
       </Card>
 
       {loading && resultGroups.length === 0 ? (
@@ -881,33 +1246,50 @@ export function TreatmentPlanHistoryList() {
                   <Space size="large">
                     <span>
                       <Text type="secondary">Treatment Plan:</Text>{" "}
-                      <Button 
-                        type="link" 
-                        onClick={() => router.push(`/treatment-plan/${group.treatmentPlanId}`)}
+                      <Button
+                        type="link"
+                        onClick={() =>
+                          router.push(
+                            `/treatment-plan/${group.treatmentPlanId}`
+                          )
+                        }
                         style={{ padding: 0 }}
                       >
                         {group.code}
                       </Button>
                     </span>
-                    
-                    {group.histories.length > 0 && 
-                     group.histories[0].treatmentPlan?.healthCheckResult && (
-                      <>
-                        <div style={{ display: "flex", alignItems: "center", color: "#8c8c8c" }}>
-                          <LinkOutlined style={{ fontSize: "14px" }} />
-                        </div>
-                        <span>
-                          <Text type="secondary">Health Check:</Text>{" "}
-                          <Button 
-                            type="link" 
-                            onClick={() => router.push(`/health-check-result/${group.histories[0].treatmentPlan?.healthCheckResult?.id}`)}
-                            style={{ padding: 0 }}
+
+                    {group.histories.length > 0 &&
+                      group.histories[0].treatmentPlan?.healthCheckResult && (
+                        <>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              color: "#8c8c8c",
+                            }}
                           >
-                            {group.histories[0].treatmentPlan.healthCheckResult.healthCheckResultCode}
-                          </Button>
-                        </span>
-                      </>
-                    )}
+                            <LinkOutlined style={{ fontSize: "14px" }} />
+                          </div>
+                          <span>
+                            <Text type="secondary">Health Check:</Text>{" "}
+                            <Button
+                              type="link"
+                              onClick={() =>
+                                router.push(
+                                  `/health-check-result/${group.histories[0].treatmentPlan?.healthCheckResult?.id}`
+                                )
+                              }
+                              style={{ padding: 0 }}
+                            >
+                              {
+                                group.histories[0].treatmentPlan
+                                  .healthCheckResult.healthCheckResultCode
+                              }
+                            </Button>
+                          </span>
+                        </>
+                      )}
                   </Space>
                 </div>
               </div>
@@ -925,11 +1307,12 @@ export function TreatmentPlanHistoryList() {
                     <Timeline
                       mode="left"
                       items={group.histories
-                        .sort(
-                          (a, b) =>
-                            dayjs(b.actionDate).unix() -
-                            dayjs(a.actionDate).unix()
-                        )
+                        .sort((a, b) => {
+                          const comparison =
+                            dayjs(a.actionDate).unix() -
+                            dayjs(b.actionDate).unix();
+                          return ascending ? comparison : -comparison;
+                        })
                         .map((history) => ({
                           color: getActionColor(history.action),
                           dot: getActionIcon(history.action),
@@ -986,7 +1369,7 @@ export function TreatmentPlanHistoryList() {
                                       {history.performedBy?.email})
                                     </div>
                                   </div>
-      
+
                                   {history.previousStatus &&
                                     history.newStatus && (
                                       <div style={{ display: "flex" }}>
@@ -1073,14 +1456,14 @@ export function TreatmentPlanHistoryList() {
                     <Option value={15}>15</Option>
                     <Option value={20}>20</Option>
                   </Select>
-          <Pagination
-            current={currentPage}
-            pageSize={pageSize}
-            total={total}
-            onChange={handlePageChange}
+                  <Pagination
+                    current={currentPage}
+                    pageSize={pageSize}
+                    total={total}
+                    onChange={handlePageChange}
                     showSizeChanger={false}
-            showTotal={(total) => `Total ${total} items`}
-          />
+                    showTotal={(total) => `Total ${total} items`}
+                  />
                 </Space>
               </Col>
             </Row>
@@ -1093,6 +1476,7 @@ export function TreatmentPlanHistoryList() {
       )}
 
       {renderExportConfigModal()}
+      {renderFilterModal()}
     </div>
   );
-} 
+}
