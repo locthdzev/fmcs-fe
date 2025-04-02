@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Button,
-  Table,
-  Input,
   Select,
   DatePicker,
   Pagination,
@@ -13,7 +11,6 @@ import {
   Tag,
   Tooltip,
   Timeline,
-  Badge,
   Divider,
   Empty,
   Spin,
@@ -23,6 +20,7 @@ import {
   Collapse,
   Card,
   Radio,
+  InputNumber,
 } from "antd";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
@@ -31,14 +29,11 @@ import {
   TreatmentPlanHistoryResponseDTO,
   exportTreatmentPlanHistoriesToExcelWithConfig,
   TreatmentPlanHistoryExportConfigDTO,
-  PerformedByInfo,
   getTreatmentPlanHistoriesByTreatmentPlanId,
 } from "@/api/treatment-plan";
 import { useRouter } from "next/router";
 import {
   SearchOutlined,
-  ExportOutlined,
-  EyeOutlined,
   FilterOutlined,
   FileExcelOutlined,
   ArrowLeftOutlined,
@@ -49,11 +44,8 @@ import {
   PlusOutlined,
   CaretRightOutlined,
   LinkOutlined,
-  SyncOutlined,
   UndoOutlined,
   DeleteOutlined,
-  UserOutlined,
-  CalendarOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined,
 } from "@ant-design/icons";
@@ -871,7 +863,12 @@ export function TreatmentPlanHistoryList() {
         <Button key="reset" onClick={resetFilters} icon={<UndoOutlined />}>
           Reset
         </Button>,
-        <Button key="apply" type="primary" onClick={applyFilters} icon={<CheckCircleOutlined />}>
+        <Button
+          key="apply"
+          type="primary"
+          onClick={applyFilters}
+          icon={<CheckCircleOutlined />}
+        >
           Apply
         </Button>,
       ]}
@@ -882,7 +879,7 @@ export function TreatmentPlanHistoryList() {
             style={{
               marginBottom: "8px",
               fontWeight: 500,
-              color: "#1890ff"
+              color: "#1890ff",
             }}
           >
             Search Criteria
@@ -894,7 +891,7 @@ export function TreatmentPlanHistoryList() {
               className="filter-label"
               style={{
                 marginBottom: "8px",
-                fontWeight: 500
+                fontWeight: 500,
               }}
             >
               Health Check Code
@@ -928,7 +925,7 @@ export function TreatmentPlanHistoryList() {
               className="filter-label"
               style={{
                 marginBottom: "8px",
-                fontWeight: 500
+                fontWeight: 500,
               }}
             >
               Performed By
@@ -965,7 +962,7 @@ export function TreatmentPlanHistoryList() {
             style={{
               marginBottom: "8px",
               fontWeight: 500,
-              color: "#1890ff"
+              color: "#1890ff",
             }}
           >
             Date & Sorting
@@ -977,7 +974,7 @@ export function TreatmentPlanHistoryList() {
               className="filter-label"
               style={{
                 marginBottom: "8px",
-                fontWeight: 500
+                fontWeight: 500,
               }}
             >
               Action Date Range
@@ -1227,6 +1224,23 @@ export function TreatmentPlanHistoryList() {
         </div>
       </Card>
 
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px', gap: '8px', alignItems: 'center' }}>
+        <Text type="secondary">Groups per page:</Text>
+        <Select
+          value={pageSize}
+          onChange={(value) => {
+            setPageSize(value);
+            setCurrentPage(1);
+          }}
+          style={{ width: "80px" }}
+        >
+          <Option value={5}>5</Option>
+          <Option value={10}>10</Option>
+          <Option value={15}>15</Option>
+          <Option value={20}>20</Option>
+        </Select>
+      </div>
+
       {loading && resultGroups.length === 0 ? (
         <Card className="shadow-sm">
           <Spin tip="Loading..." />
@@ -1434,38 +1448,34 @@ export function TreatmentPlanHistoryList() {
           ))}
 
           <Card className="mt-4 shadow-sm">
-            <Row justify="space-between" align="middle">
-              <Col>
+            <Row justify="center" align="middle">
+              <Space size="large" align="center">
                 <Text type="secondary">
-                  Total {total} treatment plan groups
+                  Total {total} items
                 </Text>
-              </Col>
-              <Col>
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={total}
+                  onChange={handlePageChange}
+                  showSizeChanger={false}
+                  showTotal={() => ""}
+                />
                 <Space align="center">
-                  <Text type="secondary">Groups per page:</Text>
-                  <Select
-                    value={pageSize}
+                  <Text type="secondary">Go to page:</Text>
+                  <InputNumber 
+                    min={1} 
+                    max={Math.ceil(total/pageSize)} 
+                    value={currentPage}
                     onChange={(value) => {
-                      setPageSize(value);
-                      setCurrentPage(1);
+                      if (value && Number(value) > 0 && Number(value) <= Math.ceil(total/pageSize)) {
+                        setCurrentPage(Number(value));
+                      }
                     }}
-                    style={{ minWidth: "80px" }}
-                  >
-                    <Option value={5}>5</Option>
-                    <Option value={10}>10</Option>
-                    <Option value={15}>15</Option>
-                    <Option value={20}>20</Option>
-                  </Select>
-                  <Pagination
-                    current={currentPage}
-                    pageSize={pageSize}
-                    total={total}
-                    onChange={handlePageChange}
-                    showSizeChanger={false}
-                    showTotal={(total) => `Total ${total} items`}
+                    style={{ width: '60px' }}
                   />
                 </Space>
-              </Col>
+              </Space>
             </Row>
           </Card>
         </div>
