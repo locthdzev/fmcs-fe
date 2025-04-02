@@ -490,17 +490,20 @@ export const exportTreatmentPlanHistoriesToExcelWithConfig = async (
       }
     );
 
-    if (response.data && response.data.isSuccess && response.data.data) {
-      window.open(response.data.data, "_blank");
-      toast.success("Treatment plan histories exported to Excel successfully");
-    } else {
-      toast.error(response.data.message || "Cannot export Excel file");
+    const data = response.data;
+    // Chuẩn hóa success property
+    if (data && data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
     }
 
-    return response.data;
+    // Không mở file hay hiển thị thông báo trong API
+    return data;
   } catch (error: any) {
     console.error("Export error:", error);
-    toast.error(error.response?.data?.message || "Cannot export Excel file");
-    throw error;
+    return { 
+      success: false, 
+      isSuccess: false,
+      message: error.response?.data?.message || "Cannot export Excel file" 
+    };
   }
 }; 
