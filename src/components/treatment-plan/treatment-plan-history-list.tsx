@@ -48,6 +48,9 @@ import {
   PlusOutlined,
   CaretRightOutlined,
   LinkOutlined,
+  SyncOutlined,
+  UndoOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 
 const { Option } = Select;
@@ -88,7 +91,7 @@ export function TreatmentPlanHistoryList() {
     undefined
   );
   const [newStatus, setNewStatus] = useState<string | undefined>(undefined);
-  const [sortBy, setSortBy] = useState("ActionDate");
+  const [sortBy] = useState("ActionDate");
   const [ascending, setAscending] = useState(false);
   const [treatmentPlanCode, setTreatmentPlanCode] = useState("");
   const [healthCheckResultCode, setHealthCheckResultCode] = useState("");
@@ -110,6 +113,12 @@ export function TreatmentPlanHistoryList() {
     includeNewStatus: true,
     includeChangeDetails: true,
   });
+  
+  // Add state for dropdown options
+  const [uniqueTreatmentPlanCodes, setUniqueTreatmentPlanCodes] = useState<string[]>([]);
+  const [uniqueHealthCheckCodes, setUniqueHealthCheckCodes] = useState<string[]>([]);
+  const [uniquePerformers, setUniquePerformers] = useState<{id: string; fullName: string; email: string}[]>([]);
+  
   const [form] = Form.useForm();
 
   // New function to get distinct treatment plan codes with pagination
@@ -248,14 +257,14 @@ export function TreatmentPlanHistoryList() {
         {
           treatmentPlanCode,
           healthCheckResultCode,
-        action,
+          action,
           actionStartDate,
           actionEndDate,
-        performedBySearch,
-        previousStatus,
-        newStatus,
-        sortBy,
-        ascending,
+          performedBySearch,
+          previousStatus,
+          newStatus,
+          sortBy,
+          ascending,
         }
       );
 
@@ -288,15 +297,14 @@ export function TreatmentPlanHistoryList() {
   }, [
     currentPage,
     pageSize,
-    sortBy,
     ascending,
     treatmentPlanCode,
     healthCheckResultCode,
     action,
-    actionDateRange,
     performedBySearch,
     previousStatus,
     newStatus,
+    actionDateRange,
   ]);
 
   // Fetch all histories for a specific treatment plan
@@ -329,7 +337,76 @@ export function TreatmentPlanHistoryList() {
 
   useEffect(() => {
     fetchDistinctTreatmentPlans();
-  }, [currentPage, pageSize, sortBy, ascending]);
+  }, [
+    currentPage,
+    pageSize,
+    ascending,
+    treatmentPlanCode,
+    healthCheckResultCode,
+    action,
+    performedBySearch,
+    previousStatus,
+    newStatus,
+    actionDateRange,
+  ]);
+
+  // Fetch distinct codes and performers for dropdown options
+  const fetchUniqueValues = useCallback(async () => {
+    try {
+      const response = await getAllTreatmentPlanHistories(
+        1,
+        1000,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        "ActionDate",
+        false,
+        undefined,
+        undefined
+      );
+
+      if (response.success) {
+        const histories = response.data.items || response.data || [];
+        
+        // Extract unique treatment plan codes
+        const treatmentPlanCodesSet = new Set<string>();
+        const healthCheckCodesSet = new Set<string>();
+        const performersMap = new Map<string, {id: string; fullName: string; email: string}>();
+        
+        histories.forEach((history: TreatmentPlanHistoryResponseDTO) => {
+          if (history.treatmentPlan) {
+            treatmentPlanCodesSet.add(history.treatmentPlan.treatmentPlanCode);
+            
+            if (history.treatmentPlan.healthCheckResult) {
+              healthCheckCodesSet.add(history.treatmentPlan.healthCheckResult.healthCheckResultCode);
+            }
+          }
+          
+          if (history.performedBy) {
+            performersMap.set(history.performedBy.id, {
+              id: history.performedBy.id,
+              fullName: history.performedBy.fullName,
+              email: history.performedBy.email
+            });
+          }
+        });
+        
+        setUniqueTreatmentPlanCodes(Array.from(treatmentPlanCodesSet));
+        setUniqueHealthCheckCodes(Array.from(healthCheckCodesSet));
+        setUniquePerformers(Array.from(performersMap.values()));
+      }
+    } catch (error) {
+      console.error("Error fetching unique values:", error);
+      toast.error("Failed to load filter options");
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUniqueValues();
+  }, []);
 
   // Event handlers
   const handleSearch = () => {
@@ -342,7 +419,6 @@ export function TreatmentPlanHistoryList() {
     setPerformedBySearch("");
     setPreviousStatus(undefined);
     setNewStatus(undefined);
-    setSortBy("ActionDate");
     setAscending(false);
     setTreatmentPlanCode("");
     setHealthCheckResultCode("");
@@ -472,6 +548,12 @@ export function TreatmentPlanHistoryList() {
         return "cyan";
       case "cancelled":
         return "orange";
+      case "statuschange":
+        return "purple";
+      case "restore":
+        return "lime";
+      case "softdelete":
+        return "gray";
       default:
         return "default";
     }
@@ -495,6 +577,12 @@ export function TreatmentPlanHistoryList() {
         return <CheckCircleOutlined />;
       case "cancelled":
         return <CloseCircleOutlined />;
+      case "statuschange":
+        return <SyncOutlined />;
+      case "restore":
+        return <UndoOutlined />;
+      case "softdelete":
+        return <DeleteOutlined />;
       default:
         return <HistoryOutlined />;
     }
@@ -609,31 +697,49 @@ export function TreatmentPlanHistoryList() {
           <Col span={24}>
             <Row gutter={[16, 16]}>
               <Col span={8}>
-            <Input
+                <Select
+                  showSearch
                   placeholder="Treatment Plan Code"
-              value={treatmentPlanCode}
-              onChange={(e) => setTreatmentPlanCode(e.target.value)}
-              prefix={<SearchOutlined />}
-              allowClear
-            />
-          </Col>
+                  value={treatmentPlanCode || undefined}
+                  onChange={(value) => setTreatmentPlanCode(value || "")}
+                  style={{ width: "100%" }}
+                  allowClear
+                  filterOption={(input, option) =>
+                    (option?.label?.toString().toLowerCase() || '').includes(input.toLowerCase())
+                  }
+                  options={uniqueTreatmentPlanCodes.map(code => ({
+                    value: code,
+                    label: code
+                  }))}
+                  prefix={<SearchOutlined />}
+                />
+              </Col>
               <Col span={8}>
-            <Input
+                <Select
+                  showSearch
                   placeholder="Health Check Result Code"
-              value={healthCheckResultCode}
-              onChange={(e) => setHealthCheckResultCode(e.target.value)}
-              prefix={<SearchOutlined />}
-              allowClear
-            />
-          </Col>
+                  value={healthCheckResultCode || undefined}
+                  onChange={(value) => setHealthCheckResultCode(value || "")}
+                  style={{ width: "100%" }}
+                  allowClear
+                  filterOption={(input, option) =>
+                    (option?.label?.toString().toLowerCase() || '').includes(input.toLowerCase())
+                  }
+                  options={uniqueHealthCheckCodes.map(code => ({
+                    value: code,
+                    label: code
+                  }))}
+                  prefix={<SearchOutlined />}
+                />
+              </Col>
               <Col span={8}>
-            <Select
+                <Select
                   placeholder="Action"
                   style={{ width: "100%" }}
-              value={action}
-              onChange={(value) => setAction(value)}
-              allowClear
-            >
+                  value={action}
+                  onChange={(value) => setAction(value)}
+                  allowClear
+                >
                   <Option value="Created">Created</Option>
                   <Option value="Updated">Updated</Option>
                   <Option value="Deleted">Deleted</Option>
@@ -641,8 +747,11 @@ export function TreatmentPlanHistoryList() {
                   <Option value="Rejected">Rejected</Option>
                   <Option value="Completed">Completed</Option>
                   <Option value="Cancelled">Cancelled</Option>
-            </Select>
-          </Col>
+                  <Option value="StatusChange">Status Change</Option>
+                  <Option value="SoftDelete">Soft Delete</Option>
+                  <Option value="Restore">Restore</Option>
+                </Select>
+              </Col>
               <Col span={8}>
                 <RangePicker
                   style={{ width: "100%" }}
@@ -659,69 +768,85 @@ export function TreatmentPlanHistoryList() {
                 />
               </Col>
               <Col span={8}>
-            <Input
+                <Select
+                  showSearch
                   placeholder="Performed By"
-              value={performedBySearch}
-              onChange={(e) => setPerformedBySearch(e.target.value)}
-              prefix={<SearchOutlined />}
-              allowClear
-            />
-          </Col>
+                  value={performedBySearch || undefined}
+                  onChange={(value) => setPerformedBySearch(value || "")}
+                  style={{ width: "100%" }}
+                  allowClear
+                  filterOption={(input, option) =>
+                    (option?.label?.toString().toLowerCase() || '').includes(input.toLowerCase())
+                  }
+                  optionLabelProp="label"
+                  options={uniquePerformers.map(performer => ({
+                    value: performer.fullName,
+                    label: `${performer.fullName} (${performer.email})`,
+                    email: performer.email
+                  }))}
+                  prefix={<SearchOutlined />}
+                />
+              </Col>
               <Col span={8}>
-            <Select
+                <Select
                   placeholder="Previous Status"
                   style={{ width: "100%" }}
-              value={previousStatus}
-              onChange={(value) => setPreviousStatus(value)}
-              allowClear
-            >
+                  value={previousStatus}
+                  onChange={(value) => setPreviousStatus(value)}
+                  allowClear
+                >
                   <Option value="Pending">Pending</Option>
                   <Option value="Approved">Approved</Option>
                   <Option value="Rejected">Rejected</Option>
                   <Option value="Completed">Completed</Option>
                   <Option value="Cancelled">Cancelled</Option>
-            </Select>
-          </Col>
+                  <Option value="Deleted">Deleted</Option>
+                  <Option value="IN_PROGRESS">In Progress</Option>
+                  <Option value="SOFT_DELETED">Soft Deleted</Option>
+                </Select>
+              </Col>
               <Col span={8}>
-            <Select
+                <Select
                   placeholder="New Status"
                   style={{ width: "100%" }}
-              value={newStatus}
-              onChange={(value) => setNewStatus(value)}
-              allowClear
-            >
+                  value={newStatus}
+                  onChange={(value) => setNewStatus(value)}
+                  allowClear
+                >
                   <Option value="Pending">Pending</Option>
                   <Option value="Approved">Approved</Option>
                   <Option value="Rejected">Rejected</Option>
                   <Option value="Completed">Completed</Option>
                   <Option value="Cancelled">Cancelled</Option>
-            </Select>
-          </Col>
+                  <Option value="Deleted">Deleted</Option>
+                  <Option value="IN_PROGRESS">In Progress</Option>
+                  <Option value="SOFT_DELETED">Soft Deleted</Option>
+                </Select>
+              </Col>
               <Col span={24}>
-            <Space>
+                <Space>
                   <Button
                     type="primary"
                     onClick={handleSearch}
                     icon={<SearchOutlined />}
                   >
-                Search
-              </Button>
-              <Button onClick={handleReset}>Reset</Button>
-            </Space>
-          </Col>
-        </Row>
+                    Search
+                  </Button>
+                  <Button onClick={handleReset}>Reset</Button>
+                </Space>
+              </Col>
+            </Row>
           </Col>
 
           <Col span={24}>
             <Space size="middle" wrap>
               <Select
                 placeholder="Sort by"
-                value={sortBy}
-                onChange={(value) => setSortBy(value)}
+                value="ActionDate"
+                disabled={true}
                 style={{ width: 150 }}
               >
                 <Option value="ActionDate">Action Date</Option>
-                <Option value="treatmentPlanCode">Treatment Plan Code</Option>
               </Select>
               <Select
                 placeholder="Order"
@@ -860,7 +985,7 @@ export function TreatmentPlanHistoryList() {
                                       {history.performedBy?.fullName} (
                                       {history.performedBy?.email})
                                     </div>
-      </div>
+                                  </div>
       
                                   {history.previousStatus &&
                                     history.newStatus && (
