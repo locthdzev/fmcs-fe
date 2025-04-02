@@ -98,7 +98,7 @@ export function TreatmentPlanHistoryList() {
   const [exportLoading, setExportLoading] = useState(false);
   const [exportConfig, setExportConfig] =
     useState<TreatmentPlanHistoryExportConfigDTO>({
-      exportAllPages: false,
+      exportAllPages: true,
       includeTreatmentPlanCode: true,
       includeHealthCheckCode: true,
       includePatient: true,
@@ -479,6 +479,8 @@ export function TreatmentPlanHistoryList() {
 
   const closeExportConfigModal = () => {
     setShowExportConfigModal(false);
+    // Reset the form to default values when closing the modal
+    form.resetFields();
   };
 
   const handleExportConfigChange = (changedValues: any) => {
@@ -662,15 +664,25 @@ export function TreatmentPlanHistoryList() {
         includeChangeDetails: values.includeChangeDetails,
       };
 
+      // Extract filter values from form
+      const exportTreatmentPlanCode = values.exportAllPages ? undefined : values.filterTreatmentPlanCode;
+      const exportHealthCheckCode = values.exportAllPages ? undefined : values.filterHealthCheckResultCode;
+      const exportPerformedBy = values.exportAllPages ? undefined : values.filterPerformedBy;
+      // Always use the sort direction selected in modal, regardless of exportAllPages
+      const exportAscending = values.filterSortDirection === "asc";
+      const exportDateRange = values.exportAllPages ? actionDateRange : values.filterActionDateRange;
+
       const startActionDate =
-        actionDateRange && actionDateRange[0]
-          ? actionDateRange[0].format("YYYY-MM-DD")
+        exportDateRange && exportDateRange[0]
+          ? exportDateRange[0].format("YYYY-MM-DD")
           : undefined;
 
       const endActionDate =
-        actionDateRange && actionDateRange[1]
-          ? actionDateRange[1].format("YYYY-MM-DD")
+        exportDateRange && exportDateRange[1]
+          ? exportDateRange[1].format("YYYY-MM-DD")
           : undefined;
+
+      console.log("Export sort direction:", values.filterSortDirection, "Ascending:", exportAscending);
 
       const response = await exportTreatmentPlanHistoriesToExcelWithConfig(
         exportConfigData,
@@ -679,13 +691,13 @@ export function TreatmentPlanHistoryList() {
         undefined,
         startActionDate,
         endActionDate,
-        performedBySearch,
+        exportPerformedBy || performedBySearch,
         undefined,
         undefined,
         sortBy,
-        ascending,
-        treatmentPlanCode,
-        healthCheckResultCode
+        exportAscending,
+        exportTreatmentPlanCode || treatmentPlanCode,
+        exportHealthCheckCode || healthCheckResultCode
       );
 
       if (response.success && response.data) {
@@ -776,24 +788,233 @@ export function TreatmentPlanHistoryList() {
     <Modal
       title="Export Configuration"
       open={showExportConfigModal}
-      onOk={handleExportWithConfig}
       onCancel={closeExportConfigModal}
-      confirmLoading={exportLoading}
-      width={600}
+      width={800}
+      footer={[
+        <Button key="cancel" onClick={closeExportConfigModal}>
+          Cancel
+        </Button>,
+        <Button 
+          key="submit" 
+          type="primary" 
+          loading={exportLoading}
+          onClick={handleExportWithConfig}
+        >
+          Export
+        </Button>
+      ]}
+      destroyOnClose={true}
     >
       <Form
         form={form}
         layout="vertical"
-        initialValues={exportConfig}
-        onValuesChange={handleExportConfigChange}
+        initialValues={{
+          ...exportConfig,
+          filterTreatmentPlanCode: treatmentPlanCode || null,
+          filterHealthCheckResultCode: healthCheckResultCode || null,
+          filterPerformedBy: performedBySearch || null,
+          filterSortDirection: ascending ? "asc" : "desc",
+          filterActionDateRange: actionDateRange,
+          exportAllPages: true,
+        }}
+        onValuesChange={(changedValues, allValues) => {
+          handleExportConfigChange(changedValues);
+          // Update the display of filter section based on exportAllPages value
+          if ('exportAllPages' in changedValues) {
+            setExportConfig(prev => ({...prev, exportAllPages: changedValues.exportAllPages}));
+          }
+        }}
+        preserve={false}
       >
-        <Form.Item name="exportAllPages" valuePropName="checked">
-          <Checkbox>Export all pages (not just current page)</Checkbox>
-        </Form.Item>
+        <Row gutter={[16, 8]}>
+          <Col span={24}>
+            <Typography.Title level={5}>Basic Options</Typography.Title>
+          </Col>
+          
+          <Col span={24}>
+            <Form.Item 
+              name="exportAllPages" 
+              valuePropName="checked"
+              style={{ marginBottom: "12px" }}
+            >
+              <Checkbox>Export all data (ignore pagination)</Checkbox>
+            </Form.Item>
+          </Col>
+          
+          <Col span={24}>
+            <div style={{ marginBottom: "16px" }}>
+              <div
+                className="filter-label"
+                style={{ marginBottom: "8px", color: '#666666', display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                <SortAscendingOutlined />
+                <span>Sort direction</span>
+              </div>
+              <Form.Item 
+                name="filterSortDirection"
+                noStyle
+              >
+                <Radio.Group
+                  optionType="button"
+                  buttonStyle="solid"
+                  style={{ width: "100%" }}
+                >
+                  <Radio.Button
+                    value="asc"
+                    style={{ width: "50%", textAlign: "center" }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      <SortAscendingOutlined />
+                      <span>Oldest First</span>
+                    </div>
+                  </Radio.Button>
+                  <Radio.Button
+                    value="desc"
+                    style={{ width: "50%", textAlign: "center" }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      <SortDescendingOutlined />
+                      <span>Newest First</span>
+                    </div>
+                  </Radio.Button>
+                </Radio.Group>
+              </Form.Item>
+            </div>
+          </Col>
+          
+          {/* Use Form.Item dependencies to properly update visibility */}
+          <Form.Item dependencies={['exportAllPages']} noStyle>
+            {({ getFieldValue }) => {
+              const exportAll = getFieldValue('exportAllPages');
+              return !exportAll ? (
+                <>
+                  <Col span={24}>
+                    <Typography.Title level={5}>Data Filters</Typography.Title>
+                  </Col>
+                  
+                  <Col span={12}>
+                    <Form.Item 
+                      label="Treatment Plan Code"
+                      name="filterTreatmentPlanCode"
+                    >
+                      <Select
+                        placeholder="Select Treatment Plan Code"
+                        style={{ width: '100%' }}
+                        allowClear
+                        showSearch
+                        filterOption={(input, option) =>
+                          (option?.children as unknown as string)?.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                        }
+                      >
+                        {uniqueTreatmentPlanCodes.map(code => (
+                          <Option key={code} value={code}>{code}</Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  
+                  <Col span={12}>
+                    <Form.Item 
+                      label="Health Check Code"
+                      name="filterHealthCheckResultCode"
+                    >
+                      <Select
+                        placeholder="Select Health Check Code"
+                        style={{ width: '100%' }}
+                        allowClear
+                        showSearch
+                        filterOption={(input, option) =>
+                          (option?.children as unknown as string)?.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                        }
+                      >
+                        {uniqueHealthCheckCodes.map(code => (
+                          <Option key={code} value={code}>{code}</Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  
+                  <Col span={12}>
+                    <Form.Item 
+                      label="Performed By"
+                      name="filterPerformedBy"
+                    >
+                      <Select
+                        placeholder="Select staff member"
+                        style={{ width: '100%' }}
+                        allowClear
+                        showSearch
+                        filterOption={(input, option) => {
+                          try {
+                            if (!option || !option.children) return false;
+                            // For performers, we need to check the name in the nested structure
+                            const performer = uniquePerformers.find(p => p.fullName === option.value);
+                            if (performer) {
+                              return performer.fullName.toLowerCase().includes(input.toLowerCase()) || 
+                                     performer.email.toLowerCase().includes(input.toLowerCase());
+                            }
+                            return false;
+                          } catch (error) {
+                            return false;
+                          }
+                        }}
+                      >
+                        {uniquePerformers.map(performer => (
+                          <Option 
+                            key={performer.id} 
+                            value={performer.fullName}
+                          >
+                            <div>
+                              <div>{performer.fullName}</div>
+                              <div style={{ fontSize: '12px', color: '#888' }}>{performer.email}</div>
+                            </div>
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  
+                  <Col span={12}>
+                    <Form.Item 
+                      label="Action Date Range"
+                      name="filterActionDateRange"
+                    >
+                      <RangePicker
+                        style={{ width: "100%" }}
+                        placeholder={["From date", "To date"]}
+                        format="DD/MM/YYYY"
+                        allowClear
+                        ranges={{
+                          "Last 7 Days": [dayjs().subtract(6, "days"), dayjs()],
+                          "Last 30 Days": [dayjs().subtract(29, "days"), dayjs()],
+                          "This Month": [dayjs().startOf("month"), dayjs().endOf("month")],
+                        }}
+                      />
+                    </Form.Item>
+                  </Col>
+                </>
+              ) : null;
+            }}
+          </Form.Item>
 
-        <Divider orientation="left">Fields to include</Divider>
+          <Col span={24}>
+            <Typography.Title level={5}>Include Fields</Typography.Title>
+          </Col>
 
-        <Row gutter={24}>
           <Col span={12}>
             <Form.Item name="includeTreatmentPlanCode" valuePropName="checked">
               <Checkbox>Treatment Plan Code</Checkbox>
@@ -1445,7 +1666,7 @@ export function TreatmentPlanHistoryList() {
         </div>
       ) : (
         <Card className="shadow-sm">
-          <Empty description="No treatment plan history found" />
+          <Empty description="No treatment plan histories found with the specified criteria." />
         </Card>
       )}
 
