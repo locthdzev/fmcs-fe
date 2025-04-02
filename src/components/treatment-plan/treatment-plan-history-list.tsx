@@ -12,21 +12,26 @@ import {
   Typography,
   Tag,
   Tooltip,
+  Timeline,
+  Badge,
   Divider,
   Empty,
   Spin,
   Modal,
   Form,
   Checkbox,
+  Collapse,
+  Card,
 } from "antd";
 import { toast } from "react-toastify";
-import moment from "moment";
+import dayjs from "dayjs";
 import {
   getAllTreatmentPlanHistories,
   TreatmentPlanHistoryResponseDTO,
   exportTreatmentPlanHistoriesToExcelWithConfig,
   TreatmentPlanHistoryExportConfigDTO,
   PerformedByInfo,
+  getTreatmentPlanHistoriesByTreatmentPlanId,
 } from "@/api/treatment-plan";
 import { useRouter } from 'next/router';
 import { 
@@ -35,22 +40,26 @@ import {
   EyeOutlined,
   FilterOutlined,
   FileExcelOutlined,
+  ArrowLeftOutlined,
+  HistoryOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  EditOutlined,
+  PlusOutlined,
+  CaretRightOutlined,
 } from "@ant-design/icons";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
+const { Panel } = Collapse;
 
-// Helper functions
-const formatDate = (date: string | undefined) => {
-  if (!date) return '';
-  return moment(date).format('DD/MM/YYYY');
-};
-
-const formatDateTime = (datetime: string | undefined) => {
-  if (!datetime) return '';
-  return moment(datetime).format('DD/MM/YYYY HH:mm:ss');
-};
+interface TreatmentPlanGroup {
+  code: string;
+  treatmentPlanId: string;
+  histories: TreatmentPlanHistoryResponseDTO[];
+  loading: boolean;
+}
 
 const DEFAULT_EXPORT_CONFIG = {
   exportAllPages: true,
@@ -67,7 +76,7 @@ const DEFAULT_EXPORT_CONFIG = {
 
 export function TreatmentPlanHistoryList() {
   const router = useRouter();
-  const [histories, setHistories] = useState<TreatmentPlanHistoryResponseDTO[]>([]);
+  const [resultGroups, setResultGroups] = useState<TreatmentPlanGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -80,7 +89,7 @@ export function TreatmentPlanHistoryList() {
   const [ascending, setAscending] = useState(false);
   const [treatmentPlanCode, setTreatmentPlanCode] = useState("");
   const [healthCheckResultCode, setHealthCheckResultCode] = useState("");
-  const [actionDateRange, setActionDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
+  const [actionDateRange, setActionDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
   const [showExportConfigModal, setShowExportConfigModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [exportConfig, setExportConfig] = useState<TreatmentPlanHistoryExportConfigDTO>({
@@ -97,60 +106,195 @@ export function TreatmentPlanHistoryList() {
   });
   const [form] = Form.useForm();
 
-  // Fetch histories
-  const fetchHistories = useCallback(async () => {
-    setLoading(true);
+  // New function to get distinct treatment plan codes with pagination
+  const getDistinctTreatmentPlanCodes = async (
+    page: number,
+    pageSize: number,
+    filters: {
+      treatmentPlanCode?: string;
+      healthCheckResultCode?: string;
+      action?: string;
+      actionStartDate?: string;
+      actionEndDate?: string;
+      performedBySearch?: string;
+      previousStatus?: string;
+      newStatus?: string;
+      sortBy?: string;
+      ascending?: boolean;
+    }
+  ) => {
     try {
-      const startActionDate = actionDateRange[0]?.format('YYYY-MM-DD');
-      const endActionDate = actionDateRange[1]?.format('YYYY-MM-DD');
-
+      // First, get all histories with the provided filters
       const response = await getAllTreatmentPlanHistories(
-        currentPage,
-        pageSize,
-        action,
-        startActionDate,
-        endActionDate,
-        performedBySearch,
-        previousStatus,
-        newStatus,
-        sortBy,
-        ascending,
-        treatmentPlanCode,
-        healthCheckResultCode
+        1, // Start with page 1
+        1000, // Get a large number of records to extract unique codes
+        filters.action,
+        filters.actionStartDate,
+        filters.actionEndDate,
+        filters.performedBySearch,
+        filters.previousStatus,
+        filters.newStatus,
+        filters.sortBy,
+        filters.ascending,
+        filters.treatmentPlanCode,
+        filters.healthCheckResultCode
       );
 
       if (response.success) {
-        setHistories(response.data.items || response.data);
-        setTotal(response.data.totalCount || response.data.length || 0);
+        // Extract unique treatment plan codes
+        const histories = response.data.items || response.data || [];
+        const uniqueCodesMap = new Map<string, {code: string, id: string}>();
+        
+        histories.forEach((history: TreatmentPlanHistoryResponseDTO) => {
+          if (history.treatmentPlan && !uniqueCodesMap.has(history.treatmentPlan.treatmentPlanCode)) {
+            uniqueCodesMap.set(history.treatmentPlan.treatmentPlanCode, {
+              code: history.treatmentPlan.treatmentPlanCode,
+              id: history.treatmentPlan.id
+            });
+          }
+        });
+        
+        const uniqueCodes = Array.from(uniqueCodesMap.values());
+
+        // Sort the unique codes based on the most recent action
+        uniqueCodes.sort((a, b) => {
+          const aHistories = histories.filter((h: TreatmentPlanHistoryResponseDTO) => 
+            h.treatmentPlan && h.treatmentPlan.treatmentPlanCode === a.code
+          );
+          const bHistories = histories.filter((h: TreatmentPlanHistoryResponseDTO) => 
+            h.treatmentPlan && h.treatmentPlan.treatmentPlanCode === b.code
+          );
+          
+          const aLatest = aHistories.reduce((latest: TreatmentPlanHistoryResponseDTO | null, current: TreatmentPlanHistoryResponseDTO) => {
+            const latestDate = latest ? dayjs(latest.actionDate) : dayjs(0);
+            const currentDate = dayjs(current.actionDate);
+            return currentDate.isAfter(latestDate) ? current : latest;
+          }, null as TreatmentPlanHistoryResponseDTO | null);
+          
+          const bLatest = bHistories.reduce((latest: TreatmentPlanHistoryResponseDTO | null, current: TreatmentPlanHistoryResponseDTO) => {
+            const latestDate = latest ? dayjs(latest.actionDate) : dayjs(0);
+            const currentDate = dayjs(current.actionDate);
+            return currentDate.isAfter(latestDate) ? current : latest;
+          }, null as TreatmentPlanHistoryResponseDTO | null);
+          
+          if (aLatest && bLatest) {
+            return dayjs(bLatest.actionDate).unix() - dayjs(aLatest.actionDate).unix();
+          }
+          return 0;
+        });
+
+        // Calculate total and paginated results
+        const total = uniqueCodes.length;
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, total);
+        const paginatedCodes = uniqueCodes.slice(startIndex, endIndex);
+
+        return {
+          codes: paginatedCodes,
+          total: total,
+          success: true
+        };
+      }
+      return { codes: [], total: 0, success: false };
+    } catch (error) {
+      console.error("Error fetching distinct codes:", error);
+      return { codes: [], total: 0, success: false };
+    }
+  };
+
+  // Fetch distinct treatment plan codes and their histories
+  const fetchDistinctTreatmentPlans = useCallback(async () => {
+    setLoading(true);
+    try {
+      const actionStartDate = actionDateRange && actionDateRange[0] 
+        ? actionDateRange[0].format('YYYY-MM-DD') 
+        : undefined;
+      const actionEndDate = actionDateRange && actionDateRange[1] 
+        ? actionDateRange[1].format('YYYY-MM-DD') 
+        : undefined;
+        
+      // Get distinct codes first
+      const distinctCodesResult = await getDistinctTreatmentPlanCodes(
+        currentPage,
+        pageSize,
+        {
+          treatmentPlanCode,
+          healthCheckResultCode,
+          action,
+          actionStartDate,
+          actionEndDate,
+          performedBySearch,
+          previousStatus,
+          newStatus,
+          sortBy,
+          ascending
+        }
+      );
+      
+      if (distinctCodesResult.success) {
+        // Create result groups from distinct codes
+        const groups: TreatmentPlanGroup[] = distinctCodesResult.codes.map(item => ({
+          code: item.code,
+          treatmentPlanId: item.id,
+          histories: [],
+          loading: true
+        }));
+        
+        setResultGroups(groups);
+        setTotal(distinctCodesResult.total);
+        
+        // Fetch detailed histories for each group
+        for (const group of groups) {
+          fetchHistoriesForTreatmentPlan(group.treatmentPlanId);
+        }
       } else {
-        toast.error("Failed to fetch treatment plan histories");
+        toast.error("Could not load treatment plan codes");
+        setLoading(false);
       }
     } catch (error) {
-      console.error("Error fetching treatment plan histories:", error);
-      toast.error("Failed to fetch treatment plan histories");
-    } finally {
+      toast.error("Could not load treatment plan codes");
       setLoading(false);
     }
   }, [
-    currentPage,
-    pageSize,
+    currentPage, 
+    pageSize, 
+    sortBy, 
+    ascending, 
+    treatmentPlanCode,
+    healthCheckResultCode,
     action,
     actionDateRange,
     performedBySearch,
     previousStatus,
     newStatus,
-    sortBy,
-    ascending,
-    treatmentPlanCode,
-    healthCheckResultCode,
   ]);
 
-  useEffect(() => {
-    fetchHistories();
-  }, []);
+  // Fetch all histories for a specific treatment plan
+  const fetchHistoriesForTreatmentPlan = async (treatmentPlanId: string) => {
+    try {
+      const response = await getTreatmentPlanHistoriesByTreatmentPlanId(treatmentPlanId);
+      
+      if (response.success) {
+        setResultGroups(prevGroups => 
+          prevGroups.map(group => 
+            group.treatmentPlanId === treatmentPlanId 
+              ? { ...group, histories: response.data, loading: false } 
+              : group
+          )
+        );
+      } else {
+        toast.error(response.message || `Could not load histories for treatment plan`);
+      }
+    } catch (error) {
+      toast.error(`Could not load histories for treatment plan`);
+    } finally {
+      // Check if all groups are loaded
+      setLoading(resultGroups.some(group => group.loading));
+    }
+  };
 
   useEffect(() => {
-    fetchHistories();
+    fetchDistinctTreatmentPlans();
   }, [
     currentPage,
     pageSize,
@@ -161,7 +305,7 @@ export function TreatmentPlanHistoryList() {
   // Event handlers
   const handleSearch = () => {
     setCurrentPage(1);
-    fetchHistories();
+    fetchDistinctTreatmentPlans();
   };
 
   const handleReset = () => {
@@ -175,7 +319,7 @@ export function TreatmentPlanHistoryList() {
     setHealthCheckResultCode("");
     setActionDateRange([null, null]);
     setCurrentPage(1);
-    fetchHistories();
+    fetchDistinctTreatmentPlans();
   };
 
   const handlePageChange = (page: number, pageSize?: number) => {
@@ -249,173 +393,96 @@ export function TreatmentPlanHistoryList() {
     }
   };
 
-  // Status and action colors
+  // Helper functions
+  const formatDate = (date: string | undefined) => {
+    if (!date) return '';
+    return dayjs(date).format('DD/MM/YYYY');
+  };
+
+  const formatDateTime = (datetime: string | undefined) => {
+    if (!datetime) return '';
+    return dayjs(datetime).format('DD/MM/YYYY HH:mm:ss');
+  };
+
   const getStatusColor = (status: string | undefined) => {
-    switch (status) {
-      case 'IN_PROGRESS':
-        return 'processing';
-      case 'COMPLETED':
-        return 'success';
-      case 'CANCELLED':
-        return 'error';
-      case 'SOFT_DELETED':
-        return 'default';
-      default:
-        return 'default';
-    }
-  };
-
-  const getActionColor = (action: string): string => {
-    switch (action) {
-      case 'Create':
-        return 'green';
-      case 'Update':
-        return 'blue';
-      case 'Cancel':
-        return 'red';
-      case 'StatusChange':
+    if (!status) return '';
+    
+    switch (status.toLowerCase()) {
+      case 'pending':
         return 'orange';
-      case 'SoftDelete':
-        return 'gray';
-      case 'Restore':
+      case 'approved':
         return 'green';
-      default:
+      case 'rejected':
+        return 'red';
+      case 'completed':
         return 'blue';
+      case 'cancelled':
+        return 'volcano';
+      default:
+        return 'default';
     }
   };
 
-  // Column definitions for the table
-  const columns = [
-    {
-      title: "Treatment Plan Code",
-      dataIndex: ["treatmentPlan", "treatmentPlanCode"],
-      key: "treatmentPlanCode",
-      render: (text: string, record: TreatmentPlanHistoryResponseDTO) => (
-        record.treatmentPlan ? (
-          <Button 
-            type="link" 
-            onClick={() => router.push(`/treatment-plan/${record.treatmentPlan?.id}`)}
-          >
-            {text}
-          </Button>
-        ) : "N/A"
-      ),
-    },
-    {
-      title: "Health Check Code",
-      dataIndex: ["treatmentPlan", "healthCheckResult", "healthCheckResultCode"],
-      key: "healthCheckResultCode",
-      render: (text: string, record: TreatmentPlanHistoryResponseDTO) => (
-        record.treatmentPlan?.healthCheckResult ? (
-          <Button 
-            type="link" 
-            onClick={() => router.push(`/health-check-result/${record.treatmentPlan?.healthCheckResult?.id}`)}
-          >
-            {text}
-          </Button>
-        ) : "N/A"
-      ),
-    },
-    {
-      title: "Action",
-      dataIndex: "action",
-      key: "action",
-      render: (text: string) => (
-        <Tag color={getActionColor(text)}>{text}</Tag>
-      ),
-    },
-    {
-      title: "Action Date",
-      dataIndex: "actionDate",
-      key: "actionDate",
-      render: (text: string) => formatDateTime(text),
-      sorter: true,
-    },
-    {
-      title: "Performed By",
-      dataIndex: "performedBy",
-      key: "performedBy",
-      render: (performedBy: PerformedByInfo) => (
-        performedBy ? (
-          <>
-            <div><strong>{performedBy.fullName}</strong></div>
-            <div>{performedBy.email}</div>
-          </>
-        ) : "N/A"
-      ),
-    },
-    {
-      title: "Previous Status",
-      dataIndex: "previousStatus",
-      key: "previousStatus",
-      render: (status: string) => (
-        status ? (
-          <Tag color={getStatusColor(status)}>{status}</Tag>
-        ) : "N/A"
-      ),
-    },
-    {
-      title: "New Status",
-      dataIndex: "newStatus",
-      key: "newStatus",
-      render: (status: string) => (
-        status ? (
-          <Tag color={getStatusColor(status)}>{status}</Tag>
-        ) : "N/A"
-      ),
-    },
-    {
-      title: "Change Details",
-      dataIndex: "changeDetails",
-      key: "changeDetails",
-      render: (text: string) => (
-        text ? (
-          <Tooltip title={text}>
-            <div className="truncate max-w-md">{text}</div>
-          </Tooltip>
-        ) : "N/A"
-      ),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_: unknown, record: TreatmentPlanHistoryResponseDTO) => (
-        <Space>
-          <Button 
-            type="text" 
-            icon={<EyeOutlined />} 
-            onClick={() => router.push(`/treatment-plan/${record.treatmentPlan?.id}`)}
-            title="View Treatment Plan Details"
-          />
-        </Space>
-      ),
-    },
-  ];
+  const getActionColor = (action: string | undefined): string => {
+    if (!action) return '';
+    
+    switch (action.toLowerCase()) {
+      case 'created':
+        return 'green';
+      case 'updated':
+        return 'blue';
+      case 'deleted':
+        return 'red';
+      case 'approved':
+        return 'green';
+      case 'rejected':
+        return 'volcano';
+      case 'completed':
+        return 'cyan';
+      case 'cancelled':
+        return 'orange';
+      default:
+        return 'default';
+    }
+  };
 
-  // Export config modal
+  const getActionIcon = (action: string | undefined) => {
+    if (!action) return null;
+    
+    switch (action.toLowerCase()) {
+      case 'created':
+        return <PlusOutlined />;
+      case 'updated':
+        return <EditOutlined />;
+      case 'deleted':
+        return <CloseCircleOutlined />;
+      case 'approved':
+        return <CheckCircleOutlined />;
+      case 'rejected':
+        return <CloseCircleOutlined />;
+      case 'completed':
+        return <CheckCircleOutlined />;
+      case 'cancelled':
+        return <CloseCircleOutlined />;
+      default:
+        return <HistoryOutlined />;
+    }
+  };
+
   const renderExportConfigModal = () => (
     <Modal
       title="Export Configuration"
       open={showExportConfigModal}
+      onOk={handleExportWithConfig}
       onCancel={closeExportConfigModal}
-      footer={[
-        <Button key="back" onClick={closeExportConfigModal}>
-          Cancel
-        </Button>,
-        <Button
-          key="submit"
-          type="primary"
-          loading={exportLoading}
-          onClick={handleExportWithConfig}
-        >
-          Export
-        </Button>,
-      ]}
+      confirmLoading={exportLoading}
+      width={600}
     >
       <Form
         form={form}
         layout="vertical"
         initialValues={exportConfig}
+        onValuesChange={handleExportConfigChange}
       >
         <Form.Item
           name="exportAllPages"
@@ -423,226 +490,379 @@ export function TreatmentPlanHistoryList() {
         >
           <Checkbox>Export all pages (not just current page)</Checkbox>
         </Form.Item>
-
-        <Divider />
-        <Title level={5}>Include Columns</Title>
         
-        <Form.Item
-          name="includeTreatmentPlanCode"
-          valuePropName="checked"
-        >
-          <Checkbox>Treatment Plan Code</Checkbox>
-        </Form.Item>
+        <Divider orientation="left">Fields to include</Divider>
         
-        <Form.Item
-          name="includeHealthCheckCode"
-          valuePropName="checked"
-        >
-          <Checkbox>Health Check Code</Checkbox>
-        </Form.Item>
-        
-        <Form.Item
-          name="includePatient"
-          valuePropName="checked"
-        >
-          <Checkbox>Patient</Checkbox>
-        </Form.Item>
-        
-        <Form.Item
-          name="includeAction"
-          valuePropName="checked"
-        >
-          <Checkbox>Action</Checkbox>
-        </Form.Item>
-        
-        <Form.Item
-          name="includeActionDate"
-          valuePropName="checked"
-        >
-          <Checkbox>Action Date</Checkbox>
-        </Form.Item>
-        
-        <Form.Item
-          name="includePerformedBy"
-          valuePropName="checked"
-        >
-          <Checkbox>Performed By</Checkbox>
-        </Form.Item>
-        
-        <Form.Item
-          name="includePreviousStatus"
-          valuePropName="checked"
-        >
-          <Checkbox>Previous Status</Checkbox>
-        </Form.Item>
-        
-        <Form.Item
-          name="includeNewStatus"
-          valuePropName="checked"
-        >
-          <Checkbox>New Status</Checkbox>
-        </Form.Item>
-        
-        <Form.Item
-          name="includeChangeDetails"
-          valuePropName="checked"
-        >
-          <Checkbox>Change Details</Checkbox>
-        </Form.Item>
+        <Row gutter={24}>
+          <Col span={12}>
+            <Form.Item
+              name="includeTreatmentPlanCode"
+              valuePropName="checked"
+            >
+              <Checkbox>Treatment Plan Code</Checkbox>
+            </Form.Item>
+          </Col>
+          
+          <Col span={12}>
+            <Form.Item
+              name="includeHealthCheckCode"
+              valuePropName="checked"
+            >
+              <Checkbox>Health Check Code</Checkbox>
+            </Form.Item>
+          </Col>
+          
+          <Col span={12}>
+            <Form.Item
+              name="includePatient"
+              valuePropName="checked"
+            >
+              <Checkbox>Patient Information</Checkbox>
+            </Form.Item>
+          </Col>
+          
+          <Col span={12}>
+            <Form.Item
+              name="includeAction"
+              valuePropName="checked"
+            >
+              <Checkbox>Action</Checkbox>
+            </Form.Item>
+          </Col>
+          
+          <Col span={12}>
+            <Form.Item
+              name="includeActionDate"
+              valuePropName="checked"
+            >
+              <Checkbox>Action Date</Checkbox>
+            </Form.Item>
+          </Col>
+          
+          <Col span={12}>
+            <Form.Item
+              name="includePerformedBy"
+              valuePropName="checked"
+            >
+              <Checkbox>Performed By</Checkbox>
+            </Form.Item>
+          </Col>
+          
+          <Col span={12}>
+            <Form.Item
+              name="includePreviousStatus"
+              valuePropName="checked"
+            >
+              <Checkbox>Previous Status</Checkbox>
+            </Form.Item>
+          </Col>
+          
+          <Col span={12}>
+            <Form.Item
+              name="includeNewStatus"
+              valuePropName="checked"
+            >
+              <Checkbox>New Status</Checkbox>
+            </Form.Item>
+          </Col>
+          
+          <Col span={12}>
+            <Form.Item
+              name="includeChangeDetails"
+              valuePropName="checked"
+            >
+              <Checkbox>Change Details</Checkbox>
+            </Form.Item>
+          </Col>
+        </Row>
       </Form>
     </Modal>
   );
 
-  // Main render
   return (
-    <div className="p-4">
-      <Title level={2}>Treatment Plan History</Title>
-      
-      {/* Toolbar Section */}
-      <div className="flex flex-wrap justify-between mb-4">
-        <div className="flex flex-wrap gap-2 mb-4">
-          <Button 
-            icon={<ExportOutlined />}
-            onClick={handleOpenExportConfig}
-          >
-            Export to Excel
-          </Button>
-        </div>
-      </div>
-      
-      {/* Filters Section */}
-      <div className="mb-6 bg-gray-50 p-4 rounded">
-        <Title level={5}>Search & Filters</Title>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Input
-              placeholder="Search by Treatment Plan Code"
-              value={treatmentPlanCode}
-              onChange={(e) => setTreatmentPlanCode(e.target.value)}
-              prefix={<SearchOutlined />}
-              allowClear
-            />
-          </Col>
-          
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Input
-              placeholder="Search by Health Check Code"
-              value={healthCheckResultCode}
-              onChange={(e) => setHealthCheckResultCode(e.target.value)}
-              prefix={<SearchOutlined />}
-              allowClear
-            />
-          </Col>
-          
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Select
-              placeholder="Filter by Action"
-              value={action}
-              onChange={(value) => setAction(value)}
-              style={{ width: "100%" }}
-              allowClear
-            >
-              <Option value="Create">Create</Option>
-              <Option value="Update">Update</Option>
-              <Option value="Cancel">Cancel</Option>
-              <Option value="StatusChange">Status Change</Option>
-              <Option value="SoftDelete">Soft Delete</Option>
-              <Option value="Restore">Restore</Option>
-            </Select>
-          </Col>
-          
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Input
-              placeholder="Search by Performed By"
-              value={performedBySearch}
-              onChange={(e) => setPerformedBySearch(e.target.value)}
-              prefix={<SearchOutlined />}
-              allowClear
-            />
-          </Col>
-          
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Select
-              placeholder="Filter by Previous Status"
-              value={previousStatus}
-              onChange={(value) => setPreviousStatus(value)}
-              style={{ width: "100%" }}
-              allowClear
-            >
-              <Option value="IN_PROGRESS">In Progress</Option>
-              <Option value="COMPLETED">Completed</Option>
-              <Option value="CANCELLED">Cancelled</Option>
-              <Option value="SOFT_DELETED">Soft Deleted</Option>
-            </Select>
-          </Col>
-          
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Select
-              placeholder="Filter by New Status"
-              value={newStatus}
-              onChange={(value) => setNewStatus(value)}
-              style={{ width: "100%" }}
-              allowClear
-            >
-              <Option value="IN_PROGRESS">In Progress</Option>
-              <Option value="COMPLETED">Completed</Option>
-              <Option value="CANCELLED">Cancelled</Option>
-              <Option value="SOFT_DELETED">Soft Deleted</Option>
-            </Select>
-          </Col>
-          
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <RangePicker
-              placeholder={["Action Start Date", "Action End Date"]}
-              value={actionDateRange as any}
-              onChange={(dates) => setActionDateRange(dates as [moment.Moment | null, moment.Moment | null])}
-              style={{ width: "100%" }}
-              showTime
-            />
-          </Col>
-          
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Space>
-              <Button type="primary" onClick={handleSearch} icon={<SearchOutlined />}>
-                Search
+    <div className="history-container" style={{ padding: "20px" }}>
+      <div style={{ marginBottom: 20 }}>
+        <Row align="middle" justify="space-between">
+          <Col>
+            <Space direction="horizontal" align="center">
+              <Button
+                icon={<ArrowLeftOutlined />}
+                onClick={() => router.back()}
+              >
+                Back
               </Button>
-              <Button onClick={handleReset}>Reset</Button>
+              <Title level={4} style={{ margin: 0 }}>
+                <HistoryOutlined /> Treatment Plan History
+              </Title>
             </Space>
+          </Col>
+          <Col>
+            <Button
+              type="primary"
+              icon={<FileExcelOutlined />}
+              onClick={handleOpenExportConfig}
+            >
+              Export to Excel
+            </Button>
           </Col>
         </Row>
       </div>
-      
-      {/* Table Section */}
-      <div className="mb-4">
-        <Table
-          columns={columns}
-          dataSource={histories}
-          rowKey="id"
-          loading={loading}
-          pagination={false}
-          onChange={(pagination, filters, sorter: any) => {
-            if (sorter.field) {
-              setSortBy(sorter.field);
-              setAscending(sorter.order === 'ascend');
-              fetchHistories();
-            }
-          }}
-        />
-        
-        <div className="mt-4 flex justify-end">
-          <Pagination
-            current={currentPage}
-            pageSize={pageSize}
-            total={total}
-            showSizeChanger
-            onChange={handlePageChange}
-            onShowSizeChange={handlePageChange}
-            showTotal={(total) => `Total ${total} items`}
-          />
+
+      <Card style={{ marginBottom: 20 }} className="shadow-sm">
+        <Row gutter={[16, 16]}>
+          <Col span={24}>
+            <Row gutter={[16, 16]}>
+              <Col span={8}>
+                <Input
+                  placeholder="Treatment Plan Code"
+                  value={treatmentPlanCode}
+                  onChange={(e) => setTreatmentPlanCode(e.target.value)}
+                  prefix={<SearchOutlined />}
+                  allowClear
+                />
+              </Col>
+              <Col span={8}>
+                <Input
+                  placeholder="Health Check Result Code"
+                  value={healthCheckResultCode}
+                  onChange={(e) => setHealthCheckResultCode(e.target.value)}
+                  prefix={<SearchOutlined />}
+                  allowClear
+                />
+              </Col>
+              <Col span={8}>
+                <Select
+                  placeholder="Action"
+                  style={{ width: "100%" }}
+                  value={action}
+                  onChange={(value) => setAction(value)}
+                  allowClear
+                >
+                  <Option value="Created">Created</Option>
+                  <Option value="Updated">Updated</Option>
+                  <Option value="Deleted">Deleted</Option>
+                  <Option value="Approved">Approved</Option>
+                  <Option value="Rejected">Rejected</Option>
+                  <Option value="Completed">Completed</Option>
+                  <Option value="Cancelled">Cancelled</Option>
+                </Select>
+              </Col>
+              <Col span={8}>
+                <RangePicker
+                  style={{ width: "100%" }}
+                  placeholder={['From date', 'To date']}
+                  value={[
+                    actionDateRange[0] ? actionDateRange[0] : null,
+                    actionDateRange[1] ? actionDateRange[1] : null,
+                  ]}
+                  onChange={(dates) => setActionDateRange(dates as [dayjs.Dayjs | null, dayjs.Dayjs | null])}
+                />
+              </Col>
+              <Col span={8}>
+                <Input
+                  placeholder="Performed By"
+                  value={performedBySearch}
+                  onChange={(e) => setPerformedBySearch(e.target.value)}
+                  prefix={<SearchOutlined />}
+                  allowClear
+                />
+              </Col>
+              <Col span={8}>
+                <Select
+                  placeholder="Previous Status"
+                  style={{ width: "100%" }}
+                  value={previousStatus}
+                  onChange={(value) => setPreviousStatus(value)}
+                  allowClear
+                >
+                  <Option value="Pending">Pending</Option>
+                  <Option value="Approved">Approved</Option>
+                  <Option value="Rejected">Rejected</Option>
+                  <Option value="Completed">Completed</Option>
+                  <Option value="Cancelled">Cancelled</Option>
+                </Select>
+              </Col>
+              <Col span={8}>
+                <Select
+                  placeholder="New Status"
+                  style={{ width: "100%" }}
+                  value={newStatus}
+                  onChange={(value) => setNewStatus(value)}
+                  allowClear
+                >
+                  <Option value="Pending">Pending</Option>
+                  <Option value="Approved">Approved</Option>
+                  <Option value="Rejected">Rejected</Option>
+                  <Option value="Completed">Completed</Option>
+                  <Option value="Cancelled">Cancelled</Option>
+                </Select>
+              </Col>
+              <Col span={24}>
+                <Space>
+                  <Button type="primary" onClick={handleSearch} icon={<SearchOutlined />}>
+                    Search
+                  </Button>
+                  <Button onClick={handleReset}>Reset</Button>
+                </Space>
+              </Col>
+            </Row>
+          </Col>
+          
+          <Col span={24}>
+            <Space size="middle" wrap>
+              <Select
+                placeholder="Sort by"
+                value={sortBy}
+                onChange={(value) => setSortBy(value)}
+                style={{ width: 150 }}
+              >
+                <Option value="ActionDate">Action Date</Option>
+                <Option value="treatmentPlanCode">Treatment Plan Code</Option>
+              </Select>
+              <Select
+                placeholder="Order"
+                value={ascending ? "asc" : "desc"}
+                onChange={(value) => setAscending(value === "asc")}
+                style={{ width: 120 }}
+              >
+                <Option value="asc">Ascending</Option>
+                <Option value="desc">Descending</Option>
+              </Select>
+            </Space>
+          </Col>
+          
+          <Col span={24}>
+            <Row justify="end" align="middle">
+              <Col>
+                <Space align="center">
+                  <Text type="secondary">
+                    Groups per page:
+                  </Text>
+                  <Select
+                    value={pageSize}
+                    onChange={(value) => {
+                      setPageSize(value);
+                      setCurrentPage(1);
+                    }}
+                    style={{ minWidth: "80px" }}
+                  >
+                    <Option value={5}>5</Option>
+                    <Option value={10}>10</Option>
+                    <Option value={15}>15</Option>
+                    <Option value={20}>20</Option>
+                  </Select>
+                </Space>
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+      </Card>
+
+      {loading && resultGroups.length === 0 ? (
+        <Card className="shadow-sm">
+          <Spin tip="Loading..." />
+        </Card>
+      ) : resultGroups.length > 0 ? (
+        <div>
+          {resultGroups.map((group, index) => (
+            <Card 
+              key={group.treatmentPlanId} 
+              className="shadow-sm mb-4"
+            >
+              <div className="border-b pb-3 mb-4">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Title level={5} style={{ margin: 0 }}>
+                    Treatment Plan Code: <a onClick={() => router.push(`/treatment-plan/${group.treatmentPlanId}`)} style={{ cursor: 'pointer', color: '#1890ff' }}>{group.code}</a>
+                  </Title>
+                </div>
+              </div>
+              
+              {group.loading ? (
+                <Spin />
+              ) : (
+                <Collapse 
+                  defaultActiveKey={["1"]}
+                  expandIcon={({ isActive }) => <CaretRightOutlined rotate={isActive ? 90 : 0} />}
+                >
+                  <Panel header="Action History" key="1">
+                    <Timeline
+                      mode="left"
+                      items={group.histories.sort((a, b) => 
+                        dayjs(b.actionDate).unix() - dayjs(a.actionDate).unix()
+                      ).map(history => ({
+                        color: getActionColor(history.action),
+                        dot: getActionIcon(history.action),
+                        children: (
+                          <Card size="small" className="mb-2 hover:shadow-md transition-shadow">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ fontWeight: 500 }}>{history.action}</div>
+                                <div style={{ fontSize: '14px', color: '#8c8c8c' }}>
+                                  {formatDateTime(history.actionDate)}
+                                </div>
+                              </div>
+                              
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '4px' }}>
+                                <div style={{ display: 'flex' }}>
+                                  <div style={{ width: '180px', color: '#8c8c8c' }}>Performed by:</div>
+                                  <div>{history.performedBy?.fullName} ({history.performedBy?.email})</div>
+                                </div>
+                                
+                                {history.previousStatus && history.newStatus && (
+                                  <div style={{ display: 'flex' }}>
+                                    <div style={{ width: '180px', color: '#8c8c8c' }}>Status:</div>
+                                    <div style={{ flex: 1 }}>
+                                      <Tag color={getStatusColor(history.previousStatus)}>{history.previousStatus}</Tag>
+                                      <Text type="secondary"> → </Text>
+                                      <Tag color={getStatusColor(history.newStatus)}>{history.newStatus}</Tag>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {history.changeDetails && (
+                                  <div style={{ display: 'flex' }}>
+                                    <div style={{ width: '180px', color: '#8c8c8c' }}>Details:</div>
+                                    <div style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{history.changeDetails}</div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </Card>
+                        )
+                      }))}
+                    />
+                  </Panel>
+                </Collapse>
+              )}
+            </Card>
+          ))}
+
+          <Card className="mt-4 shadow-sm">
+            <Row justify="space-between" align="middle">
+              <Col>
+                <Text type="secondary">
+                  Total {total} treatment plan groups
+                </Text>
+              </Col>
+              <Col>
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={total}
+                  onChange={handlePageChange}
+                  showSizeChanger={false}
+                  showTotal={(total) => `Total ${total} items`}
+                />
+              </Col>
+            </Row>
+          </Card>
         </div>
-      </div>
-      
-      {/* Export Config Modal */}
+      ) : (
+        <Card className="shadow-sm">
+          <Empty description="No treatment plan history found" />
+        </Card>
+      )}
+
       {renderExportConfigModal()}
     </div>
   );
