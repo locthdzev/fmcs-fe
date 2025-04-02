@@ -48,6 +48,7 @@ import {
   DeleteOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import { App } from "antd";
 
@@ -648,8 +649,35 @@ export function TreatmentPlanHistoryList() {
 
   const handleExportWithConfig = async () => {
     setExportLoading(true);
+    console.log("Starting export process");
     try {
       const values = await form.validateFields();
+      console.log("Form values:", values);
+
+      // Check if user is trying to export without filters but not selecting export all
+      if (!values.exportAllPages) {
+        // Get actual filter values - check both modal filters and current applied filters
+        const hasAnyFilter =
+          values.filterTreatmentPlanCode ||
+          values.filterHealthCheckResultCode ||
+          values.filterPerformedBy ||
+          (values.filterActionDateRange &&
+            (values.filterActionDateRange[0] ||
+              values.filterActionDateRange[1])) ||
+          treatmentPlanCode ||
+          healthCheckResultCode ||
+          performedBySearch ||
+          (actionDateRange && (actionDateRange[0] || actionDateRange[1]));
+
+        console.log("Has any filter:", hasAnyFilter);
+        if (!hasAnyFilter) {
+          toast.error(
+            "Please select 'Export all data' or apply at least one filter"
+          );
+          setExportLoading(false);
+          return; // Return here without closing the modal
+        }
+      }
 
       const exportConfigData: TreatmentPlanHistoryExportConfigDTO = {
         exportAllPages: values.exportAllPages,
@@ -665,12 +693,20 @@ export function TreatmentPlanHistoryList() {
       };
 
       // Extract filter values from form
-      const exportTreatmentPlanCode = values.exportAllPages ? undefined : values.filterTreatmentPlanCode;
-      const exportHealthCheckCode = values.exportAllPages ? undefined : values.filterHealthCheckResultCode;
-      const exportPerformedBy = values.exportAllPages ? undefined : values.filterPerformedBy;
+      const exportTreatmentPlanCode = values.exportAllPages
+        ? undefined
+        : values.filterTreatmentPlanCode || treatmentPlanCode;
+      const exportHealthCheckCode = values.exportAllPages
+        ? undefined
+        : values.filterHealthCheckResultCode || healthCheckResultCode;
+      const exportPerformedBy = values.exportAllPages
+        ? undefined
+        : values.filterPerformedBy || performedBySearch;
       // Always use the sort direction selected in modal, regardless of exportAllPages
       const exportAscending = values.filterSortDirection === "asc";
-      const exportDateRange = values.exportAllPages ? actionDateRange : values.filterActionDateRange;
+      const exportDateRange = values.exportAllPages
+        ? null
+        : values.filterActionDateRange || actionDateRange;
 
       const startActionDate =
         exportDateRange && exportDateRange[0]
@@ -682,41 +718,74 @@ export function TreatmentPlanHistoryList() {
           ? exportDateRange[1].format("YYYY-MM-DD")
           : undefined;
 
-      console.log("Export sort direction:", values.filterSortDirection, "Ascending:", exportAscending);
+      // Important: Always send the exact current page and pageSize when not exporting all
+      // This ensures we only get the data currently visible to the user
+      const exportConfig = {
+        exportAllPages: values.exportAllPages,
+        currentPage: currentPage,
+        pageSize: pageSize,
+        sortDirection: values.filterSortDirection,
+        ascending: exportAscending,
+        filters: {
+          treatmentPlanCode: exportTreatmentPlanCode,
+          healthCheckResultCode: exportHealthCheckCode,
+          performedBy: exportPerformedBy,
+          startDate: startActionDate,
+          endDate: endActionDate,
+        },
+      };
 
+      console.log("Calling export API with config:", exportConfig);
       const response = await exportTreatmentPlanHistoriesToExcelWithConfig(
         exportConfigData,
-        currentPage,
-        pageSize,
+        // When NOT export all, always use the exact current page and pageSize
+        // to ensure we export only what's visible on screen
+        values.exportAllPages ? 1 : currentPage,
+        values.exportAllPages ? 1000 : pageSize,
         undefined,
         startActionDate,
         endActionDate,
-        exportPerformedBy || performedBySearch,
+        exportPerformedBy,
         undefined,
         undefined,
         sortBy,
         exportAscending,
-        exportTreatmentPlanCode || treatmentPlanCode,
-        exportHealthCheckCode || healthCheckResultCode
+        exportTreatmentPlanCode,
+        exportHealthCheckCode
       );
 
-      if (response.success && response.data) {
+      console.log("Export API response:", response);
+      console.log("Response type:", typeof response);
+      console.log("Response structure:", JSON.stringify(response));
+
+      // Kiểm tra response chi tiết
+      if (
+        response &&
+        response.data &&
+        (response.success === true || response.isSuccess === true) &&
+        typeof response.data === "string"
+      ) {
+        // Thành công và có URL để tải file
         window.open(response.data, "_blank");
-        message.success(
+        toast.success(
           "Treatment plan histories exported to Excel successfully"
         );
-      } else {
-        message.error(response.message || "Failed to export Excel file");
-      }
 
-      setExportConfig(exportConfigData);
-      closeExportConfigModal();
+        // Set the export config and close the modal only if successful
+        setExportConfig(exportConfigData);
+        closeExportConfigModal();
+        setExportLoading(false);
+        return;
+      } else {
+        // Xử lý lỗi: Nếu API trả về lỗi hoặc không có dữ liệu
+        toast.error(response?.message || "Failed to export Excel file");
+        setExportLoading(false);
+        return;
+      }
     } catch (error) {
       console.error("Export error:", error);
-      message.error("Failed to export Excel file");
-    } finally {
-      setExportLoading(false);
-      closeExportConfigModal();
+      toast.error("Failed to export Excel file");
+      setExportLoading(false); // Only set loading to false but don't close modal on error
     }
   };
 
@@ -794,14 +863,14 @@ export function TreatmentPlanHistoryList() {
         <Button key="cancel" onClick={closeExportConfigModal}>
           Cancel
         </Button>,
-        <Button 
-          key="submit" 
-          type="primary" 
+        <Button
+          key="submit"
+          type="primary"
           loading={exportLoading}
           onClick={handleExportWithConfig}
         >
           Export
-        </Button>
+        </Button>,
       ]}
       destroyOnClose={true}
     >
@@ -820,8 +889,11 @@ export function TreatmentPlanHistoryList() {
         onValuesChange={(changedValues, allValues) => {
           handleExportConfigChange(changedValues);
           // Update the display of filter section based on exportAllPages value
-          if ('exportAllPages' in changedValues) {
-            setExportConfig(prev => ({...prev, exportAllPages: changedValues.exportAllPages}));
+          if ("exportAllPages" in changedValues) {
+            setExportConfig((prev) => ({
+              ...prev,
+              exportAllPages: changedValues.exportAllPages,
+            }));
           }
         }}
         preserve={false}
@@ -830,30 +902,31 @@ export function TreatmentPlanHistoryList() {
           <Col span={24}>
             <Typography.Title level={5}>Basic Options</Typography.Title>
           </Col>
-          
           <Col span={24}>
-            <Form.Item 
-              name="exportAllPages" 
+            <Form.Item
+              name="exportAllPages"
               valuePropName="checked"
               style={{ marginBottom: "12px" }}
             >
               <Checkbox>Export all data (ignore pagination)</Checkbox>
             </Form.Item>
           </Col>
-          
           <Col span={24}>
             <div style={{ marginBottom: "16px" }}>
               <div
                 className="filter-label"
-                style={{ marginBottom: "8px", color: '#666666', display: "flex", alignItems: "center", gap: "6px" }}
+                style={{
+                  marginBottom: "8px",
+                  color: "#666666",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
               >
                 <SortAscendingOutlined />
                 <span>Sort direction</span>
               </div>
-              <Form.Item 
-                name="filterSortDirection"
-                noStyle
-              >
+              <Form.Item name="filterSortDirection" noStyle>
                 <Radio.Group
                   optionType="button"
                   buttonStyle="solid"
@@ -895,77 +968,89 @@ export function TreatmentPlanHistoryList() {
               </Form.Item>
             </div>
           </Col>
-          
           {/* Use Form.Item dependencies to properly update visibility */}
-          <Form.Item dependencies={['exportAllPages']} noStyle>
+          <Form.Item dependencies={["exportAllPages"]} noStyle>
             {({ getFieldValue }) => {
-              const exportAll = getFieldValue('exportAllPages');
+              const exportAll = getFieldValue("exportAllPages");
               return !exportAll ? (
                 <>
                   <Col span={24}>
                     <Typography.Title level={5}>Data Filters</Typography.Title>
                   </Col>
-                  
+
                   <Col span={12}>
-                    <Form.Item 
+                    <Form.Item
                       label="Treatment Plan Code"
                       name="filterTreatmentPlanCode"
                     >
                       <Select
                         placeholder="Select Treatment Plan Code"
-                        style={{ width: '100%' }}
+                        style={{ width: "100%" }}
                         allowClear
                         showSearch
                         filterOption={(input, option) =>
-                          (option?.children as unknown as string)?.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                          (option?.children as unknown as string)
+                            ?.toLowerCase()
+                            .indexOf(input.toLowerCase()) >= 0
                         }
                       >
-                        {uniqueTreatmentPlanCodes.map(code => (
-                          <Option key={code} value={code}>{code}</Option>
+                        {uniqueTreatmentPlanCodes.map((code) => (
+                          <Option key={code} value={code}>
+                            {code}
+                          </Option>
                         ))}
                       </Select>
                     </Form.Item>
                   </Col>
-                  
+
                   <Col span={12}>
-                    <Form.Item 
+                    <Form.Item
                       label="Health Check Code"
                       name="filterHealthCheckResultCode"
                     >
                       <Select
                         placeholder="Select Health Check Code"
-                        style={{ width: '100%' }}
+                        style={{ width: "100%" }}
                         allowClear
                         showSearch
                         filterOption={(input, option) =>
-                          (option?.children as unknown as string)?.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                          (option?.children as unknown as string)
+                            ?.toLowerCase()
+                            .indexOf(input.toLowerCase()) >= 0
                         }
                       >
-                        {uniqueHealthCheckCodes.map(code => (
-                          <Option key={code} value={code}>{code}</Option>
+                        {uniqueHealthCheckCodes.map((code) => (
+                          <Option key={code} value={code}>
+                            {code}
+                          </Option>
                         ))}
                       </Select>
                     </Form.Item>
                   </Col>
-                  
+
                   <Col span={12}>
-                    <Form.Item 
-                      label="Performed By"
-                      name="filterPerformedBy"
-                    >
+                    <Form.Item label="Performed By" name="filterPerformedBy">
                       <Select
                         placeholder="Select staff member"
-                        style={{ width: '100%' }}
+                        style={{ width: "100%" }}
                         allowClear
                         showSearch
                         filterOption={(input, option) => {
                           try {
                             if (!option || !option.children) return false;
                             // For performers, we need to check the name in the nested structure
-                            const performer = uniquePerformers.find(p => p.fullName === option.value);
+                            const performer = uniquePerformers.find(
+                              (p) => p.fullName === option.value
+                            );
                             if (performer) {
-                              return performer.fullName.toLowerCase().includes(input.toLowerCase()) || 
-                                     performer.email.toLowerCase().includes(input.toLowerCase());
+                              return (
+                                performer.fullName
+                                  .toLowerCase()
+                                  .includes(input.toLowerCase()) ||
+                                performer.email
+                                  .toLowerCase()
+                                  .includes(input.toLowerCase())
+                              );
                             }
                             return false;
                           } catch (error) {
@@ -973,23 +1058,22 @@ export function TreatmentPlanHistoryList() {
                           }
                         }}
                       >
-                        {uniquePerformers.map(performer => (
-                          <Option 
-                            key={performer.id} 
-                            value={performer.fullName}
-                          >
+                        {uniquePerformers.map((performer) => (
+                          <Option key={performer.id} value={performer.fullName}>
                             <div>
                               <div>{performer.fullName}</div>
-                              <div style={{ fontSize: '12px', color: '#888' }}>{performer.email}</div>
+                              <div style={{ fontSize: "12px", color: "#888" }}>
+                                {performer.email}
+                              </div>
                             </div>
                           </Option>
                         ))}
                       </Select>
                     </Form.Item>
                   </Col>
-                  
+
                   <Col span={12}>
-                    <Form.Item 
+                    <Form.Item
                       label="Action Date Range"
                       name="filterActionDateRange"
                     >
@@ -1000,8 +1084,14 @@ export function TreatmentPlanHistoryList() {
                         allowClear
                         ranges={{
                           "Last 7 Days": [dayjs().subtract(6, "days"), dayjs()],
-                          "Last 30 Days": [dayjs().subtract(29, "days"), dayjs()],
-                          "This Month": [dayjs().startOf("month"), dayjs().endOf("month")],
+                          "Last 30 Days": [
+                            dayjs().subtract(29, "days"),
+                            dayjs(),
+                          ],
+                          "This Month": [
+                            dayjs().startOf("month"),
+                            dayjs().endOf("month"),
+                          ],
                         }}
                       />
                     </Form.Item>
@@ -1010,69 +1100,75 @@ export function TreatmentPlanHistoryList() {
               ) : null;
             }}
           </Form.Item>
-
           <Col span={24}>
             <Typography.Title level={5}>Include Fields</Typography.Title>
           </Col>
-
-          <Col span={12}>
+          <Col span={8}>
             <Form.Item name="includeTreatmentPlanCode" valuePropName="checked">
               <Checkbox>Treatment Plan Code</Checkbox>
             </Form.Item>
           </Col>
-
-          <Col span={12}>
+          <Col span={8}>
             <Form.Item name="includeHealthCheckCode" valuePropName="checked">
               <Checkbox>Health Check Code</Checkbox>
             </Form.Item>
           </Col>
-
-          <Col span={12}>
+          <Col span={8}>
             <Form.Item name="includePatient" valuePropName="checked">
               <Checkbox>Patient Information</Checkbox>
             </Form.Item>
           </Col>
-
-          <Col span={12}>
+          <Col span={8}>
             <Form.Item name="includeAction" valuePropName="checked">
               <Checkbox>Action</Checkbox>
             </Form.Item>
           </Col>
-
-          <Col span={12}>
+          <Col span={8}>
             <Form.Item name="includeActionDate" valuePropName="checked">
               <Checkbox>Action Date</Checkbox>
             </Form.Item>
           </Col>
-
-          <Col span={12}>
+          <Col span={8}>
             <Form.Item name="includePerformedBy" valuePropName="checked">
               <Checkbox>Performed By</Checkbox>
             </Form.Item>
           </Col>
-
-          <Col span={12}>
+          <Col span={8}>
             <Form.Item name="includePreviousStatus" valuePropName="checked">
               <Checkbox>Previous Status</Checkbox>
             </Form.Item>
           </Col>
-
-          <Col span={12}>
+          <Col span={8}>
             <Form.Item name="includeNewStatus" valuePropName="checked">
               <Checkbox>New Status</Checkbox>
             </Form.Item>
           </Col>
-
-          <Col span={12}>
+          <Col span={8}>
             <Form.Item name="includeChangeDetails" valuePropName="checked">
               <Checkbox>Change Details</Checkbox>
             </Form.Item>
           </Col>
+          <Col span={24} style={{ marginTop: "8px" }}>
+            <div
+              style={{
+                background: "#e6f7ff",
+                border: "1px solid #91d5ff",
+                padding: "12px",
+                borderRadius: "4px",
+              }}
+            >
+              <Typography.Text style={{ fontSize: "13px" }}>
+                <InfoCircleOutlined style={{ marginRight: "8px" }} />
+                You must either select "Export all data" or apply at least one
+                filter before exporting. This ensures you get the exact data you
+                need.
+              </Typography.Text>
+            </div>
+          </Col>{" "}
         </Row>
       </Form>
     </Modal>
   );
-
   const renderFilterModal = () => (
     <Modal
       title="Advanced Filters"
@@ -1084,19 +1180,24 @@ export function TreatmentPlanHistoryList() {
         <Button key="reset" onClick={resetFilters} icon={<UndoOutlined />}>
           Reset
         </Button>,
-        <Button key="apply" type="primary" onClick={applyFilters} icon={<CheckCircleOutlined />}>
+        <Button
+          key="apply"
+          type="primary"
+          onClick={applyFilters}
+          icon={<CheckCircleOutlined />}
+        >
           Apply
         </Button>,
       ]}
     >
-      <Space direction="vertical" style={{ width: '100%' }}>
+      <Space direction="vertical" style={{ width: "100%" }}>
         <div>
           <Title level={5}>Search Criteria</Title>
-          <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: "16px" }}>
             <div className="filter-item" style={{ marginBottom: "16px" }}>
               <div
                 className="filter-label"
-                style={{ marginBottom: "8px", color: '#666666' }}
+                style={{ marginBottom: "8px", color: "#666666" }}
               >
                 Health check code
               </div>
@@ -1127,7 +1228,7 @@ export function TreatmentPlanHistoryList() {
             <div className="filter-item">
               <div
                 className="filter-label"
-                style={{ marginBottom: "8px", color: '#666666' }}
+                style={{ marginBottom: "8px", color: "#666666" }}
               >
                 Performed by
               </div>
@@ -1165,7 +1266,7 @@ export function TreatmentPlanHistoryList() {
             <div className="filter-item" style={{ marginBottom: "16px" }}>
               <div
                 className="filter-label"
-                style={{ marginBottom: "8px", color: '#666666' }}
+                style={{ marginBottom: "8px", color: "#666666" }}
               >
                 Action date range
               </div>
@@ -1198,7 +1299,13 @@ export function TreatmentPlanHistoryList() {
             <div className="filter-item">
               <div
                 className="filter-label"
-                style={{ marginBottom: "8px", color: '#666666', display: "flex", alignItems: "center", gap: "6px" }}
+                style={{
+                  marginBottom: "8px",
+                  color: "#666666",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
               >
                 <SortAscendingOutlined />
                 <span>Sort direction</span>
@@ -1409,7 +1516,15 @@ export function TreatmentPlanHistoryList() {
         </div>
       </Card>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px', gap: '8px', alignItems: 'center' }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: "16px",
+          gap: "8px",
+          alignItems: "center",
+        }}
+      >
         <Text type="secondary">Groups per page:</Text>
         <Select
           value={pageSize}
@@ -1635,9 +1750,7 @@ export function TreatmentPlanHistoryList() {
           <Card className="mt-4 shadow-sm">
             <Row justify="center" align="middle">
               <Space size="large" align="center">
-                <Text type="secondary">
-                  Total {total} items
-                </Text>
+                <Text type="secondary">Total {total} items</Text>
                 <Pagination
                   current={currentPage}
                   pageSize={pageSize}
@@ -1648,16 +1761,20 @@ export function TreatmentPlanHistoryList() {
                 />
                 <Space align="center">
                   <Text type="secondary">Go to page:</Text>
-                  <InputNumber 
-                    min={1} 
-                    max={Math.ceil(total/pageSize)} 
+                  <InputNumber
+                    min={1}
+                    max={Math.ceil(total / pageSize)}
                     value={currentPage}
                     onChange={(value) => {
-                      if (value && Number(value) > 0 && Number(value) <= Math.ceil(total/pageSize)) {
+                      if (
+                        value &&
+                        Number(value) > 0 &&
+                        Number(value) <= Math.ceil(total / pageSize)
+                      ) {
                         setCurrentPage(Number(value));
                       }
                     }}
-                    style={{ width: '60px' }}
+                    style={{ width: "60px" }}
                   />
                 </Space>
               </Space>
