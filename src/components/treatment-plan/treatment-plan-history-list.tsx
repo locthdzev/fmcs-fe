@@ -33,8 +33,8 @@ import {
   getTreatmentPlanHistoriesByTreatmentPlanId,
 } from "@/api/treatment-plan";
 import { useRouter } from "next/router";
-import { 
-  SearchOutlined, 
+import {
+  SearchOutlined,
   FilterOutlined,
   FileExcelOutlined,
   ArrowLeftOutlined,
@@ -100,16 +100,16 @@ export function TreatmentPlanHistoryList() {
   const [exportConfig, setExportConfig] =
     useState<TreatmentPlanHistoryExportConfigDTO>({
       exportAllPages: true,
-    includeTreatmentPlanCode: true,
-    includeHealthCheckCode: true,
-    includePatient: true,
-    includeAction: true,
-    includeActionDate: true,
-    includePerformedBy: true,
-    includePreviousStatus: true,
-    includeNewStatus: true,
-    includeChangeDetails: true,
-  });
+      includeTreatmentPlanCode: true,
+      includeHealthCheckCode: true,
+      includePatient: true,
+      includeAction: true,
+      includeActionDate: true,
+      includePerformedBy: true,
+      includePreviousStatus: true,
+      includeNewStatus: true,
+      includeChangeDetails: true,
+    });
 
   // Filter state to store temporary values
   const [filterState, setFilterState] = useState({
@@ -241,14 +241,14 @@ export function TreatmentPlanHistoryList() {
       }
       message.error({
         content: "Could not load treatment plan codes",
-        duration: 5
+        duration: 5,
       });
       return { codes: [], total: 0, success: false };
     } catch (error) {
       console.error("Error fetching distinct codes:", error);
       message.error({
         content: "Could not load treatment plan codes",
-        duration: 5
+        duration: 5,
       });
       return { codes: [], total: 0, success: false };
     }
@@ -290,9 +290,9 @@ export function TreatmentPlanHistoryList() {
           healthCheckResultCode,
           actionStartDate,
           actionEndDate,
-        performedBySearch,
-        sortBy,
-        ascending,
+          performedBySearch,
+          sortBy,
+          ascending,
         }
       );
 
@@ -323,14 +323,14 @@ export function TreatmentPlanHistoryList() {
       } else {
         message.error({
           content: "Could not load treatment plan codes",
-          duration: 5
+          duration: 5,
         });
         setLoading(false);
       }
     } catch (error) {
       message.error({
         content: "Could not load treatment plan codes",
-        duration: 5
+        duration: 5,
       });
       setLoading(false);
     }
@@ -361,14 +361,15 @@ export function TreatmentPlanHistoryList() {
         );
       } else {
         message.error({
-          content: response.message || `Could not load histories for treatment plan`,
-          duration: 5
+          content:
+            response.message || `Could not load histories for treatment plan`,
+          duration: 5,
         });
       }
     } catch (error) {
       message.error({
         content: `Could not load histories for treatment plan`,
-        duration: 5
+        duration: 5,
       });
     } finally {
       // Check if all groups are loaded
@@ -448,7 +449,7 @@ export function TreatmentPlanHistoryList() {
       console.error("Error fetching unique values:", error);
       message.error({
         content: "Failed to load filter options",
-        duration: 5
+        duration: 5,
       });
     }
   }, []);
@@ -591,7 +592,7 @@ export function TreatmentPlanHistoryList() {
         } else {
           message.error({
             content: "Could not load treatment plan codes",
-            duration: 5
+            duration: 5,
           });
           setLoading(false);
         }
@@ -599,7 +600,7 @@ export function TreatmentPlanHistoryList() {
       .catch((error) => {
         message.error({
           content: "Could not load treatment plan codes",
-          duration: 5
+          duration: 5,
         });
         setLoading(false);
       });
@@ -666,7 +667,7 @@ export function TreatmentPlanHistoryList() {
         } else {
           message.error({
             content: "Could not load treatment plan codes",
-            duration: 5
+            duration: 5,
           });
           setLoading(false);
         }
@@ -674,7 +675,7 @@ export function TreatmentPlanHistoryList() {
       .catch((error) => {
         message.error({
           content: "Could not load treatment plan codes",
-          duration: 5
+          duration: 5,
         });
         setLoading(false);
       });
@@ -690,18 +691,25 @@ export function TreatmentPlanHistoryList() {
       // Check if user is trying to export without filters but not selecting export all
       if (!values.exportAllPages) {
         // Get actual filter values - check both modal filters and current applied filters
-        const hasAnyFilter = values.filterTreatmentPlanCode || 
-                             values.filterHealthCheckResultCode || 
-                             values.filterPerformedBy || 
-                             (values.filterActionDateRange && (values.filterActionDateRange[0] || values.filterActionDateRange[1])) ||
-                             treatmentPlanCode || 
-                             healthCheckResultCode || 
-                             performedBySearch || 
-                             (actionDateRange && (actionDateRange[0] || actionDateRange[1]));
-        
+        const hasAnyFilter =
+          values.filterTreatmentPlanCode ||
+          values.filterHealthCheckResultCode ||
+          values.filterPerformedBy ||
+          (values.filterActionDateRange &&
+            (values.filterActionDateRange[0] ||
+              values.filterActionDateRange[1])) ||
+          treatmentPlanCode ||
+          healthCheckResultCode ||
+          performedBySearch ||
+          (actionDateRange && (actionDateRange[0] || actionDateRange[1]));
+
         console.log("Has any filter:", hasAnyFilter);
         if (!hasAnyFilter) {
-          messageApi.error("Please select 'Export all data' or apply at least one filter");
+          messageApi.error({
+            content:
+              "Please select 'Export all data' or apply at least one filter",
+            duration: 5,
+          });
           setExportLoading(false);
           return; // Return here without closing the modal
         }
@@ -721,12 +729,20 @@ export function TreatmentPlanHistoryList() {
       };
 
       // Extract filter values from form
-      const exportTreatmentPlanCode = values.exportAllPages ? undefined : values.filterTreatmentPlanCode || treatmentPlanCode;
-      const exportHealthCheckCode = values.exportAllPages ? undefined : values.filterHealthCheckResultCode || healthCheckResultCode;
-      const exportPerformedBy = values.exportAllPages ? undefined : values.filterPerformedBy || performedBySearch;
+      const exportTreatmentPlanCode = values.exportAllPages
+        ? undefined
+        : values.filterTreatmentPlanCode || treatmentPlanCode;
+      const exportHealthCheckCode = values.exportAllPages
+        ? undefined
+        : values.filterHealthCheckResultCode || healthCheckResultCode;
+      const exportPerformedBy = values.exportAllPages
+        ? undefined
+        : values.filterPerformedBy || performedBySearch;
       // Always use the sort direction selected in modal, regardless of exportAllPages
       const exportAscending = values.filterSortDirection === "asc";
-      const exportDateRange = values.exportAllPages ? null : values.filterActionDateRange || actionDateRange;
+      const exportDateRange = values.exportAllPages
+        ? null
+        : values.filterActionDateRange || actionDateRange;
 
       const startActionDate =
         exportDateRange && exportDateRange[0]
@@ -751,10 +767,10 @@ export function TreatmentPlanHistoryList() {
           healthCheckResultCode: exportHealthCheckCode,
           performedBy: exportPerformedBy,
           startDate: startActionDate,
-          endDate: endActionDate
-        }
+          endDate: endActionDate,
+        },
       };
-      
+
       console.log("Calling export API with config:", exportConfig);
       const response = await exportTreatmentPlanHistoriesToExcelWithConfig(
         exportConfigData,
@@ -777,29 +793,41 @@ export function TreatmentPlanHistoryList() {
       console.log("Export API response:", response);
       console.log("Response type:", typeof response);
       console.log("Response structure:", JSON.stringify(response));
-      
-      // Kiểm tra response chi tiết 
-      if (response && response.data && 
-          (response.success === true || response.isSuccess === true) && 
-          typeof response.data === 'string') {
+
+      // Kiểm tra response chi tiết
+      if (
+        response &&
+        response.data &&
+        (response.success === true || response.isSuccess === true) &&
+        typeof response.data === "string"
+      ) {
         // Thành công và có URL để tải file
         window.open(response.data, "_blank");
-        messageApi.success("Treatment plan histories exported to Excel successfully");
-      
+        messageApi.success({
+          content: "Excel file generated successfully and opened in a new tab",
+          duration: 10,
+        });
+
         // Set the export config and close the modal only if successful
-      setExportConfig(exportConfigData);
-      closeExportConfigModal();
+        setExportConfig(exportConfigData);
+        closeExportConfigModal();
         setExportLoading(false);
-        return; 
+        return;
       } else {
         // Xử lý lỗi: Nếu API trả về lỗi hoặc không có dữ liệu
-        messageApi.error(response?.message || "Failed to export Excel file");
+        messageApi.error({
+          content: response?.message || "Failed to export Excel file",
+          duration: 5,
+        });
         setExportLoading(false);
         return;
       }
     } catch (error) {
       console.error("Export error:", error);
-      messageApi.error("Failed to export Excel file");
+      messageApi.error({
+        content: "Failed to export Excel file",
+        duration: 5,
+      });
       setExportLoading(false); // Only set loading to false but don't close modal on error
     }
   };
@@ -918,13 +946,13 @@ export function TreatmentPlanHistoryList() {
             <Typography.Title level={5}>Basic Options</Typography.Title>
           </Col>
           <Col span={24}>
-        <Form.Item
-          name="exportAllPages"
-          valuePropName="checked"
+            <Form.Item
+              name="exportAllPages"
+              valuePropName="checked"
               style={{ marginBottom: "12px" }}
-        >
+            >
               <Checkbox>Export all data (ignore pagination)</Checkbox>
-        </Form.Item>
+            </Form.Item>
           </Col>
           <Col span={24}>
             <div style={{ marginBottom: "16px" }}>
@@ -980,7 +1008,7 @@ export function TreatmentPlanHistoryList() {
                     </div>
                   </Radio.Button>
                 </Radio.Group>
-        </Form.Item>
+              </Form.Item>
             </div>
           </Col>
           {/* Use Form.Item dependencies to properly update visibility */}
@@ -994,7 +1022,7 @@ export function TreatmentPlanHistoryList() {
                   </Col>
 
                   <Col span={12}>
-        <Form.Item
+                    <Form.Item
                       label="Treatment Plan Code"
                       name="filterTreatmentPlanCode"
                     >
@@ -1015,11 +1043,11 @@ export function TreatmentPlanHistoryList() {
                           </Option>
                         ))}
                       </Select>
-        </Form.Item>
+                    </Form.Item>
                   </Col>
-        
+
                   <Col span={12}>
-        <Form.Item
+                    <Form.Item
                       label="Health Check Code"
                       name="filterHealthCheckResultCode"
                     >
@@ -1040,7 +1068,7 @@ export function TreatmentPlanHistoryList() {
                           </Option>
                         ))}
                       </Select>
-        </Form.Item>
+                    </Form.Item>
                   </Col>
 
                   <Col span={12}>
@@ -1084,11 +1112,11 @@ export function TreatmentPlanHistoryList() {
                           </Option>
                         ))}
                       </Select>
-        </Form.Item>
+                    </Form.Item>
                   </Col>
-        
+
                   <Col span={12}>
-        <Form.Item
+                    <Form.Item
                       label="Action Date Range"
                       name="filterActionDateRange"
                     >
@@ -1140,28 +1168,28 @@ export function TreatmentPlanHistoryList() {
           </Col>
           <Col span={8}>
             <Form.Item name="includeActionDate" valuePropName="checked">
-          <Checkbox>Action Date</Checkbox>
-        </Form.Item>
+              <Checkbox>Action Date</Checkbox>
+            </Form.Item>
           </Col>
           <Col span={8}>
             <Form.Item name="includePerformedBy" valuePropName="checked">
-          <Checkbox>Performed By</Checkbox>
-        </Form.Item>
+              <Checkbox>Performed By</Checkbox>
+            </Form.Item>
           </Col>
           <Col span={8}>
             <Form.Item name="includePreviousStatus" valuePropName="checked">
-          <Checkbox>Previous Status</Checkbox>
-        </Form.Item>
+              <Checkbox>Previous Status</Checkbox>
+            </Form.Item>
           </Col>
           <Col span={8}>
             <Form.Item name="includeNewStatus" valuePropName="checked">
-          <Checkbox>New Status</Checkbox>
-        </Form.Item>
+              <Checkbox>New Status</Checkbox>
+            </Form.Item>
           </Col>
           <Col span={8}>
             <Form.Item name="includeChangeDetails" valuePropName="checked">
-          <Checkbox>Change Details</Checkbox>
-        </Form.Item>
+              <Checkbox>Change Details</Checkbox>
+            </Form.Item>
           </Col>
           <Col span={24} style={{ marginTop: "8px" }}>
             <div
@@ -1195,7 +1223,7 @@ export function TreatmentPlanHistoryList() {
         <Button key="reset" onClick={resetFilters} icon={<UndoOutlined />}>
           Reset
         </Button>,
-          <Button 
+        <Button
           key="apply"
           type="primary"
           onClick={applyFilters}
@@ -1215,7 +1243,7 @@ export function TreatmentPlanHistoryList() {
                 style={{ marginBottom: "8px", color: "#666666" }}
               >
                 Health check code
-        </div>
+              </div>
               <Select
                 showSearch
                 placeholder="Select or search Health Check Code"
@@ -1238,8 +1266,8 @@ export function TreatmentPlanHistoryList() {
                   label: code,
                 }))}
               />
-      </div>
-      
+            </div>
+
             <div className="filter-item">
               <div
                 className="filter-label"
@@ -1258,7 +1286,7 @@ export function TreatmentPlanHistoryList() {
                   }))
                 }
                 style={{ width: "100%" }}
-              allowClear
+                allowClear
                 filterOption={(input, option) =>
                   (option?.label?.toString().toLowerCase() || "").includes(
                     input.toLowerCase()
@@ -1299,7 +1327,7 @@ export function TreatmentPlanHistoryList() {
                   }))
                 }
                 format="DD/MM/YYYY"
-              allowClear
+                allowClear
                 ranges={{
                   "Last 7 Days": [dayjs().subtract(6, "days"), dayjs()],
                   "Last 30 Days": [dayjs().subtract(29, "days"), dayjs()],
@@ -1335,7 +1363,7 @@ export function TreatmentPlanHistoryList() {
                 }
                 optionType="button"
                 buttonStyle="solid"
-              style={{ width: "100%" }}
+                style={{ width: "100%" }}
               >
                 <Radio.Button
                   value="asc"
@@ -1413,7 +1441,7 @@ export function TreatmentPlanHistoryList() {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Select
+              <Select
                 showSearch
                 placeholder="Search Treatment Plan Code"
                 value={treatmentPlanCode || undefined}
@@ -1476,7 +1504,7 @@ export function TreatmentPlanHistoryList() {
                       } else {
                         message.error({
                           content: "Could not load treatment plan codes",
-                          duration: 5
+                          duration: 5,
                         });
                         setLoading(false);
                       }
@@ -1484,13 +1512,13 @@ export function TreatmentPlanHistoryList() {
                     .catch((error) => {
                       message.error({
                         content: "Could not load treatment plan codes",
-                        duration: 5
+                        duration: 5,
                       });
                       setLoading(false);
                     });
                 }}
                 style={{ width: "400px" }}
-              allowClear
+                allowClear
                 filterOption={(input, option) =>
                   (option?.label?.toString().toLowerCase() || "").includes(
                     input.toLowerCase()
@@ -1548,7 +1576,7 @@ export function TreatmentPlanHistoryList() {
         }}
       >
         <Text type="secondary">Groups per page:</Text>
-            <Select
+        <Select
           value={pageSize}
           onChange={(value) => {
             setPageSize(value);
@@ -1560,7 +1588,7 @@ export function TreatmentPlanHistoryList() {
           <Option value={10}>10</Option>
           <Option value={15}>15</Option>
           <Option value={20}>20</Option>
-            </Select>
+        </Select>
       </div>
 
       {loading && resultGroups.length === 0 ? (
@@ -1622,14 +1650,14 @@ export function TreatmentPlanHistoryList() {
                                 group.histories[0].treatmentPlan
                                   .healthCheckResult.healthCheckResultCode
                               }
-              </Button>
+                            </Button>
                           </span>
                         </>
                       )}
-            </Space>
+                  </Space>
                 </div>
-      </div>
-      
+              </div>
+
               {group.loading ? (
                 <Spin />
               ) : (
@@ -1773,11 +1801,11 @@ export function TreatmentPlanHistoryList() {
             <Row justify="center" align="middle">
               <Space size="large" align="center">
                 <Text type="secondary">Total {total} items</Text>
-          <Pagination
-            current={currentPage}
-            pageSize={pageSize}
-            total={total}
-            onChange={handlePageChange}
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={total}
+                  onChange={handlePageChange}
                   showSizeChanger={false}
                   showTotal={() => ""}
                 />
@@ -1813,4 +1841,4 @@ export function TreatmentPlanHistoryList() {
       {renderFilterModal()}
     </div>
   );
-} 
+}

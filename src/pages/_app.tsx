@@ -6,12 +6,11 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { UserContext, UserProvider } from "@/context/UserContext";
-import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { HeroUIProvider } from "@heroui/react";
 import Chatbot from "@/components/chatbot.tsx";
 import { ChatbotProvider } from "@/context/ChatbotContext";
-import { App as AntdApp, ConfigProvider } from 'antd';
+import { App as AntdApp, ConfigProvider } from "antd";
 
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
