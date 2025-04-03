@@ -370,7 +370,7 @@ export function TreatmentPlanHistoryListNew() {
       actionDateRange: [null, null],
       ascending: false,
     });
-    
+
     setLoading(true);
   };
 
@@ -403,7 +403,7 @@ export function TreatmentPlanHistoryListNew() {
     setCurrentPage(1);
 
     closeFilterModal();
-    
+
     setLoading(true);
   };
 
@@ -422,7 +422,7 @@ export function TreatmentPlanHistoryListNew() {
     setCurrentPage(1);
 
     closeFilterModal();
-    
+
     setLoading(true);
   };
 
@@ -574,16 +574,16 @@ export function TreatmentPlanHistoryListNew() {
       clearTimeout(timer);
     };
   }, [
-    currentPage, 
-    pageSize, 
-    treatmentPlanCode, 
-    healthCheckResultCode, 
-    performedBySearch, 
-    actionDateRange, 
+    currentPage,
+    pageSize,
+    treatmentPlanCode,
+    healthCheckResultCode,
+    performedBySearch,
+    actionDateRange,
     ascending,
     fetchGroupedTreatmentPlanHistories,
     fetchUniqueValues,
-    uniqueTreatmentPlanCodes.length
+    uniqueTreatmentPlanCodes.length,
   ]);
 
   return (
@@ -844,8 +844,10 @@ export function TreatmentPlanHistoryListNew() {
                                       Performed by:
                                     </div>
                                     <div>
-                                      {history.performedBy?.fullName} (
-                                      {history.performedBy?.email})
+                                      {history.action?.toLowerCase() ===
+                                      "auto-completed"
+                                        ? "System"
+                                        : `${history.performedBy?.fullName} (${history.performedBy?.email})`}
                                     </div>
                                   </div>
 
