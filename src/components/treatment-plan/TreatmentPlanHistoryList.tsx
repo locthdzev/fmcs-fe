@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Button,
   Select,
@@ -259,14 +259,12 @@ export function TreatmentPlanHistoryListNew() {
 
         setResultGroups(groups);
         setTotal(groupedData.totalTreatmentPlans);
-        setLoading(false);
       } else {
         messageApi.error({
           content:
             response.message || "Could not load treatment plan histories",
           duration: 5,
         });
-        setLoading(false);
       }
     } catch (error) {
       console.error("Error fetching grouped histories:", error);
@@ -274,6 +272,7 @@ export function TreatmentPlanHistoryListNew() {
         content: "Failed to load treatment plan histories",
         duration: 5,
       });
+    } finally {
       setLoading(false);
     }
   }, [
@@ -354,11 +353,10 @@ export function TreatmentPlanHistoryListNew() {
   // Event handlers
   const handleSearch = () => {
     setCurrentPage(1);
-    fetchGroupedTreatmentPlanHistories();
+    setLoading(true);
   };
 
   const handleReset = () => {
-    // Reset all filter values
     setPerformedBySearch("");
     setTreatmentPlanCode("");
     setHealthCheckResultCode("");
@@ -366,28 +364,24 @@ export function TreatmentPlanHistoryListNew() {
     setCurrentPage(1);
     setAscending(false);
 
-    // Reset filter state
     setFilterState({
       healthCheckResultCode: "",
       performedBySearch: "",
       actionDateRange: [null, null],
       ascending: false,
     });
-
-    // Fetch data with reset filters - use setTimeout to ensure state updates first
-    setTimeout(() => {
-      fetchGroupedTreatmentPlanHistories();
-    }, 0);
+    
+    setLoading(true);
   };
 
   const handlePageChange = (page: number, newPageSize?: number) => {
     setCurrentPage(page);
     if (newPageSize) setPageSize(newPageSize);
+    setLoading(true);
   };
 
   // Filter modal handlers
   const openFilterModal = () => {
-    // Initialize filter state with current values
     setFilterState({
       healthCheckResultCode: healthCheckResultCode || "",
       performedBySearch: performedBySearch || "",
@@ -402,20 +396,18 @@ export function TreatmentPlanHistoryListNew() {
   };
 
   const applyFilters = () => {
-    // Apply filter state to actual state
     setHealthCheckResultCode(filterState.healthCheckResultCode);
     setPerformedBySearch(filterState.performedBySearch);
     setActionDateRange(filterState.actionDateRange);
     setAscending(filterState.ascending);
     setCurrentPage(1);
 
-    // Close modal and fetch data
     closeFilterModal();
-    fetchGroupedTreatmentPlanHistories();
+    
+    setLoading(true);
   };
 
   const resetFilters = () => {
-    // Reset filter state in modal
     setFilterState({
       healthCheckResultCode: "",
       performedBySearch: "",
@@ -423,16 +415,15 @@ export function TreatmentPlanHistoryListNew() {
       ascending: false,
     });
 
-    // Update actual state (except treatmentPlanCode, which is handled separately)
     setHealthCheckResultCode("");
     setPerformedBySearch("");
     setActionDateRange([null, null]);
     setAscending(false);
     setCurrentPage(1);
 
-    // Close modal and fetch data
     closeFilterModal();
-    fetchGroupedTreatmentPlanHistories();
+    
+    setLoading(true);
   };
 
   // Export modal handlers
@@ -442,14 +433,12 @@ export function TreatmentPlanHistoryListNew() {
 
   const closeExportConfigModal = () => {
     setShowExportConfigModal(false);
-    // Reset form when closing
     form.resetFields();
   };
 
   const handleExportConfigChange = (changedValues: any) => {
     setExportConfig({ ...exportConfig, ...changedValues });
 
-    // Special handling for exportAllPages visibility
     if ("exportAllPages" in changedValues) {
       setExportConfig((prev) => ({
         ...prev,
@@ -463,7 +452,6 @@ export function TreatmentPlanHistoryListNew() {
     try {
       const values = await form.validateFields();
 
-      // Check if trying to export without filters and not selecting export all
       if (!values.exportAllPages) {
         const hasAnyFilter =
           values.filterTreatmentPlanCode ||
@@ -488,7 +476,6 @@ export function TreatmentPlanHistoryListNew() {
         }
       }
 
-      // Prepare export config
       const exportConfigData: TreatmentPlanHistoryExportConfigDTO = {
         exportAllPages: values.exportAllPages,
         includeTreatmentPlanCode: values.includeTreatmentPlanCode,
@@ -502,7 +489,6 @@ export function TreatmentPlanHistoryListNew() {
         includeChangeDetails: values.includeChangeDetails,
       };
 
-      // Extract filter values from form
       const exportTreatmentPlanCode = values.exportAllPages
         ? undefined
         : values.filterTreatmentPlanCode || treatmentPlanCode;
@@ -527,42 +513,37 @@ export function TreatmentPlanHistoryListNew() {
           ? exportDateRange[1].format("YYYY-MM-DD")
           : undefined;
 
-      // Call export API
       const response = await exportTreatmentPlanHistoriesToExcelWithConfig(
         exportConfigData,
         values.exportAllPages ? 1 : currentPage,
         values.exportAllPages ? 1000 : pageSize,
-        undefined, // action
+        undefined,
         startActionDate,
         endActionDate,
         exportPerformedBy,
-        undefined, // previousStatus
-        undefined, // newStatus
+        undefined,
+        undefined,
         sortBy,
         exportAscending,
         exportTreatmentPlanCode,
         exportHealthCheckCode
       );
 
-      // Process response
       if (
         response &&
         response.data &&
         (response.success === true || response.isSuccess === true) &&
         typeof response.data === "string"
       ) {
-        // Success - open the Excel file
         window.open(response.data, "_blank");
         messageApi.success({
           content: "Excel file generated successfully and opened in a new tab",
           duration: 10,
         });
 
-        // Update export config and close modal
         setExportConfig(exportConfigData);
         closeExportConfigModal();
       } else {
-        // Handle error
         messageApi.error({
           content: response?.message || "Failed to export Excel file",
           duration: 5,
@@ -581,15 +562,29 @@ export function TreatmentPlanHistoryListNew() {
 
   // useEffect hooks
   useEffect(() => {
-    console.log("Pagination changed, fetching...");
-    fetchGroupedTreatmentPlanHistories();
-  }, [currentPage, pageSize, fetchGroupedTreatmentPlanHistories]);
+    if (uniqueTreatmentPlanCodes.length === 0) {
+      fetchUniqueValues();
+    }
 
-  useEffect(() => {
-    console.log("Component mounted, initializing...");
-    fetchUniqueValues();
-    fetchGroupedTreatmentPlanHistories();
-  }, [fetchUniqueValues, fetchGroupedTreatmentPlanHistories]);
+    const timer = setTimeout(() => {
+      fetchGroupedTreatmentPlanHistories();
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [
+    currentPage, 
+    pageSize, 
+    treatmentPlanCode, 
+    healthCheckResultCode, 
+    performedBySearch, 
+    actionDateRange, 
+    ascending,
+    fetchGroupedTreatmentPlanHistories,
+    fetchUniqueValues,
+    uniqueTreatmentPlanCodes.length
+  ]);
 
   return (
     <div className="history-container" style={{ padding: "20px" }}>
@@ -635,9 +630,6 @@ export function TreatmentPlanHistoryListNew() {
                   setTreatmentPlanCode(value || "");
                   setCurrentPage(1);
                   setLoading(true);
-                  setTimeout(() => {
-                    fetchGroupedTreatmentPlanHistories();
-                  }, 0);
                 }}
                 style={{ width: "400px" }}
                 allowClear
@@ -703,6 +695,7 @@ export function TreatmentPlanHistoryListNew() {
           onChange={(value) => {
             setPageSize(value);
             setCurrentPage(1);
+            setLoading(true);
           }}
           style={{ width: "80px" }}
         >

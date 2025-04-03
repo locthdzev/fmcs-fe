@@ -214,44 +214,22 @@ const TreatmentPlanHistoryExportModal: React.FC<ExportModalProps> = ({
                   <Col span={12}>
                     <Form.Item label="Performed By" name="filterPerformedBy">
                       <Select
-                        placeholder="Select staff member"
+                        placeholder="Select or search staff member"
                         style={{ width: "100%" }}
                         allowClear
                         showSearch
-                        filterOption={(input, option) => {
-                          try {
-                            if (!option || !option.children) return false;
-                            // For performers, we need to check the name in the nested structure
-                            const performer = uniquePerformers.find(
-                              (p) => p.fullName === option.value
-                            );
-                            if (performer) {
-                              return (
-                                performer.fullName
-                                  .toLowerCase()
-                                  .includes(input.toLowerCase()) ||
-                                performer.email
-                                  .toLowerCase()
-                                  .includes(input.toLowerCase())
-                              );
-                            }
-                            return false;
-                          } catch (error) {
-                            return false;
-                          }
-                        }}
-                      >
-                        {uniquePerformers.map((performer) => (
-                          <Option key={performer.id} value={performer.fullName}>
-                            <div>
-                              <div>{performer.fullName}</div>
-                              <div style={{ fontSize: "12px", color: "#888" }}>
-                                {performer.email}
-                              </div>
-                            </div>
-                          </Option>
-                        ))}
-                      </Select>
+                        filterOption={(input, option) =>
+                          (option?.label?.toString().toLowerCase() || "").includes(
+                            input.toLowerCase()
+                          )
+                        }
+                        optionLabelProp="label"
+                        options={uniquePerformers.map((performer) => ({
+                          value: performer.fullName,
+                          label: `${performer.fullName} (${performer.email})`,
+                          email: performer.email,
+                        }))}
+                      />
                     </Form.Item>
                   </Col>
 
