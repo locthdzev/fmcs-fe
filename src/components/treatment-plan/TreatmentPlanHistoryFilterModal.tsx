@@ -7,6 +7,7 @@ import {
   Select,
   DatePicker,
   Radio,
+  Divider,
 } from "antd";
 import {
   UndoOutlined,
@@ -142,6 +143,8 @@ const TreatmentPlanHistoryFilterModal: React.FC<FilterModalProps> = ({
             </div>
           </div>
         </div>
+
+        <Divider style={{ margin: "8px 0 16px 0" }} />
 
         <div>
           <Title level={5}>Date & Sorting</Title>
