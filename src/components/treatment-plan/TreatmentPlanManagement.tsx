@@ -1075,39 +1075,6 @@ export function TreatmentPlanManagement() {
         columnVisibility={columnVisibility}
       />
 
-      {/* Pagination with go to page */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          marginTop: "16px",
-          gap: "8px",
-        }}
-      >
-        <Pagination
-          current={currentPage}
-          pageSize={pageSize}
-          total={totalItems}
-          onChange={handlePageChange}
-          showSizeChanger
-          pageSizeOptions={["5", "10", "15", "20"]}
-          showTotal={(total) => `Total ${total} items`}
-          itemRender={itemRender}
-          style={{ marginRight: "16px" }}
-        />
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <span style={{ marginRight: "8px" }}>Go to page:</span>
-          <InputNumber
-            min={1}
-            max={Math.ceil(totalItems / pageSize)}
-            value={currentPage}
-            onChange={(value) => value && handlePageChange(value)}
-            style={{ width: "60px" }}
-          />
-        </div>
-      </div>
-
       {/* Modals */}
       <CreateModal
         visible={createModalVisible}

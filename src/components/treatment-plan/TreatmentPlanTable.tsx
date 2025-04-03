@@ -1,11 +1,25 @@
 import React from "react";
-import { Table, Space, Tag, Button, Tooltip, Popconfirm, Modal, Form, Input, Card, Spin, Typography, Pagination } from "antd";
-import { 
-  HistoryOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
-  UndoOutlined, 
-  CloseCircleOutlined 
+import {
+  Table,
+  Space,
+  Tag,
+  Button,
+  Tooltip,
+  Popconfirm,
+  Modal,
+  Form,
+  Input,
+  Card,
+  Spin,
+  Typography,
+  Pagination,
+} from "antd";
+import {
+  HistoryOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UndoOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
@@ -40,7 +54,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   handleSoftDelete,
   handleRestore,
   handleCancel,
-  columnVisibility
+  columnVisibility,
 }) => {
   const router = useRouter();
 
@@ -181,7 +195,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   // Define table columns
   const columns = [
     {
-      title: "Treatment Plan Code",
+      title: "TREATMENT PLAN CODE",
       dataIndex: "treatmentPlanCode",
       key: "treatmentPlanCode",
       render: (text: string, record: TreatmentPlanResponseDTO) => (
@@ -191,7 +205,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: "Health Check Result",
+      title: "HEALTH CHECK RESULT",
       dataIndex: "healthCheckResult",
       key: "healthCheckResult",
       render: (healthCheckResult: any) => (
@@ -208,55 +222,55 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: "Drug",
+      title: "DRUG",
       dataIndex: "drug",
       key: "drug",
       render: (drug: any) => renderDrugInfo(drug),
     },
     {
-      title: "Treatment Description",
+      title: "TREATMENT DESCRIPTION",
       dataIndex: "treatmentDescription",
       key: "treatmentDescription",
       ellipsis: true,
     },
     {
-      title: "Instructions",
+      title: "INSTRUCTIONS",
       dataIndex: "instructions",
       key: "instructions",
       ellipsis: true,
     },
     {
-      title: "Start Date",
+      title: "START DATE",
       dataIndex: "startDate",
       key: "startDate",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
-      title: "End Date",
+      title: "END DATE",
       dataIndex: "endDate",
       key: "endDate",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
-      title: "Status",
+      title: "STATUS",
       dataIndex: "status",
       key: "status",
       render: (status: string) => renderStatusTag(status),
     },
     {
-      title: "Created At",
+      title: "CREATED AT",
       dataIndex: "createdAt",
       key: "createdAt",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY HH:mm:ss"),
     },
     {
-      title: "Updated At",
+      title: "UPDATED AT",
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY HH:mm:ss"),
     },
     {
-      title: "Created By",
+      title: "CREATED BY",
       dataIndex: "createdBy",
       key: "createdBy",
       render: (createdBy: any) => (
@@ -266,7 +280,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: "Updated By",
+      title: "UPDATED BY",
       dataIndex: "updatedBy",
       key: "updatedBy",
       render: (updatedBy: any) => (
@@ -276,7 +290,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: "Actions",
+      title: "ACTIONS",
       key: "actions",
       render: (record: TreatmentPlanResponseDTO) => renderActionButtons(record),
     },
@@ -291,7 +305,9 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   if (loading) {
     return (
       <Card className="shadow-sm">
-        <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
+        <div
+          style={{ display: "flex", justifyContent: "center", padding: "40px" }}
+        >
           <Spin tip="Loading..." />
         </div>
       </Card>
@@ -314,14 +330,16 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
         loading={false}
         pagination={false}
       />
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+      <div
+        style={{ display: "flex", justifyContent: "center", marginTop: "16px" }}
+      >
         <Pagination
           current={currentPage}
           pageSize={pageSize}
           total={totalItems}
           onChange={handlePageChange}
           showSizeChanger
-          pageSizeOptions={['5', '10', '15', '20']}
+          pageSizeOptions={["5", "10", "15", "20"]}
           showTotal={(total) => `Total ${total} items`}
         />
       </div>
@@ -329,4 +347,4 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   );
 };
 
-export default TreatmentPlanTable; 
+export default TreatmentPlanTable;
