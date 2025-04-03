@@ -11,6 +11,8 @@ import {
   Input,
   Pagination,
   InputNumber,
+  Dropdown,
+  Checkbox,
 } from "antd";
 import {
   PlusOutlined,
@@ -24,6 +26,9 @@ import {
   ToolOutlined,
   SettingOutlined,
   AppstoreOutlined,
+  TagOutlined,
+  CheckSquareOutlined,
+  FlagOutlined,
 } from "@ant-design/icons";
 import { toast } from "react-toastify";
 import { useRouter } from "next/router";
@@ -50,42 +55,57 @@ const { Text, Title } = Typography;
 export function TreatmentPlanManagement() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [treatmentPlans, setTreatmentPlans] = useState<TreatmentPlanResponseDTO[]>([]);
+  const [treatmentPlans, setTreatmentPlans] = useState<
+    TreatmentPlanResponseDTO[]
+  >([]);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [exportConfigModalVisible, setExportConfigModalVisible] = useState(false);
+  const [exportConfigModalVisible, setExportConfigModalVisible] =
+    useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [selectedTreatmentPlans, setSelectedTreatmentPlans] = useState<string[]>([]);
+  const [selectedTreatmentPlans, setSelectedTreatmentPlans] = useState<
+    string[]
+  >([]);
   const [searchForm] = Form.useForm();
-  
+
   // Column visibility state
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
     treatmentPlanCode: true,
     healthCheckResult: true,
     drug: true,
-    treatmentDescription: true,
-    instructions: true,
+    treatmentDescription: false,
+    instructions: false,
     startDate: true,
     endDate: true,
     status: true,
     createdAt: true,
-    updatedAt: true,
     createdBy: true,
-    updatedBy: true,
+    updatedAt: false,
+    updatedBy: false,
   });
 
   // Search filters
-  const [treatmentPlanCodeSearch, setTreatmentPlanCodeSearch] = useState<string>("");
-  const [healthCheckResultCodeSearch, setHealthCheckResultCodeSearch] = useState<string>("");
+  const [treatmentPlanCodeSearch, setTreatmentPlanCodeSearch] =
+    useState<string>("");
+  const [healthCheckResultCodeSearch, setHealthCheckResultCodeSearch] =
+    useState<string>("");
   const [userSearch, setUserSearch] = useState<string>("");
   const [drugSearch, setDrugSearch] = useState<string>("");
   const [updatedBySearch, setUpdatedBySearch] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
-  const [createdDateRange, setCreatedDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
-  const [updatedDateRange, setUpdatedDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+  const [dateRange, setDateRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null]
+  >([null, null]);
+  const [createdDateRange, setCreatedDateRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null]
+  >([null, null]);
+  const [updatedDateRange, setUpdatedDateRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null]
+  >([null, null]);
   const [sortBy, setSortBy] = useState<string>("CreatedAt");
   const [ascending, setAscending] = useState<boolean>(false);
 
@@ -97,21 +117,22 @@ export function TreatmentPlanManagement() {
   const [updatedByOptions, setUpdatedByOptions] = useState<UserInfo[]>([]);
 
   // Export config
-  const [exportConfig, setExportConfig] = useState<TreatmentPlanExportConfigDTO>({
-    exportAllPages: false,
-    includePatient: true,
-    includeHealthCheckCode: true,
-    includeDrug: true,
-    includeTreatmentDescription: true,
-    includeInstructions: true,
-    includeStartDate: true,
-    includeEndDate: true,
-    includeCreatedAt: true,
-    includeCreatedBy: true,
-    includeUpdatedAt: true,
-    includeUpdatedBy: true,
-    includeStatus: true,
-  });
+  const [exportConfig, setExportConfig] =
+    useState<TreatmentPlanExportConfigDTO>({
+      exportAllPages: false,
+      includePatient: true,
+      includeHealthCheckCode: true,
+      includeDrug: true,
+      includeTreatmentDescription: true,
+      includeInstructions: true,
+      includeStartDate: true,
+      includeEndDate: true,
+      includeCreatedAt: true,
+      includeCreatedBy: true,
+      includeUpdatedAt: true,
+      includeUpdatedBy: true,
+      includeStatus: true,
+    });
 
   // Filter state for the modal
   const [filterState, setFilterState] = useState({
@@ -206,7 +227,7 @@ export function TreatmentPlanManagement() {
 
       if (response.success || response.isSuccess) {
         let treatmentPlanData: TreatmentPlanResponseDTO[] = [];
-        
+
         if (Array.isArray(response.data)) {
           treatmentPlanData = response.data;
           setTreatmentPlans(response.data);
@@ -223,7 +244,7 @@ export function TreatmentPlanManagement() {
           setTotalItems(0);
           toast.error("Unexpected data structure received");
         }
-        
+
         // Extract unique data for dropdowns
         extractDataFromTreatmentPlans(treatmentPlanData);
       } else {
@@ -238,27 +259,31 @@ export function TreatmentPlanManagement() {
   };
 
   // Extract unique data from treatment plans for dropdowns
-  const extractDataFromTreatmentPlans = (treatmentPlans: TreatmentPlanResponseDTO[]) => {
+  const extractDataFromTreatmentPlans = (
+    treatmentPlans: TreatmentPlanResponseDTO[]
+  ) => {
     if (!treatmentPlans.length) return;
-    
+
     // Extract unique values
     const uniquePatients = new Map();
     const uniqueDrugs = new Map();
     const uniqueTreatmentPlanCodes = new Set<string>();
     const uniqueHealthCheckCodes = new Set<string>();
     const uniqueUpdatedBy = new Map();
-    
-    treatmentPlans.forEach(plan => {
+
+    treatmentPlans.forEach((plan) => {
       // Extract treatment plan code
       if (plan.treatmentPlanCode) {
         uniqueTreatmentPlanCodes.add(plan.treatmentPlanCode);
       }
-      
+
       // Extract health check code
       if (plan.healthCheckResult?.healthCheckResultCode) {
-        uniqueHealthCheckCodes.add(plan.healthCheckResult.healthCheckResultCode);
+        uniqueHealthCheckCodes.add(
+          plan.healthCheckResult.healthCheckResultCode
+        );
       }
-      
+
       // Extract patient info
       if (plan.healthCheckResult?.user) {
         const user = plan.healthCheckResult.user;
@@ -271,11 +296,11 @@ export function TreatmentPlanManagement() {
             gender: user.gender,
             dob: user.dob,
             address: user.address,
-            phone: user.phone
+            phone: user.phone,
           });
         }
       }
-      
+
       // Extract drug info
       if (plan.drug) {
         const drug = plan.drug;
@@ -283,11 +308,11 @@ export function TreatmentPlanManagement() {
           uniqueDrugs.set(drug.id, {
             id: drug.id,
             name: drug.name,
-            drugCode: drug.drugCode
+            drugCode: drug.drugCode,
           });
         }
       }
-      
+
       // Extract updated by info
       if (plan.updatedBy) {
         const updatedBy = plan.updatedBy;
@@ -296,12 +321,12 @@ export function TreatmentPlanManagement() {
             id: updatedBy.id,
             fullName: updatedBy.fullName,
             userName: updatedBy.userName,
-            email: updatedBy.email
+            email: updatedBy.email,
           });
         }
       }
     });
-    
+
     // Update state with unique data
     setUserOptions(Array.from(uniquePatients.values()));
     setDrugOptions(Array.from(uniqueDrugs.values()));
@@ -313,37 +338,37 @@ export function TreatmentPlanManagement() {
   // Handle form field changes
   const handleFormFieldChange = (field: string, value: any) => {
     switch (field) {
-      case 'treatmentPlanCode':
+      case "treatmentPlanCode":
         setTreatmentPlanCodeSearch(value);
         break;
-      case 'healthCheckResultCode':
+      case "healthCheckResultCode":
         setHealthCheckResultCodeSearch(value);
         break;
-      case 'userSearch':
+      case "userSearch":
         setUserSearch(value);
         break;
-      case 'drugSearch':
+      case "drugSearch":
         setDrugSearch(value);
         break;
-      case 'updatedBySearch':
+      case "updatedBySearch":
         setUpdatedBySearch(value);
         break;
-      case 'status':
+      case "status":
         setStatusFilter(value);
         break;
-      case 'dateRange':
+      case "dateRange":
         setDateRange(value);
         break;
-      case 'createdDateRange':
+      case "createdDateRange":
         setCreatedDateRange(value);
         break;
-      case 'updatedDateRange':
+      case "updatedDateRange":
         setUpdatedDateRange(value);
         break;
-      case 'sortBy':
+      case "sortBy":
         setSortBy(value);
         break;
-      case 'ascending':
+      case "ascending":
         setAscending(value);
         break;
       default:
@@ -492,8 +517,14 @@ export function TreatmentPlanManagement() {
       drugSearch: drugSearch,
       updatedBySearch: updatedBySearch,
       dateRange: dateRange as [dayjs.Dayjs | null, dayjs.Dayjs | null],
-      createdDateRange: createdDateRange as [dayjs.Dayjs | null, dayjs.Dayjs | null],
-      updatedDateRange: updatedDateRange as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+      createdDateRange: createdDateRange as [
+        dayjs.Dayjs | null,
+        dayjs.Dayjs | null
+      ],
+      updatedDateRange: updatedDateRange as [
+        dayjs.Dayjs | null,
+        dayjs.Dayjs | null
+      ],
       sortBy: sortBy,
       ascending: ascending,
     });
@@ -543,14 +574,25 @@ export function TreatmentPlanManagement() {
   // Custom pagination with go to page
   const itemRender = (
     page: number,
-    type: 'page' | 'prev' | 'next' | 'jump-prev' | 'jump-next',
-    originalElement: React.ReactNode,
+    type: "page" | "prev" | "next" | "jump-prev" | "jump-next",
+    originalElement: React.ReactNode
   ) => {
-    if (type === 'prev') {
-      return <Button size="small" disabled={currentPage === 1}>Previous</Button>;
+    if (type === "prev") {
+      return (
+        <Button size="small" disabled={currentPage === 1}>
+          Previous
+        </Button>
+      );
     }
-    if (type === 'next') {
-      return <Button size="small" disabled={currentPage === Math.ceil(totalItems / pageSize)}>Next</Button>;
+    if (type === "next") {
+      return (
+        <Button
+          size="small"
+          disabled={currentPage === Math.ceil(totalItems / pageSize)}
+        >
+          Next
+        </Button>
+      );
     }
     return originalElement;
   };
@@ -568,16 +610,9 @@ export function TreatmentPlanManagement() {
       createdDateRange[1] !== null ||
       updatedDateRange[0] !== null ||
       updatedDateRange[1] !== null ||
-      (sortBy !== "CreatedAt" || ascending !== false)
+      sortBy !== "CreatedAt" ||
+      ascending !== false
     );
-  };
-
-  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTreatmentPlanCodeSearch(e.target.value);
-  };
-  
-  const handleSearchClear = () => {
-    setTreatmentPlanCodeSearch("");
   };
 
   return (
@@ -585,10 +620,10 @@ export function TreatmentPlanManagement() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Button 
-            icon={<ArrowLeftOutlined />} 
+          <Button
+            icon={<ArrowLeftOutlined />}
             onClick={handleBack}
-            style={{ marginRight: '8px' }}
+            style={{ marginRight: "8px" }}
           >
             Back
           </Button>
@@ -598,9 +633,9 @@ export function TreatmentPlanManagement() {
       </div>
 
       {/* Search and Filters Toolbar */}
-      <Card 
+      <Card
         className="shadow mb-4"
-        bodyStyle={{ padding: '16px' }}
+        bodyStyle={{ padding: "16px" }}
         title={
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <AppstoreOutlined />
@@ -610,34 +645,74 @@ export function TreatmentPlanManagement() {
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Treatment Plan Code Search - Input style similar to History */}
-            <Input
+            {/* Treatment Plan Code Search */}
+            <Select
+              showSearch
               placeholder="Search Treatment Plan Code"
-              value={treatmentPlanCodeSearch}
-              onChange={handleSearchInputChange}
-              style={{ width: 240 }}
-              suffix={
-                treatmentPlanCodeSearch ? (
-                  <Button
-                    type="text"
-                    icon={<SearchOutlined />}
-                    size="small"
-                    onClick={handleSearchClear}
-                  />
-                ) : (
-                  <SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
+              value={treatmentPlanCodeSearch || undefined}
+              onChange={(value) => {
+                setTreatmentPlanCodeSearch(value || "");
+                setCurrentPage(1);
+                setLoading(true);
+              }}
+              style={{ width: "300px" }}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.label?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
                 )
               }
+              options={treatmentPlanCodes.map((code) => ({
+                value: code,
+                label: code,
+              }))}
+              prefix={<SearchOutlined />}
             />
+
+            {/* Advanced Filters */}
+            <Tooltip title="Advanced Filters">
+              <Button
+                icon={
+                  <FilterOutlined
+                    style={{
+                      color:
+                        healthCheckResultCodeSearch ||
+                        userSearch ||
+                        drugSearch ||
+                        updatedBySearch ||
+                        (dateRange && (dateRange[0] || dateRange[1])) ||
+                        (createdDateRange &&
+                          (createdDateRange[0] || createdDateRange[1])) ||
+                        (updatedDateRange &&
+                          (updatedDateRange[0] || updatedDateRange[1]))
+                          ? "#1890ff"
+                          : undefined,
+                    }}
+                  />
+                }
+                onClick={openFilterModal}
+              >
+                Filters
+              </Button>
+            </Tooltip>
 
             {/* Status */}
             <div>
-              <Select 
-                placeholder="Status" 
+              <Select
+                placeholder={
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <FlagOutlined style={{ marginRight: 8 }} />
+                    <span>Status</span>
+                  </div>
+                }
                 allowClear
-                style={{ width: '150px' }}
+                style={{ width: "120px" }}
                 value={statusFilter || undefined}
-                onChange={(value) => setStatusFilter(value || "")}
+                onChange={(value) => {
+                  setStatusFilter(value || "");
+                  setCurrentPage(1);
+                  setLoading(true);
+                }}
                 disabled={loading}
               >
                 <Option value="InProgress">In Progress</Option>
@@ -647,16 +722,195 @@ export function TreatmentPlanManagement() {
               </Select>
             </div>
 
-            {/* Advanced Filters */}
-            <Tooltip title="Advanced Filters">
-              <Button 
-                icon={<FilterOutlined />} 
-                onClick={openFilterModal}
-                type={isFiltersApplied() ? "primary" : "default"}
+            {/* Reset Button */}
+            <Tooltip title="Reset All Filters">
+              <Button
+                icon={<UndoOutlined />}
+                onClick={handleReset}
+                disabled={
+                  !(
+                    treatmentPlanCodeSearch ||
+                    healthCheckResultCodeSearch ||
+                    userSearch ||
+                    drugSearch ||
+                    updatedBySearch ||
+                    statusFilter ||
+                    dateRange[0] ||
+                    dateRange[1] ||
+                    createdDateRange[0] ||
+                    createdDateRange[1] ||
+                    updatedDateRange[0] ||
+                    updatedDateRange[1]
+                  )
+                }
               >
-                Filters
+                Reset
               </Button>
             </Tooltip>
+
+            {/* Column Settings */}
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: "treatmentPlanCode",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.treatmentPlanCode}
+                        onChange={() =>
+                          handleColumnVisibilityChange("treatmentPlanCode")
+                        }
+                      >
+                        Treatment Plan Code
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "healthCheckResult",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.healthCheckResult}
+                        onChange={() =>
+                          handleColumnVisibilityChange("healthCheckResult")
+                        }
+                      >
+                        Health Check Result
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "drug",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.drug}
+                        onChange={() => handleColumnVisibilityChange("drug")}
+                      >
+                        Drug
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "treatmentDescription",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.treatmentDescription}
+                        onChange={() =>
+                          handleColumnVisibilityChange("treatmentDescription")
+                        }
+                      >
+                        Treatment Description
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "instructions",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.instructions}
+                        onChange={() =>
+                          handleColumnVisibilityChange("instructions")
+                        }
+                      >
+                        Instructions
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "startDate",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.startDate}
+                        onChange={() =>
+                          handleColumnVisibilityChange("startDate")
+                        }
+                      >
+                        Start Date
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "endDate",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.endDate}
+                        onChange={() => handleColumnVisibilityChange("endDate")}
+                      >
+                        End Date
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "status",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.status}
+                        onChange={() => handleColumnVisibilityChange("status")}
+                      >
+                        Status
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "createdAt",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.createdAt}
+                        onChange={() =>
+                          handleColumnVisibilityChange("createdAt")
+                        }
+                      >
+                        Created At
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "createdBy",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.createdBy}
+                        onChange={() =>
+                          handleColumnVisibilityChange("createdBy")
+                        }
+                      >
+                        Created By
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "updatedAt",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.updatedAt}
+                        onChange={() =>
+                          handleColumnVisibilityChange("updatedAt")
+                        }
+                      >
+                        Updated At
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "updatedBy",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.updatedBy}
+                        onChange={() =>
+                          handleColumnVisibilityChange("updatedBy")
+                        }
+                      >
+                        Updated By
+                      </Checkbox>
+                    ),
+                  },
+                ],
+              }}
+              placement="bottomRight"
+              arrow
+            >
+              <Tooltip title="Column Settings">
+                <Button icon={<SettingOutlined />}>Columns</Button>
+              </Tooltip>
+            </Dropdown>
 
             {/* Create Button */}
             <Button
@@ -693,8 +947,8 @@ export function TreatmentPlanManagement() {
               >
                 Bulk Delete
               </Button>
-              <Button 
-                icon={<UndoOutlined />} 
+              <Button
+                icon={<UndoOutlined />}
                 onClick={handleBulkRestore}
                 disabled={loading}
               >
@@ -707,7 +961,7 @@ export function TreatmentPlanManagement() {
           </div>
         )}
       </Card>
-      
+
       {/* Data Table */}
       <TreatmentPlanTable
         loading={loading}
@@ -725,26 +979,34 @@ export function TreatmentPlanManagement() {
       />
 
       {/* Pagination with go to page */}
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '16px', gap: '8px' }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          marginTop: "16px",
+          gap: "8px",
+        }}
+      >
         <Pagination
           current={currentPage}
           pageSize={pageSize}
           total={totalItems}
           onChange={handlePageChange}
           showSizeChanger
-          pageSizeOptions={['5', '10', '15', '20']}
+          pageSizeOptions={["5", "10", "15", "20"]}
           showTotal={(total) => `Total ${total} items`}
           itemRender={itemRender}
-          style={{ marginRight: '16px' }}
+          style={{ marginRight: "16px" }}
         />
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ marginRight: '8px' }}>Go to page:</span>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <span style={{ marginRight: "8px" }}>Go to page:</span>
           <InputNumber
             min={1}
             max={Math.ceil(totalItems / pageSize)}
             value={currentPage}
             onChange={(value) => value && handlePageChange(value)}
-            style={{ width: '60px' }}
+            style={{ width: "60px" }}
           />
         </div>
       </div>
@@ -780,7 +1042,7 @@ export function TreatmentPlanManagement() {
         }}
       />
 
-      <TreatmentPlanFilterModal 
+      <TreatmentPlanFilterModal
         visible={filterModalVisible}
         onCancel={() => setFilterModalVisible(false)}
         onApply={handleApplyFilters}
@@ -796,4 +1058,4 @@ export function TreatmentPlanManagement() {
   );
 }
 
-export default TreatmentPlanManagement; 
+export default TreatmentPlanManagement;

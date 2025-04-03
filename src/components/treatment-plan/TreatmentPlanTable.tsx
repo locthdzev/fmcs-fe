@@ -184,7 +184,6 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       title: "Treatment Plan Code",
       dataIndex: "treatmentPlanCode",
       key: "treatmentPlanCode",
-      visible: columnVisibility.treatmentPlanCode,
       render: (text: string, record: TreatmentPlanResponseDTO) => (
         <a onClick={() => router.push(`/treatment-plan/${record.id}`)}>
           {text}
@@ -195,7 +194,6 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       title: "Health Check Result",
       dataIndex: "healthCheckResult",
       key: "healthCheckResult",
-      visible: columnVisibility.healthCheckResult,
       render: (healthCheckResult: any) => (
         <Tooltip title={renderPatientInfo(healthCheckResult)}>
           <a
@@ -213,63 +211,54 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       title: "Drug",
       dataIndex: "drug",
       key: "drug",
-      visible: columnVisibility.drug,
       render: (drug: any) => renderDrugInfo(drug),
     },
     {
       title: "Treatment Description",
       dataIndex: "treatmentDescription",
       key: "treatmentDescription",
-      visible: columnVisibility.treatmentDescription,
       ellipsis: true,
     },
     {
       title: "Instructions",
       dataIndex: "instructions",
       key: "instructions",
-      visible: columnVisibility.instructions,
       ellipsis: true,
     },
     {
       title: "Start Date",
       dataIndex: "startDate",
       key: "startDate",
-      visible: columnVisibility.startDate,
       render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
       title: "End Date",
       dataIndex: "endDate",
       key: "endDate",
-      visible: columnVisibility.endDate,
       render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      visible: columnVisibility.status,
       render: (status: string) => renderStatusTag(status),
     },
     {
       title: "Created At",
       dataIndex: "createdAt",
       key: "createdAt",
-      visible: columnVisibility.createdAt,
       render: (date: string) => dayjs(date).format("DD/MM/YYYY HH:mm:ss"),
     },
     {
       title: "Updated At",
       dataIndex: "updatedAt",
       key: "updatedAt",
-      visible: columnVisibility.updatedAt,
       render: (date: string) => dayjs(date).format("DD/MM/YYYY HH:mm:ss"),
     },
     {
       title: "Created By",
       dataIndex: "createdBy",
       key: "createdBy",
-      visible: columnVisibility.createdBy,
       render: (createdBy: any) => (
         <Tooltip title={renderUserInfo(createdBy)}>
           {createdBy?.fullName || ""}
@@ -280,7 +269,6 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       title: "Updated By",
       dataIndex: "updatedBy",
       key: "updatedBy",
-      visible: columnVisibility.updatedBy,
       render: (updatedBy: any) => (
         <Tooltip title={renderUserInfo(updatedBy)}>
           {updatedBy?.fullName || ""}
@@ -292,7 +280,15 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       key: "actions",
       render: (record: TreatmentPlanResponseDTO) => renderActionButtons(record),
     },
-  ].filter((column) => column.visible);
+  ];
+
+  // Filter columns based on visibility settings
+  const visibleColumns = columns.filter((column) => {
+    // Always show the Actions column
+    if (column.key === "actions") return true;
+    // Check visibility for other columns
+    return columnVisibility[column.key as keyof typeof columnVisibility];
+  });
 
   if (loading) {
     return (
@@ -314,7 +310,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
             setSelectedRowKeys(selectedRowKeys as string[]);
           },
         }}
-        columns={columns}
+        columns={visibleColumns}
         dataSource={treatmentPlans}
         rowKey="id"
         loading={false}
