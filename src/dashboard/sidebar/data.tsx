@@ -31,8 +31,22 @@ export const data = [
     groupTitle: "Main",
     items: [
       { title: "Home", icon: <HomeIcon />, link: "/home" },
-      { title: "Status", icon: <StatusIcon />, link: "/admin/status" },
-      { title: "My Insurance", icon: <HealthIcon />, link: "/health-insurance/my-insurance" },
+      {
+        title: "Statitics",
+        icon: <StatusIcon />,
+        submenu: [
+          {
+            title: "Treatment Plans",
+            icon: <StatusIcon />,
+            link: "/statitics/treatment-plan-statitics",
+          },
+        ],
+      },
+      {
+        title: "My Insurance",
+        icon: <HealthIcon />,
+        link: "/health-insurance/my-insurance",
+      },
     ],
   },
   {
@@ -245,6 +259,38 @@ export const data = [
         title: "PeriodicHealthCheckups",
         icon: <PeriodicHealthCheckupsIcon />,
         link: "/periodic-health-checkup/management",
+      },
+      {
+        title: "Prescriptions",
+        icon: <DrugIcon />,
+        submenu: [
+          {
+            title: "Management",
+            icon: <DrugIcon />,
+            link: "/prescription/management",
+          },
+          {
+            title: "History",
+            icon: <ArchiveIcon />,
+            link: "/prescription/history",
+          },
+        ],
+      },
+      {
+        title: "Treatment Plans",
+        icon: <HealthIcon />,
+        submenu: [
+          {
+            title: "Management",
+            icon: <HealthIcon />,
+            link: "/treatment-plan",
+          },
+          {
+            title: "History",
+            icon: <ArchiveIcon />,
+            link: "/treatment-plan/history",
+          },
+        ],
       },
     ],
   },
