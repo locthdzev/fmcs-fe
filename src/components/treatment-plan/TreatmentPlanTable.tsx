@@ -284,9 +284,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
 
   // Filter columns based on visibility settings
   const visibleColumns = columns.filter((column) => {
-    // Always show the Actions column
-    if (column.key === "actions") return true;
-    // Check visibility for other columns
+    // Check visibility for all columns including actions
     return columnVisibility[column.key as keyof typeof columnVisibility];
   });
 

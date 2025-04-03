@@ -75,7 +75,7 @@ export function TreatmentPlanManagement() {
     Record<string, boolean>
   >({
     treatmentPlanCode: true,
-    healthCheckResult: true,
+    healthCheckResult: false,
     drug: true,
     treatmentDescription: false,
     instructions: false,
@@ -86,7 +86,11 @@ export function TreatmentPlanManagement() {
     createdBy: true,
     updatedAt: false,
     updatedBy: false,
+    actions: true,
   });
+
+  // Dropdown open state
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Search filters
   const [treatmentPlanCodeSearch, setTreatmentPlanCodeSearch] =
@@ -413,6 +417,20 @@ export function TreatmentPlanManagement() {
     }));
   };
 
+  // Toggle all columns visibility
+  const toggleAllColumns = (checked: boolean) => {
+    const newVisibility = { ...columnVisibility };
+    Object.keys(newVisibility).forEach((key) => {
+      newVisibility[key] = checked;
+    });
+    setColumnVisibility(newVisibility);
+  };
+
+  // Check if all columns are visible
+  const areAllColumnsVisible = () => {
+    return Object.values(columnVisibility).every((value) => value === true);
+  };
+
   // Handle soft delete
   const handleSoftDelete = async (id: string) => {
     try {
@@ -615,6 +633,16 @@ export function TreatmentPlanManagement() {
     );
   };
 
+  // Handle dropdown visibility
+  const handleDropdownVisibleChange = (visible: boolean) => {
+    setDropdownOpen(visible);
+  };
+
+  // Prevent dropdown from closing when clicking checkboxes
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <div className="history-container" style={{ padding: "20px" }}>
       {/* Header */}
@@ -701,7 +729,7 @@ export function TreatmentPlanManagement() {
               <Select
                 placeholder={
                   <div style={{ display: "flex", alignItems: "center" }}>
-                    <FlagOutlined style={{ marginRight: 8 }} />
+                    <TagOutlined style={{ marginRight: 8 }} />
                     <span>Status</span>
                   </div>
                 }
@@ -753,159 +781,228 @@ export function TreatmentPlanManagement() {
               menu={{
                 items: [
                   {
+                    key: "selectAll",
+                    label: (
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={areAllColumnsVisible()}
+                          onChange={(e) => toggleAllColumns(e.target.checked)}
+                        >
+                          <strong>Show All Columns</strong>
+                        </Checkbox>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "divider",
+                    type: "divider",
+                  },
+                  {
                     key: "treatmentPlanCode",
                     label: (
-                      <Checkbox
-                        checked={columnVisibility.treatmentPlanCode}
-                        onChange={() =>
-                          handleColumnVisibilityChange("treatmentPlanCode")
-                        }
-                      >
-                        Treatment Plan Code
-                      </Checkbox>
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.treatmentPlanCode}
+                          onChange={() =>
+                            handleColumnVisibilityChange("treatmentPlanCode")
+                          }
+                        >
+                          Treatment Plan Code
+                        </Checkbox>
+                      </div>
                     ),
                   },
                   {
                     key: "healthCheckResult",
                     label: (
-                      <Checkbox
-                        checked={columnVisibility.healthCheckResult}
-                        onChange={() =>
-                          handleColumnVisibilityChange("healthCheckResult")
-                        }
-                      >
-                        Health Check Result
-                      </Checkbox>
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.healthCheckResult}
+                          onChange={() =>
+                            handleColumnVisibilityChange("healthCheckResult")
+                          }
+                        >
+                          Health Check Result
+                        </Checkbox>
+                      </div>
                     ),
                   },
                   {
                     key: "drug",
                     label: (
-                      <Checkbox
-                        checked={columnVisibility.drug}
-                        onChange={() => handleColumnVisibilityChange("drug")}
-                      >
-                        Drug
-                      </Checkbox>
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.drug}
+                          onChange={() => handleColumnVisibilityChange("drug")}
+                        >
+                          Drug
+                        </Checkbox>
+                      </div>
                     ),
                   },
                   {
                     key: "treatmentDescription",
                     label: (
-                      <Checkbox
-                        checked={columnVisibility.treatmentDescription}
-                        onChange={() =>
-                          handleColumnVisibilityChange("treatmentDescription")
-                        }
-                      >
-                        Treatment Description
-                      </Checkbox>
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.treatmentDescription}
+                          onChange={() =>
+                            handleColumnVisibilityChange("treatmentDescription")
+                          }
+                        >
+                          Treatment Description
+                        </Checkbox>
+                      </div>
                     ),
                   },
                   {
                     key: "instructions",
                     label: (
-                      <Checkbox
-                        checked={columnVisibility.instructions}
-                        onChange={() =>
-                          handleColumnVisibilityChange("instructions")
-                        }
-                      >
-                        Instructions
-                      </Checkbox>
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.instructions}
+                          onChange={() =>
+                            handleColumnVisibilityChange("instructions")
+                          }
+                        >
+                          Instructions
+                        </Checkbox>
+                      </div>
                     ),
                   },
                   {
                     key: "startDate",
                     label: (
-                      <Checkbox
-                        checked={columnVisibility.startDate}
-                        onChange={() =>
-                          handleColumnVisibilityChange("startDate")
-                        }
-                      >
-                        Start Date
-                      </Checkbox>
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.startDate}
+                          onChange={() =>
+                            handleColumnVisibilityChange("startDate")
+                          }
+                        >
+                          Start Date
+                        </Checkbox>
+                      </div>
                     ),
                   },
                   {
                     key: "endDate",
                     label: (
-                      <Checkbox
-                        checked={columnVisibility.endDate}
-                        onChange={() => handleColumnVisibilityChange("endDate")}
-                      >
-                        End Date
-                      </Checkbox>
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.endDate}
+                          onChange={() =>
+                            handleColumnVisibilityChange("endDate")
+                          }
+                        >
+                          End Date
+                        </Checkbox>
+                      </div>
                     ),
                   },
                   {
                     key: "status",
                     label: (
-                      <Checkbox
-                        checked={columnVisibility.status}
-                        onChange={() => handleColumnVisibilityChange("status")}
-                      >
-                        Status
-                      </Checkbox>
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.status}
+                          onChange={() =>
+                            handleColumnVisibilityChange("status")
+                          }
+                        >
+                          Status
+                        </Checkbox>
+                      </div>
                     ),
                   },
                   {
                     key: "createdAt",
                     label: (
-                      <Checkbox
-                        checked={columnVisibility.createdAt}
-                        onChange={() =>
-                          handleColumnVisibilityChange("createdAt")
-                        }
-                      >
-                        Created At
-                      </Checkbox>
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.createdAt}
+                          onChange={() =>
+                            handleColumnVisibilityChange("createdAt")
+                          }
+                        >
+                          Created At
+                        </Checkbox>
+                      </div>
                     ),
                   },
                   {
                     key: "createdBy",
                     label: (
-                      <Checkbox
-                        checked={columnVisibility.createdBy}
-                        onChange={() =>
-                          handleColumnVisibilityChange("createdBy")
-                        }
-                      >
-                        Created By
-                      </Checkbox>
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.createdBy}
+                          onChange={() =>
+                            handleColumnVisibilityChange("createdBy")
+                          }
+                        >
+                          Created By
+                        </Checkbox>
+                      </div>
                     ),
                   },
                   {
                     key: "updatedAt",
                     label: (
-                      <Checkbox
-                        checked={columnVisibility.updatedAt}
-                        onChange={() =>
-                          handleColumnVisibilityChange("updatedAt")
-                        }
-                      >
-                        Updated At
-                      </Checkbox>
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.updatedAt}
+                          onChange={() =>
+                            handleColumnVisibilityChange("updatedAt")
+                          }
+                        >
+                          Updated At
+                        </Checkbox>
+                      </div>
                     ),
                   },
                   {
                     key: "updatedBy",
                     label: (
-                      <Checkbox
-                        checked={columnVisibility.updatedBy}
-                        onChange={() =>
-                          handleColumnVisibilityChange("updatedBy")
-                        }
-                      >
-                        Updated By
-                      </Checkbox>
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.updatedBy}
+                          onChange={() =>
+                            handleColumnVisibilityChange("updatedBy")
+                          }
+                        >
+                          Updated By
+                        </Checkbox>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "actions",
+                    label: (
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.actions}
+                          onChange={() =>
+                            handleColumnVisibilityChange("actions")
+                          }
+                        >
+                          Actions
+                        </Checkbox>
+                      </div>
                     ),
                   },
                 ],
+                onClick: (e) => {
+                  // Prevent dropdown from closing
+                  e.domEvent.stopPropagation();
+                },
               }}
+              trigger={["hover", "click"]}
               placement="bottomRight"
               arrow
+              open={dropdownOpen}
+              onOpenChange={handleDropdownVisibleChange}
+              mouseEnterDelay={0.1}
+              mouseLeaveDelay={0.3}
             >
               <Tooltip title="Column Settings">
                 <Button icon={<SettingOutlined />}>Columns</Button>
@@ -930,7 +1027,7 @@ export function TreatmentPlanManagement() {
               onClick={handleOpenExportConfig}
               disabled={loading}
             >
-              Export
+              Export to Excel
             </Button>
           </div>
         </div>
