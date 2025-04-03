@@ -41,6 +41,7 @@ import {
   LinkOutlined,
   UndoOutlined,
   DeleteOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import TreatmentPlanHistoryFilterModal from "./TreatmentPlanHistoryFilterModal";
 import TreatmentPlanHistoryExportModal from "./TreatmentPlanHistoryExportModal";
@@ -370,7 +371,7 @@ export function TreatmentPlanHistoryListNew() {
       actionDateRange: [null, null],
       ascending: false,
     });
-    
+
     setLoading(true);
   };
 
@@ -403,7 +404,7 @@ export function TreatmentPlanHistoryListNew() {
     setCurrentPage(1);
 
     closeFilterModal();
-    
+
     setLoading(true);
   };
 
@@ -422,7 +423,7 @@ export function TreatmentPlanHistoryListNew() {
     setCurrentPage(1);
 
     closeFilterModal();
-    
+
     setLoading(true);
   };
 
@@ -574,16 +575,16 @@ export function TreatmentPlanHistoryListNew() {
       clearTimeout(timer);
     };
   }, [
-    currentPage, 
-    pageSize, 
-    treatmentPlanCode, 
-    healthCheckResultCode, 
-    performedBySearch, 
-    actionDateRange, 
+    currentPage,
+    pageSize,
+    treatmentPlanCode,
+    healthCheckResultCode,
+    performedBySearch,
+    actionDateRange,
     ascending,
     fetchGroupedTreatmentPlanHistories,
     fetchUniqueValues,
-    uniqueTreatmentPlanCodes.length
+    uniqueTreatmentPlanCodes.length,
   ]);
 
   return (
@@ -591,91 +592,95 @@ export function TreatmentPlanHistoryListNew() {
       {contextHolder}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.back()}
+            style={{ marginRight: "8px" }}
+          >
             Back
           </Button>
           <HistoryOutlined style={{ fontSize: "24px" }} />
-          <h3 className="text-2xl font-bold">Treatment Plan History</h3>
+          <h3 className="text-xl font-bold">Treatment Plan History</h3>
         </div>
       </div>
 
-      <Card style={{ marginBottom: 20 }} className="shadow-sm">
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "4px",
-            }}
-          >
+      <Card
+        className="shadow mb-4"
+        bodyStyle={{ padding: "16px" }}
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <AppstoreOutlined style={{ fontSize: "16px" }} />
             <Title level={5} style={{ margin: 0 }}>
-              Search & Filters
+              Toolbar
             </Title>
           </div>
-          <div
-            style={{
-              display: "flex",
-              gap: "12px",
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Select
-                showSearch
-                placeholder="Search Treatment Plan Code"
-                value={treatmentPlanCode || undefined}
-                onChange={(value) => {
-                  setTreatmentPlanCode(value || "");
-                  setCurrentPage(1);
-                  setLoading(true);
-                }}
-                style={{ width: "400px" }}
-                allowClear
-                filterOption={(input, option) =>
-                  (option?.label?.toString().toLowerCase() || "").includes(
-                    input.toLowerCase()
-                  )
-                }
-                options={uniqueTreatmentPlanCodes.map((code) => ({
-                  value: code,
-                  label: code,
-                }))}
-                prefix={<SearchOutlined />}
-              />
+        }
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Select
+              showSearch
+              placeholder="Search Treatment Plan Code"
+              value={treatmentPlanCode || undefined}
+              onChange={(value) => {
+                setTreatmentPlanCode(value || "");
+                setCurrentPage(1);
+                setLoading(true);
+              }}
+              style={{ width: "300px" }}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.label?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={uniqueTreatmentPlanCodes.map((code) => ({
+                value: code,
+                label: code,
+              }))}
+              prefix={<SearchOutlined />}
+            />
 
-              <Tooltip title="Advanced Filters">
-                <Button
-                  icon={
-                    <FilterOutlined
-                      style={{
-                        color:
-                          healthCheckResultCode ||
-                          performedBySearch ||
-                          (actionDateRange &&
-                            (actionDateRange[0] || actionDateRange[1]))
-                            ? "#1890ff"
-                            : undefined,
-                      }}
-                    />
-                  }
-                  onClick={openFilterModal}
-                >
-                  Filters
-                </Button>
-              </Tooltip>
-            </div>
-
-            <div style={{ marginLeft: "auto" }}>
+            <Tooltip title="Advanced Filters">
               <Button
-                type="primary"
-                icon={<FileExcelOutlined />}
-                onClick={handleOpenExportConfig}
+                icon={
+                  <FilterOutlined
+                    style={{
+                      color:
+                        healthCheckResultCode ||
+                        performedBySearch ||
+                        (actionDateRange &&
+                          (actionDateRange[0] || actionDateRange[1]))
+                          ? "#1890ff"
+                          : undefined,
+                    }}
+                  />
+                }
+                onClick={openFilterModal}
               >
-                Export to Excel
+                Filters
               </Button>
-            </div>
+            </Tooltip>
+            
+            <Tooltip title="Reset All Filters">
+              <Button
+                icon={<UndoOutlined />}
+                onClick={handleReset}
+                disabled={!(treatmentPlanCode || healthCheckResultCode || performedBySearch || actionDateRange[0] || actionDateRange[1])}
+              >
+                Reset
+              </Button>
+            </Tooltip>
+          </div>
+
+          <div>
+            <Button
+              type="primary"
+              icon={<FileExcelOutlined />}
+              onClick={handleOpenExportConfig}
+            >
+              Export to Excel
+            </Button>
           </div>
         </div>
       </Card>
@@ -707,13 +712,13 @@ export function TreatmentPlanHistoryListNew() {
       </div>
 
       {loading && resultGroups.length === 0 ? (
-        <Card className="shadow-sm">
+        <Card className="shadow mb-4">
           <Spin tip="Loading..." />
         </Card>
       ) : resultGroups.length > 0 ? (
         <div>
           {resultGroups.map((group) => (
-            <Card key={group.treatmentPlanId} className="shadow-sm mb-4">
+            <Card key={group.treatmentPlanId} className="shadow mb-4">
               <div className="border-b pb-3 mb-4">
                 <div
                   style={{
@@ -844,8 +849,10 @@ export function TreatmentPlanHistoryListNew() {
                                       Performed by:
                                     </div>
                                     <div>
-                                      {history.performedBy?.fullName} (
-                                      {history.performedBy?.email})
+                                      {history.action?.toLowerCase() ===
+                                      "auto-completed"
+                                        ? "System"
+                                        : `${history.performedBy?.fullName} (${history.performedBy?.email})`}
                                     </div>
                                   </div>
 
@@ -947,8 +954,8 @@ export function TreatmentPlanHistoryListNew() {
           </Card>
         </div>
       ) : (
-        <Card className="shadow-sm">
-          <Empty description="No treatment plan histories found with the specified criteria." />
+        <Card className="shadow mb-4">
+          <Empty description="No treatment plan histories found" />
         </Card>
       )}
 

@@ -1,6 +1,20 @@
 import React from "react";
-import { Modal, Button, Space, Typography, Select, DatePicker, Radio } from "antd";
-import { UndoOutlined, CheckCircleOutlined, SortAscendingOutlined, SortDescendingOutlined } from "@ant-design/icons";
+import {
+  Modal,
+  Button,
+  Space,
+  Typography,
+  Select,
+  DatePicker,
+  Radio,
+  Divider,
+} from "antd";
+import {
+  UndoOutlined,
+  CheckCircleOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 
 const { Title } = Typography;
@@ -14,12 +28,14 @@ interface FilterModalProps {
     actionDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
     ascending: boolean;
   };
-  setFilterState: React.Dispatch<React.SetStateAction<{
-    healthCheckResultCode: string;
-    performedBySearch: string;
-    actionDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
-    ascending: boolean;
-  }>>;
+  setFilterState: React.Dispatch<
+    React.SetStateAction<{
+      healthCheckResultCode: string;
+      performedBySearch: string;
+      actionDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+      ascending: boolean;
+    }>
+  >;
   uniqueHealthCheckCodes: string[];
   uniquePerformers: { id: string; fullName: string; email: string }[];
   onClose: () => void;
@@ -71,7 +87,7 @@ const TreatmentPlanHistoryFilterModal: React.FC<FilterModalProps> = ({
               </div>
               <Select
                 showSearch
-                placeholder="Select or search Health Check Code"
+                placeholder="Select Health Check Code"
                 value={filterState.healthCheckResultCode || undefined}
                 onChange={(value) =>
                   setFilterState((prev) => ({
@@ -102,7 +118,7 @@ const TreatmentPlanHistoryFilterModal: React.FC<FilterModalProps> = ({
               </div>
               <Select
                 showSearch
-                placeholder="Select or search staff member"
+                placeholder="Select Performed By"
                 value={filterState.performedBySearch || undefined}
                 onChange={(value) =>
                   setFilterState((prev) => ({
@@ -127,6 +143,8 @@ const TreatmentPlanHistoryFilterModal: React.FC<FilterModalProps> = ({
             </div>
           </div>
         </div>
+
+        <Divider style={{ margin: "8px 0 16px 0" }} />
 
         <div>
           <Title level={5}>Date & Sorting</Title>
@@ -231,4 +249,4 @@ const TreatmentPlanHistoryFilterModal: React.FC<FilterModalProps> = ({
   );
 };
 
-export default TreatmentPlanHistoryFilterModal; 
+export default TreatmentPlanHistoryFilterModal;
