@@ -31,6 +31,9 @@ import {
   exportTreatmentPlanHistoriesToExcelWithConfig,
   TreatmentPlanHistoryExportConfigDTO,
   getTreatmentPlanHistoriesByTreatmentPlanId,
+  getGroupedTreatmentPlanHistories,
+  GroupedTreatmentPlanHistoriesDTO,
+  TreatmentPlanHistoryGroup
 } from "@/api/treatment-plan";
 import { useRouter } from "next/router";
 import {
@@ -382,14 +385,13 @@ export function TreatmentPlanHistoryList() {
 
   useEffect(() => {
     console.log("Pagination changed, fetching...");
-    fetchDistinctTreatmentPlans();
+    fetchGroupedTreatmentPlanHistories();
   }, [currentPage, pageSize]);
 
-  // Initial data fetch when component mounts
   useEffect(() => {
     console.log("Component mounted, initializing...");
     fetchUniqueValues();
-    fetchDistinctTreatmentPlans();
+    fetchGroupedTreatmentPlanHistories();
   }, []);
 
   // Fetch distinct codes and performers for dropdown options
@@ -464,7 +466,7 @@ export function TreatmentPlanHistoryList() {
       ascending,
     });
     setCurrentPage(1);
-    fetchDistinctTreatmentPlans();
+    fetchGroupedTreatmentPlanHistories();
   };
 
   const handleReset = () => {
@@ -487,7 +489,7 @@ export function TreatmentPlanHistoryList() {
 
     // Fetch data with reset filters - use setTimeout to ensure state updates first
     setTimeout(() => {
-      fetchDistinctTreatmentPlans();
+      fetchGroupedTreatmentPlanHistories();
     }, 0);
   };
 
@@ -536,74 +538,11 @@ export function TreatmentPlanHistoryList() {
     setAscending(filterState.ascending);
     setCurrentPage(1);
 
+    // Đóng modal
     closeFilterModal();
 
-    // Gọi API tìm kiếm với các bộ lọc mới
-    // Cần đảm bảo sử dụng giá trị mới nhất từ filterState
-    const actionStartDate =
-      filterState.actionDateRange && filterState.actionDateRange[0]
-        ? filterState.actionDateRange[0].format("YYYY-MM-DD")
-        : undefined;
-
-    const actionEndDate =
-      filterState.actionDateRange && filterState.actionDateRange[1]
-        ? filterState.actionDateRange[1].format("YYYY-MM-DD")
-        : undefined;
-
-    // Gọi API với giá trị từ filterState thay vì đợi state cập nhật
-    getDistinctTreatmentPlanCodes(
-      1, // Reset page to 1 when applying filters
-      pageSize,
-      {
-        treatmentPlanCode,
-        healthCheckResultCode: filterState.healthCheckResultCode,
-        actionStartDate,
-        actionEndDate,
-        performedBySearch: filterState.performedBySearch,
-        sortBy,
-        ascending: filterState.ascending,
-      }
-    )
-      .then((distinctCodesResult) => {
-        if (distinctCodesResult.success) {
-          // Create result groups from distinct codes
-          const groups: TreatmentPlanGroup[] = distinctCodesResult.codes.map(
-            (item) => ({
-              code: item.code,
-              treatmentPlanId: item.id,
-              histories: [],
-              loading: true,
-            })
-          );
-
-          setResultGroups(groups);
-          setTotal(distinctCodesResult.total);
-
-          // If no groups found, just stop loading
-          if (groups.length === 0) {
-            setLoading(false);
-            return;
-          }
-
-          // Fetch detailed histories for each group
-          for (const group of groups) {
-            fetchHistoriesForTreatmentPlan(group.treatmentPlanId);
-          }
-        } else {
-          message.error({
-            content: "Could not load treatment plan codes",
-            duration: 5,
-          });
-          setLoading(false);
-        }
-      })
-      .catch((error) => {
-        message.error({
-          content: "Could not load treatment plan codes",
-          duration: 5,
-        });
-        setLoading(false);
-      });
+    // Fetch data với bộ lọc mới
+    fetchGroupedTreatmentPlanHistories();
   };
 
   const resetFilters = () => {
@@ -626,59 +565,8 @@ export function TreatmentPlanHistoryList() {
 
     closeFilterModal();
 
-    // Gọi API với các bộ lọc đã reset nhưng giữ lại treatmentPlanCode
-    // Cần đảm bảo sử dụng giá trị mới
-    getDistinctTreatmentPlanCodes(
-      1, // Reset page to 1
-      pageSize,
-      {
-        treatmentPlanCode, // Giữ lại giá trị này
-        healthCheckResultCode: "",
-        actionStartDate: undefined,
-        actionEndDate: undefined,
-        performedBySearch: "",
-        sortBy,
-        ascending: false,
-      }
-    )
-      .then((distinctCodesResult) => {
-        // Xử lý kết quả như trong applyFilters
-        if (distinctCodesResult.success) {
-          const groups: TreatmentPlanGroup[] = distinctCodesResult.codes.map(
-            (item) => ({
-              code: item.code,
-              treatmentPlanId: item.id,
-              histories: [],
-              loading: true,
-            })
-          );
-
-          setResultGroups(groups);
-          setTotal(distinctCodesResult.total);
-
-          if (groups.length === 0) {
-            setLoading(false);
-            return;
-          }
-
-          for (const group of groups) {
-            fetchHistoriesForTreatmentPlan(group.treatmentPlanId);
-          }
-        } else {
-          message.error({
-            content: "Could not load treatment plan codes",
-            duration: 5,
-          });
-          setLoading(false);
-        }
-      })
-      .catch((error) => {
-        message.error({
-          content: "Could not load treatment plan codes",
-          duration: 5,
-        });
-        setLoading(false);
-      });
+    // Fetch data với bộ lọc đã reset
+    fetchGroupedTreatmentPlanHistories();
   };
 
   const handleExportWithConfig = async () => {
@@ -688,9 +576,9 @@ export function TreatmentPlanHistoryList() {
       const values = await form.validateFields();
       console.log("Form values:", values);
 
-      // Check if user is trying to export without filters but not selecting export all
+      // Kiểm tra xem người dùng có đang cố xuất mà không có bộ lọc nào nhưng không chọn xuất tất cả không
       if (!values.exportAllPages) {
-        // Get actual filter values - check both modal filters and current applied filters
+        // Lấy giá trị bộ lọc thực tế - kiểm tra cả bộ lọc trong modal và bộ lọc đang áp dụng
         const hasAnyFilter =
           values.filterTreatmentPlanCode ||
           values.filterHealthCheckResultCode ||
@@ -711,7 +599,7 @@ export function TreatmentPlanHistoryList() {
             duration: 5,
           });
           setExportLoading(false);
-          return; // Return here without closing the modal
+          return; // Trả về đây mà không đóng modal
         }
       }
 
@@ -728,7 +616,7 @@ export function TreatmentPlanHistoryList() {
         includeChangeDetails: values.includeChangeDetails,
       };
 
-      // Extract filter values from form
+      // Trích xuất giá trị bộ lọc từ form
       const exportTreatmentPlanCode = values.exportAllPages
         ? undefined
         : values.filterTreatmentPlanCode || treatmentPlanCode;
@@ -738,7 +626,7 @@ export function TreatmentPlanHistoryList() {
       const exportPerformedBy = values.exportAllPages
         ? undefined
         : values.filterPerformedBy || performedBySearch;
-      // Always use the sort direction selected in modal, regardless of exportAllPages
+      // Luôn sử dụng hướng sắp xếp được chọn trong modal, bất kể exportAllPages
       const exportAscending = values.filterSortDirection === "asc";
       const exportDateRange = values.exportAllPages
         ? null
@@ -754,28 +642,9 @@ export function TreatmentPlanHistoryList() {
           ? exportDateRange[1].format("YYYY-MM-DD")
           : undefined;
 
-      // Important: Always send the exact current page and pageSize when not exporting all
-      // This ensures we only get the data currently visible to the user
-      const exportConfig = {
-        exportAllPages: values.exportAllPages,
-        currentPage: currentPage,
-        pageSize: pageSize,
-        sortDirection: values.filterSortDirection,
-        ascending: exportAscending,
-        filters: {
-          treatmentPlanCode: exportTreatmentPlanCode,
-          healthCheckResultCode: exportHealthCheckCode,
-          performedBy: exportPerformedBy,
-          startDate: startActionDate,
-          endDate: endActionDate,
-        },
-      };
-
-      console.log("Calling export API with config:", exportConfig);
+      // Gọi export API với config đã chuẩn bị
       const response = await exportTreatmentPlanHistoriesToExcelWithConfig(
         exportConfigData,
-        // When NOT export all, always use the exact current page and pageSize
-        // to ensure we export only what's visible on screen
         values.exportAllPages ? 1 : currentPage,
         values.exportAllPages ? 1000 : pageSize,
         undefined,
@@ -791,8 +660,6 @@ export function TreatmentPlanHistoryList() {
       );
 
       console.log("Export API response:", response);
-      console.log("Response type:", typeof response);
-      console.log("Response structure:", JSON.stringify(response));
 
       // Kiểm tra response chi tiết
       if (
@@ -808,7 +675,7 @@ export function TreatmentPlanHistoryList() {
           duration: 10,
         });
 
-        // Set the export config and close the modal only if successful
+        // Cập nhật exportConfig và đóng modal chỉ khi thành công
         setExportConfig(exportConfigData);
         closeExportConfigModal();
         setExportLoading(false);
@@ -828,7 +695,7 @@ export function TreatmentPlanHistoryList() {
         content: "Failed to export Excel file",
         duration: 5,
       });
-      setExportLoading(false); // Only set loading to false but don't close modal on error
+      setExportLoading(false); // Chỉ đặt loading thành false nhưng không đóng modal khi có lỗi
     }
   };
 
@@ -1405,6 +1272,103 @@ export function TreatmentPlanHistoryList() {
     </Modal>
   );
 
+  // Thêm hàm fetchGroupedTreatmentPlanHistories
+  const fetchGroupedTreatmentPlanHistories = useCallback(async () => {
+    console.log("Fetching with params:", {
+      treatmentPlanCode,
+      healthCheckResultCode,
+      actionDateRange: actionDateRange
+        ? [
+            actionDateRange[0]?.format("YYYY-MM-DD"),
+            actionDateRange[1]?.format("YYYY-MM-DD"),
+          ]
+        : [null, null],
+      performedBySearch,
+      ascending,
+    });
+
+    setLoading(true);
+    try {
+      const actionStartDate =
+        actionDateRange && actionDateRange[0]
+          ? actionDateRange[0].format("YYYY-MM-DD")
+          : undefined;
+
+      const actionEndDate =
+        actionDateRange && actionDateRange[1]
+          ? actionDateRange[1].format("YYYY-MM-DD")
+          : undefined;
+
+      // Sử dụng API được nhóm để lấy cả lịch sử điều trị trong một lần gọi
+      const response = await getGroupedTreatmentPlanHistories(
+        currentPage,
+        pageSize,
+        undefined, // action
+        actionStartDate,
+        actionEndDate,
+        performedBySearch,
+        undefined, // previousStatus
+        undefined, // newStatus
+        sortBy,
+        ascending,
+        treatmentPlanCode,
+        healthCheckResultCode
+      );
+
+      if (response.success) {
+        const groupedData = response.data as GroupedTreatmentPlanHistoriesDTO;
+        
+        // Chuyển đổi dữ liệu để phù hợp với cấu trúc đã mong đợi của component
+        let groups: TreatmentPlanGroup[] = groupedData.items.map((group) => ({
+          code: group.treatmentPlan.treatmentPlanCode,
+          treatmentPlanId: group.treatmentPlan.id,
+          histories: group.histories,
+          loading: false
+        }));
+        
+        // Sắp xếp lại groups theo ngày action mới nhất trong mỗi nhóm
+        groups = groups.sort((a, b) => {
+          // Tìm action date mới nhất trong mỗi nhóm
+          const aLatestDate = a.histories.length > 0 
+            ? Math.max(...a.histories.map(h => new Date(h.actionDate).getTime()))
+            : 0;
+          const bLatestDate = b.histories.length > 0 
+            ? Math.max(...b.histories.map(h => new Date(h.actionDate).getTime()))
+            : 0;
+            
+          // Sắp xếp theo tham số ascending
+          return ascending ? aLatestDate - bLatestDate : bLatestDate - aLatestDate;
+        });
+        
+        setResultGroups(groups);
+        setTotal(groupedData.totalTreatmentPlans);
+        setLoading(false);
+      } else {
+        message.error({
+          content: response.message || "Could not load treatment plan histories",
+          duration: 5,
+        });
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Error fetching grouped histories:", error);
+      message.error({
+        content: "Failed to load treatment plan histories",
+        duration: 5,
+      });
+      setLoading(false);
+    }
+  }, [
+    currentPage,
+    pageSize,
+    ascending,
+    treatmentPlanCode,
+    healthCheckResultCode,
+    performedBySearch,
+    actionDateRange,
+    sortBy
+  ]);
+
   return (
     <div className="history-container" style={{ padding: "20px" }}>
       {contextHolder}
@@ -1456,66 +1420,14 @@ export function TreatmentPlanHistoryList() {
                   );
                   setTreatmentPlanCode(value || "");
 
-                  // Gọi API trực tiếp tại đây, không sử dụng các state để đảm bảo giá trị mới nhất
-                  const actionStartDate =
-                    actionDateRange && actionDateRange[0]
-                      ? actionDateRange[0].format("YYYY-MM-DD")
-                      : undefined;
-
-                  const actionEndDate =
-                    actionDateRange && actionDateRange[1]
-                      ? actionDateRange[1].format("YYYY-MM-DD")
-                      : undefined;
-
                   // Reset về trang 1 khi tìm kiếm
                   setCurrentPage(1);
                   setLoading(true);
 
-                  getDistinctTreatmentPlanCodes(1, pageSize, {
-                    treatmentPlanCode: value || "",
-                    healthCheckResultCode,
-                    actionStartDate,
-                    actionEndDate,
-                    performedBySearch,
-                    sortBy,
-                    ascending,
-                  })
-                    .then((distinctCodesResult) => {
-                      if (distinctCodesResult.success) {
-                        const groups: TreatmentPlanGroup[] =
-                          distinctCodesResult.codes.map((item) => ({
-                            code: item.code,
-                            treatmentPlanId: item.id,
-                            histories: [],
-                            loading: true,
-                          }));
-
-                        setResultGroups(groups);
-                        setTotal(distinctCodesResult.total);
-
-                        if (groups.length === 0) {
-                          setLoading(false);
-                          return;
-                        }
-
-                        for (const group of groups) {
-                          fetchHistoriesForTreatmentPlan(group.treatmentPlanId);
-                        }
-                      } else {
-                        message.error({
-                          content: "Could not load treatment plan codes",
-                          duration: 5,
-                        });
-                        setLoading(false);
-                      }
-                    })
-                    .catch((error) => {
-                      message.error({
-                        content: "Could not load treatment plan codes",
-                        duration: 5,
-                      });
-                      setLoading(false);
-                    });
+                  // Sử dụng hàm mới để lấy dữ liệu
+                  setTimeout(() => {
+                    fetchGroupedTreatmentPlanHistories();
+                  }, 0);
                 }}
                 style={{ width: "400px" }}
                 allowClear

@@ -108,6 +108,16 @@ export interface TreatmentPlanInfo {
   healthCheckResult?: HealthCheckResultInfo;
 }
 
+export interface GroupedTreatmentPlanHistoriesDTO {
+  totalTreatmentPlans: number;
+  items: TreatmentPlanHistoryGroup[];
+}
+
+export interface TreatmentPlanHistoryGroup {
+  treatmentPlan: TreatmentPlanInfo;
+  histories: TreatmentPlanHistoryResponseDTO[];
+}
+
 export interface TreatmentPlanExportConfigDTO {
   exportAllPages: boolean;
   includePatient: boolean;
@@ -349,6 +359,48 @@ export const getAllTreatmentPlanHistories = async (
     return data;
   } catch (error) {
     console.error("Error fetching treatment plan histories:", error);
+    throw error;
+  }
+};
+
+export const getGroupedTreatmentPlanHistories = async (
+  page: number = 1,
+  pageSize: number = 10,
+  action?: string,
+  startActionDate?: string,
+  endActionDate?: string,
+  performedBySearch?: string,
+  previousStatus?: string,
+  newStatus?: string,
+  sortBy: string = "ActionDate",
+  ascending: boolean = false,
+  treatmentPlanCode?: string,
+  healthCheckResultCode?: string
+) => {
+  try {
+    const response = await api.get("/treatment-plan-management/treatment-plan-histories/grouped", {
+      params: {
+        page,
+        pageSize,
+        action,
+        startActionDate,
+        endActionDate,
+        performedBySearch,
+        previousStatus,
+        newStatus,
+        sortBy,
+        ascending,
+        treatmentPlanCode,
+        healthCheckResultCode,
+      },
+    });
+    const data = response.data;
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching grouped treatment plan histories:", error);
     throw error;
   }
 };
