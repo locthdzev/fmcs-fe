@@ -109,15 +109,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
 
   const renderActionButtons = (record: TreatmentPlanResponseDTO) => {
     return (
-      <Space>
-        <Tooltip title="View Details">
-          <Button
-            type="text"
-            icon={<HistoryOutlined />}
-            onClick={() => router.push(`/treatment-plan/${record.id}`)}
-          />
-        </Tooltip>
-
+      <Space style={{ display: "flex", justifyContent: "center" }}>
         {canEditTreatmentPlan(record.status) && (
           <Tooltip title="Edit">
             <Button
@@ -195,103 +187,129 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   // Define table columns
   const columns = [
     {
-      title: "TREATMENT PLAN CODE",
+      title: "Treatment Plan Code",
       dataIndex: "treatmentPlanCode",
       key: "treatmentPlanCode",
       render: (text: string, record: TreatmentPlanResponseDTO) => (
-        <a onClick={() => router.push(`/treatment-plan/${record.id}`)}>
+        <Button
+          type="link"
+          onClick={() => router.push(`/treatment-plan/${record.id}`)}
+          style={{ padding: 0 }}
+        >
           {text}
-        </a>
+        </Button>
       ),
     },
     {
-      title: "HEALTH CHECK RESULT",
+      title: "Health Check Result",
       dataIndex: "healthCheckResult",
       key: "healthCheckResult",
       render: (healthCheckResult: any) => (
         <Tooltip title={renderPatientInfo(healthCheckResult)}>
-          <a
+          <Button
+            type="link"
             onClick={() =>
               healthCheckResult?.id &&
               router.push(`/health-check-result/${healthCheckResult.id}`)
             }
+            style={{ padding: 0 }}
           >
             {healthCheckResult?.healthCheckResultCode}
-          </a>
+          </Button>
         </Tooltip>
       ),
     },
     {
-      title: "DRUG",
+      title: "Drug",
       dataIndex: "drug",
       key: "drug",
       render: (drug: any) => renderDrugInfo(drug),
     },
     {
-      title: "TREATMENT DESCRIPTION",
+      title: "Treatment Description",
       dataIndex: "treatmentDescription",
       key: "treatmentDescription",
       ellipsis: true,
     },
     {
-      title: "INSTRUCTIONS",
+      title: "Instructions",
       dataIndex: "instructions",
       key: "instructions",
       ellipsis: true,
     },
     {
-      title: "START DATE",
+      title: "Start Date",
       dataIndex: "startDate",
       key: "startDate",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
-      title: "END DATE",
+      title: "End Date",
       dataIndex: "endDate",
       key: "endDate",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
-      title: "STATUS",
+      title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status: string) => renderStatusTag(status),
+      align: "center" as const,
+      render: (status: string) => (
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          {renderStatusTag(status)}
+        </div>
+      ),
     },
     {
-      title: "CREATED AT",
+      title: "Created At",
       dataIndex: "createdAt",
       key: "createdAt",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY HH:mm:ss"),
     },
     {
-      title: "UPDATED AT",
+      title: "Updated At",
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY HH:mm:ss"),
     },
     {
-      title: "CREATED BY",
+      title: "Created By",
       dataIndex: "createdBy",
       key: "createdBy",
       render: (createdBy: any) => (
-        <Tooltip title={renderUserInfo(createdBy)}>
+        <div>
           {createdBy?.fullName || ""}
-        </Tooltip>
+          {createdBy?.email && (
+            <div>
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                {createdBy.email}
+              </Text>
+            </div>
+          )}
+        </div>
       ),
     },
     {
-      title: "UPDATED BY",
+      title: "Updated By",
       dataIndex: "updatedBy",
       key: "updatedBy",
       render: (updatedBy: any) => (
-        <Tooltip title={renderUserInfo(updatedBy)}>
+        <div>
           {updatedBy?.fullName || ""}
-        </Tooltip>
+          {updatedBy?.email && (
+            <div>
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                {updatedBy.email}
+              </Text>
+            </div>
+          )}
+        </div>
       ),
     },
     {
-      title: "ACTIONS",
+      title: "Actions",
       key: "actions",
+      align: "center" as const,
       render: (record: TreatmentPlanResponseDTO) => renderActionButtons(record),
     },
   ];
