@@ -12,7 +12,7 @@ import {
   exportTreatmentPlansToExcelWithConfig,
   TreatmentPlanExportConfigDTO,
 } from "@/api/treatment-plan";
-import moment from "moment";
+import dayjs from "dayjs";
 
 const { Title } = Typography;
 
@@ -32,9 +32,9 @@ interface ExportConfigModalProps {
     sortBy: string;
     ascending: boolean;
     statusFilter?: string;
-    dateRange: [moment.Moment, moment.Moment] | null;
-    createdDateRange: [moment.Moment, moment.Moment] | null;
-    updatedDateRange: [moment.Moment, moment.Moment] | null;
+    dateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+    createdDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+    updatedDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
   };
 }
 
