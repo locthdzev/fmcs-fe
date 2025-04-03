@@ -334,20 +334,23 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
 
   return (
     <Card className="shadow-sm">
-      <Table
-        rowSelection={{
-          type: "checkbox",
-          selectedRowKeys,
-          onChange: (selectedRowKeys) => {
-            setSelectedRowKeys(selectedRowKeys as string[]);
-          },
-        }}
-        columns={visibleColumns}
-        dataSource={treatmentPlans}
-        rowKey="id"
-        loading={false}
-        pagination={false}
-      />
+      <div style={{ overflowX: "auto" }}>
+        <Table
+          rowSelection={{
+            type: "checkbox",
+            selectedRowKeys,
+            onChange: (selectedRowKeys) => {
+              setSelectedRowKeys(selectedRowKeys as string[]);
+            },
+          }}
+          columns={visibleColumns}
+          dataSource={treatmentPlans}
+          rowKey="id"
+          loading={false}
+          pagination={false}
+          scroll={{ x: 'max-content' }}
+        />
+      </div>
       <div
         style={{ display: "flex", justifyContent: "center", marginTop: "16px" }}
       >
