@@ -1,6 +1,5 @@
 import api from "./customize-axios";
 import { exportToExcel } from "./export";
-import { toast } from "react-toastify";
 
 // Common interfaces
 export interface UserInfo {
@@ -372,17 +371,11 @@ export const exportTreatmentPlanToPDF = async (id: string) => {
   try {
     const response = await api.get(`/treatment-plan-management/treatment-plans/${id}/export-pdf`);
 
-    if (response.data && response.data.isSuccess && response.data.data) {
-      window.open(response.data.data, "_blank");
-      toast.success("Treatment plan exported to PDF successfully");
-    } else {
-      toast.error(response.data.message || "Cannot export PDF file");
-    }
-
+    // Không hiển thị toast ở đây nữa, để component xử lý
     return response.data;
   } catch (error) {
     console.error("Error exporting treatment plan to PDF:", error);
-    toast.error("Failed to export treatment plan to PDF");
+    // Không hiển thị toast ở đây nữa, để component xử lý
     throw error;
   }
 };
@@ -435,18 +428,21 @@ export const exportTreatmentPlansToExcelWithConfig = async (
       }
     );
 
-    if (response.data && response.data.isSuccess && response.data.data) {
-      window.open(response.data.data, "_blank");
-      toast.success("Treatment plans exported to Excel successfully");
-    } else {
-      toast.error(response.data.message || "Cannot export Excel file");
+    // Chuẩn hóa response để trả về cho component xử lý
+    const data = response.data;
+    if (data && data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
     }
 
-    return response.data;
+    // Không mở file hay hiển thị thông báo trong API
+    return data;
   } catch (error: any) {
     console.error("Export error:", error);
-    toast.error(error.response?.data?.message || "Cannot export Excel file");
-    throw error;
+    return { 
+      success: false, 
+      isSuccess: false,
+      message: error.response?.data?.message || "Cannot export Excel file" 
+    };
   }
 };
 
