@@ -40,6 +40,9 @@ import {
   ArrowLeftOutlined,
   CloseCircleOutlined,
   MedicineBoxOutlined,
+  PlusOutlined,
+  HistoryOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -74,22 +77,37 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
   const [exportLoading, setExportLoading] = useState(false);
 
   useEffect(() => {
-    fetchTreatmentPlan();
-    fetchHistories();
+    // Chỉ fetch dữ liệu khi id hợp lệ
+    if (id) {
+      fetchTreatmentPlan();
+      fetchHistories();
+    }
   }, [id]);
 
   const fetchTreatmentPlan = async () => {
     try {
       setLoading(true);
+      // Kiểm tra id trước khi gọi API
+      if (!id) {
+        console.warn("Treatment plan ID is missing, cannot fetch data");
+        return;
+      }
+      
       const response = await getTreatmentPlanById(id);
       if (response.success) {
         setTreatmentPlan(response.data);
       } else {
-        messageApi.error("Failed to fetch treatment plan", 5);
+        messageApi.error({
+          content: response.message || "Failed to fetch treatment plan",
+          duration: 5
+        });
       }
     } catch (error) {
       console.error("Error fetching treatment plan:", error);
-      messageApi.error("Failed to fetch treatment plan", 5);
+      messageApi.error({
+        content: "Failed to fetch treatment plan",
+        duration: 5
+      });
     } finally {
       setLoading(false);
     }
@@ -98,15 +116,27 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
   const fetchHistories = async () => {
     try {
       setLoading(true);
+      // Kiểm tra id trước khi gọi API
+      if (!id) {
+        console.warn("Treatment plan ID is missing, cannot fetch histories");
+        return;
+      }
+      
       const response = await getTreatmentPlanHistoriesByTreatmentPlanId(id);
       if (response.success) {
         setHistories(response.data);
       } else {
-        messageApi.error(response.message || "Failed to fetch histories", 5);
+        messageApi.error({
+          content: response.message || "Failed to fetch histories",
+          duration: 5
+        });
       }
     } catch (error) {
       console.error("Error fetching histories:", error);
-      messageApi.error("Failed to fetch histories", 5);
+      messageApi.error({
+        content: "Failed to fetch histories",
+        duration: 5
+      });
     } finally {
       setLoading(false);
     }
@@ -295,21 +325,46 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
   };
 
   const getActionColor = (action: string): string => {
-    switch (action) {
-      case "Create":
+    if (!action) return "blue";
+
+    switch (action.toLowerCase()) {
+      case "created":
         return "green";
-      case "Update":
+      case "updated":
         return "blue";
-      case "Cancel":
-        return "red";
-      case "StatusChange":
+      case "cancelled":
         return "orange";
-      case "SoftDelete":
+      case "statuschange":
+        return "orange";
+      case "softdeleted":
         return "gray";
-      case "Restore":
-        return "green";
+      case "restored":
+        return "lime";
+      case "auto-completed":
+        return "cyan";
       default:
         return "blue";
+    }
+  };
+
+  const getActionIcon = (action: string) => {
+    if (!action) return null;
+
+    switch (action.toLowerCase()) {
+      case "created":
+        return <PlusOutlined />;
+      case "updated":
+        return <EditOutlined />;
+      case "cancelled":
+        return <CloseCircleOutlined />;
+      case "softdeleted":
+        return <DeleteOutlined />;
+      case "restored":
+        return <UndoOutlined />;
+      case "auto-completed":
+        return <CheckCircleOutlined />;
+      default:
+        return <HistoryOutlined />;
     }
   };
 
@@ -420,7 +475,7 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
           loading={exportLoading}
           onClick={handleExportPDF}
         >
-          Export PDF
+          Export to PDF
         </Button>
       </Space>
     );
@@ -474,9 +529,17 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
             </div>
             <div>
               <Text strong>Health Check Code:</Text>
-              <Text className="ml-2">
-                {treatmentPlan.healthCheckResult?.healthCheckResultCode}
-              </Text>
+              {treatmentPlan.healthCheckResult ? (
+                <Button
+                  type="link"
+                  onClick={() => treatmentPlan.healthCheckResult?.id && router.push(`/health-check-result/${treatmentPlan.healthCheckResult.id}`)}
+                  style={{ paddingLeft: '8px', margin: 0, height: 'auto' }}
+                >
+                  {treatmentPlan.healthCheckResult.healthCheckResultCode}
+                </Button>
+              ) : (
+                <Text className="ml-2">N/A</Text>
+              )}
             </div>
             <div>
               <Text strong>Patient:</Text>
@@ -534,49 +597,114 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
       <Card
         title={<span style={{ fontWeight: "bold" }}>History Timeline</span>}
       >
-        <Timeline>
-          {histories.map((history) => (
-            <Timeline.Item
-              key={history.id}
-              color={getActionColor(history.action)}
-            >
-              <div className="space-y-1">
-                <div className="flex justify-between">
-                  <Text strong>{history.action}</Text>
-                  <Text type="secondary">
-                    {formatDateTime(history.actionDate)}
-                  </Text>
-                </div>
-                <div>
-                  <Text type="secondary">
-                    Performed by: {history.performedBy?.fullName}
-                  </Text>
-                </div>
-                {history.previousStatus && history.newStatus && (
-                  <div>
-                    <Text type="secondary">
-                      Status changed from{" "}
-                      <Tag color={getStatusColor(history.previousStatus)}>
-                        {history.previousStatus}
-                      </Tag>{" "}
-                      to{" "}
-                      <Tag color={getStatusColor(history.newStatus)}>
-                        {history.newStatus}
-                      </Tag>
-                    </Text>
+        <Timeline
+          mode="left"
+          items={histories.map((history) => ({
+            color: getActionColor(history.action),
+            dot: getActionIcon(history.action),
+            children: (
+              <Card
+                size="small"
+                className="mb-2 hover:shadow-md transition-shadow"
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div style={{ fontWeight: 500 }}>{history.action}</div>
+                    <div
+                      style={{
+                        fontSize: "14px",
+                        color: "#8c8c8c",
+                      }}
+                    >
+                      {formatDateTime(history.actionDate)}
+                    </div>
                   </div>
-                )}
-                {history.changeDetails && (
-                  <div>
-                    <Text type="secondary">
-                      Details: {history.changeDetails}
-                    </Text>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr",
+                      gap: "4px",
+                    }}
+                  >
+                    <div style={{ display: "flex" }}>
+                      <div
+                        style={{
+                          width: "180px",
+                          color: "#8c8c8c",
+                        }}
+                      >
+                        Performed by:
+                      </div>
+                      <div>
+                        {history.action?.toLowerCase() === "auto-completed"
+                          ? "System"
+                          : `${history.performedBy?.fullName} (${
+                              history.performedBy?.email || ""
+                            })`}
+                      </div>
+                    </div>
+
+                    {history.previousStatus && history.newStatus && (
+                      <div style={{ display: "flex" }}>
+                        <div
+                          style={{
+                            width: "180px",
+                            color: "#8c8c8c",
+                          }}
+                        >
+                          Status:
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <Tag color={getStatusColor(history.previousStatus)}>
+                            {history.previousStatus}
+                          </Tag>
+                          <Text type="secondary"> → </Text>
+                          <Tag color={getStatusColor(history.newStatus)}>
+                            {history.newStatus}
+                          </Tag>
+                        </div>
+                      </div>
+                    )}
+
+                    {history.changeDetails && (
+                      <div style={{ display: "flex" }}>
+                        <div
+                          style={{
+                            width: "180px",
+                            color: "#8c8c8c",
+                          }}
+                        >
+                          Details:
+                        </div>
+                        <div
+                          style={{
+                            flex: 1,
+                            whiteSpace: "pre-wrap",
+                          }}
+                        >
+                          {history.changeDetails}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </Timeline.Item>
-          ))}
-        </Timeline>
+                </div>
+              </Card>
+            ),
+          }))}
+        />
       </Card>
 
       <Modal
