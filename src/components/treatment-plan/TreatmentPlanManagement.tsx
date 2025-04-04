@@ -46,6 +46,7 @@ import {
   TreatmentPlanResponseDTO,
   TreatmentPlanExportConfigDTO,
   UserInfo,
+  getTreatmentPlanIdsByStatus,
 } from "@/api/treatment-plan";
 import dayjs from "dayjs";
 
@@ -643,6 +644,16 @@ export function TreatmentPlanManagement() {
     e.stopPropagation();
   };
 
+  // Function to get all treatment plan IDs by status - for select all functionality
+  const getAllTreatmentPlanIdsByStatus = async (statuses: string[]) => {
+    try {
+      return await getTreatmentPlanIdsByStatus(statuses);
+    } catch (error) {
+      console.error("Error getting all treatment plan IDs by status:", error);
+      return [];
+    }
+  };
+
   return (
     <div className="history-container" style={{ padding: "20px" }}>
       {/* Header */}
@@ -1038,32 +1049,6 @@ export function TreatmentPlanManagement() {
             </Button>
           </div>
         </div>
-
-        {/* Bulk Actions - Only show when items are selected */}
-        {selectedTreatmentPlans.length > 0 && (
-          <div className="mt-2">
-            <Space>
-              <Button
-                danger
-                icon={<DeleteOutlined />}
-                onClick={handleBulkDelete}
-                disabled={loading}
-              >
-                Bulk Delete
-              </Button>
-              <Button
-                icon={<UndoOutlined />}
-                onClick={handleBulkRestore}
-                disabled={loading}
-              >
-                Bulk Restore
-              </Button>
-              <span className="ml-2 text-gray-500">
-                {selectedTreatmentPlans.length} items selected
-              </span>
-            </Space>
-          </div>
-        )}
       </Card>
 
       {/* Data Table */}
@@ -1080,6 +1065,9 @@ export function TreatmentPlanManagement() {
         handleRestore={handleRestore}
         handleCancel={handleCancel}
         columnVisibility={columnVisibility}
+        handleBulkDelete={handleBulkDelete}
+        handleBulkRestore={handleBulkRestore}
+        getAllTreatmentPlanIdsByStatus={getAllTreatmentPlanIdsByStatus}
       />
 
       {/* Modals */}

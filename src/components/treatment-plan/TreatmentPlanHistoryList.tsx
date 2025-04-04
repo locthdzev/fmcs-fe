@@ -608,7 +608,14 @@ export function TreatmentPlanHistoryListNew() {
         className="shadow mb-4"
         bodyStyle={{ padding: "16px" }}
         title={
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "16px",
+            }}
+          >
             <AppstoreOutlined style={{ fontSize: "16px" }} />
             <Title level={5} style={{ margin: 0 }}>
               Toolbar
@@ -661,12 +668,20 @@ export function TreatmentPlanHistoryListNew() {
                 Filters
               </Button>
             </Tooltip>
-            
+
             <Tooltip title="Reset All Filters">
               <Button
                 icon={<UndoOutlined />}
                 onClick={handleReset}
-                disabled={!(treatmentPlanCode || healthCheckResultCode || performedBySearch || actionDateRange[0] || actionDateRange[1])}
+                disabled={
+                  !(
+                    treatmentPlanCode ||
+                    healthCheckResultCode ||
+                    performedBySearch ||
+                    actionDateRange[0] ||
+                    actionDateRange[1]
+                  )
+                }
               >
                 Reset
               </Button>
