@@ -448,6 +448,31 @@ export function TreatmentPlanManagement() {
     }
   };
 
+  // Handle cancel
+  const handleCancel = async (id: string, reason: string) => {
+    try {
+      // Validate reason
+      if (!reason || reason.trim() === "") {
+        toast.error("Cancellation reason is required");
+        return Promise.reject("Cancellation reason is required");
+      }
+
+      const response = await cancelTreatmentPlan(id, reason);
+      if (response.success || response.isSuccess) {
+        toast.success("Treatment plan cancelled successfully");
+        fetchTreatmentPlans();
+        return Promise.resolve(response);
+      } else {
+        toast.error(response.message || "Failed to cancel treatment plan");
+        return Promise.reject(response.message || "Failed to cancel treatment plan");
+      }
+    } catch (error) {
+      console.error("Error cancelling treatment plan:", error);
+      toast.error("Failed to cancel treatment plan");
+      return Promise.reject("Failed to cancel treatment plan");
+    }
+  };
+
   // Handle restore
   const handleRestore = async (id: string) => {
     try {
@@ -461,22 +486,6 @@ export function TreatmentPlanManagement() {
     } catch (error) {
       console.error("Error restoring treatment plan:", error);
       toast.error("Failed to restore treatment plan");
-    }
-  };
-
-  // Handle cancel
-  const handleCancel = async (id: string, reason: string) => {
-    try {
-      const response = await cancelTreatmentPlan(id, reason);
-      if (response.success) {
-        toast.success("Treatment plan cancelled successfully");
-        fetchTreatmentPlans();
-      } else {
-        toast.error(response.message || "Failed to cancel treatment plan");
-      }
-    } catch (error) {
-      console.error("Error cancelling treatment plan:", error);
-      toast.error("Failed to cancel treatment plan");
     }
   };
 

@@ -19,8 +19,9 @@ import {
   Dropdown,
   Menu,
   Checkbox,
+  message,
 } from "antd";
-import type { ColumnsType, ColumnType } from 'antd/es/table';
+import type { ColumnsType, ColumnType } from "antd/es/table";
 import {
   HistoryOutlined,
   EditOutlined,
@@ -81,12 +82,19 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
     hasCompletedOrCancelled: false,
     hasSoftDeleted: false,
   });
-  
+
   // For tracking selected option in dropdown
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  
+
   // Add loading state for when fetching all items
   const [isLoadingAllItems, setIsLoadingAllItems] = useState<boolean>(false);
+
+  // Add loading states for action buttons
+  const [deletingItems, setDeletingItems] = useState<boolean>(false);
+  const [restoringItems, setRestoringItems] = useState<boolean>(false);
+
+  // State to track cancellation reason
+  const [cancellationReason, setCancellationReason] = useState<string>("");
 
   // Update selected item types when selectedRowKeys changes
   useEffect(() => {
@@ -98,16 +106,16 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       return;
     }
 
-    const selectedPlans = treatmentPlans.filter(plan => 
+    const selectedPlans = treatmentPlans.filter((plan) =>
       selectedRowKeys.includes(plan.id)
     );
 
     const hasCompletedOrCancelled = selectedPlans.some(
-      plan => plan.status === "Completed" || plan.status === "Cancelled"
+      (plan) => plan.status === "Completed" || plan.status === "Cancelled"
     );
-    
+
     const hasSoftDeleted = selectedPlans.some(
-      plan => plan.status === "SoftDeleted"
+      (plan) => plan.status === "SoftDeleted"
     );
 
     setSelectedItemTypes({
@@ -138,19 +146,24 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   const canSelectTreatmentPlan = (record: TreatmentPlanResponseDTO) => {
     // Allow selection of Completed and Cancelled plans (for soft delete)
     // and SoftDeleted plans (for restore)
-    return record.status === "Completed" || 
-           record.status === "Cancelled" || 
-           record.status === "SoftDeleted";
+    return (
+      record.status === "Completed" ||
+      record.status === "Cancelled" ||
+      record.status === "SoftDeleted"
+    );
   };
 
   // Get all treatment plan IDs with specific statuses
-  const getItemIdsByStatus = async (statuses: string[], currentPageOnly: boolean = false) => {
+  const getItemIdsByStatus = async (
+    statuses: string[],
+    currentPageOnly: boolean = false
+  ) => {
     if (currentPageOnly) {
       // If only current page, filter from current page data
-      const filteredPlans = treatmentPlans.filter(plan => 
-        statuses.includes(plan.status || '')
+      const filteredPlans = treatmentPlans.filter((plan) =>
+        statuses.includes(plan.status || "")
       );
-      return filteredPlans.map(plan => plan.id);
+      return filteredPlans.map((plan) => plan.id);
     } else {
       // For all pages, use the API if available
       if (getAllTreatmentPlanIdsByStatus) {
@@ -162,20 +175,22 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
         } catch (error) {
           console.error("Error fetching all items by status:", error);
           setIsLoadingAllItems(false);
-          
+
           // Fallback to current page if API fails
-          const filteredPlans = treatmentPlans.filter(plan => 
-            statuses.includes(plan.status || '')
+          const filteredPlans = treatmentPlans.filter((plan) =>
+            statuses.includes(plan.status || "")
           );
-          return filteredPlans.map(plan => plan.id);
+          return filteredPlans.map((plan) => plan.id);
         }
       } else {
         // Fallback if API is not provided
-        console.warn("getAllTreatmentPlanIdsByStatus not provided, falling back to current page");
-        const filteredPlans = treatmentPlans.filter(plan => 
-          statuses.includes(plan.status || '')
+        console.warn(
+          "getAllTreatmentPlanIdsByStatus not provided, falling back to current page"
         );
-        return filteredPlans.map(plan => plan.id);
+        const filteredPlans = treatmentPlans.filter((plan) =>
+          statuses.includes(plan.status || "")
+        );
+        return filteredPlans.map((plan) => plan.id);
       }
     }
   };
@@ -190,26 +205,38 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
     } else {
       // Otherwise, select it and apply the selection
       setSelectedOption(key);
-      
-      switch(key) {
-        case 'all-completed-cancelled':
+
+      switch (key) {
+        case "all-completed-cancelled":
           // Select all Completed & Cancelled treatment plans
-          const completedCancelledIds = await getItemIdsByStatus(['Completed', 'Cancelled'], false);
+          const completedCancelledIds = await getItemIdsByStatus(
+            ["Completed", "Cancelled"],
+            false
+          );
           setSelectedRowKeys(completedCancelledIds);
           break;
-        case 'all-soft-deleted':
+        case "all-soft-deleted":
           // Select all SoftDeleted treatment plans
-          const softDeletedIds = await getItemIdsByStatus(['SoftDeleted'], false);
+          const softDeletedIds = await getItemIdsByStatus(
+            ["SoftDeleted"],
+            false
+          );
           setSelectedRowKeys(softDeletedIds);
           break;
-        case 'page-completed-cancelled':
+        case "page-completed-cancelled":
           // Select Completed & Cancelled treatment plans on current page
-          const pageCompletedCancelledIds = await getItemIdsByStatus(['Completed', 'Cancelled'], true);
+          const pageCompletedCancelledIds = await getItemIdsByStatus(
+            ["Completed", "Cancelled"],
+            true
+          );
           setSelectedRowKeys(pageCompletedCancelledIds);
           break;
-        case 'page-soft-deleted':
+        case "page-soft-deleted":
           // Select SoftDeleted treatment plans on current page
-          const pageSoftDeletedIds = await getItemIdsByStatus(['SoftDeleted'], true);
+          const pageSoftDeletedIds = await getItemIdsByStatus(
+            ["SoftDeleted"],
+            true
+          );
           setSelectedRowKeys(pageSoftDeletedIds);
           break;
         default:
@@ -222,23 +249,26 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   const renderSelectAll = () => {
     // Count plans by status
     const completedCancelledCount = treatmentPlans.filter(
-      plan => plan.status === "Completed" || plan.status === "Cancelled"
+      (plan) => plan.status === "Completed" || plan.status === "Cancelled"
     ).length;
-    
+
     const softDeletedCount = treatmentPlans.filter(
-      plan => plan.status === "SoftDeleted"
+      (plan) => plan.status === "SoftDeleted"
     ).length;
 
     // Count selectable plans
-    const selectablePlans = treatmentPlans.filter(plan => 
+    const selectablePlans = treatmentPlans.filter((plan) =>
       canSelectTreatmentPlan(plan)
     );
-    
-    const isSelectAll = selectablePlans.length > 0 && 
-      selectablePlans.every(plan => selectedRowKeys.includes(plan.id));
-    
-    const isIndeterminate = selectedRowKeys.length > 0 && !isSelectAll && 
-      selectablePlans.some(plan => selectedRowKeys.includes(plan.id));
+
+    const isSelectAll =
+      selectablePlans.length > 0 &&
+      selectablePlans.every((plan) => selectedRowKeys.includes(plan.id));
+
+    const isIndeterminate =
+      selectedRowKeys.length > 0 &&
+      !isSelectAll &&
+      selectablePlans.some((plan) => selectedRowKeys.includes(plan.id));
 
     // Create dropdown menu items
     const items = [];
@@ -246,20 +276,35 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
     // Remove estimated calculation since it's not what we want
     if (completedCancelledCount > 0) {
       items.push({
-        key: 'page-completed-cancelled',
+        key: "page-completed-cancelled",
         label: (
-          <div className={selectedOption === 'page-completed-cancelled' ? 'ant-dropdown-menu-item-active' : ''}>
+          <div
+            className={
+              selectedOption === "page-completed-cancelled"
+                ? "ant-dropdown-menu-item-active"
+                : ""
+            }
+          >
             Select all Completed & Cancelled on this page
           </div>
         ),
       });
-      
+
       items.push({
-        key: 'all-completed-cancelled',
+        key: "all-completed-cancelled",
         label: (
-          <div className={selectedOption === 'all-completed-cancelled' ? 'ant-dropdown-menu-item-active' : ''}>
-            {isLoadingAllItems && selectedOption === 'all-completed-cancelled' ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div
+            className={
+              selectedOption === "all-completed-cancelled"
+                ? "ant-dropdown-menu-item-active"
+                : ""
+            }
+          >
+            {isLoadingAllItems &&
+            selectedOption === "all-completed-cancelled" ? (
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
                 <Spin size="small" />
                 <span>Loading all Completed & Cancelled...</span>
               </div>
@@ -273,22 +318,36 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
 
     if (softDeletedCount > 0) {
       items.push({
-        key: 'page-soft-deleted',
+        key: "page-soft-deleted",
         label: (
-          <div className={selectedOption === 'page-soft-deleted' ? 'ant-dropdown-menu-item-active' : ''}>
+          <div
+            className={
+              selectedOption === "page-soft-deleted"
+                ? "ant-dropdown-menu-item-active"
+                : ""
+            }
+          >
             Select all SoftDeleted on this page
           </div>
         ),
       });
-      
+
       items.push({
-        key: 'all-soft-deleted',
+        key: "all-soft-deleted",
         label: (
-          <div className={selectedOption === 'all-soft-deleted' ? 'ant-dropdown-menu-item-active' : ''}>
-            {isLoadingAllItems && selectedOption === 'all-soft-deleted' ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div
+            className={
+              selectedOption === "all-soft-deleted"
+                ? "ant-dropdown-menu-item-active"
+                : ""
+            }
+          >
+            {isLoadingAllItems && selectedOption === "all-soft-deleted" ? (
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
                 <Spin size="small" />
-                <span>Loading all SoftDeleted...</span>
+                <span>Select all SoftDeleted (all pages)</span>
               </div>
             ) : (
               <span>Select all SoftDeleted (all pages)</span>
@@ -309,7 +368,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
 
     return (
       <>
-        <Checkbox 
+        <Checkbox
           checked={isSelectAll}
           indeterminate={isIndeterminate}
           onChange={handleSelectAllToggle}
@@ -325,19 +384,19 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
               selectedKeys: selectedOption ? [selectedOption] : [],
             }}
             placement="bottomLeft"
-            trigger={['click']}
+            trigger={["click"]}
           >
-            <Button 
-              type="text" 
-              size="small" 
+            <Button
+              type="text"
+              size="small"
               className="select-all-dropdown"
-              style={{ 
+              style={{
                 marginLeft: 0,
-                padding: '0 4px',
-                position: 'absolute',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                left: '22px'
+                padding: "0 4px",
+                position: "absolute",
+                top: "50%",
+                transform: "translateY(-50%)",
+                left: "22px",
               }}
             >
               <DownOutlined />
@@ -372,7 +431,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   };
 
   const canSoftDeleteTreatmentPlan = (status: string | undefined) => {
-    return status === "InProgress" || status === "Completed";
+    return status === "Completed" || status === "Cancelled";
   };
 
   const canRestoreTreatmentPlan = (status: string | undefined) => {
@@ -395,34 +454,54 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
         {canCancelTreatmentPlan(record.status) && (
           <Tooltip title="Cancel">
             <Popconfirm
-              title="Cancel Treatment Plan"
-              description="Are you sure you want to cancel this treatment plan?"
+              title={
+                <div style={{ padding: "0 10px" }}>Cancel Treatment Plan</div>
+              }
+              description={
+                <>
+                  <p style={{ padding: "10px 40px 10px 18px" }}>
+                    Are you sure you want to cancel this treatment plan?
+                  </p>
+                  <p
+                    style={{
+                      marginTop: "8px",
+                      marginBottom: "4px",
+                      padding: "0 40px 0 18px",
+                    }}
+                  >
+                    Reason for cancellation:
+                  </p>
+                  <Input.TextArea
+                    rows={3}
+                    value={cancellationReason}
+                    onChange={(e) => setCancellationReason(e.target.value)}
+                    placeholder="Please enter reason for cancellation"
+                    style={{
+                      margin: "0 40px 0 18px",
+                      width: "calc(100% - 58px)",
+                    }}
+                  />
+                </>
+              }
               onConfirm={() => {
-                Modal.confirm({
-                  title: "Enter Cancellation Reason",
-                  content: (
-                    <Form>
-                      <Form.Item
-                        name="reason"
-                        rules={[
-                          { required: true, message: "Please enter a reason" },
-                        ]}
-                      >
-                        <Input.TextArea rows={4} />
-                      </Form.Item>
-                    </Form>
-                  ),
-                  onOk: async (close) => {
-                    const reason = (
-                      document.querySelector(
-                        ".ant-modal-content textarea"
-                      ) as HTMLTextAreaElement
-                    ).value;
-                    await handleCancel(record.id, reason);
-                    close();
-                  },
-                });
+                if (!cancellationReason || cancellationReason.trim() === "") {
+                  message.error("Please enter a reason for cancellation");
+                  return Promise.reject("Reason is required");
+                }
+
+                // Cast result to Promise before calling finally
+                const result = handleCancel(record.id, cancellationReason);
+                // Clean up cancellation reason regardless of result
+                setCancellationReason("");
+                return result;
               }}
+              onCancel={() => {
+                // Reset reason if cancelled
+                setCancellationReason("");
+              }}
+              okText="Cancel Plan"
+              cancelText="No"
+              placement="topLeft"
             >
               <Button type="text" danger icon={<CloseCircleOutlined />} />
             </Popconfirm>
@@ -432,9 +511,18 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
         {canSoftDeleteTreatmentPlan(record.status) && (
           <Tooltip title="Soft Delete">
             <Popconfirm
-              title="Soft Delete Treatment Plan"
-              description="Are you sure you want to soft delete this treatment plan?"
+              title={
+                <div style={{ padding: "0 10px" }}>
+                  Soft Delete Treatment Plan
+                </div>
+              }
+              description={
+                <p style={{ padding: "10px 40px 10px 18px" }}>
+                  Are you sure you want to soft delete this treatment plan?
+                </p>
+              }
               onConfirm={() => handleSoftDelete(record.id)}
+              placement="topLeft"
             >
               <Button type="text" danger icon={<DeleteOutlined />} />
             </Popconfirm>
@@ -444,9 +532,16 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
         {canRestoreTreatmentPlan(record.status) && (
           <Tooltip title="Restore">
             <Popconfirm
-              title="Restore Treatment Plan"
-              description="Are you sure you want to restore this treatment plan?"
+              title={
+                <div style={{ padding: "0 10px" }}>Restore Treatment Plan</div>
+              }
+              description={
+                <p style={{ padding: "10px 40px 10px 18px" }}>
+                  Are you sure you want to restore this treatment plan?
+                </p>
+              }
               onConfirm={() => handleRestore(record.id)}
+              placement="topLeft"
             >
               <Button type="text" icon={<UndoOutlined />} />
             </Popconfirm>
@@ -459,10 +554,14 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   // Define table columns
   const columns: ColumnsType<TreatmentPlanResponseDTO> = [
     {
-      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>TREATMENT PLAN CODE</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          TREATMENT PLAN CODE
+        </span>
+      ),
       dataIndex: "treatmentPlanCode",
       key: "treatmentPlanCode",
-      fixed: 'left',
+      fixed: "left",
       width: 180,
       render: (text: string, record: TreatmentPlanResponseDTO) => (
         <Button
@@ -475,7 +574,11 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>HEALTH CHECK RESULT</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          HEALTH CHECK RESULT
+        </span>
+      ),
       dataIndex: "healthCheckResult",
       key: "healthCheckResult",
       render: (healthCheckResult: any) => (
@@ -494,37 +597,61 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>DRUG</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          DRUG
+        </span>
+      ),
       dataIndex: "drug",
       key: "drug",
       render: (drug: any) => renderDrugInfo(drug),
     },
     {
-      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>TREATMENT DESCRIPTION</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          TREATMENT DESCRIPTION
+        </span>
+      ),
       dataIndex: "treatmentDescription",
       key: "treatmentDescription",
       ellipsis: true,
     },
     {
-      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>INSTRUCTIONS</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          INSTRUCTIONS
+        </span>
+      ),
       dataIndex: "instructions",
       key: "instructions",
       ellipsis: true,
     },
     {
-      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>START DATE</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          START DATE
+        </span>
+      ),
       dataIndex: "startDate",
       key: "startDate",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
-      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>END DATE</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          END DATE
+        </span>
+      ),
       dataIndex: "endDate",
       key: "endDate",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
-      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>STATUS</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          STATUS
+        </span>
+      ),
       dataIndex: "status",
       key: "status",
       align: "center" as const,
@@ -535,19 +662,32 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>CREATED AT</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          CREATED AT
+        </span>
+      ),
       dataIndex: "createdAt",
       key: "createdAt",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY HH:mm:ss"),
     },
     {
-      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>UPDATED AT</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          UPDATED AT
+        </span>
+      ),
       dataIndex: "updatedAt",
       key: "updatedAt",
-      render: (date: string) => date ? dayjs(date).format("DD/MM/YYYY HH:mm:ss") : "N/A",
+      render: (date: string) =>
+        date ? dayjs(date).format("DD/MM/YYYY HH:mm:ss") : "N/A",
     },
     {
-      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>CREATED BY</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          CREATED BY
+        </span>
+      ),
       dataIndex: "createdBy",
       key: "createdBy",
       render: (createdBy: any) => (
@@ -555,7 +695,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
           {createdBy?.fullName || ""}
           {createdBy?.email && (
             <div>
-              <Text type="secondary" style={{ fontSize: '12px' }}>
+              <Text type="secondary" style={{ fontSize: "12px" }}>
                 {createdBy.email}
               </Text>
             </div>
@@ -564,7 +704,11 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>UPDATED BY</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          UPDATED BY
+        </span>
+      ),
       dataIndex: "updatedBy",
       key: "updatedBy",
       render: (updatedBy: any) => (
@@ -572,7 +716,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
           {updatedBy?.fullName || "N/A"}
           {updatedBy?.email && (
             <div>
-              <Text type="secondary" style={{ fontSize: '12px' }}>
+              <Text type="secondary" style={{ fontSize: "12px" }}>
                 {updatedBy.email}
               </Text>
             </div>
@@ -581,9 +725,13 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>ACTIONS</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          ACTIONS
+        </span>
+      ),
       key: "actions",
-      fixed: 'right',
+      fixed: "right",
       width: 120,
       align: "center" as const,
       render: (record: TreatmentPlanResponseDTO) => renderActionButtons(record),
@@ -617,8 +765,8 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
     getCheckboxProps: (record: TreatmentPlanResponseDTO) => ({
       disabled: !canSelectTreatmentPlan(record),
       // Add a title to explain why checkbox is disabled
-      title: !canSelectTreatmentPlan(record) 
-        ? "Treatment Plans with status 'InProgress' cannot be selected" 
+      title: !canSelectTreatmentPlan(record)
+        ? "Only treatment plans with status 'Completed', 'Cancelled', or 'SoftDeleted' can be selected"
         : "",
     }),
     columnTitle: renderSelectAll(),
@@ -642,27 +790,73 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
               <Text type="secondary">
                 {selectedRowKeys.length} items selected
               </Text>
-              
-              {/* Show bulk delete button only if completed/cancelled items are selected */}
-              {selectedItemTypes.hasCompletedOrCancelled && handleBulkDelete && (
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => handleBulkDelete(selectedRowKeys)}
-                >
-                  Bulk Delete
-                </Button>
-              )}
-              
-              {/* Show bulk restore button only if soft deleted items are selected */}
+              {/* Show delete button only if completed/cancelled items are selected */}
+              {selectedItemTypes.hasCompletedOrCancelled &&
+                handleBulkDelete && (
+                  <Tooltip title="Delete selected treatment plans">
+                    <Popconfirm
+                      title={
+                        <div style={{ padding: "0 10px" }}>
+                          Delete selected items
+                        </div>
+                      }
+                      description={
+                        <p style={{ padding: "10px 40px 10px 18px" }}>
+                          Are you sure you want to delete{" "}
+                          {selectedRowKeys.length} selected item(s)?
+                        </p>
+                      }
+                      onConfirm={async () => {
+                        setDeletingItems(true);
+                        try {
+                          await handleBulkDelete(selectedRowKeys);
+                        } finally {
+                          setDeletingItems(false);
+                        }
+                      }}
+                      okButtonProps={{ loading: deletingItems }}
+                      okText="Delete"
+                      cancelText="Cancel"
+                      placement="rightBottom"
+                    >
+                      <Button danger icon={<DeleteOutlined />}>
+                        Delete
+                      </Button>
+                    </Popconfirm>
+                  </Tooltip>
+                )}
+              {/* Show restore button only if soft deleted items are selected */}
               {selectedItemTypes.hasSoftDeleted && handleBulkRestore && (
-                <Button
-                  icon={<UndoOutlined />}
-                  onClick={() => handleBulkRestore(selectedRowKeys)}
-                >
-                  Bulk Restore
-                </Button>
-              )}
+                <Tooltip title="Restore selected treatment plans">
+                  <Popconfirm
+                    title={
+                      <div style={{ padding: "0 10px" }}>
+                        Restore selected items
+                      </div>
+                    }
+                    description={
+                      <div style={{ padding: "10px 40px 10px 18px" }}>
+                        Are you sure you want to restore{" "}
+                        {selectedRowKeys.length} selected item(s)?
+                      </div>
+                    }
+                    onConfirm={async () => {
+                      setRestoringItems(true);
+                      try {
+                        await handleBulkRestore(selectedRowKeys);
+                      } finally {
+                        setRestoringItems(false);
+                      }
+                    }}
+                    okButtonProps={{ loading: restoringItems }}
+                    okText="Restore"
+                    cancelText="Cancel"
+                    placement="rightBottom"
+                  >
+                    <Button icon={<UndoOutlined />}>Restore</Button>
+                  </Popconfirm>
+                </Tooltip>
+              )}{" "}
             </>
           )}
         </div>
@@ -698,7 +892,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
             rowKey="id"
             loading={false}
             pagination={false}
-            scroll={{ x: 'max-content' }}
+            scroll={{ x: "max-content" }}
           />
         </div>
 
