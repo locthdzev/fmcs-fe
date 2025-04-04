@@ -167,6 +167,13 @@ export function TreatmentPlanManagement() {
     ascending,
   ]);
 
+  // Fetch filter options when component mounts
+  useEffect(() => {
+    fetchFilterOptions();
+    // Also perform an initial fetch of dropdown options
+    fetchDropdownOptions();
+  }, []);
+
   // Update form values when filters change
   useEffect(() => {
     searchForm.setFieldsValue({
@@ -411,12 +418,6 @@ export function TreatmentPlanManagement() {
       console.error("Error fetching dropdown options:", error);
     }
   };
-
-  // Effect to fetch dropdown options on initial load
-  useEffect(() => {
-    fetchDropdownOptions();
-    fetchFilterOptions(); // Call fetchFilterOptions on component mount
-  }, []);
 
   // Extract unique data from treatment plans for dropdowns
   const extractDataFromTreatmentPlans = (
@@ -1370,6 +1371,10 @@ export function TreatmentPlanManagement() {
           createdDateRange,
           updatedDateRange,
         }}
+        treatmentPlanCodes={treatmentPlanCodes}
+        healthCheckCodes={healthCheckCodes}
+        drugOptions={drugOptions}
+        updatedByOptions={updatedByOptions}
       />
 
       <TreatmentPlanFilterModal

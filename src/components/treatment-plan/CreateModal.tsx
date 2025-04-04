@@ -11,8 +11,10 @@ import {
   Space,
   Spin,
   message,
+  Row,
+  Col,
 } from "antd";
-import moment from "moment";
+import dayjs from "dayjs";
 import {
   createTreatmentPlan,
   TreatmentPlanCreateRequestDTO,
@@ -259,7 +261,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
 
   const formatDate = (date: string | undefined) => {
     if (!date) return "";
-    return moment(date).format("DD/MM/YYYY");
+    return dayjs(date).format("DD/MM/YYYY");
   };
 
   const formatUserInfo = (user?: {
@@ -296,8 +298,8 @@ const CreateModal: React.FC<CreateModalProps> = ({
         form={form}
         layout="vertical"
         initialValues={{
-          startDate: moment(),
-          endDate: moment().add(7, "days"),
+          startDate: dayjs(),
+          endDate: dayjs().add(7, "day"),
         }}
       >
         <Title level={5}>Basic Information</Title>
@@ -389,29 +391,34 @@ const CreateModal: React.FC<CreateModalProps> = ({
           />
         </Form.Item>
 
-        <Form.Item
-          name="startDate"
-          label="Start Date"
-          rules={[{ required: true, message: "Please select start date" }]}
-        >
-          <DatePicker
-            format="DD/MM/YYYY"
-            style={{ width: "100%" }}
-            placeholder="Select start date"
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="endDate"
-          label="End Date"
-          rules={[{ required: true, message: "Please select end date" }]}
-        >
-          <DatePicker
-            format="DD/MM/YYYY"
-            style={{ width: "100%" }}
-            placeholder="Select end date"
-          />
-        </Form.Item>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="startDate"
+              label="Start Date"
+              rules={[{ required: true, message: "Please select start date" }]}
+            >
+              <DatePicker
+                format="DD/MM/YYYY"
+                style={{ width: "100%" }}
+                placeholder="Select start date"
+              />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="endDate"
+              label="End Date"
+              rules={[{ required: true, message: "Please select end date" }]}
+            >
+              <DatePicker
+                format="DD/MM/YYYY"
+                style={{ width: "100%" }}
+                placeholder="Select end date"
+              />
+            </Form.Item>
+          </Col>
+        </Row>
       </Form>
     </Modal>
   );
