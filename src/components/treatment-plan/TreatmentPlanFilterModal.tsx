@@ -1,18 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   Modal,
-  Form,
-  Input,
   Button,
+  Space,
+  Typography,
   Select,
   DatePicker,
-  Switch,
+  Radio,
+  Divider,
   Row,
   Col,
-  Typography,
-  Divider,
-  Radio,
-  Space,
 } from "antd";
 import {
   UndoOutlined,
@@ -23,8 +20,7 @@ import {
 import dayjs from "dayjs";
 
 const { RangePicker } = DatePicker;
-const { Option } = Select;
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 interface TreatmentPlanFilterModalProps {
   visible: boolean;
@@ -39,7 +35,6 @@ interface TreatmentPlanFilterModalProps {
     dateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
     createdDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
     updatedDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
-    sortBy: string;
     ascending: boolean;
   };
   treatmentPlanCodes: string[];
@@ -48,6 +43,20 @@ interface TreatmentPlanFilterModalProps {
   drugOptions: any[];
   updatedByOptions: any[];
 }
+
+// Định nghĩa date ranges phổ biến để tái sử dụng
+const commonDateRanges = {
+  Today: () => [dayjs(), dayjs()],
+  "Last 7 Days": () => [dayjs().subtract(6, "days"), dayjs()],
+  "Last 30 Days": () => [dayjs().subtract(29, "days"), dayjs()],
+  "This Month": () => [dayjs().startOf("month"), dayjs().endOf("month")],
+  "Last Month": () => [
+    dayjs().subtract(1, "month").startOf("month"),
+    dayjs().subtract(1, "month").endOf("month"),
+  ],
+  "This Year": () => [dayjs().startOf("year"), dayjs().endOf("year")],
+  "All Time (includes 2025)": () => [dayjs("2020-01-01"), dayjs("2030-12-31")],
+};
 
 const TreatmentPlanFilterModal: React.FC<TreatmentPlanFilterModalProps> = ({
   visible,
@@ -61,47 +70,61 @@ const TreatmentPlanFilterModal: React.FC<TreatmentPlanFilterModalProps> = ({
   drugOptions,
   updatedByOptions,
 }) => {
-  const [form] = Form.useForm();
-  const [localFilters, setLocalFilters] = useState(filters);
+  const [localFilters, setLocalFilters] = React.useState(filters);
 
-  useEffect(() => {
+  // Reset localFilters when modal is opened with new filters
+  React.useEffect(() => {
     if (visible) {
       setLocalFilters(filters);
-      form.setFieldsValue({
-        healthCheckResultCode: filters.healthCheckResultCode,
-        userSearch: filters.userSearch,
-        drugSearch: filters.drugSearch,
-        updatedBySearch: filters.updatedBySearch,
-        dateRange: filters.dateRange[0] || filters.dateRange[1] ? [
-          filters.dateRange[0],
-          filters.dateRange[1]
-        ] : undefined,
-        createdDateRange: filters.createdDateRange[0] || filters.createdDateRange[1] ? [
-          filters.createdDateRange[0],
-          filters.createdDateRange[1]
-        ] : undefined,
-        updatedDateRange: filters.updatedDateRange[0] || filters.updatedDateRange[1] ? [
-          filters.updatedDateRange[0],
-          filters.updatedDateRange[1]
-        ] : undefined,
-        sortBy: filters.sortBy,
-        ascending: filters.ascending,
-      });
     }
-  }, [visible, filters, form]);
+  }, [visible, filters]);
 
-  const handleApply = async () => {
-    try {
-      const values = await form.validateFields();
-      onApply(values);
-    } catch (error) {
-      console.error("Validation failed:", error);
+  // Process and apply filters
+  const handleApply = () => {
+    // Create processed filters object with proper handling of undefined values
+    const processedFilters = {
+      healthCheckResultCodeSearch:
+        localFilters.healthCheckResultCode || undefined,
+      drugSearch: localFilters.drugSearch || undefined,
+      updatedBySearch: localFilters.updatedBySearch || undefined,
+      dateRange: Array.isArray(localFilters.dateRange)
+        ? localFilters.dateRange
+        : [null, null],
+      createdDateRange: Array.isArray(localFilters.createdDateRange)
+        ? localFilters.createdDateRange
+        : [null, null],
+      updatedDateRange: Array.isArray(localFilters.updatedDateRange)
+        ? localFilters.updatedDateRange
+        : [null, null],
+      sortBy: "CreatedAt",
+      ascending: Boolean(localFilters.ascending),
+      userSearch: undefined,
+    };
+
+    // Special handling for "All Time" date range
+    const isAllTimeRange =
+      localFilters.dateRange &&
+      localFilters.dateRange[0]?.format("YYYY-MM-DD") ===
+        dayjs("2020-01-01").format("YYYY-MM-DD") &&
+      localFilters.dateRange[1]?.format("YYYY-MM-DD") ===
+        dayjs("2030-12-31").format("YYYY-MM-DD");
+
+    if (isAllTimeRange) {
+      console.log(
+        "All time date range selected - ensuring 2025 data is included"
+      );
     }
+
+    onApply(processedFilters);
   };
 
-  const handleReset = () => {
-    form.resetFields();
-    onReset();
+  // Common styles for filter items
+  const filterItemStyle = { marginBottom: "16px" };
+  const filterLabelStyle = { marginBottom: "8px", color: "#666666" };
+
+  // Function to update filter state
+  const updateFilter = (field: string, value: any) => {
+    setLocalFilters((prev) => ({ ...prev, [field]: value || "" }));
   };
 
   return (
@@ -111,27 +134,38 @@ const TreatmentPlanFilterModal: React.FC<TreatmentPlanFilterModalProps> = ({
       onCancel={onCancel}
       width={800}
       footer={[
-        <Button key="reset" onClick={handleReset} icon={<UndoOutlined />}>
+        <Button key="reset" onClick={onReset} icon={<UndoOutlined />}>
           Reset
         </Button>,
-        <Button key="apply" type="primary" onClick={handleApply} icon={<CheckCircleOutlined />}>
+        <Button
+          key="apply"
+          type="primary"
+          onClick={handleApply}
+          icon={<CheckCircleOutlined />}
+        >
           Apply
         </Button>,
       ]}
     >
-      <Form form={form} layout="vertical" initialValues={localFilters}>
+      <Space direction="vertical" style={{ width: "100%" }}>
+        {/* Search Criteria Section */}
         <Title level={5}>Search Criteria</Title>
         <Row gutter={16}>
+          {/* Health Check Result Code */}
           <Col span={12}>
-            <Form.Item
-              name="healthCheckResultCode"
-              label="Health Check Result Code"
-            >
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Health Check Result
+              </div>
               <Select
                 showSearch
                 allowClear
-                placeholder="Select or search Health Check Result Code"
-                optionFilterProp="children"
+                placeholder="Select Health Check Result"
+                value={localFilters.healthCheckResultCode || undefined}
+                onChange={(value) =>
+                  updateFilter("healthCheckResultCode", value)
+                }
+                style={{ width: "100%" }}
                 filterOption={(input, option) =>
                   (option?.label as string)
                     .toLowerCase()
@@ -142,177 +176,291 @@ const TreatmentPlanFilterModal: React.FC<TreatmentPlanFilterModalProps> = ({
                   label: code,
                 }))}
               />
-            </Form.Item>
+            </div>
           </Col>
-          <Col span={12}>
-            <Form.Item name="userSearch" label="Patient">
-              <Select
-                showSearch
-                allowClear
-                placeholder="Search patient"
-                optionFilterProp="children"
-                filterOption={(input, option) =>
-                  (option?.label as string)
-                    .toLowerCase()
-                    .indexOf(input.toLowerCase()) >= 0
-                }
-                options={userOptions.map((user) => ({
-                  value: user.id,
-                  label: `${user.fullName} (${user.email})`,
-                }))}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
 
-        <Row gutter={16}>
+          {/* Drug */}
           <Col span={12}>
-            <Form.Item name="drugSearch" label="Drug">
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Drug
+              </div>
               <Select
                 showSearch
                 allowClear
-                placeholder="Search drug"
-                optionFilterProp="children"
+                placeholder="Select drug"
+                value={localFilters.drugSearch || undefined}
+                onChange={(value) => updateFilter("drugSearch", value)}
+                style={{ width: "100%" }}
                 filterOption={(input, option) =>
                   (option?.label as string)
                     .toLowerCase()
                     .indexOf(input.toLowerCase()) >= 0
                 }
                 options={drugOptions.map((drug) => ({
-                  value: drug.id,
+                  value: drug.name,
                   label: `${drug.name} (${drug.drugCode})`,
                 }))}
               />
-            </Form.Item>
+            </div>
           </Col>
+        </Row>
+
+        <Row gutter={16}>
+          {/* Updated By */}
           <Col span={12}>
-            <Form.Item name="updatedBySearch" label="Updated By">
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Updated By
+              </div>
               <Select
                 showSearch
                 allowClear
-                placeholder="Search staff who updated"
-                optionFilterProp="children"
+                placeholder="Select Updated By"
+                value={localFilters.updatedBySearch || undefined}
+                onChange={(value) => updateFilter("updatedBySearch", value)}
+                style={{ width: "100%" }}
                 filterOption={(input, option) =>
                   (option?.label as string)
                     .toLowerCase()
                     .indexOf(input.toLowerCase()) >= 0
                 }
                 options={updatedByOptions.map((user) => ({
-                  value: user.id,
+                  value: user.fullName,
                   label: `${user.fullName} (${user.email})`,
                 }))}
               />
-            </Form.Item>
+            </div>
           </Col>
         </Row>
 
-        <Divider />
-        <Title level={5}>Date Ranges</Title>
+        <Divider style={{ margin: "8px 0 16px 0" }} />
+
+        {/* Date & Sorting Section */}
+        <Title level={5}>Date & Sorting</Title>
 
         <Row gutter={16}>
+          {/* Treatment Date Range */}
           <Col span={12}>
-            <Form.Item name="dateRange" label="Treatment Date Range">
-              <RangePicker style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="createdDateRange" label="Created Date Range">
-              <RangePicker style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="updatedDateRange" label="Updated Date Range">
-              <RangePicker style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Divider />
-        <Title level={5}>Sorting</Title>
-
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="sortBy" label="Sort By">
-              <Select>
-                <Option value="TreatmentPlanCode">Treatment Plan Code</Option>
-                <Option value="StartDate">Start Date</Option>
-                <Option value="EndDate">End Date</Option>
-                <Option value="CreatedAt">Created At</Option>
-                <Option value="UpdatedAt">Updated At</Option>
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="ascending" label="Sort Direction" valuePropName="checked">
-              <div className="filter-item">
-                <div
-                  className="filter-label"
-                  style={{
-                    marginBottom: "8px",
-                    color: "#666666",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
-                  <SortAscendingOutlined />
-                  <span>Sort direction</span>
-                </div>
-                <Radio.Group
-                  value={localFilters.ascending ? "asc" : "desc"}
-                  onChange={(e) =>
-                    setLocalFilters((prev) => ({
-                      ...prev,
-                      ascending: e.target.value === "asc",
-                    }))
-                  }
-                  optionType="button"
-                  buttonStyle="solid"
-                  style={{ width: "100%" }}
-                >
-                  <Radio.Button
-                    value="asc"
-                    style={{ width: "50%", textAlign: "center" }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <SortAscendingOutlined />
-                      <span>Oldest First</span>
-                    </div>
-                  </Radio.Button>
-                  <Radio.Button
-                    value="desc"
-                    style={{ width: "50%", textAlign: "center" }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <SortDescendingOutlined />
-                      <span>Newest First</span>
-                    </div>
-                  </Radio.Button>
-                </Radio.Group>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Treatment Date Range
               </div>
-            </Form.Item>
+              <RangePicker
+                style={{ width: "100%" }}
+                placeholder={["From date", "To date"]}
+                format="DD/MM/YYYY"
+                allowClear
+                value={localFilters.dateRange}
+                onChange={(dates) =>
+                  setLocalFilters((prev) => ({
+                    ...prev,
+                    dateRange: dates as [
+                      dayjs.Dayjs | null,
+                      dayjs.Dayjs | null
+                    ],
+                  }))
+                }
+                presets={[
+                  { label: "Today", value: [dayjs(), dayjs()] },
+                  {
+                    label: "Last 7 Days",
+                    value: [dayjs().subtract(6, "day"), dayjs()],
+                  },
+                  {
+                    label: "Last 30 Days",
+                    value: [dayjs().subtract(29, "day"), dayjs()],
+                  },
+                  {
+                    label: "This Month",
+                    value: [dayjs().startOf("month"), dayjs().endOf("month")],
+                  },
+                  {
+                    label: "Last Month",
+                    value: [
+                      dayjs().subtract(1, "month").startOf("month"),
+                      dayjs().subtract(1, "month").endOf("month"),
+                    ],
+                  },
+                  {
+                    label: "This Year",
+                    value: [dayjs().startOf("year"), dayjs().endOf("year")],
+                  },
+                  {
+                    label: "All Time (includes 2025)",
+                    value: [dayjs("2020-01-01"), dayjs("2030-12-31")],
+                  },
+                ]}
+              />
+            </div>
+          </Col>
+
+          {/* Created Date Range */}
+          <Col span={12}>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Created Date Range
+              </div>
+              <RangePicker
+                style={{ width: "100%" }}
+                placeholder={["From date", "To date"]}
+                format="DD/MM/YYYY"
+                allowClear
+                value={localFilters.createdDateRange}
+                onChange={(dates) =>
+                  setLocalFilters((prev) => ({
+                    ...prev,
+                    createdDateRange: dates as [
+                      dayjs.Dayjs | null,
+                      dayjs.Dayjs | null
+                    ],
+                  }))
+                }
+                presets={[
+                  { label: "Today", value: [dayjs(), dayjs()] },
+                  {
+                    label: "Last 7 Days",
+                    value: [dayjs().subtract(6, "day"), dayjs()],
+                  },
+                  {
+                    label: "Last 30 Days",
+                    value: [dayjs().subtract(29, "day"), dayjs()],
+                  },
+                  {
+                    label: "This Month",
+                    value: [dayjs().startOf("month"), dayjs().endOf("month")],
+                  },
+                  {
+                    label: "Last Month",
+                    value: [
+                      dayjs().subtract(1, "month").startOf("month"),
+                      dayjs().subtract(1, "month").endOf("month"),
+                    ],
+                  },
+                  {
+                    label: "This Year",
+                    value: [dayjs().startOf("year"), dayjs().endOf("year")],
+                  },
+                  {
+                    label: "All Time (includes 2025)",
+                    value: [dayjs("2020-01-01"), dayjs("2030-12-31")],
+                  },
+                ]}
+              />
+            </div>
           </Col>
         </Row>
-      </Form>
+
+        <Row gutter={16}>
+          {/* Updated Date Range */}
+          <Col span={12}>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Updated Date Range
+              </div>
+              <RangePicker
+                style={{ width: "100%" }}
+                placeholder={["From date", "To date"]}
+                format="DD/MM/YYYY"
+                allowClear
+                value={localFilters.updatedDateRange}
+                onChange={(dates) =>
+                  setLocalFilters((prev) => ({
+                    ...prev,
+                    updatedDateRange: dates as [
+                      dayjs.Dayjs | null,
+                      dayjs.Dayjs | null
+                    ],
+                  }))
+                }
+                presets={[
+                  { label: "Today", value: [dayjs(), dayjs()] },
+                  {
+                    label: "Last 7 Days",
+                    value: [dayjs().subtract(6, "day"), dayjs()],
+                  },
+                  {
+                    label: "Last 30 Days",
+                    value: [dayjs().subtract(29, "day"), dayjs()],
+                  },
+                  {
+                    label: "This Month",
+                    value: [dayjs().startOf("month"), dayjs().endOf("month")],
+                  },
+                  {
+                    label: "Last Month",
+                    value: [
+                      dayjs().subtract(1, "month").startOf("month"),
+                      dayjs().subtract(1, "month").endOf("month"),
+                    ],
+                  },
+                  {
+                    label: "This Year",
+                    value: [dayjs().startOf("year"), dayjs().endOf("year")],
+                  },
+                  {
+                    label: "All Time (includes 2025)",
+                    value: [dayjs("2020-01-01"), dayjs("2030-12-31")],
+                  },
+                ]}
+              />
+            </div>
+          </Col>
+
+          {/* Sort Direction */}
+          <Col span={12}>
+            <div className="filter-item">
+              <div className="filter-label" style={filterLabelStyle}>
+                Sort Direction (CreatedAt)
+              </div>
+              <Radio.Group
+                value={localFilters.ascending ? "asc" : "desc"}
+                onChange={(e) =>
+                  updateFilter("ascending", e.target.value === "asc")
+                }
+                optionType="button"
+                buttonStyle="solid"
+                style={{ width: "100%" }}
+              >
+                <Radio.Button
+                  value="asc"
+                  style={{ width: "50%", textAlign: "center" }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <SortAscendingOutlined />
+                    <span>Oldest First</span>
+                  </div>
+                </Radio.Button>
+                <Radio.Button
+                  value="desc"
+                  style={{ width: "50%", textAlign: "center" }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <SortDescendingOutlined />
+                    <span>Newest First</span>
+                  </div>
+                </Radio.Button>
+              </Radio.Group>
+            </div>
+          </Col>
+        </Row>
+      </Space>
     </Modal>
   );
 };
 
-export default TreatmentPlanFilterModal; 
+export default TreatmentPlanFilterModal;
