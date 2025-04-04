@@ -12,8 +12,11 @@ import {
   DatePicker,
   message,
   Spin,
+  Popconfirm,
+  Row,
+  Col,
 } from "antd";
-import moment from "moment";
+import dayjs from "dayjs";
 import {
   getTreatmentPlanById,
   TreatmentPlanResponseDTO,
@@ -25,8 +28,20 @@ import {
   exportTreatmentPlanToPDF,
   getTreatmentPlanHistoriesByTreatmentPlanId,
 } from "@/api/treatment-plan";
-import { getAllTreatmentPlanHistories, TreatmentPlanHistoryResponseDTO } from "@/api/treatment-plan";
-import { EditOutlined, DeleteOutlined, UndoOutlined, FilePdfOutlined } from "@ant-design/icons";
+import {
+  getAllTreatmentPlanHistories,
+  TreatmentPlanHistoryResponseDTO,
+} from "@/api/treatment-plan";
+import {
+  EditOutlined,
+  DeleteOutlined,
+  UndoOutlined,
+  FilePdfOutlined,
+  ArrowLeftOutlined,
+  CloseCircleOutlined,
+  MedicineBoxOutlined,
+} from "@ant-design/icons";
+import { useRouter } from "next/router";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -35,15 +50,28 @@ interface TreatmentPlanDetailProps {
   id: string;
 }
 
-export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) => {
-  const [treatmentPlan, setTreatmentPlan] = useState<TreatmentPlanResponseDTO | null>(null);
-  const [histories, setHistories] = useState<TreatmentPlanHistoryResponseDTO[]>([]);
+export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
+  id,
+}) => {
+  const router = useRouter();
+  const [treatmentPlan, setTreatmentPlan] =
+    useState<TreatmentPlanResponseDTO | null>(null);
+  const [histories, setHistories] = useState<TreatmentPlanHistoryResponseDTO[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [messageApi, contextHolder] = message.useMessage();
+
+  // Thêm loading states cho từng action
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   useEffect(() => {
     fetchTreatmentPlan();
@@ -52,6 +80,7 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
 
   const fetchTreatmentPlan = async () => {
     try {
+      setLoading(true);
       const response = await getTreatmentPlanById(id);
       if (response.success) {
         setTreatmentPlan(response.data);
@@ -85,21 +114,59 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
 
   const handleExportPDF = async () => {
     try {
+      setExportLoading(true);
       const response = await exportTreatmentPlanToPDF(id);
-      if (response.success && response.data) {
+      console.log("Export PDF response:", response);
+
+      if (
+        response.success &&
+        response.data &&
+        typeof response.data === "string" &&
+        response.data.startsWith("http")
+      ) {
+        // Ensure we only open window when data is a valid URL
         window.open(response.data, "_blank");
-        messageApi.success("Treatment plan exported to PDF successfully", 5);
+        messageApi.success({
+          content: "Treatment plan exported to PDF successfully",
+          duration: 10,
+        });
+      } else if (response.success) {
+        // Server reports success but no valid URL in data
+        console.warn(
+          "PDF export succeeded but no valid URL returned:",
+          response
+        );
+        messageApi.warning({
+          content:
+            "PDF generated but download link is unavailable. Please try again.",
+          duration: 10,
+        });
       } else {
-        messageApi.error(response.message || "Failed to export PDF", 5);
+        // Server reports failure
+        messageApi.error({
+          content: response.message || "Failed to export PDF",
+          duration: 5,
+        });
       }
     } catch (error) {
       console.error("Error exporting PDF:", error);
-      messageApi.error("Failed to export PDF", 5);
+      messageApi.error({
+        content: "Failed to export PDF",
+        duration: 5,
+      });
+    } finally {
+      setExportLoading(false);
     }
   };
 
   const handleCancel = async () => {
+    if (!cancelReason || cancelReason.trim() === "") {
+      messageApi.error("Please enter a reason for cancellation", 5);
+      return;
+    }
+
     try {
+      setCancelLoading(true);
       const response = await cancelTreatmentPlan(id, cancelReason);
       if (response.success) {
         messageApi.success("Treatment plan cancelled successfully", 5);
@@ -108,49 +175,68 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
         fetchTreatmentPlan();
         fetchHistories();
       } else {
-        messageApi.error(response.message || "Failed to cancel treatment plan", 5);
+        messageApi.error(
+          response.message || "Failed to cancel treatment plan",
+          5
+        );
       }
     } catch (error) {
       console.error("Error cancelling treatment plan:", error);
       messageApi.error("Failed to cancel treatment plan", 5);
+    } finally {
+      setCancelLoading(false);
     }
   };
 
   const handleSoftDelete = async () => {
     try {
+      setDeleteLoading(true);
       const response = await softDeleteTreatmentPlans([id]);
       if (response.success) {
         messageApi.success("Treatment plan deleted successfully", 5);
         fetchTreatmentPlan();
         fetchHistories();
       } else {
-        messageApi.error(response.message || "Failed to delete treatment plan", 5);
+        messageApi.error(
+          response.message || "Failed to delete treatment plan",
+          5
+        );
       }
     } catch (error) {
       console.error("Error deleting treatment plan:", error);
       messageApi.error("Failed to delete treatment plan", 5);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
   const handleRestore = async () => {
     try {
+      setRestoreLoading(true);
       const response = await restoreSoftDeletedTreatmentPlans([id]);
       if (response.success) {
         messageApi.success("Treatment plan restored successfully", 5);
         fetchTreatmentPlan();
         fetchHistories();
       } else {
-        messageApi.error(response.message || "Failed to restore treatment plan", 5);
+        messageApi.error(
+          response.message || "Failed to restore treatment plan",
+          5
+        );
       }
     } catch (error) {
       console.error("Error restoring treatment plan:", error);
       messageApi.error("Failed to restore treatment plan", 5);
+    } finally {
+      setRestoreLoading(false);
     }
   };
 
   const handleUpdate = async () => {
     try {
       const values = await form.validateFields();
+      setUpdateLoading(true);
+
       const updateData: TreatmentPlanUpdateRequestDTO = {
         treatmentDescription: values.treatmentDescription,
         instructions: values.instructions,
@@ -166,56 +252,86 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
         fetchTreatmentPlan();
         fetchHistories();
       } else {
-        messageApi.error(response.message || "Failed to update treatment plan", 5);
+        messageApi.error(
+          response.message || "Failed to update treatment plan",
+          5
+        );
       }
     } catch (error) {
       console.error("Error updating treatment plan:", error);
       messageApi.error("Failed to update treatment plan", 5);
+    } finally {
+      setUpdateLoading(false);
     }
   };
 
   const formatDate = (date: string | undefined) => {
-    if (!date) return '';
-    return moment(date).format('DD/MM/YYYY');
+    if (!date) return "";
+    return dayjs(date).format("DD/MM/YYYY");
   };
 
   const formatDateTime = (datetime: string | undefined) => {
-    if (!datetime) return '';
-    return moment(datetime).format('DD/MM/YYYY HH:mm:ss');
+    if (!datetime) return "";
+    return dayjs(datetime).format("DD/MM/YYYY HH:mm:ss");
   };
 
   const getStatusColor = (status: string | undefined) => {
     switch (status) {
-      case 'IN_PROGRESS':
-        return 'processing';
-      case 'COMPLETED':
-        return 'success';
-      case 'CANCELLED':
-        return 'error';
-      case 'SOFT_DELETED':
-        return 'default';
+      case "IN_PROGRESS":
+      case "InProgress":
+        return "processing";
+      case "COMPLETED":
+      case "Completed":
+        return "success";
+      case "CANCELLED":
+      case "Cancelled":
+        return "error";
+      case "SOFT_DELETED":
+      case "SoftDeleted":
+        return "default";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const getActionColor = (action: string): string => {
     switch (action) {
-      case 'Create':
-        return 'green';
-      case 'Update':
-        return 'blue';
-      case 'Cancel':
-        return 'red';
-      case 'StatusChange':
-        return 'orange';
-      case 'SoftDelete':
-        return 'gray';
-      case 'Restore':
-        return 'green';
+      case "Create":
+        return "green";
+      case "Update":
+        return "blue";
+      case "Cancel":
+        return "red";
+      case "StatusChange":
+        return "orange";
+      case "SoftDelete":
+        return "gray";
+      case "Restore":
+        return "green";
       default:
-        return 'blue';
+        return "blue";
     }
+  };
+
+  const canEditTreatmentPlan = (status: string | undefined) => {
+    return status === "IN_PROGRESS" || status === "InProgress";
+  };
+
+  const canCancelTreatmentPlan = (status: string | undefined) => {
+    return status === "IN_PROGRESS" || status === "InProgress";
+  };
+
+  const canSoftDeleteTreatmentPlan = (status: string | undefined) => {
+    return (
+      status === "COMPLETED" ||
+      status === "Completed" ||
+      status === "CANCELLED" ||
+      status === "Cancelled"
+    );
+  };
+
+  const canRestoreTreatmentPlan = (status: string | undefined) => {
+    return status === "SOFT_DELETED" || status === "SoftDeleted";
   };
 
   const renderActionButtons = () => {
@@ -225,51 +341,87 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
       <Space>
         <Button
           icon={<EditOutlined />}
+          disabled={!canEditTreatmentPlan(treatmentPlan.status)}
           onClick={() => {
             form.setFieldsValue({
               treatmentDescription: treatmentPlan.treatmentDescription,
               instructions: treatmentPlan.instructions,
-              startDate: moment(treatmentPlan.startDate),
-              endDate: moment(treatmentPlan.endDate),
+              startDate: dayjs(treatmentPlan.startDate),
+              endDate: dayjs(treatmentPlan.endDate),
             });
             setEditModalVisible(true);
           }}
-          disabled={treatmentPlan.status === 'CANCELLED' || treatmentPlan.status === 'SOFT_DELETED'}
         >
           Edit
         </Button>
+
+        {canCancelTreatmentPlan(treatmentPlan.status) && (
+          <Popconfirm
+            title="Cancel Treatment Plan"
+            description={
+              <>
+                <p>Are you sure you want to cancel this treatment plan?</p>
+                <p style={{ marginTop: "8px", marginBottom: "4px" }}>
+                  Reason for cancellation:
+                </p>
+                <Input.TextArea
+                  rows={3}
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Please enter reason for cancellation"
+                />
+              </>
+            }
+            onConfirm={handleCancel}
+            onCancel={() => setCancelReason("")}
+            okText="Cancel Plan"
+            cancelText="No"
+            okButtonProps={{ loading: cancelLoading }}
+          >
+            <Button danger icon={<CloseCircleOutlined />}>
+              Cancel
+            </Button>
+          </Popconfirm>
+        )}
+
+        {canRestoreTreatmentPlan(treatmentPlan.status) && (
+          <Popconfirm
+            title="Restore Treatment Plan"
+            description="Are you sure you want to restore this treatment plan?"
+            onConfirm={handleRestore}
+            okText="Yes"
+            cancelText="No"
+            okButtonProps={{ loading: restoreLoading }}
+          >
+            <Button icon={<UndoOutlined />} loading={restoreLoading}>
+              Restore
+            </Button>
+          </Popconfirm>
+        )}
+
+        {canSoftDeleteTreatmentPlan(treatmentPlan.status) && (
+          <Popconfirm
+            title="Soft Delete Treatment Plan"
+            description="Are you sure you want to soft delete this treatment plan?"
+            onConfirm={handleSoftDelete}
+            okText="Yes"
+            cancelText="No"
+            okButtonProps={{ loading: deleteLoading }}
+          >
+            <Button danger icon={<DeleteOutlined />} loading={deleteLoading}>
+              Delete
+            </Button>
+          </Popconfirm>
+        )}
+
         <Button
+          type="primary"
           icon={<FilePdfOutlined />}
+          loading={exportLoading}
           onClick={handleExportPDF}
         >
           Export PDF
         </Button>
-        {treatmentPlan.status !== 'CANCELLED' && treatmentPlan.status !== 'SOFT_DELETED' && (
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => setCancelModalVisible(true)}
-          >
-            Cancel
-          </Button>
-        )}
-        {treatmentPlan.status === 'SOFT_DELETED' && (
-          <Button
-            icon={<UndoOutlined />}
-            onClick={handleRestore}
-          >
-            Restore
-          </Button>
-        )}
-        {treatmentPlan.status !== 'SOFT_DELETED' && (
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            onClick={handleSoftDelete}
-          >
-            Delete
-          </Button>
-        )}
       </Space>
     );
   };
@@ -295,13 +447,26 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
   return (
     <div className="p-4">
       {contextHolder}
-      <div className="flex justify-between items-center mb-6">
-        <Title level={2}>Treatment Plan Details</Title>
-        {renderActionButtons()}
+
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.push("/treatment-plan")}
+            style={{ marginRight: "8px" }}
+          >
+            Back
+          </Button>
+          <MedicineBoxOutlined style={{ fontSize: "24px" }} />
+          <h3 className="text-xl font-bold">Treatment Plan Details</h3>
+        </div>
+        <div>{renderActionButtons()}</div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <Card title="Basic Information">
+        <Card
+          title={<span style={{ fontWeight: "bold" }}>Basic Information</span>}
+        >
           <div className="space-y-4">
             <div>
               <Text strong>Treatment Plan Code:</Text>
@@ -309,12 +474,15 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
             </div>
             <div>
               <Text strong>Health Check Code:</Text>
-              <Text className="ml-2">{treatmentPlan.healthCheckResult?.healthCheckResultCode}</Text>
+              <Text className="ml-2">
+                {treatmentPlan.healthCheckResult?.healthCheckResultCode}
+              </Text>
             </div>
             <div>
               <Text strong>Patient:</Text>
               <Text className="ml-2">
-                {treatmentPlan.healthCheckResult?.user?.fullName} ({treatmentPlan.healthCheckResult?.user?.email})
+                {treatmentPlan.healthCheckResult?.user?.fullName} (
+                {treatmentPlan.healthCheckResult?.user?.email})
               </Text>
             </div>
             <div>
@@ -325,18 +493,25 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
             </div>
             <div>
               <Text strong>Status:</Text>
-              <Tag color={getStatusColor(treatmentPlan.status)} className="ml-2">
+              <Tag
+                color={getStatusColor(treatmentPlan.status)}
+                className="ml-2"
+              >
                 {treatmentPlan.status}
               </Tag>
             </div>
           </div>
         </Card>
 
-        <Card title="Treatment Details">
+        <Card
+          title={<span style={{ fontWeight: "bold" }}>Treatment Details</span>}
+        >
           <div className="space-y-4">
             <div>
               <Text strong>Treatment Description:</Text>
-              <Text className="ml-2 block">{treatmentPlan.treatmentDescription}</Text>
+              <Text className="ml-2 block">
+                {treatmentPlan.treatmentDescription}
+              </Text>
             </div>
             <div>
               <Text strong>Instructions:</Text>
@@ -344,7 +519,9 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
             </div>
             <div>
               <Text strong>Start Date:</Text>
-              <Text className="ml-2">{formatDate(treatmentPlan.startDate)}</Text>
+              <Text className="ml-2">
+                {formatDate(treatmentPlan.startDate)}
+              </Text>
             </div>
             <div>
               <Text strong>End Date:</Text>
@@ -354,7 +531,9 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
         </Card>
       </div>
 
-      <Card title="History Timeline">
+      <Card
+        title={<span style={{ fontWeight: "bold" }}>History Timeline</span>}
+      >
         <Timeline>
           {histories.map((history) => (
             <Timeline.Item
@@ -364,10 +543,14 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
               <div className="space-y-1">
                 <div className="flex justify-between">
                   <Text strong>{history.action}</Text>
-                  <Text type="secondary">{formatDateTime(history.actionDate)}</Text>
+                  <Text type="secondary">
+                    {formatDateTime(history.actionDate)}
+                  </Text>
                 </div>
                 <div>
-                  <Text type="secondary">Performed by: {history.performedBy?.fullName}</Text>
+                  <Text type="secondary">
+                    Performed by: {history.performedBy?.fullName}
+                  </Text>
                 </div>
                 {history.previousStatus && history.newStatus && (
                   <div>
@@ -385,7 +568,9 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
                 )}
                 {history.changeDetails && (
                   <div>
-                    <Text type="secondary">Details: {history.changeDetails}</Text>
+                    <Text type="secondary">
+                      Details: {history.changeDetails}
+                    </Text>
                   </div>
                 )}
               </div>
@@ -399,12 +584,15 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
         open={editModalVisible}
         onOk={handleUpdate}
         onCancel={() => setEditModalVisible(false)}
+        confirmLoading={updateLoading}
       >
         <Form form={form} layout="vertical">
           <Form.Item
             name="treatmentDescription"
             label="Treatment Description"
-            rules={[{ required: true, message: "Please enter treatment description" }]}
+            rules={[
+              { required: true, message: "Please enter treatment description" },
+            ]}
           >
             <TextArea rows={4} />
           </Form.Item>
@@ -431,26 +619,6 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
           </Form.Item>
         </Form>
       </Modal>
-
-      <Modal
-        title="Cancel Treatment Plan"
-        open={cancelModalVisible}
-        onOk={handleCancel}
-        onCancel={() => setCancelModalVisible(false)}
-      >
-        <Form layout="vertical">
-          <Form.Item
-            label="Reason for Cancellation"
-            required
-          >
-            <TextArea
-              rows={4}
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
-}; 
+};

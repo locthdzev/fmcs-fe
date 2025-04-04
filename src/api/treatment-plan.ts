@@ -423,12 +423,21 @@ export const exportTreatmentPlanToPDF = async (id: string) => {
   try {
     const response = await api.get(`/treatment-plan-management/treatment-plans/${id}/export-pdf`);
 
-    // Không hiển thị toast ở đây nữa, để component xử lý
-    return response.data;
-  } catch (error) {
+    // Chuẩn hóa response để trả về cho component xử lý
+    const data = response.data;
+    if (data && data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+
+    // Không mở file hay hiển thị thông báo trong API
+    return data;
+  } catch (error: any) {
     console.error("Error exporting treatment plan to PDF:", error);
-    // Không hiển thị toast ở đây nữa, để component xử lý
-    throw error;
+    return { 
+      success: false, 
+      isSuccess: false,
+      message: error.response?.data?.message || "Cannot export PDF file" 
+    };
   }
 };
 
