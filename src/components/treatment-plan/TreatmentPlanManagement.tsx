@@ -665,7 +665,14 @@ export function TreatmentPlanManagement() {
         className="shadow mb-4"
         bodyStyle={{ padding: "16px" }}
         title={
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "16px",
+            }}
+          >
             <AppstoreOutlined />
             <span>Toolbar</span>
           </div>

@@ -14,6 +14,7 @@ import {
   Typography,
   Pagination,
 } from "antd";
+import type { ColumnsType, ColumnType } from 'antd/es/table';
 import {
   HistoryOutlined,
   EditOutlined,
@@ -185,11 +186,13 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   };
 
   // Define table columns
-  const columns = [
+  const columns: ColumnsType<TreatmentPlanResponseDTO> = [
     {
-      title: "Treatment Plan Code",
+      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>TREATMENT PLAN CODE</span>,
       dataIndex: "treatmentPlanCode",
       key: "treatmentPlanCode",
+      fixed: 'left',
+      width: 180,
       render: (text: string, record: TreatmentPlanResponseDTO) => (
         <Button
           type="link"
@@ -201,7 +204,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: "Health Check Result",
+      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>HEALTH CHECK RESULT</span>,
       dataIndex: "healthCheckResult",
       key: "healthCheckResult",
       render: (healthCheckResult: any) => (
@@ -220,37 +223,37 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: "Drug",
+      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>DRUG</span>,
       dataIndex: "drug",
       key: "drug",
       render: (drug: any) => renderDrugInfo(drug),
     },
     {
-      title: "Treatment Description",
+      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>TREATMENT DESCRIPTION</span>,
       dataIndex: "treatmentDescription",
       key: "treatmentDescription",
       ellipsis: true,
     },
     {
-      title: "Instructions",
+      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>INSTRUCTIONS</span>,
       dataIndex: "instructions",
       key: "instructions",
       ellipsis: true,
     },
     {
-      title: "Start Date",
+      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>START DATE</span>,
       dataIndex: "startDate",
       key: "startDate",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
-      title: "End Date",
+      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>END DATE</span>,
       dataIndex: "endDate",
       key: "endDate",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
-      title: "Status",
+      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>STATUS</span>,
       dataIndex: "status",
       key: "status",
       align: "center" as const,
@@ -261,19 +264,19 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: "Created At",
+      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>CREATED AT</span>,
       dataIndex: "createdAt",
       key: "createdAt",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY HH:mm:ss"),
     },
     {
-      title: "Updated At",
+      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>UPDATED AT</span>,
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: (date: string) => dayjs(date).format("DD/MM/YYYY HH:mm:ss"),
     },
     {
-      title: "Created By",
+      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>CREATED BY</span>,
       dataIndex: "createdBy",
       key: "createdBy",
       render: (createdBy: any) => (
@@ -290,7 +293,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: "Updated By",
+      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>UPDATED BY</span>,
       dataIndex: "updatedBy",
       key: "updatedBy",
       render: (updatedBy: any) => (
@@ -307,8 +310,10 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
       ),
     },
     {
-      title: "Actions",
+      title: <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>ACTIONS</span>,
       key: "actions",
+      fixed: 'right',
+      width: 120,
       align: "center" as const,
       render: (record: TreatmentPlanResponseDTO) => renderActionButtons(record),
     },
@@ -333,7 +338,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   }
 
   return (
-    <Card className="shadow-sm">
+    <Card className="shadow-sm" bodyStyle={{ padding: "16px" }}>
       <div style={{ overflowX: "auto" }}>
         <Table
           rowSelection={{
@@ -342,6 +347,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
             onChange: (selectedRowKeys) => {
               setSelectedRowKeys(selectedRowKeys as string[]);
             },
+            fixed: true,
           }}
           columns={visibleColumns}
           dataSource={treatmentPlans}
