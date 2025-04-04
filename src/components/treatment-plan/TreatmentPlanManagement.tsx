@@ -245,9 +245,26 @@ export function TreatmentPlanManagement() {
       );
 
       if (response.success) {
-        setTreatmentPlans(response.data);
-        setTotalItems(response.totalItems);
-        extractDataFromTreatmentPlans(response.data);
+        let treatmentPlanData = [];
+        
+        // Xác định dữ liệu treatment plans từ response
+        if (Array.isArray(response.data)) {
+          treatmentPlanData = response.data;
+          setTreatmentPlans(response.data);
+        } else if (response.data?.items && Array.isArray(response.data.items)) {
+          treatmentPlanData = response.data.items;
+          setTreatmentPlans(response.data.items);
+        } else {
+          treatmentPlanData = [];
+          setTreatmentPlans([]);
+          console.warn("Unexpected data structure in response:", response);
+        }
+        
+        // Xác định total items
+        setTotalItems(response.totalItems || response.totalRecords || response.data?.totalItems || response.data?.totalCount || 0);
+        
+        // Trích xuất dữ liệu cho dropdowns
+        extractDataFromTreatmentPlans(treatmentPlanData);
       } else {
         messageApi.error(response.message || "Failed to fetch treatment plans", 5);
       }
@@ -557,7 +574,6 @@ export function TreatmentPlanManagement() {
 
   const handleApplyFilters = (filters: any) => {
     setHealthCheckResultCodeSearch(filters.healthCheckResultCode || "");
-    setUserSearch(filters.userSearch || "");
     setDrugSearch(filters.drugSearch || "");
     setUpdatedBySearch(filters.updatedBySearch || "");
     setDateRange(filters.dateRange || [null, null]);

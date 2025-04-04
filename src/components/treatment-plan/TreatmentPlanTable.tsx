@@ -22,11 +22,11 @@ import {
   message,
 } from "antd";
 import type { ColumnsType, ColumnType } from "antd/es/table";
-import {
-  HistoryOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  UndoOutlined,
+import { 
+  HistoryOutlined, 
+  EditOutlined, 
+  DeleteOutlined, 
+  UndoOutlined, 
   CloseCircleOutlined,
   DownOutlined,
 } from "@ant-design/icons";
@@ -892,7 +892,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
             columns={visibleColumns}
             dataSource={treatmentPlans}
             rowKey="id"
-            loading={false}
+            loading={loading}
             pagination={false}
             scroll={{ x: "max-content" }}
           />
@@ -937,4 +937,4 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   );
 };
 
-export default TreatmentPlanTable;
+export default TreatmentPlanTable; 

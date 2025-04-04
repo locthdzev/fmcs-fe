@@ -39,7 +39,6 @@ interface TreatmentPlanFilterModalProps {
     dateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
     createdDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
     updatedDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
-    sortBy: string;
     ascending: boolean;
   };
   treatmentPlanCodes: string[];
@@ -68,10 +67,9 @@ const TreatmentPlanFilterModal: React.FC<TreatmentPlanFilterModalProps> = ({
     if (visible) {
       setLocalFilters(filters);
       form.setFieldsValue({
-        healthCheckResultCode: filters.healthCheckResultCode,
-        userSearch: filters.userSearch,
-        drugSearch: filters.drugSearch,
-        updatedBySearch: filters.updatedBySearch,
+        healthCheckResultCode: filters.healthCheckResultCode || undefined,
+        drugSearch: filters.drugSearch || undefined,
+        updatedBySearch: filters.updatedBySearch || undefined,
         dateRange: filters.dateRange[0] || filters.dateRange[1] ? [
           filters.dateRange[0],
           filters.dateRange[1]
@@ -84,7 +82,6 @@ const TreatmentPlanFilterModal: React.FC<TreatmentPlanFilterModalProps> = ({
           filters.updatedDateRange[0],
           filters.updatedDateRange[1]
         ] : undefined,
-        sortBy: filters.sortBy,
         ascending: filters.ascending,
       });
     }
@@ -93,6 +90,9 @@ const TreatmentPlanFilterModal: React.FC<TreatmentPlanFilterModalProps> = ({
   const handleApply = async () => {
     try {
       const values = await form.validateFields();
+      // Mặc định sắp xếp theo CreatedAt và đặt userSearch là undefined
+      values.sortBy = "CreatedAt";
+      values.userSearch = undefined;
       onApply(values);
     } catch (error) {
       console.error("Validation failed:", error);
@@ -145,28 +145,6 @@ const TreatmentPlanFilterModal: React.FC<TreatmentPlanFilterModalProps> = ({
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="userSearch" label="Patient">
-              <Select
-                showSearch
-                allowClear
-                placeholder="Search patient"
-                optionFilterProp="children"
-                filterOption={(input, option) =>
-                  (option?.label as string)
-                    .toLowerCase()
-                    .indexOf(input.toLowerCase()) >= 0
-                }
-                options={userOptions.map((user) => ({
-                  value: user.id,
-                  label: `${user.fullName} (${user.email})`,
-                }))}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={16}>
-          <Col span={12}>
             <Form.Item name="drugSearch" label="Drug">
               <Select
                 showSearch
@@ -185,6 +163,9 @@ const TreatmentPlanFilterModal: React.FC<TreatmentPlanFilterModalProps> = ({
               />
             </Form.Item>
           </Col>
+        </Row>
+
+        <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="updatedBySearch" label="Updated By">
               <Select
@@ -206,18 +187,38 @@ const TreatmentPlanFilterModal: React.FC<TreatmentPlanFilterModalProps> = ({
           </Col>
         </Row>
 
-        <Divider />
-        <Title level={5}>Date Ranges</Title>
+        <Divider style={{ margin: "8px 0 16px 0" }} />
+        <Title level={5}>Date & Sorting</Title>
 
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="dateRange" label="Treatment Date Range">
-              <RangePicker style={{ width: "100%" }} />
+              <RangePicker 
+                style={{ width: "100%" }} 
+                placeholder={["From date", "To date"]}
+                format="DD/MM/YYYY"
+                allowClear
+                ranges={{
+                  "Last 7 Days": [dayjs().subtract(6, "days"), dayjs()],
+                  "Last 30 Days": [dayjs().subtract(29, "days"), dayjs()],
+                  "This Month": [dayjs().startOf("month"), dayjs().endOf("month")],
+                }}
+              />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="createdDateRange" label="Created Date Range">
-              <RangePicker style={{ width: "100%" }} />
+              <RangePicker 
+                style={{ width: "100%" }} 
+                placeholder={["From date", "To date"]}
+                format="DD/MM/YYYY"
+                allowClear
+                ranges={{
+                  "Last 7 Days": [dayjs().subtract(6, "days"), dayjs()],
+                  "Last 30 Days": [dayjs().subtract(29, "days"), dayjs()],
+                  "This Month": [dayjs().startOf("month"), dayjs().endOf("month")],
+                }}
+              />
             </Form.Item>
           </Col>
         </Row>
@@ -225,42 +226,22 @@ const TreatmentPlanFilterModal: React.FC<TreatmentPlanFilterModalProps> = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="updatedDateRange" label="Updated Date Range">
-              <RangePicker style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Divider />
-        <Title level={5}>Sorting</Title>
-
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="sortBy" label="Sort By">
-              <Select>
-                <Option value="TreatmentPlanCode">Treatment Plan Code</Option>
-                <Option value="StartDate">Start Date</Option>
-                <Option value="EndDate">End Date</Option>
-                <Option value="CreatedAt">Created At</Option>
-                <Option value="UpdatedAt">Updated At</Option>
-              </Select>
+              <RangePicker 
+                style={{ width: "100%" }} 
+                placeholder={["From date", "To date"]}
+                format="DD/MM/YYYY"
+                allowClear
+                ranges={{
+                  "Last 7 Days": [dayjs().subtract(6, "days"), dayjs()],
+                  "Last 30 Days": [dayjs().subtract(29, "days"), dayjs()],
+                  "This Month": [dayjs().startOf("month"), dayjs().endOf("month")],
+                }}
+              />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="ascending" label="Sort Direction" valuePropName="checked">
+            <Form.Item name="ascending" label="Sort Direction (CreatedAt)" valuePropName="checked">
               <div className="filter-item">
-                <div
-                  className="filter-label"
-                  style={{
-                    marginBottom: "8px",
-                    color: "#666666",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
-                  <SortAscendingOutlined />
-                  <span>Sort direction</span>
-                </div>
                 <Radio.Group
                   value={localFilters.ascending ? "asc" : "desc"}
                   onChange={(e) =>
