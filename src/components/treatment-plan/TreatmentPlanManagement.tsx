@@ -1,34 +1,27 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Form,
   Button,
-  Space,
   Typography,
   Select,
   message,
   Card,
   Tooltip,
-  Input,
-  Pagination,
-  InputNumber,
   Dropdown,
   Checkbox,
+  Modal as AntdModal,
 } from "antd";
 import {
   PlusOutlined,
-  DeleteOutlined,
   UndoOutlined,
   FileExcelOutlined,
   MedicineBoxOutlined,
   ArrowLeftOutlined,
   FilterOutlined,
   SearchOutlined,
-  ToolOutlined,
   SettingOutlined,
   AppstoreOutlined,
   TagOutlined,
-  CheckSquareOutlined,
-  FlagOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -48,6 +41,9 @@ import {
   getTreatmentPlanIdsByStatus,
 } from "@/api/treatment-plan";
 import dayjs from "dayjs";
+import * as DrugApi from "@/api/drug";
+import * as UserApi from "@/api/user";
+import * as HealthCheckResultApi from "@/api/healthcheckresult";
 
 const { Option } = Select;
 const { Text, Title } = Typography;
@@ -202,79 +198,225 @@ export function TreatmentPlanManagement() {
 
   // Fetch treatment plans with filtering
   const fetchTreatmentPlans = async () => {
-    setLoading(true);
     try {
-      // Convert dates to formatted strings if they exist
-      const startDateFormatted = dateRange[0]
-        ? dateRange[0].format("YYYY-MM-DD")
-        : undefined;
-      const endDateFormatted = dateRange[1]
-        ? dateRange[1].format("YYYY-MM-DD")
-        : undefined;
-      const createdStartDateFormatted = createdDateRange[0]
-        ? createdDateRange[0].format("YYYY-MM-DD")
-        : undefined;
-      const createdEndDateFormatted = createdDateRange[1]
-        ? createdDateRange[1].format("YYYY-MM-DD")
-        : undefined;
-      const updatedStartDateFormatted = updatedDateRange[0]
-        ? updatedDateRange[0].format("YYYY-MM-DD")
-        : undefined;
-      const updatedEndDateFormatted = updatedDateRange[1]
-        ? updatedDateRange[1].format("YYYY-MM-DD")
-        : undefined;
+      setLoading(true);
 
-      // Call API with all filters
-      const response = await getAllTreatmentPlans(
-        currentPage,
+      // Format date ranges for API parameters
+      const dateRanges = formatDateRangesForAPI();
+
+      // Prepare API parameters
+      const apiParams = {
+        page: currentPage,
         pageSize,
-        treatmentPlanCodeSearch,
-        healthCheckResultCodeSearch,
-        userSearch,
-        drugSearch,
-        updatedBySearch,
-        sortBy,
+        treatmentPlanCodeSearch: treatmentPlanCodeSearch || undefined,
+        healthCheckResultCodeSearch: healthCheckResultCodeSearch || undefined,
+        userSearch: userSearch || undefined,
+        drugSearch: drugSearch || undefined,
+        updatedBySearch: updatedBySearch || undefined,
+        sortBy: "CreatedAt",
         ascending,
-        statusFilter,
-        startDateFormatted,
-        endDateFormatted,
-        createdStartDateFormatted,
-        createdEndDateFormatted,
-        updatedStartDateFormatted,
-        updatedEndDateFormatted
+        status: statusFilter || undefined,
+        ...dateRanges,
+      };
+
+      console.log("API Request Parameters:", apiParams);
+
+      // Call API with parameters
+      const response = await getAllTreatmentPlans(
+        apiParams.page,
+        apiParams.pageSize,
+        apiParams.treatmentPlanCodeSearch,
+        apiParams.healthCheckResultCodeSearch,
+        apiParams.userSearch,
+        apiParams.drugSearch,
+        apiParams.updatedBySearch,
+        apiParams.sortBy,
+        apiParams.ascending,
+        apiParams.status,
+        apiParams.startDate,
+        apiParams.endDate,
+        apiParams.createdStartDate,
+        apiParams.createdEndDate,
+        apiParams.updatedStartDate,
+        apiParams.updatedEndDate
       );
 
-      if (response.success) {
-        let treatmentPlanData = [];
-        
-        // Xác định dữ liệu treatment plans từ response
-        if (Array.isArray(response.data)) {
-          treatmentPlanData = response.data;
-          setTreatmentPlans(response.data);
-        } else if (response.data?.items && Array.isArray(response.data.items)) {
-          treatmentPlanData = response.data.items;
-          setTreatmentPlans(response.data.items);
-        } else {
-          treatmentPlanData = [];
-          setTreatmentPlans([]);
-          console.warn("Unexpected data structure in response:", response);
+      console.log("API Response:", response);
+
+      // Check if no data returned
+      if (
+        !response.data ||
+        (Array.isArray(response.data) && response.data.length === 0)
+      ) {
+        console.log("No data returned with these filters");
+
+        // Provide more specific logging for date filters
+        if (dateRanges.startDate || dateRanges.endDate) {
+          console.log(
+            "Note: Treatment date filter is active. Your data is from 2025 but you might be filtering with 2024 dates."
+          );
+          console.log(
+            "Consider using 'All Time' in date range filter to see all data across years."
+          );
         }
-        
-        // Xác định total items
-        setTotalItems(response.totalItems || response.totalRecords || response.data?.totalItems || response.data?.totalCount || 0);
-        
-        // Trích xuất dữ liệu cho dropdowns
-        extractDataFromTreatmentPlans(treatmentPlanData);
-      } else {
-        messageApi.error(response.message || "Failed to fetch treatment plans", 5);
       }
+
+      // Extract total count from response
+      const totalCount = extractTotalCountFromResponse(response);
+      setTotalItems(totalCount);
+
+      // Extract treatment plans from response
+      const extractedTreatmentPlans =
+        extractTreatmentPlansFromResponse(response);
+      setTreatmentPlans(extractedTreatmentPlans);
     } catch (error) {
       console.error("Error fetching treatment plans:", error);
-      messageApi.error("Failed to fetch treatment plans", 5);
+      message.error("Failed to fetch treatment plans");
     } finally {
       setLoading(false);
     }
   };
+
+  // Helper function to format date ranges
+  const formatDateRangesForAPI = () => {
+    // Format treatment date range
+    const startDateFormatted =
+      dateRange && dateRange[0] ? dateRange[0].format("YYYY-MM-DD") : undefined;
+
+    const endDateFormatted =
+      dateRange && dateRange[1] ? dateRange[1].format("YYYY-MM-DD") : undefined;
+
+    // Format created date range
+    const createdStartDateFormatted =
+      createdDateRange && createdDateRange[0]
+        ? createdDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+
+    const createdEndDateFormatted =
+      createdDateRange && createdDateRange[1]
+        ? createdDateRange[1].format("YYYY-MM-DD")
+        : undefined;
+
+    // Format updated date range
+    const updatedStartDateFormatted =
+      updatedDateRange && updatedDateRange[0]
+        ? updatedDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+
+    const updatedEndDateFormatted =
+      updatedDateRange && updatedDateRange[1]
+        ? updatedDateRange[1].format("YYYY-MM-DD")
+        : undefined;
+
+    console.log("Formatted date ranges:", {
+      dateRange: [startDateFormatted, endDateFormatted],
+      createdDateRange: [createdStartDateFormatted, createdEndDateFormatted],
+      updatedDateRange: [updatedStartDateFormatted, updatedEndDateFormatted],
+    });
+
+    return {
+      startDate: startDateFormatted,
+      endDate: endDateFormatted,
+      createdStartDate: createdStartDateFormatted,
+      createdEndDate: createdEndDateFormatted,
+      updatedStartDate: updatedStartDateFormatted,
+      updatedEndDate: updatedEndDateFormatted,
+    };
+  };
+
+  // Helper function to extract total count from response
+  const extractTotalCountFromResponse = (response: any): number => {
+    if (response.totalItems !== undefined) {
+      return response.totalItems;
+    }
+    if (response.totalRecords !== undefined) {
+      return response.totalRecords;
+    }
+    if (response.data?.totalItems !== undefined) {
+      return response.data.totalItems;
+    }
+    if (response.data?.totalCount !== undefined) {
+      return response.data.totalCount;
+    }
+    return 0;
+  };
+
+  // Helper function to extract treatment plans from response
+  const extractTreatmentPlansFromResponse = (
+    response: any
+  ): TreatmentPlanResponseDTO[] => {
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    if (response.data?.items && Array.isArray(response.data.items)) {
+      return response.data.items;
+    }
+    if (Array.isArray(response)) {
+      return response;
+    }
+    if (response.items && Array.isArray(response.items)) {
+      return response.items;
+    }
+
+    console.warn(
+      "Unexpected response structure for treatment plans:",
+      response
+    );
+    return [];
+  };
+
+  // Fetch dropdown options independently from the current filters
+  const fetchDropdownOptions = async () => {
+    try {
+      // Call API without filters to get all possible options
+      const response = await getAllTreatmentPlans(
+        1,
+        1000, // Large pageSize to get all options
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        "CreatedAt",
+        false,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
+      );
+
+      if (response.success) {
+        let allData = [];
+
+        // Get data from response
+        if (Array.isArray(response.data)) {
+          allData = response.data;
+        } else if (response.data?.items && Array.isArray(response.data.items)) {
+          allData = response.data.items;
+        } else {
+          allData = [];
+          console.warn(
+            "Unexpected data structure in dropdown options response:",
+            response
+          );
+        }
+
+        // Extract dropdown options
+        extractDataFromTreatmentPlans(allData);
+      }
+    } catch (error) {
+      console.error("Error fetching dropdown options:", error);
+    }
+  };
+
+  // Effect to fetch dropdown options on initial load
+  useEffect(() => {
+    fetchDropdownOptions();
+    fetchFilterOptions(); // Call fetchFilterOptions on component mount
+  }, []);
 
   // Extract unique data from treatment plans for dropdowns
   const extractDataFromTreatmentPlans = (
@@ -453,7 +595,10 @@ export function TreatmentPlanManagement() {
         messageApi.success("Treatment plan soft deleted successfully", 5);
         fetchTreatmentPlans();
       } else {
-        messageApi.error(response.message || "Failed to soft delete treatment plan", 5);
+        messageApi.error(
+          response.message || "Failed to soft delete treatment plan",
+          5
+        );
       }
     } catch (error) {
       console.error("Error soft deleting treatment plan:", error);
@@ -476,8 +621,13 @@ export function TreatmentPlanManagement() {
         fetchTreatmentPlans();
         return Promise.resolve(response);
       } else {
-        messageApi.error(response.message || "Failed to cancel treatment plan", 5);
-        return Promise.reject(response.message || "Failed to cancel treatment plan");
+        messageApi.error(
+          response.message || "Failed to cancel treatment plan",
+          5
+        );
+        return Promise.reject(
+          response.message || "Failed to cancel treatment plan"
+        );
       }
     } catch (error) {
       console.error("Error cancelling treatment plan:", error);
@@ -494,7 +644,10 @@ export function TreatmentPlanManagement() {
         messageApi.success("Treatment plan restored successfully", 5);
         fetchTreatmentPlans();
       } else {
-        messageApi.error(response.message || "Failed to restore treatment plan", 5);
+        messageApi.error(
+          response.message || "Failed to restore treatment plan",
+          5
+        );
       }
     } catch (error) {
       console.error("Error restoring treatment plan:", error);
@@ -512,12 +665,16 @@ export function TreatmentPlanManagement() {
     try {
       const response = await softDeleteTreatmentPlans(ids);
       if (response.success) {
-        messageApi.success("Selected treatment plans soft deleted successfully", 5);
+        messageApi.success(
+          "Selected treatment plans soft deleted successfully",
+          5
+        );
         setSelectedTreatmentPlans([]);
         fetchTreatmentPlans();
       } else {
         messageApi.error(
-          response.message || "Failed to soft delete treatment plans", 5
+          response.message || "Failed to soft delete treatment plans",
+          5
         );
       }
     } catch (error) {
@@ -541,7 +698,8 @@ export function TreatmentPlanManagement() {
         fetchTreatmentPlans();
       } else {
         messageApi.error(
-          response.message || "Failed to restore treatment plans", 5
+          response.message || "Failed to restore treatment plans",
+          5
         );
       }
     } catch (error) {
@@ -551,42 +709,101 @@ export function TreatmentPlanManagement() {
   };
 
   // Filter modal functions
-  const openFilterModal = () => {
+  const handleOpenFilterModal = () => {
+    console.log("Opening filter modal with current filters:", {
+      healthCheckResultCode: healthCheckResultCodeSearch,
+      drugSearch,
+      updatedBySearch,
+      dateRange,
+      createdDateRange,
+      updatedDateRange,
+      ascending,
+    });
+
+    // Thiết lập giá trị state ban đầu với tên key đúng
     setFilterState({
       healthCheckResultCode: healthCheckResultCodeSearch,
-      userSearch: userSearch,
-      drugSearch: drugSearch,
-      updatedBySearch: updatedBySearch,
-      dateRange: dateRange as [dayjs.Dayjs | null, dayjs.Dayjs | null],
-      createdDateRange: createdDateRange as [
-        dayjs.Dayjs | null,
-        dayjs.Dayjs | null
-      ],
-      updatedDateRange: updatedDateRange as [
-        dayjs.Dayjs | null,
-        dayjs.Dayjs | null
-      ],
-      sortBy: sortBy,
-      ascending: ascending,
+      userSearch,
+      drugSearch,
+      updatedBySearch,
+      dateRange,
+      createdDateRange,
+      updatedDateRange,
+      sortBy: "CreatedAt",
+      ascending,
     });
+
     setFilterModalVisible(true);
   };
 
   const handleApplyFilters = (filters: any) => {
-    setHealthCheckResultCodeSearch(filters.healthCheckResultCode || "");
-    setDrugSearch(filters.drugSearch || "");
-    setUpdatedBySearch(filters.updatedBySearch || "");
-    setDateRange(filters.dateRange || [null, null]);
-    setCreatedDateRange(filters.createdDateRange || [null, null]);
-    setUpdatedDateRange(filters.updatedDateRange || [null, null]);
-    setSortBy(filters.sortBy || "CreatedAt");
-    setAscending(filters.ascending || false);
-    setCurrentPage(1);
+    console.log("Applying filters:", filters);
+
+    // Áp dụng các bộ lọc từ modal - đảm bảo tên biến khớp với tham số API
+    setHealthCheckResultCodeSearch(filters.healthCheckResultCodeSearch);
+    setDrugSearch(filters.drugSearch);
+    setUpdatedBySearch(filters.updatedBySearch);
+
+    // Kiểm tra và xử lý null/undefined cho các date range
+    if (filters.dateRange) {
+      // Đảm bảo dateRange là mảng có 2 phần tử
+      if (Array.isArray(filters.dateRange) && filters.dateRange.length === 2) {
+        setDateRange(filters.dateRange);
+      } else {
+        // Nếu không phải mảng 2 phần tử, set giá trị mặc định [null, null]
+        setDateRange([null, null]);
+      }
+    } else {
+      setDateRange([null, null]);
+    }
+
+    if (filters.createdDateRange) {
+      if (
+        Array.isArray(filters.createdDateRange) &&
+        filters.createdDateRange.length === 2
+      ) {
+        setCreatedDateRange(filters.createdDateRange);
+      } else {
+        setCreatedDateRange([null, null]);
+      }
+    } else {
+      setCreatedDateRange([null, null]);
+    }
+
+    if (filters.updatedDateRange) {
+      if (
+        Array.isArray(filters.updatedDateRange) &&
+        filters.updatedDateRange.length === 2
+      ) {
+        setUpdatedDateRange(filters.updatedDateRange);
+      } else {
+        setUpdatedDateRange([null, null]);
+      }
+    } else {
+      setUpdatedDateRange([null, null]);
+    }
+
+    setAscending(filters.ascending);
+
+    // Đóng modal
     setFilterModalVisible(false);
+
+    // Reset về trang đầu tiên
+    setCurrentPage(1);
   };
 
   const handleResetFilters = () => {
-    handleReset();
+    setHealthCheckResultCodeSearch("");
+    setUserSearch("");
+    setDrugSearch("");
+    setUpdatedBySearch("");
+    setStatusFilter("");
+    setDateRange([null, null]);
+    setCreatedDateRange([null, null]);
+    setUpdatedDateRange([null, null]);
+    setSortBy("CreatedAt");
+    setAscending(false);
+    setCurrentPage(1);
     setFilterModalVisible(false);
   };
 
@@ -675,6 +892,38 @@ export function TreatmentPlanManagement() {
     }
   };
 
+  // Hàm này được gọi khi component mount để tải các tùy chọn filter
+  const fetchFilterOptions = async () => {
+    try {
+      // Fetch drug options
+      const drugsResponse = await DrugApi.getDrugs();
+      console.log("Fetched drug options:", drugsResponse);
+      if (drugsResponse && Array.isArray(drugsResponse)) {
+        setDrugOptions(drugsResponse);
+      }
+
+      // Fetch user options (for updatedBy filter)
+      const usersResponse = await UserApi.getUsers();
+      console.log("Fetched user options:", usersResponse);
+      if (usersResponse && Array.isArray(usersResponse)) {
+        setUpdatedByOptions(usersResponse);
+      }
+
+      // Fetch health check codes
+      const healthChecksResponse =
+        await HealthCheckResultApi.getAllHealthCheckResults();
+      console.log("Fetched health check options:", healthChecksResponse);
+      if (healthChecksResponse && Array.isArray(healthChecksResponse)) {
+        const codes = healthChecksResponse.map(
+          (item: any) => item.healthCheckResultCode
+        );
+        setHealthCheckCodes(codes);
+      }
+    } catch (error) {
+      console.error("Error fetching filter options:", error);
+    }
+  };
+
   return (
     <div className="history-container" style={{ padding: "20px" }}>
       {contextHolder}
@@ -758,7 +1007,7 @@ export function TreatmentPlanManagement() {
                     }}
                   />
                 }
-                onClick={openFilterModal}
+                onClick={handleOpenFilterModal}
               >
                 Filters
               </Button>
