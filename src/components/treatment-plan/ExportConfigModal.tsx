@@ -7,7 +7,6 @@ import {
   Typography,
   message,
 } from "antd";
-import { toast } from "react-toastify";
 import {
   exportTreatmentPlansToExcelWithConfig,
   TreatmentPlanExportConfigDTO,
@@ -47,6 +46,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
 
   const handleSubmit = async () => {
     try {
@@ -114,9 +114,9 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
 
       if (response.success && response.data) {
         window.open(response.data, "_blank");
-        toast.success("Treatment plans exported to Excel successfully");
+        messageApi.success("Treatment plans exported to Excel successfully", 5);
       } else {
-        toast.error(response.message || "Failed to export Excel file");
+        messageApi.error(response.message || "Failed to export Excel file", 5);
       }
 
       onChange(values);
@@ -152,6 +152,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         </Button>,
       ]}
     >
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"

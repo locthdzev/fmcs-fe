@@ -30,7 +30,6 @@ import {
   CheckSquareOutlined,
   FlagOutlined,
 } from "@ant-design/icons";
-import { toast } from "react-toastify";
 import { useRouter } from "next/router";
 
 import TreatmentPlanTable from "./TreatmentPlanTable";
@@ -55,6 +54,7 @@ const { Text, Title } = Typography;
 
 export function TreatmentPlanManagement() {
   const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [treatmentPlans, setTreatmentPlans] = useState<
     TreatmentPlanResponseDTO[]
@@ -200,17 +200,31 @@ export function TreatmentPlanManagement() {
     ascending,
   ]);
 
-  // Fetch treatment plans from API
+  // Fetch treatment plans with filtering
   const fetchTreatmentPlans = async () => {
     setLoading(true);
     try {
-      const startDate = dateRange?.[0]?.format("YYYY-MM-DD");
-      const endDate = dateRange?.[1]?.format("YYYY-MM-DD");
-      const createdStartDate = createdDateRange?.[0]?.format("YYYY-MM-DD");
-      const createdEndDate = createdDateRange?.[1]?.format("YYYY-MM-DD");
-      const updatedStartDate = updatedDateRange?.[0]?.format("YYYY-MM-DD");
-      const updatedEndDate = updatedDateRange?.[1]?.format("YYYY-MM-DD");
+      // Convert dates to formatted strings if they exist
+      const startDateFormatted = dateRange[0]
+        ? dateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const endDateFormatted = dateRange[1]
+        ? dateRange[1].format("YYYY-MM-DD")
+        : undefined;
+      const createdStartDateFormatted = createdDateRange[0]
+        ? createdDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const createdEndDateFormatted = createdDateRange[1]
+        ? createdDateRange[1].format("YYYY-MM-DD")
+        : undefined;
+      const updatedStartDateFormatted = updatedDateRange[0]
+        ? updatedDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const updatedEndDateFormatted = updatedDateRange[1]
+        ? updatedDateRange[1].format("YYYY-MM-DD")
+        : undefined;
 
+      // Call API with all filters
       const response = await getAllTreatmentPlans(
         currentPage,
         pageSize,
@@ -222,42 +236,24 @@ export function TreatmentPlanManagement() {
         sortBy,
         ascending,
         statusFilter,
-        startDate,
-        endDate,
-        createdStartDate,
-        createdEndDate,
-        updatedStartDate,
-        updatedEndDate
+        startDateFormatted,
+        endDateFormatted,
+        createdStartDateFormatted,
+        createdEndDateFormatted,
+        updatedStartDateFormatted,
+        updatedEndDateFormatted
       );
 
-      if (response.success || response.isSuccess) {
-        let treatmentPlanData: TreatmentPlanResponseDTO[] = [];
-
-        if (Array.isArray(response.data)) {
-          treatmentPlanData = response.data;
-          setTreatmentPlans(response.data);
-          setTotalItems(response.totalRecords || 0);
-        } else if (response.data && Array.isArray(response.data.items)) {
-          treatmentPlanData = response.data.items;
-          setTreatmentPlans(response.data.items);
-          setTotalItems(
-            response.data.totalItems || response.data.totalCount || 0
-          );
-        } else {
-          console.error("Unexpected data structure:", response.data);
-          setTreatmentPlans([]);
-          setTotalItems(0);
-          toast.error("Unexpected data structure received");
-        }
-
-        // Extract unique data for dropdowns
-        extractDataFromTreatmentPlans(treatmentPlanData);
+      if (response.success) {
+        setTreatmentPlans(response.data);
+        setTotalItems(response.totalItems);
+        extractDataFromTreatmentPlans(response.data);
       } else {
-        toast.error(response.message || "Failed to fetch treatment plans");
+        messageApi.error(response.message || "Failed to fetch treatment plans", 5);
       }
     } catch (error) {
       console.error("Error fetching treatment plans:", error);
-      toast.error("Failed to fetch treatment plans");
+      messageApi.error("Failed to fetch treatment plans", 5);
     } finally {
       setLoading(false);
     }
@@ -437,14 +433,14 @@ export function TreatmentPlanManagement() {
     try {
       const response = await softDeleteTreatmentPlans([id]);
       if (response.success) {
-        toast.success("Treatment plan soft deleted successfully");
+        messageApi.success("Treatment plan soft deleted successfully", 5);
         fetchTreatmentPlans();
       } else {
-        toast.error(response.message || "Failed to soft delete treatment plan");
+        messageApi.error(response.message || "Failed to soft delete treatment plan", 5);
       }
     } catch (error) {
       console.error("Error soft deleting treatment plan:", error);
-      toast.error("Failed to soft delete treatment plan");
+      messageApi.error("Failed to soft delete treatment plan", 5);
     }
   };
 
@@ -453,22 +449,22 @@ export function TreatmentPlanManagement() {
     try {
       // Validate reason
       if (!reason || reason.trim() === "") {
-        toast.error("Cancellation reason is required");
+        messageApi.error("Cancellation reason is required", 5);
         return Promise.reject("Cancellation reason is required");
       }
 
       const response = await cancelTreatmentPlan(id, reason);
       if (response.success || response.isSuccess) {
-        toast.success("Treatment plan cancelled successfully");
+        messageApi.success("Treatment plan cancelled successfully", 5);
         fetchTreatmentPlans();
         return Promise.resolve(response);
       } else {
-        toast.error(response.message || "Failed to cancel treatment plan");
+        messageApi.error(response.message || "Failed to cancel treatment plan", 5);
         return Promise.reject(response.message || "Failed to cancel treatment plan");
       }
     } catch (error) {
       console.error("Error cancelling treatment plan:", error);
-      toast.error("Failed to cancel treatment plan");
+      messageApi.error("Failed to cancel treatment plan", 5);
       return Promise.reject("Failed to cancel treatment plan");
     }
   };
@@ -478,62 +474,62 @@ export function TreatmentPlanManagement() {
     try {
       const response = await restoreSoftDeletedTreatmentPlans([id]);
       if (response.success) {
-        toast.success("Treatment plan restored successfully");
+        messageApi.success("Treatment plan restored successfully", 5);
         fetchTreatmentPlans();
       } else {
-        toast.error(response.message || "Failed to restore treatment plan");
+        messageApi.error(response.message || "Failed to restore treatment plan", 5);
       }
     } catch (error) {
       console.error("Error restoring treatment plan:", error);
-      toast.error("Failed to restore treatment plan");
+      messageApi.error("Failed to restore treatment plan", 5);
     }
   };
 
   // Handle bulk delete
-  const handleBulkDelete = async () => {
-    if (selectedTreatmentPlans.length === 0) {
-      toast.warning("Please select treatment plans to delete");
+  const handleBulkDelete = async (ids: string[]) => {
+    if (ids.length === 0) {
+      messageApi.warning("Please select treatment plans to delete", 5);
       return;
     }
 
     try {
-      const response = await softDeleteTreatmentPlans(selectedTreatmentPlans);
+      const response = await softDeleteTreatmentPlans(ids);
       if (response.success) {
-        toast.success("Selected treatment plans soft deleted successfully");
+        messageApi.success("Selected treatment plans soft deleted successfully", 5);
         setSelectedTreatmentPlans([]);
         fetchTreatmentPlans();
       } else {
-        toast.error(
-          response.message || "Failed to soft delete treatment plans"
+        messageApi.error(
+          response.message || "Failed to soft delete treatment plans", 5
         );
       }
     } catch (error) {
       console.error("Error soft deleting treatment plans:", error);
-      toast.error("Failed to soft delete treatment plans");
+      messageApi.error("Failed to soft delete treatment plans", 5);
     }
   };
 
   // Handle bulk restore
-  const handleBulkRestore = async () => {
-    if (selectedTreatmentPlans.length === 0) {
-      toast.warning("Please select treatment plans to restore");
+  const handleBulkRestore = async (ids: string[]) => {
+    if (ids.length === 0) {
+      messageApi.warning("Please select treatment plans to restore", 5);
       return;
     }
 
     try {
-      const response = await restoreSoftDeletedTreatmentPlans(
-        selectedTreatmentPlans
-      );
+      const response = await restoreSoftDeletedTreatmentPlans(ids);
       if (response.success) {
-        toast.success("Selected treatment plans restored successfully");
+        messageApi.success("Selected treatment plans restored successfully", 5);
         setSelectedTreatmentPlans([]);
         fetchTreatmentPlans();
       } else {
-        toast.error(response.message || "Failed to restore treatment plans");
+        messageApi.error(
+          response.message || "Failed to restore treatment plans", 5
+        );
       }
     } catch (error) {
       console.error("Error restoring treatment plans:", error);
-      toast.error("Failed to restore treatment plans");
+      messageApi.error("Failed to restore treatment plans", 5);
     }
   };
 
@@ -665,6 +661,7 @@ export function TreatmentPlanManagement() {
 
   return (
     <div className="history-container" style={{ padding: "20px" }}>
+      {contextHolder}
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">

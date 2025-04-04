@@ -73,6 +73,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   getAllTreatmentPlanIdsByStatus,
 }) => {
   const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
 
   // State to track what type of items are selected (for bulk actions)
   const [selectedItemTypes, setSelectedItemTypes] = useState<{
@@ -485,7 +486,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
               }
               onConfirm={() => {
                 if (!cancellationReason || cancellationReason.trim() === "") {
-                  message.error("Please enter a reason for cancellation");
+                  messageApi.error("Please enter a reason for cancellation", 5);
                   return Promise.reject("Reason is required");
                 }
 
@@ -774,6 +775,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
 
   return (
     <>
+      {contextHolder}
       {/* Row that shows selected items count (left) and rows per page (right) */}
       <div
         style={{

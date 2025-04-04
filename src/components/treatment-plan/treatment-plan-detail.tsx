@@ -13,7 +13,6 @@ import {
   message,
   Spin,
 } from "antd";
-import { toast } from "react-toastify";
 import moment from "moment";
 import {
   getTreatmentPlanById,
@@ -44,6 +43,7 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
   const [form] = Form.useForm();
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [messageApi, contextHolder] = message.useMessage();
 
   useEffect(() => {
     fetchTreatmentPlan();
@@ -56,11 +56,11 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
       if (response.success) {
         setTreatmentPlan(response.data);
       } else {
-        toast.error("Failed to fetch treatment plan");
+        messageApi.error("Failed to fetch treatment plan", 5);
       }
     } catch (error) {
       console.error("Error fetching treatment plan:", error);
-      toast.error("Failed to fetch treatment plan");
+      messageApi.error("Failed to fetch treatment plan", 5);
     } finally {
       setLoading(false);
     }
@@ -73,11 +73,11 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
       if (response.success) {
         setHistories(response.data);
       } else {
-        toast.error(response.message || "Failed to fetch histories");
+        messageApi.error(response.message || "Failed to fetch histories", 5);
       }
     } catch (error) {
       console.error("Error fetching histories:", error);
-      toast.error("Failed to fetch histories");
+      messageApi.error("Failed to fetch histories", 5);
     } finally {
       setLoading(false);
     }
@@ -88,13 +88,13 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
       const response = await exportTreatmentPlanToPDF(id);
       if (response.success && response.data) {
         window.open(response.data, "_blank");
-        toast.success("Treatment plan exported to PDF successfully");
+        messageApi.success("Treatment plan exported to PDF successfully", 5);
       } else {
-        toast.error(response.message || "Failed to export PDF");
+        messageApi.error(response.message || "Failed to export PDF", 5);
       }
     } catch (error) {
       console.error("Error exporting PDF:", error);
-      toast.error("Failed to export PDF");
+      messageApi.error("Failed to export PDF", 5);
     }
   };
 
@@ -102,17 +102,17 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
     try {
       const response = await cancelTreatmentPlan(id, cancelReason);
       if (response.success) {
-        toast.success("Treatment plan cancelled successfully");
+        messageApi.success("Treatment plan cancelled successfully", 5);
         setCancelModalVisible(false);
         setCancelReason("");
         fetchTreatmentPlan();
         fetchHistories();
       } else {
-        toast.error(response.message || "Failed to cancel treatment plan");
+        messageApi.error(response.message || "Failed to cancel treatment plan", 5);
       }
     } catch (error) {
       console.error("Error cancelling treatment plan:", error);
-      toast.error("Failed to cancel treatment plan");
+      messageApi.error("Failed to cancel treatment plan", 5);
     }
   };
 
@@ -120,15 +120,15 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
     try {
       const response = await softDeleteTreatmentPlans([id]);
       if (response.success) {
-        toast.success("Treatment plan deleted successfully");
+        messageApi.success("Treatment plan deleted successfully", 5);
         fetchTreatmentPlan();
         fetchHistories();
       } else {
-        toast.error(response.message || "Failed to delete treatment plan");
+        messageApi.error(response.message || "Failed to delete treatment plan", 5);
       }
     } catch (error) {
       console.error("Error deleting treatment plan:", error);
-      toast.error("Failed to delete treatment plan");
+      messageApi.error("Failed to delete treatment plan", 5);
     }
   };
 
@@ -136,15 +136,15 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
     try {
       const response = await restoreSoftDeletedTreatmentPlans([id]);
       if (response.success) {
-        toast.success("Treatment plan restored successfully");
+        messageApi.success("Treatment plan restored successfully", 5);
         fetchTreatmentPlan();
         fetchHistories();
       } else {
-        toast.error(response.message || "Failed to restore treatment plan");
+        messageApi.error(response.message || "Failed to restore treatment plan", 5);
       }
     } catch (error) {
       console.error("Error restoring treatment plan:", error);
-      toast.error("Failed to restore treatment plan");
+      messageApi.error("Failed to restore treatment plan", 5);
     }
   };
 
@@ -160,17 +160,17 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
 
       const response = await updateTreatmentPlan(id, updateData);
       if (response.success) {
-        toast.success("Treatment plan updated successfully");
+        messageApi.success("Treatment plan updated successfully", 5);
         setEditModalVisible(false);
         form.resetFields();
         fetchTreatmentPlan();
         fetchHistories();
       } else {
-        toast.error(response.message || "Failed to update treatment plan");
+        messageApi.error(response.message || "Failed to update treatment plan", 5);
       }
     } catch (error) {
       console.error("Error updating treatment plan:", error);
-      toast.error("Failed to update treatment plan");
+      messageApi.error("Failed to update treatment plan", 5);
     }
   };
 
@@ -277,6 +277,7 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
+        {contextHolder}
         <Spin size="large" />
       </div>
     );
@@ -285,6 +286,7 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
   if (!treatmentPlan) {
     return (
       <div className="p-4">
+        {contextHolder}
         <Title level={2}>Treatment Plan Not Found</Title>
       </div>
     );
@@ -292,6 +294,7 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({ id }) 
 
   return (
     <div className="p-4">
+      {contextHolder}
       <div className="flex justify-between items-center mb-6">
         <Title level={2}>Treatment Plan Details</Title>
         {renderActionButtons()}
