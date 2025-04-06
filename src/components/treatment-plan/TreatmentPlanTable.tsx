@@ -903,6 +903,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
           <Row justify="center" align="middle">
             <Space size="large" align="center">
               <Text type="secondary">Total {totalItems} items</Text>
+              <Space align="center" size="large">
               <Pagination
                 current={currentPage}
                 pageSize={pageSize}
@@ -929,6 +930,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
                   style={{ width: "60px" }}
                 />
               </Space>
+            </Space>
             </Space>
           </Row>
         </Card>

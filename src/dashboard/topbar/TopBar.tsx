@@ -10,52 +10,108 @@ import DropdownUser from "./DropdownUser";
 import { Breadcrumb, Spin } from "antd";
 import { useRouter } from "next/router";
 import { getTreatmentPlanById } from "@/api/treatment-plan";
+import { getDrugSupplierById } from "@/api/drugsupplier";
 
 export function TopBar() {
   const { openSidebar } = useDashboardContext();
   const router = useRouter();
   const pathSegments = router.asPath.split("/").filter(Boolean);
+  
+  // State for dynamic breadcrumb titles
   const [treatmentPlanCode, setTreatmentPlanCode] = useState<string | null>(null);
+  const [supplierName, setSupplierName] = useState<string | null>(null);
   const [loadingCode, setLoadingCode] = useState(false);
+  const [loadingSupplierName, setLoadingSupplierName] = useState(false);
+  
+  // Refs to track previously fetched IDs
   const prevTreatmentPlanId = useRef<string | null>(null);
+  const prevSupplierId = useRef<string | null>(null);
 
-  // Check for treatment plan ID and fetch code
+  // Fetch dynamic data based on route
   useEffect(() => {
-    const fetchTreatmentPlanCode = async () => {
-      // Chỉ fetch nếu ID thực sự thay đổi
+    const fetchDataForBreadcrumb = async () => {
+      const currentId = router.query.id as string;
+      if (!currentId) return;
+
+      // Fetch Treatment Plan Code
       if (
         pathSegments.length > 1 &&
-        pathSegments[0] === "treatment-plan" && 
-        pathSegments[1] && 
-        router.query.id &&
-        router.query.id !== prevTreatmentPlanId.current
+        pathSegments[0] === "treatment-plan" &&
+        currentId !== prevTreatmentPlanId.current
       ) {
         try {
           setLoadingCode(true);
-          const currentId = router.query.id as string;
+          setTreatmentPlanCode(null);
           prevTreatmentPlanId.current = currentId;
-          
+          prevSupplierId.current = null;
+          setSupplierName(null);
+
           const response = await getTreatmentPlanById(currentId);
           if (response.success && response.data) {
             setTreatmentPlanCode(response.data.treatmentPlanCode);
+          } else {
+             console.error("Failed to fetch treatment plan code:", response.message);
+             setTreatmentPlanCode(currentId);
           }
         } catch (error) {
           console.error("Error fetching treatment plan code:", error);
+          setTreatmentPlanCode(currentId);
         } finally {
           setLoadingCode(false);
         }
+      } 
+      // Fetch Drug Supplier Name
+      else if (
+        pathSegments.length > 1 &&
+        pathSegments[0] === "drug-supplier" &&
+        currentId !== prevSupplierId.current
+      ) {
+        try {
+          setLoadingSupplierName(true);
+          setSupplierName(null);
+          prevSupplierId.current = currentId;
+          prevTreatmentPlanId.current = null;
+          setTreatmentPlanCode(null);
+
+          const response = await getDrugSupplierById(currentId);
+          
+          if (response && response.supplierName) { 
+            setSupplierName(response.supplierName);
+          } else {
+             console.error("Failed to fetch supplier name or invalid response structure");
+             setSupplierName(currentId);
+          }
+        } catch (error) {
+          console.error("Error fetching supplier name:", error);
+          setSupplierName(currentId);
+        } finally {
+          setLoadingSupplierName(false);
+        }
       }
+       // Reset refs if route changes away from detail pages
+       else if (pathSegments[0] !== 'treatment-plan' && pathSegments[0] !== 'drug-supplier') {
+           prevTreatmentPlanId.current = null;
+           prevSupplierId.current = null;
+           setTreatmentPlanCode(null);
+           setSupplierName(null);
+       }
     };
 
-    if (router.isReady) {
-      fetchTreatmentPlanCode();
+    if (router.isReady && router.query.id) {
+      fetchDataForBreadcrumb();
+    } else { 
+        // Reset state if we navigate away or ID is not present
+         prevTreatmentPlanId.current = null;
+         prevSupplierId.current = null;
+         setTreatmentPlanCode(null);
+         setSupplierName(null);
     }
-  }, [router.isReady, router.query.id]);
+  }, [router.isReady, router.query.id, pathSegments]); 
 
-  // Tạo breadcrumb items và xử lý trường hợp trùng lặp
+  // Generate breadcrumb items
   const breadcrumbItems = [];
 
-  // Thêm Home vào đầu chỉ khi không phải trang home
+  // Add Home item
   if (
     pathSegments.length === 0 ||
     (pathSegments.length > 0 && pathSegments[0] !== "home")
@@ -66,28 +122,31 @@ export function TopBar() {
     });
   }
 
-  // Thêm các phần còn lại của đường dẫn
+  // Add remaining path segments
   pathSegments.forEach((segment, index) => {
-    // Bỏ qua nếu là "home" và đã có Home ở đầu breadcrumb
     if (index === 0 && segment === "home" && breadcrumbItems.length > 0) {
       return;
     }
-
-    // Build the path for this segment
     const path = "/" + pathSegments.slice(0, index + 1).join("/");
 
-    // Check if this is a treatment plan ID segment
-    const isTreatmentPlanId = 
+    const isTreatmentPlanIdSegment = 
       pathSegments[0] === "treatment-plan" && 
       index === 1 && 
       router.query.id === segment;
+      
+    const isDrugSupplierIdSegment = 
+      pathSegments[0] === "drug-supplier" && 
+      index === 1 && 
+      router.query.id === segment;
 
-    // Create the title React element
     let titleContent: React.ReactNode;
-    if (isTreatmentPlanId && treatmentPlanCode) {
-      titleContent = treatmentPlanCode;
-    } else if (isTreatmentPlanId && loadingCode) {
-      titleContent = <Spin size="small" />;
+
+    if (isTreatmentPlanIdSegment) {
+      if (loadingCode) titleContent = <Spin size="small" />;
+      else titleContent = treatmentPlanCode || segment;
+    } else if (isDrugSupplierIdSegment) {
+      if (loadingSupplierName) titleContent = <Spin size="small" />;
+      else titleContent = supplierName || segment;
     } else {
       titleContent = segment.charAt(0).toUpperCase() + segment.slice(1);
     }
