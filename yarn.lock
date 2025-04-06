@@ -3761,7 +3761,12 @@ ansi-styles@^6.1.0:
   resolved "https://registry.npmjs.org/ansi-styles/-/ansi-styles-6.2.1.tgz"
   integrity sha512-bN798gFfQX+viw3R7yrGWRqnrN2oRkEkUjjl4JNn4E8GxxbjtG3FbrEIIY3l8/hrwUwIeCZvi4QuOTP4MErVug==
 
-antd@^5.24.3:
+ant@^0.0.0:
+  version "0.0.0"
+  resolved "https://registry.npmjs.org/ant/-/ant-0.0.0.tgz"
+  integrity sha512-W/Y1YCn4iQhxqFiWn+17q/ZzmVRhPosFGcZV16dgOEite3FL2MMocnd200JCJJi9VPa26of5FG3wIQmzV8wHfQ==
+
+antd@^5.24.6:
   version "5.24.6"
   resolved "https://registry.npmjs.org/antd/-/antd-5.24.6.tgz"
   integrity sha512-xIlTa/1CTbgkZsdU/dOXkYvJXb9VoiMwsaCzpKFH2zAEY3xqOfwQ57/DdG7lAdrWP7QORtSld4UA6suxzuTHXw==
@@ -5245,7 +5250,8 @@ flru@^1.0.2:
     "@mui/material" "^6.4.0"
     "@react-oauth/google" "^0.12.1"
     "@tabler/icons-react" "^3.30.0"
-    antd "^5.24.3"
+    ant "^0.0.0"
+    antd "^5.24.6"
     axios "^1.8.1"
     chart.js "^4.4.7"
     clsx "^2.1.1"

@@ -78,7 +78,7 @@ export const data = [
           {
             title: "DrugSuppliers",
             icon: <DrugSupplierIcon />,
-            link: "/drug-supplier/management",
+            link: "/drug-supplier",
           },
         ],
       },

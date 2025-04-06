@@ -154,7 +154,8 @@ export function LockIcon() {
   );
 }
 
-export function DrugSupplierIcon() {
+export function DrugSupplierIcon(props: IconSvgProps) {
+  const { size = 24, ...otherProps } = props;
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -162,6 +163,9 @@ export function DrugSupplierIcon() {
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
+      height={size}
+      width={size}
+      {...otherProps}
     >
       <path
         strokeLinecap="round"
