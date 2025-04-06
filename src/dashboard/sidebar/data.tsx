@@ -33,8 +33,22 @@ export const data = [
     groupTitle: "Main",
     items: [
       { title: "Home", icon: <HomeIcon />, link: "/home" },
-      { title: "Status", icon: <StatusIcon />, link: "/admin/status" },
-      { title: "My Insurance", icon: <HealthIcon />, link: "/health-insurance/my-insurance" },
+      {
+        title: "Statitics",
+        icon: <StatusIcon />,
+        submenu: [
+          {
+            title: "Treatment Plans",
+            icon: <StatusIcon />,
+            link: "/statitics/treatment-plan-statitics",
+          },
+        ],
+      },
+      {
+        title: "My Insurance",
+        icon: <HealthIcon />,
+        link: "/health-insurance/my-insurance",
+      },
     ],
   },
   {
@@ -287,7 +301,7 @@ export const data = [
           {
             title: "Management",
             icon: <HealthIcon />,
-            link: "/treatment-plan/management",
+            link: "/treatment-plan",
           },
           {
             title: "History",
@@ -322,4 +336,3 @@ export const data = [
     ],
   },
 ];
-

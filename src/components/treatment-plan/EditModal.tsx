@@ -10,8 +10,8 @@ import {
   Typography,
   Space,
   Spin,
+  message,
 } from "antd";
-import { toast } from "react-toastify";
 import moment from "moment";
 import {
   updateTreatmentPlan,
@@ -41,6 +41,7 @@ const EditModal: React.FC<EditModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
 
   // Reset form when modal is closed or treatmentPlan changes
   useEffect(() => {
@@ -70,16 +71,16 @@ const EditModal: React.FC<EditModalProps> = ({
       const response = await updateTreatmentPlan(treatmentPlan.id, requestData);
 
       if (response.success || response.isSuccess) {
-        toast.success("Treatment plan updated successfully");
+        messageApi.success("Treatment plan updated successfully", 5);
         form.resetFields();
         onClose();
         onSuccess();
       } else {
-        toast.error(response.message || "Failed to update treatment plan");
+        messageApi.error(response.message || "Failed to update treatment plan", 5);
       }
     } catch (error) {
       console.error("Form validation error:", error);
-      toast.error("Please check the form for errors");
+      messageApi.error("Please check the form for errors", 5);
     } finally {
       setLoading(false);
     }
@@ -110,6 +111,7 @@ const EditModal: React.FC<EditModalProps> = ({
         </Button>,
       ]}
     >
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"

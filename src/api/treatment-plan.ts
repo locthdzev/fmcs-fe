@@ -1,6 +1,5 @@
 import api from "./customize-axios";
 import { exportToExcel } from "./export";
-import { toast } from "react-toastify";
 
 // Common interfaces
 export interface UserInfo {
@@ -107,6 +106,16 @@ export interface TreatmentPlanInfo {
   id: string;
   treatmentPlanCode: string;
   healthCheckResult?: HealthCheckResultInfo;
+}
+
+export interface GroupedTreatmentPlanHistoriesDTO {
+  totalTreatmentPlans: number;
+  items: TreatmentPlanHistoryGroup[];
+}
+
+export interface TreatmentPlanHistoryGroup {
+  treatmentPlan: TreatmentPlanInfo;
+  histories: TreatmentPlanHistoryResponseDTO[];
 }
 
 export interface TreatmentPlanExportConfigDTO {
@@ -284,9 +293,23 @@ export const restoreSoftDeletedTreatmentPlans = async (treatmentPlanIds: string[
   }
 };
 
-export const getTreatmentPlanStatistics = async () => {
+export const getTreatmentPlanStatistics = async (startDate?: Date, endDate?: Date) => {
   try {
-    const response = await api.get("/treatment-plan-management/treatment-plans/statistics");
+    let url = "/treatment-plan-management/treatment-plans/statistics";
+    
+    // Add query parameters if dates are provided
+    if (startDate || endDate) {
+      const params = new URLSearchParams();
+      if (startDate) {
+        params.append('startDate', startDate.toISOString());
+      }
+      if (endDate) {
+        params.append('endDate', endDate.toISOString());
+      }
+      url += `?${params.toString()}`;
+    }
+    
+    const response = await api.get(url);
     const data = response.data;
     if (data.isSuccess !== undefined && data.success === undefined) {
       data.success = data.isSuccess;
@@ -340,6 +363,48 @@ export const getAllTreatmentPlanHistories = async (
   }
 };
 
+export const getGroupedTreatmentPlanHistories = async (
+  page: number = 1,
+  pageSize: number = 10,
+  action?: string,
+  startActionDate?: string,
+  endActionDate?: string,
+  performedBySearch?: string,
+  previousStatus?: string,
+  newStatus?: string,
+  sortBy: string = "ActionDate",
+  ascending: boolean = false,
+  treatmentPlanCode?: string,
+  healthCheckResultCode?: string
+) => {
+  try {
+    const response = await api.get("/treatment-plan-management/treatment-plan-histories/grouped", {
+      params: {
+        page,
+        pageSize,
+        action,
+        startActionDate,
+        endActionDate,
+        performedBySearch,
+        previousStatus,
+        newStatus,
+        sortBy,
+        ascending,
+        treatmentPlanCode,
+        healthCheckResultCode,
+      },
+    });
+    const data = response.data;
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching grouped treatment plan histories:", error);
+    throw error;
+  }
+};
+
 export const getTreatmentPlanHistoriesByTreatmentPlanId = async (treatmentPlanId: string) => {
   try {
     const response = await api.get(`/treatment-plan-management/treatment-plans/${treatmentPlanId}/histories`);
@@ -358,18 +423,21 @@ export const exportTreatmentPlanToPDF = async (id: string) => {
   try {
     const response = await api.get(`/treatment-plan-management/treatment-plans/${id}/export-pdf`);
 
-    if (response.data && response.data.isSuccess && response.data.data) {
-      window.open(response.data.data, "_blank");
-      toast.success("Treatment plan exported to PDF successfully");
-    } else {
-      toast.error(response.data.message || "Cannot export PDF file");
+    // Chuẩn hóa response để trả về cho component xử lý
+    const data = response.data;
+    if (data && data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
     }
 
-    return response.data;
-  } catch (error) {
+    // Không mở file hay hiển thị thông báo trong API
+    return data;
+  } catch (error: any) {
     console.error("Error exporting treatment plan to PDF:", error);
-    toast.error("Failed to export treatment plan to PDF");
-    throw error;
+    return { 
+      success: false, 
+      isSuccess: false,
+      message: error.response?.data?.message || "Cannot export PDF file" 
+    };
   }
 };
 
@@ -421,18 +489,21 @@ export const exportTreatmentPlansToExcelWithConfig = async (
       }
     );
 
-    if (response.data && response.data.isSuccess && response.data.data) {
-      window.open(response.data.data, "_blank");
-      toast.success("Treatment plans exported to Excel successfully");
-    } else {
-      toast.error(response.data.message || "Cannot export Excel file");
+    // Chuẩn hóa response để trả về cho component xử lý
+    const data = response.data;
+    if (data && data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
     }
 
-    return response.data;
+    // Không mở file hay hiển thị thông báo trong API
+    return data;
   } catch (error: any) {
     console.error("Export error:", error);
-    toast.error(error.response?.data?.message || "Cannot export Excel file");
-    throw error;
+    return { 
+      success: false, 
+      isSuccess: false,
+      message: error.response?.data?.message || "Cannot export Excel file" 
+    };
   }
 };
 
@@ -476,17 +547,56 @@ export const exportTreatmentPlanHistoriesToExcelWithConfig = async (
       }
     );
 
-    if (response.data && response.data.isSuccess && response.data.data) {
-      window.open(response.data.data, "_blank");
-      toast.success("Treatment plan histories exported to Excel successfully");
-    } else {
-      toast.error(response.data.message || "Cannot export Excel file");
+    const data = response.data;
+    // Chuẩn hóa success property
+    if (data && data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
     }
 
-    return response.data;
+    // Không mở file hay hiển thị thông báo trong API
+    return data;
   } catch (error: any) {
     console.error("Export error:", error);
-    toast.error(error.response?.data?.message || "Cannot export Excel file");
+    return { 
+      success: false, 
+      isSuccess: false,
+      message: error.response?.data?.message || "Cannot export Excel file" 
+    };
+  }
+};
+
+// Thêm API function để lấy tất cả treatment plan IDs theo status
+export const getTreatmentPlanIdsByStatus = async (statuses: string[]) => {
+  try {
+    // Lấy tất cả treatment plans với pageSize lớn (chúng ta có thể điều chỉnh logic này sau)
+    // Để đơn giản, lấy với pageSize=1000 để có thể lấy được nhiều dữ liệu
+    const response = await api.get("/treatment-plan-management/treatment-plans", {
+      params: {
+        page: 1,
+        pageSize: 1000, // Số lượng lớn để lấy nhiều dữ liệu
+        status: statuses.length === 1 ? statuses[0] : undefined,
+        // Không cần các bộ lọc khác
+      },
+    });
+    
+    const data = response.data;
+    if (data.isSuccess || data.success) {
+      // Nếu chỉ filter theo 1 status, chúng ta đã làm ở phía server
+      if (statuses.length === 1) {
+        return data.data.map((item: TreatmentPlanResponseDTO) => item.id);
+      } 
+      // Nếu cần filter nhiều status, chúng ta làm ở phía client
+      else {
+        return data.data
+          .filter((item: TreatmentPlanResponseDTO) => 
+            statuses.includes(item.status || '')
+          )
+          .map((item: TreatmentPlanResponseDTO) => item.id);
+      }
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching treatment plan IDs by status:", error);
     throw error;
   }
 }; 

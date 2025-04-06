@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useDashboardContext } from "../Provider";
 import {
   IoSearch,
@@ -7,21 +7,99 @@ import {
 } from "react-icons/io5";
 import { NotificationDropdown } from "./DropdownNotification";
 import DropdownUser from "./DropdownUser";
-import { Breadcrumb } from "antd";
+import { Breadcrumb, Spin } from "antd";
 import { useRouter } from "next/router";
+import { getTreatmentPlanById } from "@/api/treatment-plan";
 
 export function TopBar() {
   const { openSidebar } = useDashboardContext();
   const router = useRouter();
-  const pathSegments = router.pathname.split('/').filter(Boolean);
+  const pathSegments = router.asPath.split("/").filter(Boolean);
+  const [treatmentPlanCode, setTreatmentPlanCode] = useState<string | null>(null);
+  const [loadingCode, setLoadingCode] = useState(false);
+  const prevTreatmentPlanId = useRef<string | null>(null);
 
-  const breadcrumbItems = pathSegments.map((segment, index) => {
-    const path = '/' + pathSegments.slice(0, index + 1).join('/');
-    const title = segment.charAt(0).toUpperCase() + segment.slice(1);
-    return {
-      title,
-      href: path
+  // Check for treatment plan ID and fetch code
+  useEffect(() => {
+    const fetchTreatmentPlanCode = async () => {
+      // Chỉ fetch nếu ID thực sự thay đổi
+      if (
+        pathSegments.length > 1 &&
+        pathSegments[0] === "treatment-plan" && 
+        pathSegments[1] && 
+        router.query.id &&
+        router.query.id !== prevTreatmentPlanId.current
+      ) {
+        try {
+          setLoadingCode(true);
+          const currentId = router.query.id as string;
+          prevTreatmentPlanId.current = currentId;
+          
+          const response = await getTreatmentPlanById(currentId);
+          if (response.success && response.data) {
+            setTreatmentPlanCode(response.data.treatmentPlanCode);
+          }
+        } catch (error) {
+          console.error("Error fetching treatment plan code:", error);
+        } finally {
+          setLoadingCode(false);
+        }
+      }
     };
+
+    if (router.isReady) {
+      fetchTreatmentPlanCode();
+    }
+  }, [router.isReady, router.query.id]);
+
+  // Tạo breadcrumb items và xử lý trường hợp trùng lặp
+  const breadcrumbItems = [];
+
+  // Thêm Home vào đầu chỉ khi không phải trang home
+  if (
+    pathSegments.length === 0 ||
+    (pathSegments.length > 0 && pathSegments[0] !== "home")
+  ) {
+    breadcrumbItems.push({
+      title: "Home",
+      href: "/home",
+    });
+  }
+
+  // Thêm các phần còn lại của đường dẫn
+  pathSegments.forEach((segment, index) => {
+    // Bỏ qua nếu là "home" và đã có Home ở đầu breadcrumb
+    if (index === 0 && segment === "home" && breadcrumbItems.length > 0) {
+      return;
+    }
+
+    // Build the path for this segment
+    const path = "/" + pathSegments.slice(0, index + 1).join("/");
+
+    // Check if this is a treatment plan ID segment
+    const isTreatmentPlanId = 
+      pathSegments[0] === "treatment-plan" && 
+      index === 1 && 
+      router.query.id === segment;
+
+    // Create the title React element
+    let titleContent: React.ReactNode;
+    if (isTreatmentPlanId && treatmentPlanCode) {
+      titleContent = treatmentPlanCode;
+    } else if (isTreatmentPlanId && loadingCode) {
+      titleContent = <Spin size="small" />;
+    } else {
+      titleContent = segment.charAt(0).toUpperCase() + segment.slice(1);
+    }
+    
+    const isLast = index === pathSegments.length - 1;
+
+    breadcrumbItems.push({
+      title: (
+        <span className={isLast ? "font-bold text-gray-500" : ""}>{titleContent}</span>
+      ),
+      href: path,
+    });
   });
 
   return (
