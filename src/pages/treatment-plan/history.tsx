@@ -1,6 +1,6 @@
 import React from "react";
-import { TreatmentPlanHistoryList } from "@/components/treatment-plan/treatment-plan-history-list";
+import { TreatmentPlanHistoryListNew } from "@/components/treatment-plan/TreatmentPlanHistoryList";
 
 export default function TreatmentPlanHistoryPage() {
-  return <TreatmentPlanHistoryList />;
-} 
+  return <TreatmentPlanHistoryListNew />;
+}

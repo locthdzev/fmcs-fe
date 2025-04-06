@@ -10,9 +10,11 @@ import {
   Typography,
   Space,
   Spin,
+  message,
+  Row,
+  Col,
 } from "antd";
-import { toast } from "react-toastify";
-import moment from "moment";
+import dayjs from "dayjs";
 import {
   createTreatmentPlan,
   TreatmentPlanCreateRequestDTO,
@@ -76,6 +78,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
   const [prescriptionDrugs, setPrescriptionDrugs] = useState<DrugResponse[]>(
     []
   );
+  const [messageApi, contextHolder] = message.useMessage();
 
   // Reset form when modal is closed
   useEffect(() => {
@@ -155,8 +158,9 @@ const CreateModal: React.FC<CreateModalProps> = ({
         ]);
 
         if (filteredResults.length === 0) {
-          toast.info(
-            `No health check results found with required statuses (${HEALTH_CHECK_STATUSES.FOLLOW_UP_REQUIRED} or ${HEALTH_CHECK_STATUSES.NO_FOLLOW_UP_REQUIRED})`
+          messageApi.info(
+            `No health check results found with required statuses (${HEALTH_CHECK_STATUSES.FOLLOW_UP_REQUIRED} or ${HEALTH_CHECK_STATUSES.NO_FOLLOW_UP_REQUIRED})`,
+            5
           );
         }
 
@@ -174,12 +178,12 @@ const CreateModal: React.FC<CreateModalProps> = ({
         setHealthCheckResultOptions(options);
       } else {
         console.error("API returned error:", response);
-        toast.error(response.message || "Failed to fetch health check results");
+        messageApi.error(response.message || "Failed to fetch health check results", 5);
         setHealthCheckResultOptions([]);
       }
     } catch (error) {
       console.error("Error fetching health check results:", error);
-      toast.error("Failed to fetch health check results");
+      messageApi.error("Failed to fetch health check results", 5);
       setHealthCheckResultOptions([]);
     } finally {
       setLoadingHealthCheckResults(false);
@@ -196,18 +200,19 @@ const CreateModal: React.FC<CreateModalProps> = ({
         setPrescriptionDrugs(response.data || []);
 
         if (!response.data || response.data.length === 0) {
-          toast.info(
-            "No drugs found in prescriptions for this Health Check Result"
+          messageApi.info(
+            "No drugs found in prescriptions for this Health Check Result",
+            5
           );
         }
       } else {
         console.error("API returned error:", response);
-        toast.error(response.message || "Failed to fetch prescription drugs");
+        messageApi.error(response.message || "Failed to fetch prescription drugs", 5);
         setPrescriptionDrugs([]);
       }
     } catch (error) {
       console.error("Error fetching prescription drugs:", error);
-      toast.error("Failed to fetch prescription drugs");
+      messageApi.error("Failed to fetch prescription drugs", 5);
       setPrescriptionDrugs([]);
     } finally {
       setLoadingPrescriptionDrugs(false);
@@ -234,16 +239,16 @@ const CreateModal: React.FC<CreateModalProps> = ({
       console.log("Create treatment plan response:", response);
 
       if (response.success || response.isSuccess) {
-        toast.success("Treatment plan created successfully");
+        messageApi.success("Treatment plan created successfully", 5);
         form.resetFields();
         onClose();
         onSuccess();
       } else {
-        toast.error(response.message || "Failed to create treatment plan");
+        messageApi.error(response.message || "Failed to create treatment plan", 5);
       }
     } catch (error) {
       console.error("Form validation error:", error);
-      toast.error("Please check the form for errors");
+      messageApi.error("Please check the form for errors", 5);
     } finally {
       setLoading(false);
     }
@@ -256,7 +261,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
 
   const formatDate = (date: string | undefined) => {
     if (!date) return "";
-    return moment(date).format("DD/MM/YYYY");
+    return dayjs(date).format("DD/MM/YYYY");
   };
 
   const formatUserInfo = (user?: {
@@ -288,12 +293,13 @@ const CreateModal: React.FC<CreateModalProps> = ({
         </Button>,
       ]}
     >
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"
         initialValues={{
-          startDate: moment(),
-          endDate: moment().add(7, "days"),
+          startDate: dayjs(),
+          endDate: dayjs().add(7, "day"),
         }}
       >
         <Title level={5}>Basic Information</Title>
@@ -385,29 +391,34 @@ const CreateModal: React.FC<CreateModalProps> = ({
           />
         </Form.Item>
 
-        <Form.Item
-          name="startDate"
-          label="Start Date"
-          rules={[{ required: true, message: "Please select start date" }]}
-        >
-          <DatePicker
-            format="DD/MM/YYYY"
-            style={{ width: "100%" }}
-            placeholder="Select start date"
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="endDate"
-          label="End Date"
-          rules={[{ required: true, message: "Please select end date" }]}
-        >
-          <DatePicker
-            format="DD/MM/YYYY"
-            style={{ width: "100%" }}
-            placeholder="Select end date"
-          />
-        </Form.Item>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="startDate"
+              label="Start Date"
+              rules={[{ required: true, message: "Please select start date" }]}
+            >
+              <DatePicker
+                format="DD/MM/YYYY"
+                style={{ width: "100%" }}
+                placeholder="Select start date"
+              />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="endDate"
+              label="End Date"
+              rules={[{ required: true, message: "Please select end date" }]}
+            >
+              <DatePicker
+                format="DD/MM/YYYY"
+                style={{ width: "100%" }}
+                placeholder="Select end date"
+              />
+            </Form.Item>
+          </Col>
+        </Row>
       </Form>
     </Modal>
   );
