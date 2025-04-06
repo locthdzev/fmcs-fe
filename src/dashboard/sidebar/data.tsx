@@ -25,7 +25,9 @@ import { InventoriesIcon } from "./icons/InventoriesIcon";
 import { NotificationIcon } from "./icons/NotificationIcon";
 import { AppointmentIcon } from "./icons/AppointmentIcon";
 import { HealthIcon } from "./icons/HealthIcon";
-
+import { SurveyManagementIcon } from "./icons/SurveyManagementIcon";
+import { SurveyForUserIcon } from "./icons/SurveyForUserIcon";
+import { SurveyIcon } from "./icons/SurveyIcon";
 export const data = [
   {
     groupTitle: "Main",
@@ -153,6 +155,22 @@ export const data = [
         title: "Notifications",
         icon: <NotificationIcon />,
         link: "/notification/management",
+      },
+      {
+        title: "Surveys",
+        icon: <SurveyIcon />,
+        submenu: [
+          {
+            title: "Survey Management",
+            icon: <SurveyManagementIcon />,
+            link: "/survey/management",
+          },
+          {
+            title: "Survey For User",
+            icon: <SurveyForUserIcon />,
+            link: "/survey/surveyUser",
+          }
+        ],
       },
       {
         title: "HealthInsurances",
