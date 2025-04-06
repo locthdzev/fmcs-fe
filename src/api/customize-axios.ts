@@ -6,6 +6,8 @@ const instance = axios.create({
   baseURL: "http://localhost:5104/api",
 });
 
+console.log("API Base URL:", instance.defaults.baseURL);
+
 interface ErrorResponse {
   data?: any;
   status?: number;
@@ -15,31 +17,57 @@ interface ErrorResponse {
 instance.interceptors.request.use(
   (config) => {
     const token = Cookies.get("token");
-    console.log("Token being sent in request:", token);
+    console.log("Token being sent in request:", token ? token.substring(0, 15) + "..." : "No token");
+    console.log("Request URL:", config.url);
+    console.log("Request Method:", config.method);
+    console.log("Request Headers:", config.headers);
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     } else {
-      console.warn("No token found in cookies.");
+      console.warn("No token found in cookies. Request may fail if authentication is required.");
     }
+    console.log(`📤 REQUEST: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, 
+      config.params ? `\nParams: ${JSON.stringify(config.params)}` : '',
+      config.data ? `\nData: ${JSON.stringify(config.data)}` : '');
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error('📤 REQUEST ERROR:', error);
+    return Promise.reject(error);
+  }
 );
 
 instance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log("Response Status:", response.status);
+    console.log("Response URL:", response.config.url);
+    console.log("Response Data Preview:", 
+      typeof response.data === 'object' 
+        ? JSON.stringify(response.data).substring(0, 150) + "..." 
+        : response.data
+    );
+    console.log(`📥 RESPONSE: ${response.status} ${response.config.url}`);
+    return response;
+  },
   (error) => {
     const res: ErrorResponse = {};
+    console.error("Response Error:", error.message);
+    
     if (error.response) {
       res.data = error.response.data;
       res.status = error.response.status;
       res.headers = error.response.headers;
+      console.error("Error Response Status:", error.response.status);
+      console.error("Error Response Data:", error.response.data);
+      console.error('Response data:', error.response?.data);
     } else if (error.request) {
-      console.log(error.request);
+      console.error("Error Request (No Response):", error.request);
     } else {
-      console.log("Error", error.message);
+      console.error("Error Setting Up Request:", error.message);
     }
-    return res;
+    console.error('📥 RESPONSE ERROR:', error.message);
+    return Promise.reject(error);
   }
 );
 
