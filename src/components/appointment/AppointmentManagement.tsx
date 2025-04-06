@@ -8,9 +8,11 @@ import {
   cancelAppointmentForStaff,
   AppointmentCreateRequestDTO,
   AppointmentUpdateRequestDTO,
+  getAllAppointments,
 } from "@/api/appointment-api";
 import Cookies from "js-cookie";
 import moment from "moment";
+import { createSurveyForFinishedAppointment } from "@/api/survey";
 
 const { Option } = Select;
 
@@ -55,7 +57,23 @@ const AppointmentManagement: React.FC = () => {
           sendEmailToStaff: false,
           sendNotificationToStaff: false,
         };
-        await updateAppointmentByHealthcareStaff(editingAppointment.id, updateRequest);
+        const response = await updateAppointmentByHealthcareStaff(editingAppointment.id, updateRequest);
+        
+        // Nếu trạng thái được cập nhật thành Finished, tạo khảo sát và gửi email
+        if (values.status === "Finished") {
+          try {
+            const surveyResponse = await createSurveyForFinishedAppointment(editingAppointment.id);
+            if (surveyResponse.isSuccess) {
+              message.success("Survey created and email sent to user!");
+            } else {
+              message.warning("Appointment updated but failed to create survey. Please try again.");
+            }
+          } catch (error) {
+            console.error("Failed to create survey:", error);
+            message.warning("Appointment updated but failed to create survey. Please try again.");
+          }
+        }
+        
         message.success("Appointment updated successfully!");
       } else {
         const createRequest: AppointmentCreateRequestDTO = {
@@ -67,6 +85,7 @@ const AppointmentManagement: React.FC = () => {
           sendNotificationToUser: true,
           sendEmailToStaff: false,
           sendNotificationToStaff: false,
+          sessionId: "default-session",
         };
         await scheduleAppointmentForHealthcareStaff(createRequest);
         message.success("Appointment scheduled successfully!");
