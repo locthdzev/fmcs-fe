@@ -5,6 +5,7 @@ import { Sidebar } from "./sidebar/Sidebar";
 import { DashboardProvider } from "./Provider";
 import { useSurveyRequired } from "@/context/SurveyRequiredContext";
 import { useRouter } from "next/router";
+import { notification } from "antd";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -48,9 +49,18 @@ export function DashboardLayout(props: LayoutProps) {
       if (hasPendingSurveys && !isAllowedUrl) {
         isNavigatingRef.current = true;
         router.events.emit('routeChangeError');
+        
+        // Hiển thị thông báo thân thiện thay vì throw error
+        notification.warning({
+          message: 'Cần hoàn thành khảo sát',
+          description: 'Bạn cần hoàn thành tất cả các khảo sát đang chờ trước khi truy cập tính năng này.',
+          duration: 5,
+        });
+        
         // Cancel current navigation and redirect to survey page
         router.push('/survey/surveyUser');
-        throw new Error('Route change aborted. Survey completion is required.');
+        // Prevent default error handling
+        return false;
       }
     };
 

@@ -42,7 +42,7 @@ import { CreateDrugOrderForm } from "./CreateForm";
 import { EditDrugOrderForm } from "./EditForm";
 import { useRouter } from "next/router";
 import { DrugSupplierResponse, getDrugSupplierById } from "@/api/drugsupplier";
-import DrugSupplierDetailsModal from "../drug-supplier/Details";
+import DrugSupplierDetailsModal from "../drug-supplier/DrugSupplierDetails";
 import { ConfirmModal } from "./Confirm";
 
 export function capitalize(s: string) {
