@@ -30,6 +30,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   TagOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
@@ -116,6 +117,7 @@ export function UserManagement() {
   // Options for dropdowns
   const [userOptions, setUserOptions] = useState<string[]>([]);
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
+  const [fullNameOptions, setFullNameOptions] = useState<string[]>([]);
 
   // Export config
   const [exportConfig, setExportConfig] = useState<UserExportConfigDTO>({
@@ -173,6 +175,13 @@ export function UserManagement() {
   useEffect(() => {
     fetchFilterOptions();
   }, []);
+
+  // Extract and set fullName options from fetched users
+  useEffect(() => {
+    if (users.length > 0) {
+      extractFullNamesFromUsers(users);
+    }
+  }, [users]);
 
   // Update form values when filters change
   useEffect(() => {
@@ -277,9 +286,28 @@ export function UserManagement() {
 
       setRoleOptions(["Admin", "Manager", "Staff", "User"]);
       setUserOptions(["Male", "Female", "Other"]);
+
+      // Fetch all users to extract full names for the dropdown
+      try {
+        const response = await getAllUsers(1, 100); // Get first 100 users for options
+        if (response.isSuccess && response.data) {
+          extractFullNamesFromUsers(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching users for full name options:", error);
+      }
     } catch (error) {
       console.error("Error fetching filter options:", error);
     }
+  };
+
+  const extractFullNamesFromUsers = (userData: UserResponseDTO[]) => {
+    // Extract unique full names
+    const uniqueFullNames = Array.from(
+      new Set(userData.map((user) => user.fullName))
+    ).sort();
+
+    setFullNameOptions(uniqueFullNames);
   };
 
   const handleFormFieldChange = (field: string, value: any) => {
@@ -468,7 +496,7 @@ export function UserManagement() {
     setDobDateRange(filters.dobDateRange || [null, null]);
     setCreatedDateRange(filters.createdDateRange || [null, null]);
     setUpdatedDateRange(filters.updatedDateRange || [null, null]);
-    setSortBy(filters.sortBy || "CreatedAt");
+    setSortBy("CreatedAt");
     setAscending(filters.ascending || false);
     setCurrentPage(1);
     setFilterModalVisible(false);
@@ -618,7 +646,6 @@ export function UserManagement() {
       (dobDateRange && (dobDateRange[0] || dobDateRange[1])) ||
       (createdDateRange && (createdDateRange[0] || createdDateRange[1])) ||
       (updatedDateRange && (updatedDateRange[0] || updatedDateRange[1])) ||
-      sortBy !== "CreatedAt" ||
       ascending !== false
     );
   };
@@ -691,7 +718,7 @@ export function UserManagement() {
                   input.toLowerCase()
                 )
               }
-              options={userOptions.map((name) => ({
+              options={fullNameOptions.map((name) => ({
                 value: name,
                 label: name,
               }))}
@@ -728,12 +755,38 @@ export function UserManagement() {
                   setStatusFilter(value || "");
                   setCurrentPage(1);
                 }}
-                style={{ width: "150px" }}
+                style={{ width: "120px" }}
                 allowClear
                 disabled={loading}
               >
                 <Option value="Active">Active</Option>
                 <Option value="Inactive">Inactive</Option>
+              </Select>
+            </div>
+
+            {/* Role Filter */}
+            <div>
+              <Select
+                placeholder={
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <TeamOutlined style={{ marginRight: 8 }} />
+                    <span>Role</span>
+                  </div>
+                }
+                value={roleFilter || undefined}
+                onChange={(value) => {
+                  setRoleFilter(value || "");
+                  setCurrentPage(1);
+                }}
+                style={{ width: "110px" }}
+                allowClear
+                disabled={loading}
+              >
+                {roleOptions.map((role) => (
+                  <Option key={role} value={role}>
+                    {role}
+                  </Option>
+                ))}
               </Select>
             </div>
 
@@ -808,7 +861,7 @@ export function UserManagement() {
               onClick={() => setCreateModalVisible(true)}
               disabled={loading}
             >
-              Create User
+              Create
             </Button>
           </div>
 

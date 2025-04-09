@@ -8,15 +8,28 @@ import {
   Radio,
   Button,
   Space,
+  Typography,
   Divider,
   Row,
   Col,
+  Card,
 } from "antd";
-import type { DatePickerProps, RangePickerProps } from "antd/es/date-picker";
+import {
+  UndoOutlined,
+  CheckCircleOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
+  UserOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  TagOutlined,
+  CalendarOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
+const { Title } = Typography;
 
 interface UserFilterModalProps {
   visible: boolean;
@@ -34,11 +47,36 @@ interface UserFilterModalProps {
     dobDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
     createdDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
     updatedDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
-    sortBy: string;
     ascending: boolean;
   };
   roleOptions: string[];
 }
+
+// Định nghĩa date ranges phổ biến để tái sử dụng
+const commonDateRanges = {
+  Today: () => [dayjs(), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
+  "Last 7 Days": () =>
+    [dayjs().subtract(6, "days"), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
+  "Last 30 Days": () =>
+    [dayjs().subtract(29, "days"), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
+  "This Month": () =>
+    [dayjs().startOf("month"), dayjs().endOf("month")] as [
+      dayjs.Dayjs,
+      dayjs.Dayjs
+    ],
+  "Last Month": () =>
+    [
+      dayjs().subtract(1, "month").startOf("month"),
+      dayjs().subtract(1, "month").endOf("month"),
+    ] as [dayjs.Dayjs, dayjs.Dayjs],
+  "This Year": () =>
+    [dayjs().startOf("year"), dayjs().endOf("year")] as [
+      dayjs.Dayjs,
+      dayjs.Dayjs
+    ],
+  "All Time": () =>
+    [dayjs("2020-01-01"), dayjs("2030-12-31")] as [dayjs.Dayjs, dayjs.Dayjs],
+};
 
 const UserFilterModal: React.FC<UserFilterModalProps> = ({
   visible,
@@ -48,21 +86,49 @@ const UserFilterModal: React.FC<UserFilterModalProps> = ({
   filters,
   roleOptions,
 }) => {
-  const [form] = Form.useForm();
+  const [localFilters, setLocalFilters] = React.useState(filters);
 
-  // When modal becomes visible, set form values from filters
+  // Reset localFilters when modal is opened with new filters
   React.useEffect(() => {
     if (visible) {
-      form.setFieldsValue({
-        ...filters,
-      });
+      setLocalFilters(filters);
     }
-  }, [visible, filters, form]);
+  }, [visible, filters]);
 
+  // Process and apply filters
   const handleApply = () => {
-    form.validateFields().then((values) => {
-      onApply(values);
-    });
+    // Create processed filters object with proper handling of undefined values
+    const processedFilters = {
+      fullNameSearch: localFilters.fullNameSearch || undefined,
+      userNameSearch: localFilters.userNameSearch || undefined,
+      emailSearch: localFilters.emailSearch || undefined,
+      phoneSearch: localFilters.phoneSearch || undefined,
+      roleFilter: localFilters.roleFilter || undefined,
+      genderFilter: localFilters.genderFilter || undefined,
+      statusFilter: localFilters.statusFilter || undefined,
+      dobDateRange: Array.isArray(localFilters.dobDateRange)
+        ? localFilters.dobDateRange
+        : [null, null],
+      createdDateRange: Array.isArray(localFilters.createdDateRange)
+        ? localFilters.createdDateRange
+        : [null, null],
+      updatedDateRange: Array.isArray(localFilters.updatedDateRange)
+        ? localFilters.updatedDateRange
+        : [null, null],
+      sortBy: "CreatedAt", // Mặc định là CreatedAt
+      ascending: Boolean(localFilters.ascending),
+    };
+
+    onApply(processedFilters);
+  };
+
+  // Common styles for filter items
+  const filterItemStyle = { marginBottom: "16px" };
+  const filterLabelStyle = { marginBottom: "8px", color: "#666666" };
+
+  // Function to update filter state
+  const updateFilter = (field: string, value: any) => {
+    setLocalFilters((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -72,125 +138,186 @@ const UserFilterModal: React.FC<UserFilterModalProps> = ({
       onCancel={onCancel}
       width={800}
       footer={[
-        <Button key="reset" onClick={onReset}>
-          Reset All
+        <Button key="reset" onClick={onReset} icon={<UndoOutlined />}>
+          Reset
         </Button>,
-        <Button key="cancel" onClick={onCancel}>
-          Cancel
-        </Button>,
-        <Button key="apply" type="primary" onClick={handleApply}>
-          Apply Filters
+        <Button
+          key="apply"
+          type="primary"
+          onClick={handleApply}
+          icon={<CheckCircleOutlined />}
+        >
+          Apply
         </Button>,
       ]}
     >
-      <Form form={form} layout="vertical">
-        <Divider orientation="left">Search Criteria</Divider>
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <Divider orientation="left">Filter Options</Divider>
         <Row gutter={16}>
+          {/* User Name */}
           <Col span={12}>
-            <Form.Item name="fullNameSearch" label="Full Name">
-              <Input placeholder="Search by full name" allowClear />
-            </Form.Item>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Username
+              </div>
+              <Input
+                placeholder="Search by username"
+                value={localFilters.userNameSearch}
+                onChange={(e) => updateFilter("userNameSearch", e.target.value)}
+                allowClear
+                prefix={<UserOutlined style={{ color: "#bfbfbf" }} />}
+              />
+            </div>
           </Col>
+
+          {/* Email */}
           <Col span={12}>
-            <Form.Item name="userNameSearch" label="Username">
-              <Input placeholder="Search by username" allowClear />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="emailSearch" label="Email">
-              <Input placeholder="Search by email" allowClear />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="phoneSearch" label="Phone">
-              <Input placeholder="Search by phone" allowClear />
-            </Form.Item>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Email
+              </div>
+              <Input
+                placeholder="Search by email"
+                value={localFilters.emailSearch}
+                onChange={(e) => updateFilter("emailSearch", e.target.value)}
+                allowClear
+                prefix={<MailOutlined style={{ color: "#bfbfbf" }} />}
+              />
+            </div>
           </Col>
         </Row>
 
-        <Divider orientation="left">Filter Options</Divider>
         <Row gutter={16}>
+          {/* Phone */}
           <Col span={12}>
-            <Form.Item name="roleFilter" label="Role">
-              <Select placeholder="Filter by role" allowClear>
-                {roleOptions.map((role) => (
-                  <Option key={role} value={role}>
-                    {role}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Phone
+              </div>
+              <Input
+                placeholder="Search by phone"
+                value={localFilters.phoneSearch}
+                onChange={(e) => updateFilter("phoneSearch", e.target.value)}
+                allowClear
+                prefix={<PhoneOutlined style={{ color: "#bfbfbf" }} />}
+              />
+            </div>
           </Col>
+
+          {/* Gender */}
           <Col span={12}>
-            <Form.Item name="genderFilter" label="Gender">
-              <Select placeholder="Filter by gender" allowClear>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Gender
+              </div>
+              <Select
+                placeholder="Filter by gender"
+                value={localFilters.genderFilter || undefined}
+                onChange={(value) => updateFilter("genderFilter", value)}
+                style={{ width: "100%" }}
+                allowClear
+              >
                 <Option value="Male">Male</Option>
                 <Option value="Female">Female</Option>
                 <Option value="Other">Other</Option>
               </Select>
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="statusFilter" label="Status">
-              <Select placeholder="Filter by status" allowClear>
-                <Option value="ACTIVE">Active</Option>
-                <Option value="INACTIVE">Inactive</Option>
-              </Select>
-            </Form.Item>
+            </div>
           </Col>
         </Row>
 
-        <Divider orientation="left">Date Ranges</Divider>
+        <Divider orientation="left">Date & Sorting</Divider>
         <Row gutter={16}>
           <Col span={24}>
-            <Form.Item name="dobDateRange" label="Date of Birth Range">
-              <RangePicker style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="createdDateRange" label="Created Date Range">
-              <RangePicker style={{ width: "100%" }} showTime />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="updatedDateRange" label="Updated Date Range">
-              <RangePicker style={{ width: "100%" }} showTime />
-            </Form.Item>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Date of Birth Range
+              </div>
+              <RangePicker
+                style={{ width: "100%" }}
+                placeholder={["From date", "To date"]}
+                format="DD/MM/YYYY"
+                allowClear
+                value={localFilters.dobDateRange}
+                onChange={(dates) => updateFilter("dobDateRange", dates)}
+              />
+            </div>
           </Col>
         </Row>
 
-        <Divider orientation="left">Sorting</Divider>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="sortBy" label="Sort By">
-              <Select placeholder="Sort by field">
-                <Option value="FullName">Full Name</Option>
-                <Option value="UserName">Username</Option>
-                <Option value="Email">Email</Option>
-                <Option value="CreatedAt">Created Date</Option>
-                <Option value="UpdatedAt">Updated Date</Option>
-                <Option value="Status">Status</Option>
-              </Select>
-            </Form.Item>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Created Date Range
+              </div>
+              <RangePicker
+                style={{ width: "100%" }}
+                placeholder={["From date", "To date"]}
+                format="DD/MM/YYYY"
+                allowClear
+                showTime
+                value={localFilters.createdDateRange}
+                onChange={(dates) => updateFilter("createdDateRange", dates)}
+                ranges={{
+                  ...commonDateRanges,
+                }}
+              />
+            </div>
           </Col>
+
           <Col span={12}>
-            <Form.Item name="ascending" label="Sort Direction">
-              <Radio.Group>
-                <Radio value={true}>Ascending</Radio>
-                <Radio value={false}>Descending</Radio>
-              </Radio.Group>
-            </Form.Item>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Updated Date Range
+              </div>
+              <RangePicker
+                style={{ width: "100%" }}
+                placeholder={["From date", "To date"]}
+                format="DD/MM/YYYY"
+                allowClear
+                showTime
+                value={localFilters.updatedDateRange}
+                onChange={(dates) => updateFilter("updatedDateRange", dates)}
+                ranges={{
+                  ...commonDateRanges,
+                }}
+              />
+            </div>
           </Col>
         </Row>
-      </Form>
+
+        <Row gutter={16}>
+          <Col span={24}>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Sort Direction (CreatedAt)
+              </div>
+              <Radio.Group
+                value={localFilters.ascending}
+                onChange={(e) => updateFilter("ascending", e.target.value)}
+                optionType="button"
+                buttonStyle="solid"
+                style={{ width: "100%" }}
+              >
+                <Radio.Button
+                  value={true}
+                  style={{ width: "50%", textAlign: "center" }}
+                >
+                  <SortAscendingOutlined /> Oldest First
+                </Radio.Button>
+                <Radio.Button
+                  value={false}
+                  style={{ width: "50%", textAlign: "center" }}
+                >
+                  <SortDescendingOutlined /> Newest First
+                </Radio.Button>
+              </Radio.Group>
+            </div>
+          </Col>
+        </Row>
+      </Space>
     </Modal>
   );
 };
 
-export default UserFilterModal; 
+export default UserFilterModal;
