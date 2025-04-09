@@ -38,6 +38,11 @@ export const data = [
         icon: <StatusIcon />,
         submenu: [
           {
+            title: "Users",
+            icon: <StatusIcon />,
+            link: "/statitics/user-statitics",
+          },
+          {
             title: "Treatment Plans",
             icon: <StatusIcon />,
             link: "/statitics/treatment-plan-statitics",
@@ -183,7 +188,7 @@ export const data = [
             title: "Survey For User",
             icon: <SurveyForUserIcon />,
             link: "/survey/surveyUser",
-          }
+          },
         ],
       },
       {
