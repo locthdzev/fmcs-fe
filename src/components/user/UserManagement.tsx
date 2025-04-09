@@ -13,7 +13,7 @@ import {
   Table,
   Space,
   Tag,
-  Popconfirm
+  Popconfirm,
 } from "antd";
 import {
   PlusOutlined,
@@ -38,7 +38,6 @@ import UserTable from "./UserTable";
 import CreateModal from "./CreateModal";
 import ExportConfigModal from "./ExportConfigModal";
 import UserFilterModal from "./UserFilterModal";
-import UserDetailModal from "./UserDetailModal";
 
 import {
   getAllUsers,
@@ -64,15 +63,19 @@ export function UserManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [exportConfigModalVisible, setExportConfigModalVisible] = useState(false);
+  const [exportConfigModalVisible, setExportConfigModalVisible] =
+    useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [searchForm] = Form.useForm();
   const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [selectedUserDetail, setSelectedUserDetail] = useState<UserResponseDTO | null>(null);
+  const [selectedUserDetail, setSelectedUserDetail] =
+    useState<UserResponseDTO | null>(null);
 
   // Column visibility state
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
     fullName: true,
     userName: true,
     email: true,
@@ -98,9 +101,15 @@ export function UserManagement() {
   const [roleFilter, setRoleFilter] = useState<string>("");
   const [genderFilter, setGenderFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const [dobDateRange, setDobDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
-  const [createdDateRange, setCreatedDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
-  const [updatedDateRange, setUpdatedDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+  const [dobDateRange, setDobDateRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null]
+  >([null, null]);
+  const [createdDateRange, setCreatedDateRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null]
+  >([null, null]);
+  const [updatedDateRange, setUpdatedDateRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null]
+  >([null, null]);
   const [sortBy, setSortBy] = useState<string>("CreatedAt");
   const [ascending, setAscending] = useState<boolean>(false);
 
@@ -200,12 +209,24 @@ export function UserManagement() {
     setLoading(true);
     try {
       // Convert date ranges to Date objects
-      const formattedDobStart = dobDateRange[0] ? dobDateRange[0].toDate() : undefined;
-      const formattedDobEnd = dobDateRange[1] ? dobDateRange[1].toDate() : undefined;
-      const formattedCreatedStart = createdDateRange[0] ? createdDateRange[0].toDate() : undefined;
-      const formattedCreatedEnd = createdDateRange[1] ? createdDateRange[1].toDate() : undefined;
-      const formattedUpdatedStart = updatedDateRange[0] ? updatedDateRange[0].toDate() : undefined;
-      const formattedUpdatedEnd = updatedDateRange[1] ? updatedDateRange[1].toDate() : undefined;
+      const formattedDobStart = dobDateRange[0]
+        ? dobDateRange[0].toDate()
+        : undefined;
+      const formattedDobEnd = dobDateRange[1]
+        ? dobDateRange[1].toDate()
+        : undefined;
+      const formattedCreatedStart = createdDateRange[0]
+        ? createdDateRange[0].toDate()
+        : undefined;
+      const formattedCreatedEnd = createdDateRange[1]
+        ? createdDateRange[1].toDate()
+        : undefined;
+      const formattedUpdatedStart = updatedDateRange[0]
+        ? updatedDateRange[0].toDate()
+        : undefined;
+      const formattedUpdatedEnd = updatedDateRange[1]
+        ? updatedDateRange[1].toDate()
+        : undefined;
 
       const response = await getAllUsers(
         currentPage,
@@ -247,15 +268,15 @@ export function UserManagement() {
       // Here you would fetch options for filters
       // For example, fetch all role names, genders, etc.
       // This is a placeholder - implement based on your API
-      
+
       // Example:
       // const rolesResponse = await getAllRoles();
       // if (rolesResponse.isSuccess) {
       //   setRoleOptions(rolesResponse.data.map((role) => role.roleName));
       // }
-      
-      setRoleOptions(['Admin', 'Manager', 'Staff', 'User']);
-      setUserOptions(['Male', 'Female', 'Other']);
+
+      setRoleOptions(["Admin", "Manager", "Staff", "User"]);
+      setUserOptions(["Male", "Female", "Other"]);
     } catch (error) {
       console.error("Error fetching filter options:", error);
     }
@@ -478,12 +499,24 @@ export function UserManagement() {
       setLoading(true);
 
       // Convert date ranges to Date objects
-      const formattedDobStart = dobDateRange[0] ? dobDateRange[0].toDate() : undefined;
-      const formattedDobEnd = dobDateRange[1] ? dobDateRange[1].toDate() : undefined;
-      const formattedCreatedStart = createdDateRange[0] ? createdDateRange[0].toDate() : undefined;
-      const formattedCreatedEnd = createdDateRange[1] ? createdDateRange[1].toDate() : undefined;
-      const formattedUpdatedStart = updatedDateRange[0] ? updatedDateRange[0].toDate() : undefined;
-      const formattedUpdatedEnd = updatedDateRange[1] ? updatedDateRange[1].toDate() : undefined;
+      const formattedDobStart = dobDateRange[0]
+        ? dobDateRange[0].toDate()
+        : undefined;
+      const formattedDobEnd = dobDateRange[1]
+        ? dobDateRange[1].toDate()
+        : undefined;
+      const formattedCreatedStart = createdDateRange[0]
+        ? createdDateRange[0].toDate()
+        : undefined;
+      const formattedCreatedEnd = createdDateRange[1]
+        ? createdDateRange[1].toDate()
+        : undefined;
+      const formattedUpdatedStart = updatedDateRange[0]
+        ? updatedDateRange[0].toDate()
+        : undefined;
+      const formattedUpdatedEnd = updatedDateRange[1]
+        ? updatedDateRange[1].toDate()
+        : undefined;
 
       const response = await exportUsersToExcelWithConfig(
         exportConfig,
@@ -526,7 +559,7 @@ export function UserManagement() {
     try {
       setLoading(true);
       const response = await exportUserTemplate();
-      
+
       if (response.isSuccess) {
         messageApi.success("Template downloaded successfully");
         window.open(response.data, "_blank");
@@ -545,7 +578,7 @@ export function UserManagement() {
     try {
       setLoading(true);
       const response = await importUsers(file);
-      
+
       if (response.isSuccess) {
         messageApi.success("Users imported successfully");
         fetchUsers();
@@ -595,12 +628,12 @@ export function UserManagement() {
   };
 
   const handleViewDetails = (user: UserResponseDTO) => {
-    console.log('Navigating to user detail page for user:', user);
+    console.log("Navigating to user detail page for user:", user);
     router.push(`/user/${user.id}`);
   };
 
   const handleUserSelect = (selectedRowKeys: React.Key[]) => {
-    setSelectedUsers(selectedRowKeys.map(key => key.toString()));
+    setSelectedUsers(selectedRowKeys.map((key) => key.toString()));
   };
 
   return (
@@ -800,7 +833,7 @@ export function UserManagement() {
               }}
               trigger={["click"]}
             >
-              <Button 
+              <Button
                 type="primary"
                 icon={<FileExcelOutlined />}
                 disabled={loading}
@@ -810,7 +843,7 @@ export function UserManagement() {
             </Dropdown>
 
             {/* Import Button */}
-            <Button 
+            <Button
               icon={<UploadOutlined />}
               onClick={() => {
                 const input = document.createElement("input");
@@ -851,10 +884,7 @@ export function UserManagement() {
           >
             Deactivate
           </Button>
-          <Button
-            onClick={() => setSelectedUsers([])}
-            size="small"
-          >
+          <Button onClick={() => setSelectedUsers([])} size="small">
             Cancel
           </Button>
         </div>
@@ -902,15 +932,8 @@ export function UserManagement() {
         filters={filterState}
         roleOptions={roleOptions}
       />
-
-      {/* User Detail Modal */}
-      <UserDetailModal
-        visible={detailModalVisible}
-        onCancel={() => setDetailModalVisible(false)}
-        user={selectedUserDetail}
-      />
     </div>
   );
 }
 
-export default UserManagement; 
+export default UserManagement;
