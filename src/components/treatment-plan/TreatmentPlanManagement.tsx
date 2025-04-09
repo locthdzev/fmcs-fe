@@ -375,17 +375,18 @@ export function TreatmentPlanManagement() {
   // Fetch dropdown options independently from the current filters
   const fetchDropdownOptions = async () => {
     try {
+      console.log("Fetching all treatment plans for dropdown options...");
       // Call API without filters to get all possible options
       const response = await getAllTreatmentPlans(
         1,
-        1000, // Large pageSize to get all options
+        1000, // Tăng pageSize lên 1000 để lấy tất cả records
         undefined,
         undefined,
         undefined,
         undefined,
         undefined,
         "CreatedAt",
-        false,
+        false, // Mới nhất trước
         undefined,
         undefined,
         undefined,
@@ -411,8 +412,17 @@ export function TreatmentPlanManagement() {
           );
         }
 
+        console.log(`Fetched ${allData.length} treatment plans for dropdown options`);
+
+        // Extract dropdown options - sắp xếp theo ngày tạo mới nhất trước
+        allData.sort((a: TreatmentPlanResponseDTO, b: TreatmentPlanResponseDTO) => {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        
         // Extract dropdown options
         extractDataFromTreatmentPlans(allData);
+      } else {
+        console.error("Failed to fetch dropdown options:", response);
       }
     } catch (error) {
       console.error("Error fetching dropdown options:", error);
@@ -973,10 +983,10 @@ export function TreatmentPlanManagement() {
                 setCurrentPage(1);
                 setLoading(true);
               }}
-              style={{ width: "300px" }}
+              style={{ width: "320px" }}
               allowClear
               filterOption={(input, option) =>
-                (option?.label?.toString().toLowerCase() || "").includes(
+                (option?.value?.toString().toLowerCase() || "").includes(
                   input.toLowerCase()
                 )
               }
@@ -984,7 +994,7 @@ export function TreatmentPlanManagement() {
                 value: code,
                 label: code,
               }))}
-              prefix={<SearchOutlined />}
+              dropdownStyle={{ minWidth: "320px" }}
             />
 
             {/* Advanced Filters */}
