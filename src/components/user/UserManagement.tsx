@@ -386,6 +386,7 @@ export function UserManagement() {
   };
 
   const handleReset = () => {
+    // Reset ALL filters - both main toolbar and advanced filters
     setFullNameSearch("");
     setUserNameSearch("");
     setEmailSearch("");
@@ -399,7 +400,22 @@ export function UserManagement() {
     setSortBy("CreatedAt");
     setAscending(false);
     setCurrentPage(1);
-    searchForm.resetFields();
+    
+    // Reset all form values
+    searchForm.setFieldsValue({
+      fullNameSearch: "",
+      userNameSearch: "",
+      emailSearch: "",
+      phoneSearch: "",
+      roleFilter: "",
+      genderFilter: "",
+      statusFilter: "",
+      dobDateRange: null,
+      createdDateRange: null,
+      updatedDateRange: null,
+      sortBy: "CreatedAt",
+      ascending: false
+    });
   };
 
   const handlePageChange = (page: number, newPageSize?: number) => {
@@ -530,7 +546,32 @@ export function UserManagement() {
   };
 
   const handleResetFilters = () => {
-    handleReset();
+    // Only reset the filters in the Advanced Filters modal
+    setUserNameSearch("");
+    setEmailSearch("");
+    setPhoneSearch("");
+    setGenderFilter("");
+    setDobDateRange([null, null]);
+    setCreatedDateRange([null, null]);
+    setUpdatedDateRange([null, null]);
+    setSortBy("CreatedAt");
+    setAscending(false);
+    setCurrentPage(1);
+    
+    // Update the filter state for the modal
+    setFilterState(prev => ({
+      ...prev,
+      userNameSearch: "",
+      emailSearch: "",
+      phoneSearch: "",
+      genderFilter: "",
+      dobDateRange: [null, null],
+      createdDateRange: [null, null],
+      updatedDateRange: [null, null],
+      sortBy: "CreatedAt",
+      ascending: false
+    }));
+    
     setFilterModalVisible(false);
   };
 
@@ -657,19 +698,22 @@ export function UserManagement() {
   };
 
   const isFiltersApplied = () => {
+    // Only check filters from the Advanced Filters modal, not the main toolbar filters
     return (
-      !!fullNameSearch ||
       !!userNameSearch ||
       !!emailSearch ||
       !!phoneSearch ||
-      !!roleFilter ||
       !!genderFilter ||
-      !!statusFilter ||
       (dobDateRange && (dobDateRange[0] || dobDateRange[1])) ||
       (createdDateRange && (createdDateRange[0] || createdDateRange[1])) ||
       (updatedDateRange && (updatedDateRange[0] || updatedDateRange[1])) ||
       ascending !== false
     );
+  };
+
+  // Check if any main toolbar filters are applied
+  const isMainFiltersApplied = () => {
+    return !!fullNameSearch || !!statusFilter || !!roleFilter;
   };
 
   const handleEdit = (user: UserResponseDTO) => {
@@ -781,11 +825,11 @@ export function UserManagement() {
               }))}
               optionRender={(option) => {
                 // Tách thông tin tên và email từ giá trị
-                const valueParts = (option.value?.toString() || "").split(
+                const nameParts = (option.value?.toString() || "").split(
                   " | "
                 );
-                const fullName = valueParts[0];
-                const email = valueParts.length > 1 ? valueParts[1] : "";
+                const fullName = nameParts[0];
+                const email = nameParts.length > 1 ? nameParts[1] : "";
 
                 return (
                   <div
@@ -875,7 +919,7 @@ export function UserManagement() {
               <Button
                 icon={<UndoOutlined />}
                 onClick={handleReset}
-                disabled={!isFiltersApplied()}
+                disabled={!(isMainFiltersApplied() || isFiltersApplied())}
               >
                 Reset
               </Button>
