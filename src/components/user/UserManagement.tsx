@@ -590,6 +590,19 @@ export function UserManagement() {
     );
   };
 
+  const handleEdit = (user: UserResponseDTO) => {
+    router.push(`/user/${user.id}`);
+  };
+
+  const handleViewDetails = (user: UserResponseDTO) => {
+    console.log('Navigating to user detail page for user:', user);
+    router.push(`/user/${user.id}`);
+  };
+
+  const handleUserSelect = (selectedRowKeys: React.Key[]) => {
+    setSelectedUsers(selectedRowKeys.map(key => key.toString()));
+  };
+
   return (
     <div className="history-container" style={{ padding: "20px" }}>
       {contextHolder}
@@ -855,12 +868,13 @@ export function UserManagement() {
         currentPage={currentPage}
         pageSize={pageSize}
         onPageChange={handlePageChange}
-        onUserSelect={(selectedRowKeys) => setSelectedUsers(selectedRowKeys as string[])}
+        onUserSelect={handleUserSelect}
         selectedUsers={selectedUsers}
         columnVisibility={columnVisibility}
         onActivate={handleActivate}
         onDeactivate={handleDeactivate}
-        onViewDetails={handleUserDetail}
+        onViewDetails={handleViewDetails}
+        onEdit={handleEdit}
       />
 
       {/* Create User Modal */}

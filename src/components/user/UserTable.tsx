@@ -295,83 +295,37 @@ const UserTable: React.FC<UserTableProps> = ({
         </span>
       ),
       key: "actions",
-      fixed: "right" as const,
-      width: 120,
-      align: "center" as const,
-      render: (_: any, record: UserResponseDTO) => (
-        <Space style={{ display: "flex", justifyContent: "center" }}>
-          <Tooltip title="View Details">
+      render: (text: string, record: UserResponseDTO) => (
+        <Space size="middle">
+          <Tooltip title="Edit">
             <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => onViewDetails(record)}
-              size="small"
-              className="action-btn"
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => onEdit?.(record)}
             />
           </Tooltip>
-          
-          {onEdit && (
-            <Tooltip title="Edit">
-              <Button
-                type="text"
-                icon={<EditOutlined />}
-                onClick={() => onEdit(record)}
-                size="small"
-                className="action-btn"
-              />
-            </Tooltip>
-          )}
-
-          {record.status.toUpperCase() === "ACTIVE" ? (
-            <Tooltip title="Deactivate">
-              <Popconfirm
-                title={
-                  <div style={{ padding: "0 10px" }}>Deactivate User</div>
-                }
-                description={
-                  <p style={{ padding: "10px 40px 10px 18px" }}>
-                    Are you sure you want to deactivate this user? This will prevent the user from accessing the system.
-                  </p>
-                }
-                onConfirm={() => onDeactivate(record.id)}
-                okText="Yes"
-                cancelText="No"
-                placement="left"
-              >
-                <Button
-                  type="text"
-                  danger
-                  icon={<StopOutlined />}
-                  size="small"
-                  className="action-btn"
-                />
-              </Popconfirm>
-            </Tooltip>
+          {record.status === "Active" ? (
+            <Popconfirm
+              title="Are you sure you want to deactivate this user?"
+              onConfirm={() => onDeactivate(record.id)}
+              okText="Yes"
+              cancelText="No"
+            >
+              <Tooltip title="Deactivate">
+                <Button danger icon={<StopOutlined />} />
+              </Tooltip>
+            </Popconfirm>
           ) : (
-            <Tooltip title="Activate">
-              <Popconfirm
-                title={
-                  <div style={{ padding: "0 10px" }}>Activate User</div>
-                }
-                description={
-                  <p style={{ padding: "10px 40px 10px 18px" }}>
-                    Are you sure you want to activate this user? This will allow the user to access the system again.
-                  </p>
-                }
-                onConfirm={() => onActivate(record.id)}
-                okText="Yes"
-                cancelText="No"
-                placement="left"
-              >
-                <Button
-                  type="text"
-                  style={{ color: "#52c41a" }}
-                  icon={<CheckCircleOutlined />}
-                  size="small"
-                  className="action-btn"
-                />
-              </Popconfirm>
-            </Tooltip>
+            <Popconfirm
+              title="Are you sure you want to activate this user?"
+              onConfirm={() => onActivate(record.id)}
+              okText="Yes"
+              cancelText="No"
+            >
+              <Tooltip title="Activate">
+                <Button type="primary" icon={<CheckCircleOutlined />} />
+              </Tooltip>
+            </Popconfirm>
           )}
         </Space>
       ),

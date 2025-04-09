@@ -357,3 +357,20 @@ export const getUserStatistics = async (startDate?: Date, endDate?: Date) => {
     throw error;
   }
 };
+
+export const getUserById = async (userId: string): Promise<UserResponseDTO> => {
+  try {
+    const response = await api.get<{
+      isSuccess: boolean;
+      data: UserResponseDTO;
+      code: number;
+      message?: string;
+    }>(`/user-management/users/${userId}`);
+    if (response.data.isSuccess && response.data.data) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || "Failed to fetch user.");
+  } catch (error) {
+    throw error;
+  }
+};
