@@ -152,10 +152,14 @@ export function UserManagement() {
     ascending: false,
   });
 
+  // State cho tất cả users (không phân trang) - cho dropdown trong modal filter
+  const [allUsers, setAllUsers] = useState<UserResponseDTO[]>([]);
+
   // Tách thành các useEffect riêng biệt với thứ tự rõ ràng
-  // 1. Đầu tiên lấy tất cả tên người dùng cho dropdown search
+  // 1. Đầu tiên lấy tất cả người dùng cho dropdown search và modal filters
   useEffect(() => {
     fetchAllUsersForDropdown();
+    fetchAllUsers();
   }, []);
 
   // 2. Sau đó lấy các tùy chọn lọc khác
@@ -334,6 +338,43 @@ export function UserManagement() {
     } catch (error) {
       console.error("Error fetching all users for dropdown:", error);
       messageApi.error("Failed to load user dropdown data");
+    }
+  };
+
+  // Hàm lấy tất cả users cho dropdown trong modal Advanced Filters
+  const fetchAllUsers = async () => {
+    try {
+      console.log("Fetching all users for filter dropdowns...");
+      // Gọi API với pageSize lớn để lấy tất cả người dùng
+      const response = await getAllUsers(
+        1,
+        1000, // Số lượng lớn để lấy tất cả người dùng
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        "CreatedAt", // Sắp xếp theo ngày tạo
+        false // Giảm dần (mới nhất trước)
+      );
+
+      if (response.isSuccess) {
+        console.log(`API returned ${response.data.length} users for filter modal dropdowns`);
+        setAllUsers(response.data);
+      } else {
+        console.error("API call failed for filter dropdowns:", response.message);
+      }
+    } catch (error) {
+      console.error("Error fetching all users for filter dropdowns:", error);
+      messageApi.error("Failed to load user dropdown data for filters");
     }
   };
 
@@ -1097,7 +1138,7 @@ export function UserManagement() {
         onReset={handleResetFilters}
         filters={filterState}
         roleOptions={roleOptions}
-        users={users}
+        users={allUsers}
       />
     </div>
   );
