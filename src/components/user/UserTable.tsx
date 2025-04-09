@@ -140,7 +140,16 @@ const UserTable: React.FC<UserTableProps> = ({
       key: "fullName",
       ellipsis: true,
       render: (text: string, record: UserResponseDTO) => (
-        <Button type="link" onClick={() => onViewDetails(record)}>
+        <Button
+          type="link"
+          onClick={() => onViewDetails(record)}
+          style={{
+            padding: "0",
+            margin: "0",
+            height: "auto",
+            textAlign: "left",
+          }}
+        >
           {text}
         </Button>
       ),
@@ -192,7 +201,7 @@ const UserTable: React.FC<UserTableProps> = ({
     {
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          DATE OF BIRTH
+          DOB
         </span>
       ),
       dataIndex: "dob",
@@ -219,40 +228,69 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "roles",
       key: "roles",
-      render: (roles: string[]) => (
-        <Space size={[0, 4]} wrap>
-          {roles && roles.length > 0 ? (
-            roles.map((role) => {
-              let color = "default";
-              switch (role) {
-                case "Admin":
-                  color = "red";
-                  break;
-                case "Manager":
-                  color = "orange";
-                  break;
-                case "Staff":
-                case "Healthcare Staff":
-                  color = "blue";
-                  break;
-                case "User":
-                  color = "green";
-                  break;
-                case "Student":
-                  color = "purple";
-                  break;
-              }
-              return (
-                <Tag color={color} key={role}>
-                  {role}
-                </Tag>
-              );
-            })
-          ) : (
-            <Tag>No roles</Tag>
-          )}
-        </Space>
-      ),
+      render: (roles: string[]) => {
+        // Nếu người dùng không có role nào
+        if (!roles || roles.length === 0) {
+          return <Tag>No roles</Tag>;
+        }
+
+        // Sắp xếp roles theo thứ tự ưu tiên
+        const priority: Record<string, number> = {
+          "Admin": 1,
+          "Manager": 2,
+          "Healthcare Staff": 3,
+          "Canteen Staff": 4,
+          "Staff": 5,
+          "User": 6,
+          "Student": 7
+        };
+
+        // Lấy role có mức ưu tiên cao nhất (số nhỏ nhất)
+        const sortedRoles = [...roles].sort((a, b) => {
+          return (priority[a] || 999) - (priority[b] || 999);
+        });
+
+        // Lấy role quan trọng nhất
+        const primaryRole = sortedRoles[0];
+        const otherRolesCount = sortedRoles.length - 1;
+
+        // Chọn màu sắc cho role
+        let color = "default";
+        switch (primaryRole) {
+          case "Admin":
+            color = "red";
+            break;
+          case "Manager":
+            color = "orange";
+            break;
+          case "Staff":
+          case "Healthcare Staff":
+            color = "blue";
+            break;
+          case "Canteen Staff":
+            color = "purple";
+            break;
+          case "User":
+            color = "green";
+            break;
+          case "Student":
+            color = "geekblue";
+            break;
+        }
+
+        // Hiển thị một tag role duy nhất (quan trọng nhất)
+        // Nếu có nhiều role, thêm badge với tooltip
+        return (
+          <Tooltip 
+            title={otherRolesCount > 0 ? `+ ${sortedRoles.slice(1).join(', ')}` : undefined}
+            placement="topLeft"
+          >
+            <Tag color={color}>
+              {primaryRole}{otherRolesCount > 0 ? ` +${otherRolesCount}` : ''}
+            </Tag>
+          </Tooltip>
+        );
+      },
       hidden: !columnVisibility.roles,
     },
     {
@@ -295,45 +333,58 @@ const UserTable: React.FC<UserTableProps> = ({
     },
     {
       title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        <span style={{ textTransform: "uppercase", fontWeight: "bold", display: "flex", justifyContent: "center" }}>
           ACTIONS
         </span>
       ),
       key: "actions",
       render: (text: string, record: UserResponseDTO) => (
-        <Space size="middle">
+        <Space style={{ display: "flex", justifyContent: "center" }}>
           <Tooltip title="Edit">
             <Button
-              type="primary"
+              type="text"
               icon={<EditOutlined />}
               onClick={() => onEdit?.(record)}
             />
           </Tooltip>
           {record.status === "Active" ? (
             <Popconfirm
-              title="Are you sure you want to deactivate this user?"
+              title={<div style={{ padding: "0 10px" }}>Deactivate User</div>}
+              description={
+                <p style={{ padding: "10px 40px 10px 18px" }}>
+                  Are you sure you want to deactivate this user?
+                </p>
+              }
               onConfirm={() => onDeactivate(record.id)}
               okText="Yes"
               cancelText="No"
+              placement="topLeft"
             >
               <Tooltip title="Deactivate">
-                <Button danger icon={<StopOutlined />} />
+                <Button type="text" icon={<StopOutlined />} danger />
               </Tooltip>
             </Popconfirm>
           ) : (
             <Popconfirm
-              title="Are you sure you want to activate this user?"
+              title={<div style={{ padding: "0 10px" }}>Activate User</div>}
+              description={
+                <p style={{ padding: "10px 40px 10px 18px" }}>
+                  Are you sure you want to activate this user?
+                </p>
+              }
               onConfirm={() => onActivate(record.id)}
               okText="Yes"
               cancelText="No"
+              placement="topLeft"
             >
               <Tooltip title="Activate">
-                <Button type="primary" icon={<CheckCircleOutlined />} />
+                <Button type="text" icon={<CheckCircleOutlined />} style={{ color: "#52c41a" }} />
               </Tooltip>
             </Popconfirm>
           )}
         </Space>
       ),
+      align: "center" as const,
       hidden: !columnVisibility.actions,
     },
   ];
