@@ -86,14 +86,25 @@ const UserTable: React.FC<UserTableProps> = ({
   // Render status tag
   const renderStatusTag = (status: string) => {
     const color = getStatusColor(status);
-    const icon = status.toUpperCase() === "ACTIVE" ? <CheckCircleOutlined /> : <StopOutlined />;
-    return <Tag color={color} icon={icon}>{status}</Tag>;
+    const icon =
+      status.toUpperCase() === "ACTIVE" ? (
+        <CheckCircleOutlined />
+      ) : (
+        <StopOutlined />
+      );
+    return (
+      <Tag color={color} icon={icon}>
+        {status}
+      </Tag>
+    );
   };
 
   // Function to render the custom select all dropdown
   const renderSelectAll = () => {
-    const isSelectAll = selectedUsers.length > 0 && selectedUsers.length === users.length;
-    const isIndeterminate = selectedUsers.length > 0 && selectedUsers.length < users.length;
+    const isSelectAll =
+      selectedUsers.length > 0 && selectedUsers.length === users.length;
+    const isIndeterminate =
+      selectedUsers.length > 0 && selectedUsers.length < users.length;
 
     // Simplified select all toggle
     const handleSelectAllToggle = () => {
@@ -102,7 +113,7 @@ const UserTable: React.FC<UserTableProps> = ({
         onUserSelect([]);
       } else {
         // Otherwise, select all users
-        onUserSelect(users.map(user => user.id));
+        onUserSelect(users.map((user) => user.id));
       }
     };
 
@@ -127,7 +138,6 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "fullName",
       key: "fullName",
-      sorter: true,
       ellipsis: true,
       render: (text: string, record: UserResponseDTO) => (
         <Button type="link" onClick={() => onViewDetails(record)}>
@@ -144,7 +154,6 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "userName",
       key: "userName",
-      sorter: true,
       ellipsis: true,
       hidden: !columnVisibility.userName,
     },
@@ -156,7 +165,6 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "email",
       key: "email",
-      sorter: true,
       ellipsis: true,
       hidden: !columnVisibility.email,
     },
@@ -189,7 +197,6 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "dob",
       key: "dob",
-      sorter: true,
       render: (date: string) => formatDate(date).split(" ")[0],
       hidden: !columnVisibility.dob,
     },
@@ -272,7 +279,6 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "createdAt",
       key: "createdAt",
-      sorter: true,
       render: (date: string) => formatDate(date),
       hidden: !columnVisibility.createdAt,
     },
@@ -284,7 +290,6 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "updatedAt",
       key: "updatedAt",
-      sorter: true,
       render: (date: string) => (date ? formatDate(date) : "N/A"),
       hidden: !columnVisibility.updatedAt,
     },
@@ -417,7 +422,7 @@ const UserTable: React.FC<UserTableProps> = ({
             size="middle"
             bordered
             sticky={{ offsetHeader: 0 }}
-            rowClassName={(record) => 
+            rowClassName={(record) =>
               selectedUsers.includes(record.id) ? "ant-table-row-selected" : ""
             }
           />
@@ -464,4 +469,4 @@ const UserTable: React.FC<UserTableProps> = ({
   );
 };
 
-export default UserTable; 
+export default UserTable;

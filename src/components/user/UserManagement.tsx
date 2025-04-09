@@ -31,6 +31,7 @@ import {
   DeleteOutlined,
   TagOutlined,
   TeamOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
@@ -694,7 +695,7 @@ export function UserManagement() {
               padding: "16px",
             }}
           >
-            <SettingOutlined />
+            <AppstoreOutlined />
             <span>Toolbar</span>
           </div>
         }
