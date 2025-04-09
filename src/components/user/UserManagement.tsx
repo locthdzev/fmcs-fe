@@ -152,7 +152,18 @@ export function UserManagement() {
     ascending: false,
   });
 
-  // Fetch data when filters change
+  // Tách thành các useEffect riêng biệt với thứ tự rõ ràng
+  // 1. Đầu tiên lấy tất cả tên người dùng cho dropdown search
+  useEffect(() => {
+    fetchAllUsersForDropdown();
+  }, []);
+
+  // 2. Sau đó lấy các tùy chọn lọc khác
+  useEffect(() => {
+    fetchFilterOptions();
+  }, []);
+
+  // 3. Cuối cùng fetch danh sách users dựa trên filter
   useEffect(() => {
     fetchUsers();
   }, [
@@ -172,96 +183,67 @@ export function UserManagement() {
     ascending,
   ]);
 
-  // Fetch filter options when component mounts
+  // Cập nhật xử lý khi select tên từ dropdown
   useEffect(() => {
-    fetchFilterOptions();
-  }, []);
+    // Khi user chọn tên từ dropdown, cần trích xuất tên thực tế từ định dạng "FullName (email)"
+    if (fullNameSearch) {
+      // Kiểm tra xem fullNameSearch có chứa dấu ngoặc không
+      const match = fullNameSearch.match(/(.*?)\s*\(.*\)/);
+      const actualName = match ? match[1].trim() : fullNameSearch.trim();
 
-  // Extract and set fullName options from fetched users
-  useEffect(() => {
-    if (users.length > 0) {
-      extractFullNamesFromUsers(users);
+      // Gọi API tìm kiếm với tên thực tế đã trích xuất
+      console.log(`Searching with extracted name: "${actualName}"`);
+
+      // Nếu tên đã được định dạng với email, sử dụng tên thực tế để tìm kiếm
+      if (match && actualName !== fullNameSearch) {
+        // Gọi API search với tên thực tế - cập nhật nếu cần thiết thông qua API
+      }
     }
-  }, [users]);
-
-  // Update form values when filters change
-  useEffect(() => {
-    searchForm.setFieldsValue({
-      fullNameSearch,
-      userNameSearch,
-      emailSearch,
-      phoneSearch,
-      roleFilter,
-      genderFilter,
-      statusFilter,
-      dobDateRange,
-      createdDateRange,
-      updatedDateRange,
-      sortBy,
-      ascending,
-    });
-  }, [
-    fullNameSearch,
-    userNameSearch,
-    emailSearch,
-    phoneSearch,
-    roleFilter,
-    genderFilter,
-    statusFilter,
-    dobDateRange,
-    createdDateRange,
-    updatedDateRange,
-    sortBy,
-    ascending,
-  ]);
+  }, [fullNameSearch]);
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Convert date ranges to Date objects
-      const formattedDobStart = dobDateRange[0]
-        ? dobDateRange[0].toDate()
-        : undefined;
-      const formattedDobEnd = dobDateRange[1]
-        ? dobDateRange[1].toDate()
-        : undefined;
-      const formattedCreatedStart = createdDateRange[0]
-        ? createdDateRange[0].toDate()
-        : undefined;
-      const formattedCreatedEnd = createdDateRange[1]
-        ? createdDateRange[1].toDate()
-        : undefined;
-      const formattedUpdatedStart = updatedDateRange[0]
-        ? updatedDateRange[0].toDate()
-        : undefined;
-      const formattedUpdatedEnd = updatedDateRange[1]
-        ? updatedDateRange[1].toDate()
-        : undefined;
+      // Trích xuất thông tin tìm kiếm từ chuỗi kết hợp "fullName | email"
+      let actualFullNameSearch = "";
+      let actualEmailSearch = "";
+
+      if (fullNameSearch) {
+        const parts = fullNameSearch.split(" | ");
+        if (parts.length === 2) {
+          // Nếu có đủ 2 phần thì phần đầu là tên, phần sau là email
+          actualFullNameSearch = parts[0].trim();
+          actualEmailSearch = parts[1].trim();
+        } else {
+          // Nếu người dùng nhập trực tiếp, không chọn từ dropdown
+          actualFullNameSearch = fullNameSearch.trim();
+        }
+      }
 
       const response = await getAllUsers(
         currentPage,
         pageSize,
-        fullNameSearch || undefined,
-        userNameSearch || undefined,
-        emailSearch || undefined,
-        phoneSearch || undefined,
-        roleFilter || undefined,
-        genderFilter || undefined,
-        formattedDobStart,
-        formattedDobEnd,
-        formattedCreatedStart,
-        formattedCreatedEnd,
-        formattedUpdatedStart,
-        formattedUpdatedEnd,
-        statusFilter || undefined,
+        actualFullNameSearch, // Dùng tên thực tế đã trích xuất
+        userNameSearch,
+        actualEmailSearch || emailSearch, // Dùng email trích xuất hoặc email nhập trực tiếp
+        phoneSearch,
+        roleFilter,
+        genderFilter,
+        dobDateRange[0]?.toDate(),
+        dobDateRange[1]?.toDate(),
+        createdDateRange[0]?.toDate(),
+        createdDateRange[1]?.toDate(),
+        updatedDateRange[0]?.toDate(),
+        updatedDateRange[1]?.toDate(),
+        statusFilter,
         sortBy,
         ascending
       );
 
       if (response.isSuccess) {
-        // Update to match the actual API response structure
         setUsers(response.data);
         setTotalItems(response.totalRecords);
+        console.log(`Fetched ${response.data.length} users`);
       } else {
         messageApi.error(response.message || "Failed to fetch users");
       }
@@ -286,29 +268,73 @@ export function UserManagement() {
       // }
 
       setRoleOptions(["Admin", "Manager", "Staff", "User"]);
-      setUserOptions(["Male", "Female", "Other"]);
+      setUserOptions(["Male", "Female"]);
 
-      // Fetch all users to extract full names for the dropdown
-      try {
-        const response = await getAllUsers(1, 100); // Get first 100 users for options
-        if (response.isSuccess && response.data) {
-          extractFullNamesFromUsers(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching users for full name options:", error);
-      }
+      // Không cập nhật fullNameOptions ở đây nữa, vì đã có fetchAllUsersForDropdown
     } catch (error) {
       console.error("Error fetching filter options:", error);
     }
   };
 
-  const extractFullNamesFromUsers = (userData: UserResponseDTO[]) => {
-    // Extract unique full names
-    const uniqueFullNames = Array.from(
-      new Set(userData.map((user) => user.fullName))
-    ).sort();
+  const extractFullNamesFromUsers = (userData: UserResponseDTO[]): string[] => {
+    // Thêm debug log
+    console.log(`Total users received: ${userData.length}`);
 
-    setFullNameOptions(uniqueFullNames);
+    // Tạo mảng danh sách tên người dùng và sắp xếp theo ngày tạo mới nhất trước
+    const sortedUsers = [...userData].sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    // Lấy danh sách hiển thị theo định dạng mới, kết hợp cả fullName và email
+    const combinedOptions = sortedUsers.map(
+      (user) => user.fullName + " | " + user.email
+    );
+
+    // Debug log
+    console.log(`Extracted ${combinedOptions.length} combined name options`);
+
+    // Cập nhật state và trả về mảng
+    setFullNameOptions(combinedOptions);
+    return combinedOptions;
+  };
+
+  const fetchAllUsersForDropdown = async () => {
+    try {
+      console.log("Fetching all users for dropdown...");
+      // Gọi API với pageSize lớn để lấy tất cả người dùng
+      const response = await getAllUsers(
+        1,
+        1000, // Số lượng lớn để lấy tất cả người dùng
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        "CreatedAt", // Sắp xếp theo ngày tạo
+        false // Giảm dần (mới nhất trước)
+      );
+
+      if (response.isSuccess) {
+        console.log(
+          `API returned ${response.data.length} users out of ${response.totalRecords} total records`
+        );
+        // Trích xuất tên đầy đủ từ tất cả người dùng và lưu vào state
+        extractFullNamesFromUsers(response.data);
+      } else {
+        console.error("API call failed:", response.message);
+      }
+    } catch (error) {
+      console.error("Error fetching all users for dropdown:", error);
+      messageApi.error("Failed to load user dropdown data");
+    }
   };
 
   const handleFormFieldChange = (field: string, value: any) => {
@@ -622,11 +648,6 @@ export function UserManagement() {
     }
   };
 
-  const handleUserDetail = (user: UserResponseDTO) => {
-    setSelectedUserDetail(user);
-    setDetailModalVisible(true);
-  };
-
   const handleDropdownVisibleChange = (visible: boolean) => {
     setDropdownOpen(visible);
   };
@@ -662,6 +683,46 @@ export function UserManagement() {
 
   const handleUserSelect = (selectedRowKeys: React.Key[]) => {
     setSelectedUsers(selectedRowKeys.map((key) => key.toString()));
+  };
+
+  // 3. Cập nhật form values khi filters thay đổi
+  useEffect(() => {
+    searchForm.setFieldsValue({
+      fullNameSearch,
+      userNameSearch,
+      emailSearch,
+      phoneSearch,
+      roleFilter,
+      genderFilter,
+      statusFilter,
+      dobDateRange,
+      createdDateRange,
+      updatedDateRange,
+      sortBy,
+      ascending,
+    });
+  }, [
+    fullNameSearch,
+    userNameSearch,
+    emailSearch,
+    phoneSearch,
+    roleFilter,
+    genderFilter,
+    statusFilter,
+    dobDateRange,
+    createdDateRange,
+    updatedDateRange,
+    sortBy,
+    ascending,
+  ]);
+
+  // Cập nhật hàm xử lý tìm kiếm để trích xuất đúng thông tin tìm kiếm
+  const handleFullNameSearch = (value: string) => {
+    // Lưu giá trị hiển thị đầy đủ để hiển thị trong dropdown
+    setFullNameSearch(value || "");
+
+    // Reset trang về 1 khi thay đổi tìm kiếm
+    setCurrentPage(1);
   };
 
   return (
@@ -702,28 +763,46 @@ export function UserManagement() {
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Full Name Search */}
+            {/* Full Name or Email Search */}
             <Select
               showSearch
-              placeholder="Search by Full Name"
+              placeholder="Search by Full Name or Email"
               value={fullNameSearch || undefined}
-              onChange={(value) => {
-                setFullNameSearch(value || "");
-                setCurrentPage(1);
-                setLoading(true);
-              }}
-              style={{ width: "300px" }}
+              onChange={handleFullNameSearch}
+              style={{ width: "320px" }}
               allowClear
               filterOption={(input, option) =>
-                (option?.label?.toString().toLowerCase() || "").includes(
+                (option?.value?.toString().toLowerCase() || "").includes(
                   input.toLowerCase()
                 )
               }
-              options={fullNameOptions.map((name) => ({
-                value: name,
-                label: name,
+              options={fullNameOptions.map((combined) => ({
+                value: combined,
               }))}
-              prefix={<SearchOutlined />}
+              optionRender={(option) => {
+                // Tách thông tin tên và email từ giá trị
+                const valueParts = (option.value?.toString() || "").split(
+                  " | "
+                );
+                const fullName = valueParts[0];
+                const email = valueParts.length > 1 ? valueParts[1] : "";
+
+                return (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      padding: "4px 0",
+                    }}
+                  >
+                    <span>{fullName}</span>
+                    <span style={{ fontSize: "12px", color: "#666" }}>
+                      {email}
+                    </span>
+                  </div>
+                );
+              }}
+              dropdownStyle={{ minWidth: "320px" }}
             />
 
             {/* Advanced Filters */}
