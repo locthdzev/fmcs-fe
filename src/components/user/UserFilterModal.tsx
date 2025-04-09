@@ -50,6 +50,7 @@ interface UserFilterModalProps {
     ascending: boolean;
   };
   roleOptions: string[];
+  users: any[];
 }
 
 // Định nghĩa date ranges phổ biến để tái sử dụng
@@ -85,6 +86,7 @@ const UserFilterModal: React.FC<UserFilterModalProps> = ({
   onReset,
   filters,
   roleOptions,
+  users,
 }) => {
   const [localFilters, setLocalFilters] = React.useState(filters);
 
@@ -160,13 +162,25 @@ const UserFilterModal: React.FC<UserFilterModalProps> = ({
               <div className="filter-label" style={filterLabelStyle}>
                 Username
               </div>
-              <Input
+              <Select
+                showSearch
                 placeholder="Search by username"
-                value={localFilters.userNameSearch}
-                onChange={(e) => updateFilter("userNameSearch", e.target.value)}
+                value={localFilters.userNameSearch || undefined}
+                onChange={(value) => updateFilter("userNameSearch", value)}
+                style={{ width: "100%" }}
                 allowClear
-                prefix={<UserOutlined style={{ color: "#bfbfbf" }} />}
-              />
+                filterOption={(input, option) =>
+                  (option?.value?.toString().toLowerCase() || "").includes(
+                    input.toLowerCase()
+                  )
+                }
+              >
+                {users?.map((user) => (
+                  <Option key={user.id} value={user.userName}>
+                    {user.userName}
+                  </Option>
+                ))}
+              </Select>
             </div>
           </Col>
 
@@ -176,13 +190,25 @@ const UserFilterModal: React.FC<UserFilterModalProps> = ({
               <div className="filter-label" style={filterLabelStyle}>
                 Email
               </div>
-              <Input
+              <Select
+                showSearch
                 placeholder="Search by email"
-                value={localFilters.emailSearch}
-                onChange={(e) => updateFilter("emailSearch", e.target.value)}
+                value={localFilters.emailSearch || undefined}
+                onChange={(value) => updateFilter("emailSearch", value)}
+                style={{ width: "100%" }}
                 allowClear
-                prefix={<MailOutlined style={{ color: "#bfbfbf" }} />}
-              />
+                filterOption={(input, option) =>
+                  (option?.value?.toString().toLowerCase() || "").includes(
+                    input.toLowerCase()
+                  )
+                }
+              >
+                {users?.map((user) => (
+                  <Option key={user.id} value={user.email}>
+                    {user.email}
+                  </Option>
+                ))}
+              </Select>
             </div>
           </Col>
         </Row>
@@ -194,13 +220,25 @@ const UserFilterModal: React.FC<UserFilterModalProps> = ({
               <div className="filter-label" style={filterLabelStyle}>
                 Phone
               </div>
-              <Input
+              <Select
+                showSearch
                 placeholder="Search by phone"
-                value={localFilters.phoneSearch}
-                onChange={(e) => updateFilter("phoneSearch", e.target.value)}
+                value={localFilters.phoneSearch || undefined}
+                onChange={(value) => updateFilter("phoneSearch", value)}
+                style={{ width: "100%" }}
                 allowClear
-                prefix={<PhoneOutlined style={{ color: "#bfbfbf" }} />}
-              />
+                filterOption={(input, option) =>
+                  (option?.value?.toString().toLowerCase() || "").includes(
+                    input.toLowerCase()
+                  )
+                }
+              >
+                {users?.map((user) => (
+                  <Option key={user.id} value={user.phone}>
+                    {user.phone}
+                  </Option>
+                ))}
+              </Select>
             </div>
           </Col>
 

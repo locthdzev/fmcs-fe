@@ -824,25 +824,14 @@ export function UserManagement() {
                 value: combined,
               }))}
               optionRender={(option) => {
-                // Tách thông tin tên và email từ giá trị
-                const nameParts = (option.value?.toString() || "").split(
-                  " | "
-                );
-                const fullName = nameParts[0];
-                const email = nameParts.length > 1 ? nameParts[1] : "";
-
+                const optionParts = (option.value?.toString() || "").split(" | ");
+                const fullName = optionParts[0];
+                const email = optionParts[1];
+                
                 return (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      padding: "4px 0",
-                    }}
-                  >
-                    <span>{fullName}</span>
-                    <span style={{ fontSize: "12px", color: "#666" }}>
-                      {email}
-                    </span>
+                  <div className="custom-select-option">
+                    <div className="name">{fullName}</div>
+                    <div className="email">{email}</div>
                   </div>
                 );
               }}
@@ -1108,6 +1097,7 @@ export function UserManagement() {
         onReset={handleResetFilters}
         filters={filterState}
         roleOptions={roleOptions}
+        users={users}
       />
     </div>
   );
