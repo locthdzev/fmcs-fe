@@ -95,7 +95,7 @@ const DropdownUser = () => {
         <div className={style.dropdownOpen}>
           <ul className="flex flex-col">
             <li>
-              <Link href="/user/me" className={style.dropdownItem}>
+              <Link href="/my-profile" className={style.dropdownItem}>
                 <ProfileIcon />
                 <span className="ml-3">My Profile</span>
               </Link>
