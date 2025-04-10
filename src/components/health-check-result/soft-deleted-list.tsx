@@ -98,6 +98,11 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
 
   const columns = [
     {
+      title: "Mã kết quả khám",
+      dataIndex: "healthCheckResultCode",
+      render: (code: string) => <Text copyable>{code}</Text>,
+    },
+    {
       title: "Bệnh nhân",
       render: (record: HealthCheckResultsResponseDTO) => (
         <div>

@@ -1,13 +1,15 @@
 import React from "react";
 import {
   Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Button,
-  Chip,
-} from "@heroui/react";
+  Tag,
+  Image,
+  Card,
+  Row,
+  Col,
+  Descriptions,
+  Typography
+} from "antd";
 import { DrugResponse } from "@/api/drug";
 
 interface ConfirmDeleteDrugModalProps {
@@ -17,12 +19,14 @@ interface ConfirmDeleteDrugModalProps {
   onConfirmDelete: () => void;
 }
 
-const statusColorMap: Record<string, any> = {
+const { Text, Title } = Typography;
+
+const statusColorMap: Record<string, string> = {
   Active: "success",
-  Inactive: "danger",
+  Inactive: "error",
 };
 
-const ConfirmDeleteDrugModal: React.FC<ConfirmDeleteDrugModalProps> = ({
+export const ConfirmDeleteDrugModal: React.FC<ConfirmDeleteDrugModalProps> = ({
   drug,
   isOpen,
   onClose,
@@ -31,100 +35,55 @@ const ConfirmDeleteDrugModal: React.FC<ConfirmDeleteDrugModalProps> = ({
   if (!drug) return null;
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
-      <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
-        <ModalHeader className="border-b pb-3">
-          <span className="text-red-500">Confirm Delete</span>
-        </ModalHeader>
-        <ModalBody className="p-6">
-          <p className="text-gray-700 mb-4">
-            Are you sure you want to delete the following drug?
-          </p>
-          <div className="grid grid-cols-12 gap-6 items-start">
-            {/* Hình ảnh thuốc */}
-            <div className="col-span-5 flex justify-center items-center">
-              <img
+    <Modal
+      open={isOpen}
+      onCancel={onClose}
+      width={800}
+      title={<Text type="danger">Confirm Delete</Text>}
+      footer={[
+        <Button key="cancel" onClick={onClose}>
+          Cancel
+        </Button>,
+        <Button key="delete" danger type="primary" onClick={onConfirmDelete}>
+          Delete
+        </Button>
+      ]}
+    >
+      <div style={{ padding: "16px 0" }}>
+        <p style={{ marginBottom: "16px" }}>
+          Are you sure you want to delete the following drug?
+        </p>
+        <Row gutter={24}>
+          {/* Hình ảnh thuốc */}
+          <Col span={10}>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <Image
                 src={drug.imageUrl}
                 alt={drug.name}
                 className="w-64 h-64 object-contain bg-white p-2 transition-transform duration-300 hover:scale-105"
               />
             </div>
+          </Col>
 
-            {/* Thông tin thuốc */}
-            <div className="col-span-7 space-y-4 text-gray-700">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { label: "Drug Code", value: drug.drugCode },
-                  { label: "Name", value: drug.name },
-                  { label: "Drug Group", value: drug.drugGroup?.groupName || "-" },
-                  { label: "Unit", value: drug.unit },
-                  { label: "Price", value: drug.price },
-                  { label: "Manufacturer", value: drug.manufacturer || "-" },
-                  {
-                    label: "Created At",
-                    value: drug.createdAt
-                      ? new Date(drug.createdAt).toLocaleDateString("vi-VN")
-                      : "-",
-                  },
-                  {
-                    label: "Updated At",
-                    value: drug.updatedAt
-                      ? new Date(drug.updatedAt).toLocaleDateString("vi-VN")
-                      : "-",
-                  },
-                ].map((field, index) => (
-                  <label
-                    key={index}
-                    className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm"
-                  >
-                    <span className="text-xs font-medium text-gray-700">
-                      {field.label}
-                    </span>
-                    <div className="mt-1 w-full border-none p-0 sm:text-sm">
-                      {field.value}
-                    </div>
-                  </label>
-                ))}
-              </div>
-
-              <label className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                <span className="text-xs font-medium text-gray-700">
-                  Description
-                </span>
-                <div className="mt-1 w-full border-none p-0 sm:text-sm text-gray-600 italic">
-                  {drug.description || "No description available."}
-                </div>
-              </label>
-
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-900 underline">Status:</span>
-                <Chip
-                  className="capitalize px-2 py-1 text-sm font-medium"
-                  color={
-                    drug.status && statusColorMap[drug.status]
-                      ? statusColorMap[drug.status]
-                      : "default"
-                  }
-                  size="sm"
-                  variant="flat"
-                >
-                  {drug.status}
-                </Chip>
-              </div>
-            </div>
-          </div>
-        </ModalBody>
-        <ModalFooter className="border-t pt-3">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button color="danger" onClick={onConfirmDelete}>
-            Delete
-          </Button>
-        </ModalFooter>
-      </ModalContent>
+          {/* Thông tin thuốc */}
+          <Col span={14}>
+            <Descriptions column={1}>
+              <Descriptions.Item label="Drug Code">{drug.drugCode}</Descriptions.Item>
+              <Descriptions.Item label="Name">{drug.name}</Descriptions.Item>
+              <Descriptions.Item label="Drug Group">{drug.drugGroup?.groupName || "-"}</Descriptions.Item>
+              <Descriptions.Item label="Unit">{drug.unit}</Descriptions.Item>
+              <Descriptions.Item label="Price">{drug.price}</Descriptions.Item>
+              <Descriptions.Item label="Manufacturer">{drug.manufacturer || "-"}</Descriptions.Item>
+              <Descriptions.Item label="Created At">{drug.createdAt ? new Date(drug.createdAt).toLocaleDateString("vi-VN") : "-"}</Descriptions.Item>
+              <Descriptions.Item label="Updated At">{drug.updatedAt ? new Date(drug.updatedAt).toLocaleDateString("vi-VN") : "-"}</Descriptions.Item>
+              <Descriptions.Item label="Description">{drug.description || "No description available."}</Descriptions.Item>
+              <Descriptions.Item label="Status">
+                <Tag color={statusColorMap[drug.status] || "default"}>{drug.status}</Tag>
+              </Descriptions.Item>
+            </Descriptions>
+          </Col>
+        </Row>
+      </div>
     </Modal>
   );
 };
-
-export default ConfirmDeleteDrugModal;

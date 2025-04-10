@@ -1,5 +1,6 @@
-import { Users } from "../../components/users";
+import React from "react";
+import { UserManagement } from "@/components/user";
 
 export default function UserManagementPage() {
-  return <Users />;
+  return <UserManagement />;
 }

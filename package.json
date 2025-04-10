@@ -5,7 +5,7 @@
   "author": {
     "name": "SEP490_06"
   },
-  "license": "MIT",
+  "license": "UNLICENSED",
   "keywords": [
     "ui",
     "react",
@@ -25,23 +25,21 @@
     "format": "prettier '*/**/*.{ts,tsx}' --write"
   },
   "dependencies": {
+    "@ant-design/charts": "^2.2.7",
     "@ant-design/icons": "^5.6.1",
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@headlessui/react": "^2.2.0",
+
     "@heroicons/react": "^2.2.0",
-    "@heroui/dropdown": "^2.3.9",
     "@heroui/react": "^2.7.4",
     "@microsoft/signalr": "^8.0.7",
     "@mui/material": "^6.4.0",
-    "@nextui-org/react": "^2.6.11",
-    "@progress/kendo-react-dateinputs": "^9.3.1",
-    "@progress/kendo-theme-default": "^10.1.0",
     "@react-oauth/google": "^0.12.1",
     "@tabler/icons-react": "^3.30.0",
     "ant": "^0.0.0",
-    "antd": "^5.24.3",
+    "antd": "^5.24.6",
     "axios": "^1.8.1",
     "chart.js": "^4.4.7",
     "clsx": "^2.1.1",
@@ -57,17 +55,17 @@
     "motion": "^12.4.1",
     "next": "^15.2.3",
     "react": "^19.0.0",
+
     "react-chartjs-2": "^5.3.0",
-    "react-dom": "^19.0.0",
+    "react-dom": "^18.2.0",
     "react-dropzone": "^14.3.5",
     "react-icons": "^5.4.0",
-    "react-modal": "^3.16.3",
     "react-otp-input": "^3.1.1",
-    "react-router-dom": "^7.1.1",
     "react-toastify": "^10.0.6",
     "react-tooltip": "^5.28.0",
     "react-virtualized-auto-sizer": "^1.0.26",
     "react-window": "^1.8.11",
+
     "recharts": "^2.15.1",
     "tailwind-merge": "^2.6.0",
     "tslib": "^2.8.1",
@@ -83,6 +81,7 @@
     "@types/react-modal": "^3.16.3",
     "@types/react-virtualized-auto-sizer": "^1.0.4",
     "@types/react-window": "^1.8.8",
+
     "autoprefixer": "^10.4.20",
     "eslint": "8.43.0",
     "eslint-config-next": "^13.4.10",
