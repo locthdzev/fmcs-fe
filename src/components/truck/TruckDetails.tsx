@@ -1,143 +1,366 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
+  Card,
+  Typography,
+  Tag,
   Button,
-  Chip,
-} from "@heroui/react";
-import { TruckResponse } from "@/api/truck";
+  Space,
+  Spin,
+  message,
+  Row,
+  Col,
+  Modal,
+  Image,
+  Divider
+} from "antd";
+import dayjs from "dayjs";
+import { getTruckById, TruckResponse } from "@/api/truck";
+import {
+  ArrowLeftOutlined,
+  EditOutlined
+} from "@ant-design/icons";
+import { useRouter } from "next/router";
+import { TrucksIcon } from "./Icons";
 
+const { Title, Text } = Typography;
+
+interface TruckDetailsProps {
+  id: string;
+}
+
+export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
+  const router = useRouter();
+  const [truck, setTruck] = useState<TruckResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [messageApi, contextHolder] = message.useMessage();
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      fetchTruckDetails();
+    }
+  }, [id]);
+
+  const fetchTruckDetails = async () => {
+    setLoading(true);
+    try {
+      const response = await getTruckById(id);
+      if (response && typeof response === 'object') {
+         setTruck(response);
+      } else {
+         console.error("Invalid response structure:", response);
+         messageApi.error("Failed to fetch truck details: Invalid data format");
+         setTruck(null);
+      }
+    } catch (error) {
+      console.error("Error fetching truck details:", error);
+      messageApi.error("Failed to fetch truck details");
+      setTruck(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (date: string | undefined) => {
+    if (!date) return "-";
+    return dayjs(date).format("DD/MM/YYYY HH:mm:ss");
+  };
+
+  const getStatusColor = (status: string | undefined) => {
+    switch (status) {
+      case "Active":
+        return "success";
+      case "Inactive":
+        return "error";
+      default:
+        return "default";
+    }
+  };
+
+  const renderActionButtons = () => {
+    if (!truck) return null;
+    return (
+      <Button 
+        type="primary"
+        onClick={() => router.push(`/truck/edit/${id}`)}
+        icon={<EditOutlined />}
+      >
+        Edit Truck
+      </Button>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        {contextHolder}
+        <Spin size="large" tip="Loading truck details..." />
+      </div>
+    );
+  }
+
+  if (!truck) {
+    return (
+      <div className="p-4">
+        {contextHolder}
+        <div className="flex items-center gap-2 mb-4">
+            <Button
+                icon={<ArrowLeftOutlined />}
+                onClick={() => router.push("/truck")}
+                style={{ marginRight: "8px" }}
+            >
+                Back
+            </Button>
+            <TrucksIcon />
+            <h3 className="text-xl font-bold">Truck Not Found</h3>
+        </div>
+        <Card>
+           <Text>The requested truck could not be found or loaded.</Text>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4">
+      {contextHolder}
+      <Modal 
+        open={!!previewImage} 
+        footer={null} 
+        onCancel={() => setPreviewImage(null)}
+        width={800}
+        centered
+      >
+        <img 
+          alt="Truck Preview" 
+          style={{ width: '100%' }} 
+          src={previewImage || ''} 
+        />
+      </Modal>
+
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.push("/truck")}
+            style={{ marginRight: "8px" }}
+          >
+            Back
+          </Button>
+          <TrucksIcon />
+          <h3 className="text-xl font-bold">Truck Details</h3>
+        </div>
+        <div>{renderActionButtons()}</div>
+      </div>
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={16}>
+          <Card
+            title={<Title level={5}>Truck Information</Title>}
+            extra={
+              <Tag color={getStatusColor(truck.status)}>
+                {truck.status ? truck.status.toUpperCase() : ""}
+              </Tag>
+            }
+          >
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <div className="border rounded-md p-3">
+                  <Text strong className="block text-sm text-gray-500">License Plate</Text>
+                  <Text className="block">{truck.licensePlate || "-"}</Text>
+                </div>
+              </Col>
+              <Col xs={24} sm={12}>
+                <div className="border rounded-md p-3">
+                  <Text strong className="block text-sm text-gray-500">Driver Name</Text>
+                  <Text className="block">{truck.driverName || "-"}</Text>
+                </div>
+              </Col>
+              <Col xs={24} sm={12}>
+                <div className="border rounded-md p-3">
+                  <Text strong className="block text-sm text-gray-500">Driver Contact</Text>
+                  <Text className="block">{truck.driverContact || "-"}</Text>
+                </div>
+              </Col>
+              <Col xs={24}>
+                <div className="border rounded-md p-3">
+                  <Text strong className="block text-sm text-gray-500">Description</Text>
+                  <Text className="block">{truck.description || "No description available."}</Text>
+                </div>
+              </Col>
+              
+              <Col xs={24}>
+                <Divider style={{ margin: "8px 0" }} />
+              </Col>
+              
+              <Col xs={24} sm={12}>
+                <div className="border rounded-md p-3">
+                  <Text strong className="block text-sm text-gray-500">Created At</Text>
+                  <Text className="block">{formatDate(truck.createdAt)}</Text>
+                </div>
+              </Col>
+              <Col xs={24} sm={12}>
+                <div className="border rounded-md p-3">
+                  <Text strong className="block text-sm text-gray-500">Updated At</Text>
+                  <Text className="block">{formatDate(truck.updatedAt)}</Text>
+                </div>
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+        <Col xs={24} md={8}>
+          <Card title={<Title level={5}>Truck Image</Title>}>
+            {truck.truckImage ? (
+              <div 
+                style={{ cursor: 'pointer' }} 
+                onClick={() => setPreviewImage(truck.truckImage || null)}
+                className="flex justify-center"
+              >
+                <img
+                  src={truck.truckImage}
+                  alt={truck.licensePlate}
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '300px', 
+                    objectFit: 'contain',
+                    transition: 'transform 0.3s ease',
+                  }}
+                  className="hover:scale-105"
+                />
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Text type="secondary">No image available</Text>
+              </div>
+            )}
+          </Card>
+        </Col>
+      </Row>
+    </div>
+  );
+};
+
+// Backward compatibility modal wrapper for the existing Truck component
+// No longer needed as we've migrated to a standalone page
+// Keeping this commented code for reference
+/*
 interface TruckDetailsModalProps {
   truck: TruckResponse | null;
   isOpen: boolean;
   onClose: () => void;
 }
 
-const statusColorMap: Record<string, any> = {
-  Active: "success",
-  Inactive: "danger",
-};
-
 const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
   truck,
   isOpen,
   onClose,
 }) => {
-  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-
-  if (!truck) return null;
-
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  
+  if (!truck || !isOpen) return null;
+  
   return (
     <>
-      <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-4xl">
-        <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
-          <ModalHeader className="flex justify-between items-center">
-            <span>Truck Details</span>
-            <div className="flex items-center">
-              <Chip
-                className="capitalize px-2 py-1 text-sm font-medium mr-4"
-                color={
-                  truck.status && statusColorMap[truck.status]
-                    ? statusColorMap[truck.status]
-                    : "default"
-                }
-                size="sm"
-                variant="flat"
+      <Modal
+        title="Truck Details"
+        open={isOpen}
+        onCancel={onClose}
+        footer={[
+          <Button key="close" onClick={onClose}>
+            Close
+          </Button>
+        ]}
+        width={800}
+      >
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={16}>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12} lg={8}>
+                <Text strong>License Plate:</Text>
+                <Text className="ml-2 block">{truck.licensePlate}</Text>
+              </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Text strong>Driver Name:</Text>
+                <Text className="ml-2 block">{truck.driverName || "-"}</Text>
+              </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Text strong>Driver Contact:</Text>
+                <Text className="ml-2 block">{truck.driverContact || "-"}</Text>
+              </Col>
+              <Col xs={24}>
+                <Text strong>Description:</Text>
+                <Text className="ml-2 block">{truck.description || "No description available."}</Text>
+              </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Text strong>Status:</Text>
+                <div className="ml-2 block">
+                  <Tag color={truck.status === "Active" ? "success" : "error"}>
+                    {truck.status}
+                  </Tag>
+                </div>
+              </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Text strong>Created At:</Text>
+                <Text className="ml-2 block">
+                  {truck.createdAt ? dayjs(truck.createdAt).format("DD/MM/YYYY HH:mm:ss") : "-"}
+                </Text>
+              </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Text strong>Updated At:</Text>
+                <Text className="ml-2 block">
+                  {truck.updatedAt ? dayjs(truck.updatedAt).format("DD/MM/YYYY HH:mm:ss") : "-"}
+                </Text>
+              </Col>
+            </Row>
+          </Col>
+          <Col xs={24} md={8}>
+            {truck.truckImage ? (
+              <div 
+                style={{ cursor: 'pointer' }} 
+                onClick={() => setPreviewImage(truck.truckImage)}
+                className="flex justify-center"
               >
-                {truck.status}
-              </Chip>
-            </div>
-          </ModalHeader>
-          <ModalBody className="p-6">
-            <div className="grid grid-cols-12 gap-6 items-start">
-              {/* Truck Image */}
-              <div className="col-span-5 flex justify-center items-center">
                 <img
                   src={truck.truckImage}
                   alt={truck.licensePlate}
-                  className="w-64 h-64 object-contain bg-white p-2 transition-transform duration-300 hover:scale-105 cursor-pointer"
-                  onClick={() => setIsImageModalOpen(true)}
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '200px', 
+                    objectFit: 'contain',
+                  }}
+                  className="hover:scale-105"
                 />
               </div>
-
-              {/* Truck Information */}
-              <div className="col-span-7 space-y-4 text-gray-700">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { label: "License Plate", value: truck.licensePlate },
-                    { label: "Driver Name", value: truck.driverName || "-" },
-                    {
-                      label: "Driver Contact",
-                      value: truck.driverContact || "-",
-                    },
-                    {
-                      label: "Created At",
-                      value: truck.createdAt
-                        ? new Date(truck.createdAt).toLocaleDateString("vi-VN")
-                        : "-",
-                    },
-                    {
-                      label: "Updated At",
-                      value: truck.updatedAt
-                        ? new Date(truck.updatedAt).toLocaleDateString("vi-VN")
-                        : "-",
-                    },
-                  ].map((field, index) => (
-                    <label
-                      key={index}
-                      className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm"
-                    >
-                      <span className="text-xs font-medium text-gray-700">
-                        {field.label}
-                      </span>
-                      <div className="mt-1 w-full border-none p-0 sm:text-sm">
-                        {field.value}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-
-                <label className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                  <span className="text-xs font-medium text-gray-700">
-                    Description
-                  </span>
-                  <div className="mt-1 w-full border-none p-0 sm:text-sm text-gray-600 italic">
-                    {truck.description || "No description available."}
-                  </div>
-                </label>
+            ) : (
+              <div className="text-center py-8">
+                <Text type="secondary">No image available</Text>
               </div>
-            </div>
-          </ModalBody>
-
-          <ModalFooter className="border-t pt-3">
-            <Button variant="ghost" onClick={onClose}>
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
+            )}
+          </Col>
+        </Row>
       </Modal>
-
-      {/* Large Image Modal */}
-      <Modal
-        isOpen={isImageModalOpen}
-        onOpenChange={() => setIsImageModalOpen(false)}
-        size="2xl"
+      
+      <Modal 
+        open={!!previewImage} 
+        footer={null} 
+        onCancel={() => setPreviewImage(null)}
+        width={800}
+        centered
       >
-        <ModalContent className="bg-white shadow-lg p-4">
-          <ModalBody className="flex justify-center items-center p-6">
-            <img
-              src={truck.truckImage}
-              alt={truck.licensePlate}
-              className="max-w-full max-h-[80vh] rounded-md object-contain"
-            />
-          </ModalBody>
-        </ModalContent>
+        <img 
+          alt="Truck Preview" 
+          style={{ width: '100%' }} 
+          src={previewImage || ''} 
+        />
       </Modal>
     </>
   );
 };
+*/
+
+// This is a temporary export to maintain compatibility
+// while we transition to the page-based approach
+const TruckDetailsModal = () => null;
 
 export default TruckDetailsModal;
+

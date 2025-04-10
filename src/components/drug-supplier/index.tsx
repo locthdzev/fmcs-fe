@@ -38,7 +38,7 @@ import {
   ArrowLeftOutlined,
   FileExcelOutlined,
 } from "@ant-design/icons";
-import type { CheckboxChangeEvent } from 'antd/es/checkbox';
+import type { CheckboxChangeEvent } from "antd/es/checkbox";
 import dayjs from "dayjs";
 import {
   getDrugSuppliers,
@@ -125,19 +125,6 @@ const staticColumns = [
   {
     title: (
       <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-        Updated At
-      </span>
-    ),
-    dataIndex: "updatedAt",
-    key: "updatedAt",
-    sorter: (a: DrugSupplierResponse, b: DrugSupplierResponse) =>
-      dayjs(a.updatedAt).unix() - dayjs(b.updatedAt).unix(),
-    render: (date: string) => (date ? dayjs(date).format("DD/MM/YYYY") : "-"),
-    sortDirections: ["ascend", "descend"] as ("ascend" | "descend")[],
-  },
-  {
-    title: (
-      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
         Status
       </span>
     ),
@@ -163,10 +150,9 @@ const statusOptions = [
 const INITIAL_COLUMN_VISIBILITY: Record<string, boolean> = {
   supplierName: true,
   contactNumber: true,
-  email: false,
-  address: false,
-  createdAt: false,
-  updatedAt: false,
+  email: true,
+  address: true,
+  createdAt: true,
   status: true,
   actions: true,
 };
@@ -186,7 +172,7 @@ export function DrugSuppliers() {
   const [loadingMessage, setLoadingMessage] = useState(
     "Loading drug suppliers..."
   );
-  
+
   const [suppliers, setSuppliers] = useState<DrugSupplierResponse[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -243,7 +229,7 @@ export function DrugSuppliers() {
     }
     setLoading(true);
     try {
-    const data = await getDrugSuppliers();
+      const data = await getDrugSuppliers();
       setSuppliers(data);
       setTotalItems(data.length);
     } catch (error) {
@@ -591,16 +577,7 @@ export function DrugSuppliers() {
           size="small"
           style={{ display: "flex", justifyContent: "center" }}
         >
-          <Tooltip title="View Details">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/drug-supplier/${record.id}`);
-              }}
-            />
-          </Tooltip>
+        
           <Tooltip title="Edit">
             <Button
               type="text"
@@ -624,7 +601,12 @@ export function DrugSuppliers() {
           return {
             ...col,
             render: (text: string, record: DrugSupplierResponse) => (
-              <span className="text-primary">{text}</span>
+              <span 
+                className="text-primary cursor-pointer hover:underline" 
+                onClick={() => router.push(`/drug-supplier/${record.id}`)}
+              >
+                {text}
+              </span>
             ),
           };
         }
@@ -704,15 +686,19 @@ export function DrugSuppliers() {
       if (currentPageOnly) {
         // Chỉ lấy ID trên trang hiện tại theo trạng thái
         return paginatedSuppliers
-          .filter((supplier) => supplier.status && statuses.includes(supplier.status))
+          .filter(
+            (supplier) => supplier.status && statuses.includes(supplier.status)
+          )
           .map((supplier) => supplier.id);
       } else {
         // Lấy ID từ tất cả các trang
         setIsLoadingAllItems(true);
         const result = filteredAndSortedSuppliers
-          .filter((supplier) => supplier.status && statuses.includes(supplier.status))
+          .filter(
+            (supplier) => supplier.status && statuses.includes(supplier.status)
+          )
           .map((supplier) => supplier.id);
-        
+
         setIsLoadingAllItems(false);
         return result;
       }
@@ -737,43 +723,23 @@ export function DrugSuppliers() {
       switch (key) {
         case "page-active":
           // Chọn nhà cung cấp Active trên trang hiện tại
-          const pageActiveIds = await getItemIdsByStatus(
-            ["Active"],
-            true
-          );
+          const pageActiveIds = await getItemIdsByStatus(["Active"], true);
           setSelectedRowKeys(pageActiveIds);
           break;
         case "all-active":
           // Chọn tất cả nhà cung cấp Active trên tất cả các trang
-          const allActiveIds = await getItemIdsByStatus(
-            ["Active"],
-            false
-          );
+          const allActiveIds = await getItemIdsByStatus(["Active"], false);
           setSelectedRowKeys(allActiveIds);
           break;
         case "page-inactive":
           // Chọn nhà cung cấp Inactive trên trang hiện tại
-          const pageInactiveIds = await getItemIdsByStatus(
-            ["Inactive"],
-            true
-          );
+          const pageInactiveIds = await getItemIdsByStatus(["Inactive"], true);
           setSelectedRowKeys(pageInactiveIds);
           break;
         case "all-inactive":
           // Chọn tất cả nhà cung cấp Inactive trên tất cả các trang
-          const allInactiveIds = await getItemIdsByStatus(
-            ["Inactive"],
-            false
-          );
+          const allInactiveIds = await getItemIdsByStatus(["Inactive"], false);
           setSelectedRowKeys(allInactiveIds);
-          break;
-        case "all-active-inactive":
-          // Chọn tất cả nhà cung cấp Active & Inactive trên tất cả các trang
-          const allActiveInactiveIds = await getItemIdsByStatus(
-            ["Active", "Inactive"],
-            false
-          );
-          setSelectedRowKeys(allActiveInactiveIds);
           break;
         default:
           break;
@@ -784,27 +750,30 @@ export function DrugSuppliers() {
   // Hàm hiển thị trình đơn thả xuống tùy chỉnh
   const renderSelectAll = () => {
     // Đếm nhà cung cấp theo trạng thái
-    const activeInactiveCount = paginatedSuppliers.filter(
-      (supplier) => supplier.status === "Active" || supplier.status === "Inactive"
-    ).length;
+    const activeCount = paginatedSuppliers.filter(supplier => supplier.status === "Active").length;
+    const inactiveCount = paginatedSuppliers.filter(supplier => supplier.status === "Inactive").length;
 
     // Đếm nhà cung cấp có thể chọn
     const selectableSuppliers = paginatedSuppliers;
 
     const isSelectAll =
       selectableSuppliers.length > 0 &&
-      selectableSuppliers.every((supplier) => selectedRowKeys.includes(supplier.id));
+      selectableSuppliers.every((supplier) =>
+        selectedRowKeys.includes(supplier.id)
+      );
 
     const isIndeterminate =
       selectedRowKeys.length > 0 &&
       !isSelectAll &&
-      selectableSuppliers.some((supplier) => selectedRowKeys.includes(supplier.id));
+      selectableSuppliers.some((supplier) =>
+        selectedRowKeys.includes(supplier.id)
+      );
 
     // Tạo mục menu dropdown
     const items = [];
 
     // Thêm tùy chọn Active
-    if (paginatedSuppliers.some(supplier => supplier.status === "Active")) {
+    if (activeCount > 0) {
       items.push({
         key: "page-active",
         label: (
@@ -815,7 +784,7 @@ export function DrugSuppliers() {
                 : ""
             }
           >
-            Select all Active on this page
+            Select all Active on this page ({activeCount})
           </div>
         ),
       });
@@ -830,8 +799,7 @@ export function DrugSuppliers() {
                 : ""
             }
           >
-            {isLoadingAllItems &&
-            selectedOption === "all-active" ? (
+            {isLoadingAllItems && selectedOption === "all-active" ? (
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
@@ -847,7 +815,7 @@ export function DrugSuppliers() {
     }
 
     // Thêm tùy chọn Inactive
-    if (paginatedSuppliers.some(supplier => supplier.status === "Inactive")) {
+    if (inactiveCount > 0) {
       items.push({
         key: "page-inactive",
         label: (
@@ -858,7 +826,7 @@ export function DrugSuppliers() {
                 : ""
             }
           >
-            Select all Inactive on this page
+            Select all Inactive on this page ({inactiveCount})
           </div>
         ),
       });
@@ -873,8 +841,7 @@ export function DrugSuppliers() {
                 : ""
             }
           >
-            {isLoadingAllItems &&
-            selectedOption === "all-inactive" ? (
+            {isLoadingAllItems && selectedOption === "all-inactive" ? (
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
@@ -889,54 +856,21 @@ export function DrugSuppliers() {
       });
     }
 
-    // Thêm tùy chọn Active & Inactive cho tất cả các trang
-    if (paginatedSuppliers.some(supplier => supplier.status === "Active" || supplier.status === "Inactive")) {
-      items.push({
-        key: "all-active-inactive",
-        label: (
-          <div
-            className={
-              selectedOption === "all-active-inactive"
-                ? "ant-dropdown-menu-item-active"
-                : ""
-            }
-          >
-            {isLoadingAllItems &&
-            selectedOption === "all-active-inactive" ? (
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
-              >
-                <Spin size="small" />
-                <span>Loading all Active & Inactive...</span>
-              </div>
-            ) : (
-              <span>Select all Active & Inactive (all pages)</span>
-            )}
-          </div>
-        ),
-      });
-    }
-
     // Hàm xử lý khi chọn tất cả trên trang hiện tại
     const handleSelectAllToggle = (e: CheckboxChangeEvent) => {
-      if (e.target.checked) {
-        const currentPageKeys = selectableSuppliers.map((supplier) => supplier.id);
-        setSelectedRowKeys(currentPageKeys);
-        setSelectedOption(null); // Xóa bất kỳ tùy chọn dropdown nào đã chọn
-    } else {
-        setSelectedRowKeys([]);
-        setSelectedOption(null);
-      }
+      // Đã vô hiệu hóa chức năng
+      return;
     };
 
     return (
       <>
         <Checkbox
-          checked={isSelectAll}
-          indeterminate={isIndeterminate}
+          checked={false}
+          indeterminate={false}
           onChange={handleSelectAllToggle}
-          disabled={selectableSuppliers.length === 0}
+          disabled={true}
         />
+        
         {items.length > 0 && (
           <Dropdown
             menu={{
@@ -948,7 +882,7 @@ export function DrugSuppliers() {
             placement="bottomLeft"
             trigger={["click"]}
           >
-                <Button
+            <Button
               type="text"
               size="small"
               className="select-all-dropdown"
@@ -958,13 +892,13 @@ export function DrugSuppliers() {
                 position: "absolute",
                 top: "50%",
                 transform: "translateY(-50%)",
-                left: "25px",
+                left: "30px",
                 right: "auto",
                 zIndex: 10,
               }}
             >
               <DownOutlined />
-                </Button>
+            </Button>
           </Dropdown>
         )}
       </>
@@ -984,21 +918,76 @@ export function DrugSuppliers() {
     selectedRowKeys.includes(s.id)
   );
 
+  const renderSelectedInfo = () => {
+    if (selectedRowKeys.length === 0) return null;
+    
+    return (
+      <Space>
+        <Text>{selectedRowKeys.length} items selected</Text>
+        <Button
+          icon={<UndoOutlined />}
+          onClick={() => setSelectedRowKeys([])}
+        >
+          Restore
+        </Button>
+        
+        {showActivateButton && (
+          <Button
+            className="bg-success-100 text-success border-success"
+            onClick={() => showConfirm("activate", handleActivate)}
+            disabled={loading}
+          >
+            Activate Selected
+          </Button>
+        )}
+        
+        {showDeactivateButton && (
+          <Button
+            className="bg-danger-100 text-danger border-danger"
+            onClick={() => showConfirm("deactivate", handleDeactivate)}
+            disabled={loading}
+          >
+            Deactivate Selected
+          </Button>
+        )}
+      </Space>
+    );
+  };
+
+  // Hàm render phần Rows per page (luôn hiển thị)
+  const renderRowsPerPage = () => {
+    return (
+      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <Text type="secondary">Rows per page:</Text>
+        <Select
+          value={pageSize}
+          onChange={(value) => onPageChange(1, value)}
+          style={{ width: "80px" }}
+        >
+          <Option value={5}>5</Option>
+          <Option value={10}>10</Option>
+          <Option value={15}>15</Option>
+          <Option value={20}>20</Option>
+        </Select>
+      </div>
+    );
+  };
+
   return (
     <div style={{ padding: "20px" }}>
       {contextHolder}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-                <Button
+          <Button
             icon={<ArrowLeftOutlined />}
             onClick={handleBack}
             style={{ marginRight: "8px" }}
           >
             Back
-                </Button>
+          </Button>
           <DrugSupplierIcon style={{ fontSize: "24px" }} />
           <h3 className="text-xl font-bold">Drug Supplier Management</h3>
-            </div>
+        </div>
       </div>
 
       {initialLoading ? (
@@ -1041,25 +1030,32 @@ export function DrugSuppliers() {
                       onChange={handleSearchSelectChange}
                       style={{ width: "300px" }}
                       filterOption={(input, option) =>
-                        (option?.label?.toString().toLowerCase() ?? "").includes(
-                          input.toLowerCase()
-                        )
+                        (
+                          option?.label?.toString().toLowerCase() ?? ""
+                        ).includes(input.toLowerCase())
                       }
                       options={suppliers.map((supplier) => ({
                         value: supplier.supplierName,
                         label: supplier.supplierName,
                       }))}
                     />
-                    
+
                     <Tooltip title="Advanced Filters">
-                <Button
-                        icon={<FilterOutlined 
-                          style={{ color: advancedFilters !== initialAdvancedFilters ? '#1890ff' : undefined }}
-                        />}
+                      <Button
+                        icon={
+                          <FilterOutlined
+                            style={{
+                              color:
+                                advancedFilters !== initialAdvancedFilters
+                                  ? "#1890ff"
+                                  : undefined,
+                            }}
+                          />
+                        }
                         onClick={handleOpenFilterModal}
-                      > 
+                      >
                         Filters
-                </Button>
+                      </Button>
                     </Tooltip>
 
                     <Select
@@ -1079,7 +1075,7 @@ export function DrugSuppliers() {
                     />
 
                     <Tooltip title="Reset All Filters">
-                <Button
+                      <Button
                         icon={<UndoOutlined />}
                         onClick={handleResetFilters}
                         disabled={
@@ -1090,7 +1086,7 @@ export function DrugSuppliers() {
                         }
                       >
                         Reset
-                </Button>
+                      </Button>
                     </Tooltip>
 
                     <Dropdown
@@ -1164,82 +1160,41 @@ export function DrugSuppliers() {
                       <Tooltip title="Column Settings">
                         <Button icon={<SettingOutlined />}>Columns</Button>
                       </Tooltip>
-            </Dropdown>
-            <Button
+                    </Dropdown>
+                    <Button
                       type="primary"
                       icon={<PlusOutlined />}
-              onClick={() => setIsModalOpen(true)}
+                      onClick={() => setIsModalOpen(true)}
                       disabled={loading}
-            >
+                    >
                       Create
-            </Button>
-          </div>
+                    </Button>
+                  </div>
 
                   <div className="flex items-center gap-2">
-                    {showActivateButton && (
-                      <Button
-                        className="bg-success-100 text-success border-success"
-                        onClick={() => showConfirm("activate", handleActivate)}
-                        disabled={loading}
-                      >
-                        Activate Selected
-                      </Button>
-                    )}
-                    {showDeactivateButton && (
-          <Button
-                        className="bg-danger-100 text-danger border-danger"
-                        onClick={() =>
-                          showConfirm("deactivate", handleDeactivate)
-                        }
-                        disabled={loading}
-                      >
-                        Deactivate Selected
-          </Button>
-                    )}
-
-                   
-
-          <Button
+                    <Button
                       type="primary"
                       icon={<FileExcelOutlined />}
                       onClick={handleOpenExportConfig}
                       disabled={loading}
                     >
                       Export to Excel
-          </Button>
-        </div>
-      </div>
-
-                <div className="flex justify-between items-center">
-                  <Text type="secondary">
-                    Total {filteredAndSortedSuppliers.length} drug suppliers{" "}
-                    {hasSelected ? `(${selectedRowKeys.length} selected)` : ""}
-                  </Text>
-      </div>
+                    </Button>
+                  </div>
+                </div>
               </div>
             </Card>
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "8px",
-                alignItems: "center",
-                marginBottom: "16px",
-              }}
-            >
-              <Text type="secondary">Rows per page:</Text>
-              <Select
-                value={pageSize}
-                onChange={(value) => onPageChange(1, value)}
-                style={{ width: "80px" }}
-              >
-                <Option value={5}>5</Option>
-                <Option value={10}>10</Option>
-                <Option value={15}>15</Option>
-                <Option value={20}>20</Option>
-              </Select>
+            {/* Container cho cả selected info và rows per page */}
+            <div className="mb-4 py-2 flex justify-between items-center">
+              <div>
+                {renderSelectedInfo()}
+              </div>
+              <div>
+                {renderRowsPerPage()}
+              </div>
             </div>
+
             <Card
               className="mt-4 shadow-sm"
               bodyStyle={{ padding: "8px 16px" }}
@@ -1254,6 +1209,7 @@ export function DrugSuppliers() {
                   pagination={false}
                   onChange={handleTableChange}
                   scroll={{ x: "max-content" }}
+                  bordered
                 />
               </div>
               <Card className="mt-4 shadow-sm">
@@ -1267,7 +1223,7 @@ export function DrugSuppliers() {
                         current={currentPage}
                         pageSize={pageSize}
                         total={filteredAndSortedSuppliers.length}
-                        onChange={onPageChange}
+                        onChange={(page) => onPageChange(page, pageSize)}
                         showSizeChanger={false}
                         showTotal={() => ""}
                       />
@@ -1282,9 +1238,9 @@ export function DrugSuppliers() {
                             )
                           )}
                           value={currentPage}
-                          onChange={(value: number | null) => {
+                          onPressEnter={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                            const value = Number((e.target as HTMLInputElement).value);
                             if (
-                              value &&
                               value > 0 &&
                               value <=
                                 Math.ceil(
@@ -1292,6 +1248,18 @@ export function DrugSuppliers() {
                                 )
                             ) {
                               onPageChange(value, pageSize);
+                            }
+                          }}
+                          onChange={(value) => {
+                            if (
+                              value &&
+                              Number(value) > 0 &&
+                              Number(value) <=
+                                Math.ceil(
+                                  filteredAndSortedSuppliers.length / pageSize
+                                )
+                            ) {
+                              onPageChange(Number(value), pageSize);
                             }
                           }}
                           style={{ width: "60px" }}
@@ -1329,11 +1297,11 @@ export function DrugSuppliers() {
         width={500}
       >
         {editingSupplierId && (
-              <EditDrugSupplierForm
-                drugSupplierId={editingSupplierId}
-                onClose={() => setIsEditModalOpen(false)}
-                onUpdate={handleUpdateSuccess}
-              />
+          <EditDrugSupplierForm
+            drugSupplierId={editingSupplierId}
+            onClose={() => setIsEditModalOpen(false)}
+            onUpdate={handleUpdateSuccess}
+          />
         )}
       </Modal>
 
@@ -1353,15 +1321,15 @@ export function DrugSuppliers() {
         onCancel={() => setIsConfirmModalOpen(false)}
         footer={[
           <Button key="cancel" onClick={() => setIsConfirmModalOpen(false)}>
-              Cancel
+            Cancel
           </Button>,
-            <Button
+          <Button
             key="confirm"
             type={confirmAction === "activate" ? "primary" : "primary"}
             danger={confirmAction === "deactivate"}
-              onClick={handleConfirmAction}
-            >
-              Confirm
+            onClick={handleConfirmAction}
+          >
+            Confirm
           </Button>,
         ]}
       >

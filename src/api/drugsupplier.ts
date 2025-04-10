@@ -46,6 +46,9 @@ export interface DrugSupplierExportConfigDTO {
   
   // Tùy chọn tên tệp xuất
   fileName?: string;
+  
+  // Tùy chọn xuất tất cả trang
+  exportAllPages?: boolean;
 }
 
 export const getDrugSuppliers = async () => {
@@ -186,13 +189,21 @@ export const exportDrugSuppliersToExcelWithConfig = async (
   createdEndDate?: string,
   updatedStartDate?: string,
   updatedEndDate?: string,
-  ascending?: boolean
+  ascending?: boolean,
+  exportAllPages?: boolean
 ): Promise<{ success: boolean; data?: string; message?: string }> => {
   try {
     const params = new URLSearchParams();
     
-    if (page) params.append("page", page.toString());
-    if (pageSize) params.append("pageSize", pageSize.toString());
+    // Khi exportAllPages là true, ghi đè page và pageSize để xuất tất cả dữ liệu
+    if (exportAllPages || config.exportAllPages) {
+      params.append("page", "1");
+      params.append("pageSize", "1000000");
+    } else {
+      if (page) params.append("page", page.toString());
+      if (pageSize) params.append("pageSize", pageSize.toString());
+    }
+    
     if (supplierNameSearch) params.append("supplierNameSearch", supplierNameSearch);
     if (statusFilter && statusFilter.length > 0) params.append("status", statusFilter.join(','));
     if (createdStartDate) params.append("createdStartDate", createdStartDate);
@@ -200,6 +211,7 @@ export const exportDrugSuppliersToExcelWithConfig = async (
     if (updatedStartDate) params.append("updatedStartDate", updatedStartDate);
     if (updatedEndDate) params.append("updatedEndDate", updatedEndDate);
     if (ascending !== undefined) params.append("ascending", ascending.toString());
+    if (exportAllPages !== undefined) params.append("exportAllPages", exportAllPages.toString());
 
     // Thêm sortBy vì API endpoint yêu cầu
     params.append("sortBy", "SupplierName");

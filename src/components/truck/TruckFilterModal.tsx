@@ -24,18 +24,18 @@ const { RangePicker } = DatePicker;
 const { Title } = Typography;
 
 // Define the structure for the filters state
-export interface DrugSupplierAdvancedFilters {
+export interface TruckAdvancedFilters {
   createdDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
   updatedDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
   ascending: boolean; // Sort direction for CreatedAt
 }
 
-interface DrugSupplierFilterModalProps {
-  visible: boolean;
-  onCancel: () => void;
-  onApply: (filters: DrugSupplierAdvancedFilters) => void;
+interface TruckFilterModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onApply: (filters: TruckAdvancedFilters) => void;
   onReset: () => void;
-  initialFilters: DrugSupplierAdvancedFilters;
+  initialFilters?: TruckAdvancedFilters;
 }
 
 // Define date presets with correct type
@@ -46,26 +46,28 @@ const datePresets: RangePickerProps['presets'] = [
     { label: "This Month", value: [dayjs().startOf('month'), dayjs().endOf('month')] },
     { label: "Last Month", value: [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month')] },
     { label: "This Year", value: [dayjs().startOf('year'), dayjs().endOf('year')] },
-    // Add more presets if needed
 ];
 
-
-const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
-  visible,
-  onCancel,
+const TruckFilterModal: React.FC<TruckFilterModalProps> = ({
+  isOpen,
+  onClose,
   onApply,
   onReset,
-  initialFilters,
+  initialFilters = {
+    createdDateRange: [null, null],
+    updatedDateRange: [null, null],
+    ascending: false, // Default sort: Newest first (descending)
+  },
 }) => {
-  const [localFilters, setLocalFilters] = useState<DrugSupplierAdvancedFilters>(initialFilters);
+  const [localFilters, setLocalFilters] = useState<TruckAdvancedFilters>(initialFilters);
   const [loading, setLoading] = useState(false);
 
   // Reset localFilters when modal is opened or initialFilters change
   useEffect(() => {
-    if (visible) {
+    if (isOpen) {
       setLocalFilters(initialFilters);
     }
-  }, [visible, initialFilters]);
+  }, [isOpen, initialFilters]);
 
   const handleApply = () => {
     // Show loading indicator when applying filters
@@ -94,8 +96,8 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
   return (
     <Modal
       title="Advanced Filters"
-      open={visible}
-      onCancel={onCancel}
+      open={isOpen}
+      onCancel={onClose}
       width={600} // Adjusted width
       footer={[
         <Button key="reset" onClick={handleReset} icon={<UndoOutlined />} disabled={loading}>
@@ -134,7 +136,7 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
                       createdDateRange: dates as [dayjs.Dayjs | null, dayjs.Dayjs | null] || [null, null],
                     }))
                   }
-                  presets={datePresets} // <-- Added presets
+                  presets={datePresets}
                 />
               </div>
             </Col>
@@ -157,7 +159,7 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
                       updatedDateRange: dates as [dayjs.Dayjs | null, dayjs.Dayjs | null] || [null, null],
                     }))
                   }
-                  presets={datePresets} // <-- Added presets
+                  presets={datePresets}
                 />
               </div>
             </Col>
@@ -208,4 +210,4 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
   );
 };
 
-export default DrugSupplierFilterModal;
+export default TruckFilterModal;
