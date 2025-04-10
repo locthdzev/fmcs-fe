@@ -1,8 +1,11 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { TopBar } from "@/dashboard/topbar/TopBar";
 import { Overlay } from "./Overlay";
 import { Sidebar } from "./sidebar/Sidebar";
 import { DashboardProvider } from "./Provider";
+import { useSurveyRequired } from "@/context/SurveyRequiredContext";
+import { useRouter } from "next/router";
+import { notification } from "antd";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,6 +19,73 @@ const style = {
 };
 
 export function DashboardLayout(props: LayoutProps) {
+  const { redirectToSurveyIfRequired, checkPendingSurveys, hasPendingSurveys } = useSurveyRequired();
+  const router = useRouter();
+  const isNavigatingRef = useRef(false);
+
+  // Check survey status only when component mounts and when user changes
+  // Not on every route change
+  useEffect(() => {
+    const checkInitialSurveyRequirement = async () => {
+      // Only check on mount, not on every route change
+      await checkPendingSurveys();
+    };
+    
+    checkInitialSurveyRequirement();
+  }, [checkPendingSurveys]);
+
+  // Add router event listeners, but optimize to prevent excessive API calls
+  useEffect(() => {
+    // Check before starting navigation
+    const handleRouteChangeStart = async (url: string) => {
+      // Prevent multiple route changes from triggering multiple checks
+      if (isNavigatingRef.current) return;
+      
+      // Block navigation if URL is not an allowed page
+      const isAllowedUrl = url.includes('/survey/surveyUser') || 
+                          url.includes('/survey/details/') || 
+                          url.includes('/auth/login');
+      
+      if (hasPendingSurveys && !isAllowedUrl) {
+        isNavigatingRef.current = true;
+        router.events.emit('routeChangeError');
+        
+        // Hiển thị thông báo thân thiện thay vì throw error
+        notification.warning({
+          message: 'Cần hoàn thành khảo sát',
+          description: 'Bạn cần hoàn thành tất cả các khảo sát đang chờ trước khi truy cập tính năng này.',
+          duration: 5,
+        });
+        
+        // Cancel current navigation and redirect to survey page
+        router.push('/survey/surveyUser');
+        // Prevent default error handling
+        return false;
+      }
+    };
+
+    // Check after navigation is complete, but with debounce
+    const handleRouteChangeComplete = async () => {
+      isNavigatingRef.current = false;
+      
+      // Only redirect if necessary, don't call checkPendingSurveys again
+      // because the context already has throttling
+      if (hasPendingSurveys) {
+        await redirectToSurveyIfRequired();
+      }
+    };
+
+    // Register events
+    router.events.on('routeChangeStart', handleRouteChangeStart);
+    router.events.on('routeChangeComplete', handleRouteChangeComplete);
+
+    return () => {
+      // Unregister events on unmount
+      router.events.off('routeChangeStart', handleRouteChangeStart);
+      router.events.off('routeChangeComplete', handleRouteChangeComplete);
+    };
+  }, [router, hasPendingSurveys, redirectToSurveyIfRequired]);
+
   return (
     <DashboardProvider>
       <div className={style.container}>
