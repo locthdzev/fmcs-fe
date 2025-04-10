@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo, useContext } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useContext,
+} from "react";
 import {
   Button,
   Input,
@@ -107,37 +113,55 @@ const formatTime = (datetime: string | undefined) =>
 
 const getStatusColor = (status: string | undefined) => {
   switch (status) {
-    case "Scheduled": return "blue";
-    case "Happening": return "orange";
-    case "Finished": return "green";
-    case "Missed": return "red";
+    case "Scheduled":
+      return "blue";
+    case "Happening":
+      return "orange";
+    case "Finished":
+      return "green";
+    case "Missed":
+      return "red";
     case "Cancelled":
-    case "CancelledAfterConfirm": return "gray";
-    default: return "default";
+    case "CancelledAfterConfirm":
+      return "gray";
+    default:
+      return "default";
   }
 };
 
 const getStatusIcon = (status: string | undefined) => {
   switch (status) {
-    case "Scheduled": return <ClockCircleOutlined />;
-    case "Happening": return <PlayCircleOutlined />;
-    case "Finished": return <CheckCircleFilled />;
-    case "Missed": return <CloseCircleFilled />;
+    case "Scheduled":
+      return <ClockCircleOutlined />;
+    case "Happening":
+      return <PlayCircleOutlined />;
+    case "Finished":
+      return <CheckCircleFilled />;
+    case "Missed":
+      return <CloseCircleFilled />;
     case "Cancelled":
-    case "CancelledAfterConfirm": return <StopOutlined />;
-    default: return null;
+    case "CancelledAfterConfirm":
+      return <StopOutlined />;
+    default:
+      return null;
   }
 };
 
 const getStatusTooltip = (status: string | undefined) => {
   switch (status) {
-    case "Scheduled": return "Upcoming appointment.";
-    case "Happening": return "Currently in progress.";
-    case "Finished": return "Completed.";
-    case "Missed": return "Not attended.";
+    case "Scheduled":
+      return "Upcoming appointment.";
+    case "Happening":
+      return "Currently in progress.";
+    case "Finished":
+      return "Completed.";
+    case "Missed":
+      return "Not attended.";
     case "Cancelled":
-    case "CancelledAfterConfirm": return "Cancelled appointment.";
-    default: return "";
+    case "CancelledAfterConfirm":
+      return "Cancelled appointment.";
+    default:
+      return "";
   }
 };
 
@@ -159,7 +183,11 @@ const UpdateAppointmentModal: React.FC<{
       if (!token || !appointment?.staffId) return;
       setLoading(true);
       try {
-        const response = await getAvailableTimeSlots(appointment.staffId, date, token);
+        const response = await getAvailableTimeSlots(
+          appointment.staffId,
+          date,
+          token
+        );
         setAvailableSlots(response.data?.availableSlots || []);
       } catch (error: any) {
         console.error("Failed to fetch slots:", error);
@@ -180,7 +208,9 @@ const UpdateAppointmentModal: React.FC<{
       form.setFieldsValue({
         email: appointment.studentEmail,
         appointmentDate: appointmentDate,
-        timeSlot: `${moment(appointment.appointmentDate).format("HH:mm")} - ${moment(appointment.endTime).format("HH:mm")}`,
+        timeSlot: `${moment(appointment.appointmentDate).format(
+          "HH:mm"
+        )} - ${moment(appointment.endTime).format("HH:mm")}`,
         reason: appointment.reason,
         status: appointment.status,
       });
@@ -227,7 +257,11 @@ const UpdateAppointmentModal: React.FC<{
         sendNotificationToStaff: true,
       };
 
-      const response = await updateAppointmentByStaff(appointment.id, token, request);
+      const response = await updateAppointmentByStaff(
+        appointment.id,
+        token,
+        request
+      );
       if (response.isSuccess) {
         toast.success("Appointment updated successfully!");
         form.resetFields();
@@ -261,7 +295,9 @@ const UpdateAppointmentModal: React.FC<{
         <Form.Item
           name="email"
           label="Student/User Email"
-          rules={[{ required: true, message: "Please enter the student/user Email" }]}
+          rules={[
+            { required: true, message: "Please enter the student/user Email" },
+          ]}
         >
           <Input placeholder="Enter student/user Email" disabled />
         </Form.Item>
@@ -274,7 +310,9 @@ const UpdateAppointmentModal: React.FC<{
           <DatePicker
             format="YYYY-MM-DD"
             onChange={onDateChange}
-            disabledDate={(current) => current && current < moment().startOf("day")}
+            disabledDate={(current) =>
+              current && current.isBefore(dayjs().startOf("day"))
+            }
             style={{ width: "100%" }}
           />
         </Form.Item>
@@ -381,7 +419,11 @@ const ScheduleAppointmentForStaff: React.FC<{
     setLoading(true);
     try {
       const [startTime] = values.timeSlot.split(" - ");
-      const vietnamMoment = moment.tz(`${selectedDate} ${startTime}`, "YYYY-MM-DD HH:mm", "Asia/Ho_Chi_Minh");
+      const vietnamMoment = moment.tz(
+        `${selectedDate} ${startTime}`,
+        "YYYY-MM-DD HH:mm",
+        "Asia/Ho_Chi_Minh"
+      );
       const appointmentDate = vietnamMoment.format("YYYY-MM-DDTHH:mm:ssZ");
 
       const request: AppointmentCreateRequestForstaffDTO = {
@@ -396,13 +438,18 @@ const ScheduleAppointmentForStaff: React.FC<{
         sessionId: null,
       };
 
-      const response = await scheduleAppointmentForHealthcareStaff(request, token);
+      const response = await scheduleAppointmentForHealthcareStaff(
+        request,
+        token
+      );
       if (response.isSuccess) {
         toast.success("Appointment scheduled successfully!");
         form.resetFields();
         onClose();
       } else {
-        toast.error(`Failed to schedule: ${response.message || "Unknown error"}`);
+        toast.error(
+          `Failed to schedule: ${response.message || "Unknown error"}`
+        );
       }
     } catch (error: any) {
       console.error("Error scheduling appointment:", error);
@@ -429,7 +476,9 @@ const ScheduleAppointmentForStaff: React.FC<{
         <Form.Item
           name="email"
           label="Student/User Email"
-          rules={[{ required: true, message: "Please enter the student/user Email" }]}
+          rules={[
+            { required: true, message: "Please enter the student/user Email" },
+          ]}
         >
           <Input placeholder="Enter student/user Email" />
         </Form.Item>
@@ -442,7 +491,9 @@ const ScheduleAppointmentForStaff: React.FC<{
           <DatePicker
             format="YYYY-MM-DD"
             onChange={onDateChange}
-            disabledDate={(current) => current && current < moment().startOf("day")}
+            disabledDate={(current) =>
+              current && current.isBefore(dayjs().startOf("day"))
+            }
             style={{ width: "100%" }}
           />
         </Form.Item>
@@ -458,8 +509,8 @@ const ScheduleAppointmentForStaff: React.FC<{
             loading={loading}
           >
             {availableSlots
-              .filter(slot => slot.isAvailable && !slot.isLocked)
-              .map(slot => (
+              .filter((slot) => slot.isAvailable && !slot.isLocked)
+              .map((slot) => (
                 <Option key={slot.timeSlot} value={slot.timeSlot}>
                   {slot.timeSlot}
                 </Option>
@@ -491,8 +542,12 @@ export function AppointmentManagementForStaff() {
   const router = useRouter();
   const context = useContext(UserContext);
   const user = context?.user;
-  const [appointments, setAppointments] = useState<AppointmentResponseDTO[]>([]);
-  const [happeningAppointments, setHappeningAppointments] = useState<AppointmentResponseDTO[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentResponseDTO[]>(
+    []
+  );
+  const [happeningAppointments, setHappeningAppointments] = useState<
+    AppointmentResponseDTO[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -500,41 +555,54 @@ export function AppointmentManagementForStaff() {
   const [blockModalVisible, setBlockModalVisible] = useState(false);
   const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
-  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentResponseDTO | null>(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<
+    string | null
+  >(null);
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<AppointmentResponseDTO | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [resetStatusUserId, setResetStatusUserId] = useState<string | null>(null);
+  const [resetStatusUserId, setResetStatusUserId] = useState<string | null>(
+    null
+  );
   const [activeTab, setActiveTab] = useState<string>("Scheduled");
 
-  const fetchAppointments = useCallback(async (userId: string) => {
-    setLoading(true);
-    try {
-      const result: PagedResultDTO<AppointmentResponseDTO> = await getAppointmentsByStaffId(
-        userId,
-        1,
-        50,
-        "AppointmentDate",
-        false
-      );
-      if (result.isSuccess) {
-        const allAppointments = result.data || [];
-        setHappeningAppointments(allAppointments.filter(app => app.status === "Happening"));
-        setAppointments(allAppointments.filter(app => app.status !== "Happening"));
-      } else {
-        toast.error(result.message || "Failed to fetch appointments");
+  const fetchAppointments = useCallback(
+    async (userId: string) => {
+      setLoading(true);
+      try {
+        const result: PagedResultDTO<AppointmentResponseDTO> =
+          await getAppointmentsByStaffId(
+            userId,
+            1,
+            50,
+            "AppointmentDate",
+            false
+          );
+        if (result.isSuccess) {
+          const allAppointments = result.data || [];
+          setHappeningAppointments(
+            allAppointments.filter((app) => app.status === "Happening")
+          );
+          setAppointments(
+            allAppointments.filter((app) => app.status !== "Happening")
+          );
+        } else {
+          toast.error(result.message || "Failed to fetch appointments");
+        }
+      } catch (error: any) {
+        console.error("Error fetching appointments:", error);
+        if (error.response?.status === 401) {
+          toast.error("Session expired. Please log in again.");
+          router.push("/login");
+        } else {
+          toast.error("Failed to load appointments.");
+        }
+      } finally {
+        setLoading(false);
       }
-    } catch (error: any) {
-      console.error("Error fetching appointments:", error);
-      if (error.response?.status === 401) {
-        toast.error("Session expired. Please log in again.");
-        router.push("/login");
-      } else {
-        toast.error("Failed to load appointments.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
+    },
+    [router]
+  );
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -588,7 +656,9 @@ export function AppointmentManagementForStaff() {
       if (!token) {
         throw new Error("No authentication token found.");
       }
-      const response = userId ? await action(userId, token) : await action(id, token);
+      const response = userId
+        ? await action(userId, token)
+        : await action(id, token);
       if (response.isSuccess) {
         toast.success(successMsg);
         const staffId = jwtDecode<any>(token).userid || user?.userId;
@@ -599,10 +669,17 @@ export function AppointmentManagementForStaff() {
           }
         }
       } else {
-        toast.error(`Failed to ${successMsg.toLowerCase()}: ${response.message || "Unknown error"}`);
+        toast.error(
+          `Failed to ${successMsg.toLowerCase()}: ${
+            response.message || "Unknown error"
+          }`
+        );
       }
     } catch (error: any) {
-      if (error.response?.status === 401 || error.message === "No authentication token found.") {
+      if (
+        error.response?.status === 401 ||
+        error.message === "No authentication token found."
+      ) {
         toast.error("Session expired or unauthorized. Please log in again.");
         router.push("/login");
       } else {
@@ -626,13 +703,21 @@ export function AppointmentManagementForStaff() {
   );
 
   const filteredAppointments = useMemo(() => {
-    return appointments.filter(appointment => {
+    return appointments.filter((appointment) => {
       const matchesSearch = searchText
-        ? appointment.studentName?.toLowerCase().includes(searchText.toLowerCase())
+        ? appointment.studentName
+            ?.toLowerCase()
+            .includes(searchText.toLowerCase())
         : true;
-      const matchesDate = dateRange && appointment.appointmentDate
-        ? dayjs(appointment.appointmentDate).isBetween(dateRange[0], dateRange[1], "day", "[]")
-        : true;
+      const matchesDate =
+        dateRange && appointment.appointmentDate
+          ? dayjs(appointment.appointmentDate).isBetween(
+              dateRange[0],
+              dateRange[1],
+              "day",
+              "[]"
+            )
+          : true;
       return matchesSearch && matchesDate;
     });
   }, [appointments, searchText, dateRange]);
@@ -643,7 +728,9 @@ export function AppointmentManagementForStaff() {
     setActiveTab("Scheduled");
   };
 
-  const handleDateRangeChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
+  const handleDateRangeChange = (
+    dates: [Dayjs | null, Dayjs | null] | null
+  ) => {
     setDateRange(dates && dates[0] && dates[1] ? [dates[0], dates[1]] : null);
   };
 
@@ -652,25 +739,29 @@ export function AppointmentManagementForStaff() {
     setBlockModalVisible(true);
   };
 
-  const getActionMenuItems = (appointment: AppointmentResponseDTO): MenuProps['items'] => {
+  const getActionMenuItems = (
+    appointment: AppointmentResponseDTO
+  ): MenuProps["items"] => {
     const isAnyActionLoading = !!actionLoading;
-    const items: MenuProps['items'] = [];
+    const items: MenuProps["items"] = [];
 
     // Add Update Appointment option for editable statuses
     // if (["Scheduled", "Happening", "Missed", "Finished"].includes(appointment.status)) {
-      items.push({
-        key: "update",
-        icon: <EditOutlined style={{ color: "#1890ff" }} />,
-        disabled: isAnyActionLoading,
-        label: (
-          <span onClick={(e) => {
+    items.push({
+      key: "update",
+      icon: <EditOutlined style={{ color: "#1890ff" }} />,
+      disabled: isAnyActionLoading,
+      label: (
+        <span
+          onClick={(e) => {
             e.stopPropagation();
             handleEditClick(appointment);
-          }}>
-            Update Appointment
-          </span>
-        ),
-      });
+          }}
+        >
+          Update Appointment
+        </span>
+      ),
+    });
     // }
 
     if (appointment.status === "Scheduled") {
@@ -684,7 +775,15 @@ export function AppointmentManagementForStaff() {
               <Popconfirm
                 title={`Are you sure you want to mark "${appointment.studentName}"'s appointment as fully completed?`}
                 description="This will indicate the appointment has concluded successfully."
-                onConfirm={() => handleAction(confirmCompletion, appointment.id, "Appointment marked as completed!", undefined, "Finished")}
+                onConfirm={() =>
+                  handleAction(
+                    confirmCompletion,
+                    appointment.id,
+                    "Appointment marked as completed!",
+                    undefined,
+                    "Finished"
+                  )
+                }
                 onCancel={(e) => e?.stopPropagation()}
                 okText="Yes"
                 cancelText="No"
@@ -692,7 +791,12 @@ export function AppointmentManagementForStaff() {
                 disabled={isAnyActionLoading}
                 overlayStyle={{ zIndex: 2000 }}
               >
-                <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
                   Mark as Completed
                 </span>
               </Popconfirm>
@@ -708,7 +812,13 @@ export function AppointmentManagementForStaff() {
               <Popconfirm
                 title={`Did "${appointment.studentName}" attend this appointment?`}
                 description="This confirms the student was present but does not mark the appointment as finished."
-                onConfirm={() => handleAction(confirmAttendance, appointment.id, "Attendance confirmed!")}
+                onConfirm={() =>
+                  handleAction(
+                    confirmAttendance,
+                    appointment.id,
+                    "Attendance confirmed!"
+                  )
+                }
                 onCancel={(e) => e?.stopPropagation()}
                 okText="Yes"
                 cancelText="No"
@@ -716,7 +826,12 @@ export function AppointmentManagementForStaff() {
                 disabled={isAnyActionLoading}
                 overlayStyle={{ zIndex: 2000 }}
               >
-                <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
                   Confirm Attendance
                 </span>
               </Popconfirm>
@@ -732,7 +847,15 @@ export function AppointmentManagementForStaff() {
               <Popconfirm
                 title={`Did "${appointment.studentName}" miss this appointment?`}
                 description="This will mark the appointment as missed and may update the user's status to Warning."
-                onConfirm={() => handleAction(confirmAbsence, appointment.id, "Appointment marked as missed!", undefined, "Missed")}
+                onConfirm={() =>
+                  handleAction(
+                    confirmAbsence,
+                    appointment.id,
+                    "Appointment marked as missed!",
+                    undefined,
+                    "Missed"
+                  )
+                }
                 onCancel={(e) => e?.stopPropagation()}
                 okText="Yes"
                 cancelText="No"
@@ -740,14 +863,19 @@ export function AppointmentManagementForStaff() {
                 disabled={isAnyActionLoading}
                 overlayStyle={{ zIndex: 2000 }}
               >
-                <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
                   Report Absence
                 </span>
               </Popconfirm>
             </Tooltip>
           ),
         },
-        { type: 'divider' },
+        { type: "divider" },
         {
           key: "cancel",
           icon: <StopOutlined style={{ color: "#bfbfbf" }} />,
@@ -757,7 +885,15 @@ export function AppointmentManagementForStaff() {
               <Popconfirm
                 title={`Are you sure you want to cancel "${appointment.studentName}"'s appointment?`}
                 description="This action cannot be undone."
-                onConfirm={() => handleAction(cancelAppointmentForStaff, appointment.id, "Appointment cancelled successfully!", undefined, "Cancelled")}
+                onConfirm={() =>
+                  handleAction(
+                    cancelAppointmentForStaff,
+                    appointment.id,
+                    "Appointment cancelled successfully!",
+                    undefined,
+                    "Cancelled"
+                  )
+                }
                 onCancel={(e) => e?.stopPropagation()}
                 okText="Yes"
                 cancelText="No"
@@ -766,7 +902,12 @@ export function AppointmentManagementForStaff() {
                 disabled={isAnyActionLoading}
                 overlayStyle={{ zIndex: 2000 }}
               >
-                <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
                   Cancel Appointment
                 </span>
               </Popconfirm>
@@ -787,7 +928,15 @@ export function AppointmentManagementForStaff() {
               <Popconfirm
                 title={`Are you sure you want to mark "${appointment.studentName}"'s appointment as fully completed?`}
                 description="This will indicate the appointment has concluded successfully."
-                onConfirm={() => handleAction(confirmCompletion, appointment.id, "Appointment marked as completed!", undefined, "Finished")}
+                onConfirm={() =>
+                  handleAction(
+                    confirmCompletion,
+                    appointment.id,
+                    "Appointment marked as completed!",
+                    undefined,
+                    "Finished"
+                  )
+                }
                 onCancel={(e) => e?.stopPropagation()}
                 okText="Yes"
                 cancelText="No"
@@ -795,7 +944,12 @@ export function AppointmentManagementForStaff() {
                 disabled={isAnyActionLoading}
                 overlayStyle={{ zIndex: 2000 }}
               >
-                <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
                   Mark as Completed
                 </span>
               </Popconfirm>
@@ -811,7 +965,15 @@ export function AppointmentManagementForStaff() {
               <Popconfirm
                 title={`Did "${appointment.studentName}" miss this appointment?`}
                 description="This will mark the appointment as missed and may update the user's status to Warning."
-                onConfirm={() => handleAction(confirmAbsence, appointment.id, "Appointment marked as missed!", undefined, "Missed")}
+                onConfirm={() =>
+                  handleAction(
+                    confirmAbsence,
+                    appointment.id,
+                    "Appointment marked as missed!",
+                    undefined,
+                    "Missed"
+                  )
+                }
                 onCancel={(e) => e?.stopPropagation()}
                 okText="Yes"
                 cancelText="No"
@@ -819,7 +981,12 @@ export function AppointmentManagementForStaff() {
                 disabled={isAnyActionLoading}
                 overlayStyle={{ zIndex: 2000 }}
               >
-                <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
                   Report Absence
                 </span>
               </Popconfirm>
@@ -840,7 +1007,15 @@ export function AppointmentManagementForStaff() {
               <Popconfirm
                 title={`Are you sure you want to mark "${appointment.studentName}"'s appointment as fully completed?`}
                 description="This will indicate the appointment has concluded successfully."
-                onConfirm={() => handleAction(confirmCompletion, appointment.id, "Appointment marked as completed!", undefined, "Finished")}
+                onConfirm={() =>
+                  handleAction(
+                    confirmCompletion,
+                    appointment.id,
+                    "Appointment marked as completed!",
+                    undefined,
+                    "Finished"
+                  )
+                }
                 onCancel={(e) => e?.stopPropagation()}
                 okText="Yes"
                 cancelText="No"
@@ -848,7 +1023,12 @@ export function AppointmentManagementForStaff() {
                 disabled={isAnyActionLoading}
                 overlayStyle={{ zIndex: 2000 }}
               >
-                <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
                   Mark as Completed
                 </span>
               </Popconfirm>
@@ -864,7 +1044,13 @@ export function AppointmentManagementForStaff() {
               <Popconfirm
                 title={`Did "${appointment.studentName}" attend this appointment?`}
                 description="This confirms the student was present but does not mark the appointment as finished."
-                onConfirm={() => handleAction(confirmAttendance, appointment.id, "Attendance confirmed!")}
+                onConfirm={() =>
+                  handleAction(
+                    confirmAttendance,
+                    appointment.id,
+                    "Attendance confirmed!"
+                  )
+                }
                 onCancel={(e) => e?.stopPropagation()}
                 okText="Yes"
                 cancelText="No"
@@ -872,14 +1058,19 @@ export function AppointmentManagementForStaff() {
                 disabled={isAnyActionLoading}
                 overlayStyle={{ zIndex: 2000 }}
               >
-                <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
                   Confirm Attendance
                 </span>
               </Popconfirm>
             </Tooltip>
           ),
         },
-        { type: 'divider' },
+        { type: "divider" },
         {
           key: "reset-status",
           icon: <UserSwitchOutlined style={{ color: "#1890ff" }} />,
@@ -889,12 +1080,14 @@ export function AppointmentManagementForStaff() {
               <Popconfirm
                 title={`Reset "${appointment.studentName}"'s appointment status to Normal?`}
                 description="This will allow the user to schedule appointments again."
-                onConfirm={() => handleAction(
-                  updateUserAppointmentStatusToNormal,
-                  appointment.id,
-                  "User appointment status reset to Normal!",
-                  appointment.studentEmail
-                )}
+                onConfirm={() =>
+                  handleAction(
+                    updateUserAppointmentStatusToNormal,
+                    appointment.id,
+                    "User appointment status reset to Normal!",
+                    appointment.studentEmail
+                  )
+                }
                 onCancel={(e) => e?.stopPropagation()}
                 okText="Yes"
                 cancelText="No"
@@ -902,7 +1095,12 @@ export function AppointmentManagementForStaff() {
                 disabled={isAnyActionLoading}
                 overlayStyle={{ zIndex: 2000 }}
               >
-                <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
                   Reset User Status
                 </span>
               </Popconfirm>
@@ -915,122 +1113,152 @@ export function AppointmentManagementForStaff() {
     return items;
   };
 
-  const tabItems = (["Scheduled", "Finished", "Missed", "Cancelled"] as const).map(status => ({
+  const tabItems = (
+    ["Scheduled", "Finished", "Missed", "Cancelled"] as const
+  ).map((status) => ({
     key: status,
     label: (
       <span>
         <Tag color={getStatusColor(status)}>{status}</Tag>
-        {filteredAppointments.filter(a =>
-          status === "Cancelled"
-            ? a.status === "Cancelled" || a.status === "CancelledAfterConfirm"
-            : a.status === status
-        ).length}
+        {
+          filteredAppointments.filter((a) =>
+            status === "Cancelled"
+              ? a.status === "Cancelled" || a.status === "CancelledAfterConfirm"
+              : a.status === status
+          ).length
+        }
       </span>
     ),
     children: (
       <div className="max-h-[70vh] overflow-y-auto pr-2">
-        {filteredAppointments
-          .filter(a => status === "Cancelled"
+        {filteredAppointments.filter((a) =>
+          status === "Cancelled"
             ? a.status === "Cancelled" || a.status === "CancelledAfterConfirm"
-            : a.status === status)
-          .length === 0 ? (
+            : a.status === status
+        ).length === 0 ? (
           <Card className="text-center py-6 rounded-xl shadow-sm">
-            <Text className="text-gray-500">No {status.toLowerCase()} appointments.</Text>
+            <Text className="text-gray-500">
+              No {status.toLowerCase()} appointments.
+            </Text>
           </Card>
         ) : (
           filteredAppointments
-            .filter(a => status === "Cancelled"
-              ? a.status === "Cancelled" || a.status === "CancelledAfterConfirm"
-              : a.status === status)
-            .map(appointment => (
+            .filter((a) =>
+              status === "Cancelled"
+                ? a.status === "Cancelled" ||
+                  a.status === "CancelledAfterConfirm"
+                : a.status === status
+            )
+            .map((appointment) => (
               <Collapse
                 key={appointment.id}
                 className="mb-2 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-                items={[{
-                  key: appointment.id,
-                  label: (
-                    <div className="flex items-center justify-between">
-                      <Space size="small">
-                        <Text strong ellipsis={{ tooltip: appointment.studentName }}>
-                          {appointment.studentName}
-                        </Text>
-                        <Text type="secondary" className="text-xs">
-                          {formatTime(appointment.appointmentDate)} - {formatTime(appointment.endTime)}
-                        </Text>
-                      </Space>
-                      <Space size="small">
-                        <Tooltip title={getStatusTooltip(appointment.status)}>
-                          <Tag
-                            color={getStatusColor(appointment.status)}
-                            icon={getStatusIcon(appointment.status)}
-                            className="flex items-center gap-1"
+                items={[
+                  {
+                    key: appointment.id,
+                    label: (
+                      <div className="flex items-center justify-between">
+                        <Space size="small">
+                          <Text
+                            strong
+                            ellipsis={{ tooltip: appointment.studentName }}
                           >
-                            {appointment.status === "CancelledAfterConfirm" ? "Cancelled" : appointment.status}
-                          </Tag>
-                        </Tooltip>
-                        <Tooltip title="View appointment details">
-                          <Button
-                            type="link"
-                            icon={<InfoCircleOutlined />}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleBlockClick(appointment.id);
-                            }}
-                            aria-label="View appointment details"
-                          />
-                        </Tooltip>
-                        {(appointment.status === "Scheduled" || 
-                          appointment.status === "Happening" || 
-                          appointment.status === "Finished" || 
-                          appointment.status === "Missed") && (
-                          <Dropdown
-                            menu={{ items: getActionMenuItems(appointment) }}
-                            trigger={["click"]}
-                            open={activeDropdown === appointment.id}
-                            onOpenChange={(open) => {
-                              if (open && !actionLoading) {
-                                setActiveDropdown(appointment.id);
-                              } else {
-                                setActiveDropdown(null);
-                              }
-                            }}
-                            overlayStyle={{ zIndex: 1000 }}
-                          >
+                            {appointment.studentName}
+                          </Text>
+                          <Text type="secondary" className="text-xs">
+                            {formatTime(appointment.appointmentDate)} -{" "}
+                            {formatTime(appointment.endTime)}
+                          </Text>
+                        </Space>
+                        <Space size="small">
+                          <Tooltip title={getStatusTooltip(appointment.status)}>
+                            <Tag
+                              color={getStatusColor(appointment.status)}
+                              icon={getStatusIcon(appointment.status)}
+                              className="flex items-center gap-1"
+                            >
+                              {appointment.status === "CancelledAfterConfirm"
+                                ? "Cancelled"
+                                : appointment.status}
+                            </Tag>
+                          </Tooltip>
+                          <Tooltip title="View appointment details">
                             <Button
                               type="link"
-                              icon={<EllipsisOutlined />}
+                              icon={<InfoCircleOutlined />}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setActiveDropdown(activeDropdown === appointment.id ? null : appointment.id);
+                                handleBlockClick(appointment.id);
                               }}
-                              aria-label="More actions"
-                              disabled={!!actionLoading}
+                              aria-label="View appointment details"
                             />
-                          </Dropdown>
-                        )}
-                      </Space>
-                    </div>
-                  ),
-                  children: (
-                    <div
-                      className="flex flex-col gap-2 p-2 cursor-pointer hover:bg-gray-100 transition-colors"
-                      onClick={() => handleBlockClick(appointment.id)}
-                    >
-                      <Text type="secondary" className="text-sm">
-                        <CalendarOutlined className="mr-1" /> <strong>Date:</strong> {formatDate(appointment.appointmentDate)}
-                      </Text>
-                      <Text type="secondary" className="text-sm">
-                        <ClockCircleOutlined className="mr-1" /> <strong>Start Time:</strong> {formatTime(appointment.appointmentDate)}
-                      </Text>
-                      <Text type="secondary" className="text-sm">
-                        <ClockCircleOutlined className="mr-1" /> <strong>End Time:</strong> {formatTime(appointment.endTime)}
-                      </Text>
-                      <Text className="text-sm" ellipsis={{ tooltip: appointment.reason }}>
-                        <strong>Reason:</strong> {appointment.reason || "N/A"}
-                      </Text>
-                    </div>
-                  ),
-                }]}
+                          </Tooltip>
+                          {(appointment.status === "Scheduled" ||
+                            appointment.status === "Happening" ||
+                            appointment.status === "Finished" ||
+                            appointment.status === "Missed") && (
+                            <Dropdown
+                              menu={{ items: getActionMenuItems(appointment) }}
+                              trigger={["click"]}
+                              open={activeDropdown === appointment.id}
+                              onOpenChange={(open) => {
+                                if (open && !actionLoading) {
+                                  setActiveDropdown(appointment.id);
+                                } else {
+                                  setActiveDropdown(null);
+                                }
+                              }}
+                              overlayStyle={{ zIndex: 1000 }}
+                            >
+                              <Button
+                                type="link"
+                                icon={<EllipsisOutlined />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveDropdown(
+                                    activeDropdown === appointment.id
+                                      ? null
+                                      : appointment.id
+                                  );
+                                }}
+                                aria-label="More actions"
+                                disabled={!!actionLoading}
+                              />
+                            </Dropdown>
+                          )}
+                        </Space>
+                      </div>
+                    ),
+                    children: (
+                      <div
+                        className="flex flex-col gap-2 p-2 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleBlockClick(appointment.id)}
+                      >
+                        <Text type="secondary" className="text-sm">
+                          <CalendarOutlined className="mr-1" />{" "}
+                          <strong>Date:</strong>{" "}
+                          {formatDate(appointment.appointmentDate)}
+                        </Text>
+                        <Text type="secondary" className="text-sm">
+                          <ClockCircleOutlined className="mr-1" />{" "}
+                          <strong>Start Time:</strong>{" "}
+                          {formatTime(appointment.appointmentDate)}
+                        </Text>
+                        <Text type="secondary" className="text-sm">
+                          <ClockCircleOutlined className="mr-1" />{" "}
+                          <strong>End Time:</strong>{" "}
+                          {formatTime(appointment.endTime)}
+                        </Text>
+                        <Text
+                          className="text-sm"
+                          ellipsis={{ tooltip: appointment.reason }}
+                        >
+                          <strong>Reason:</strong> {appointment.reason || "N/A"}
+                        </Text>
+                      </div>
+                    ),
+                  },
+                ]}
                 expandIconPosition="end"
               />
             ))
@@ -1041,8 +1269,14 @@ export function AppointmentManagementForStaff() {
 
   const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
     { label: "Today", value: [dayjs(), dayjs()] },
-    { label: "This Week", value: [dayjs().startOf("week"), dayjs().endOf("week")] },
-    { label: "This Month", value: [dayjs().startOf("month"), dayjs().endOf("month")] },
+    {
+      label: "This Week",
+      value: [dayjs().startOf("week"), dayjs().endOf("week")],
+    },
+    {
+      label: "This Month",
+      value: [dayjs().startOf("month"), dayjs().endOf("month")],
+    },
   ];
 
   const activeFilterCount = (searchText ? 1 : 0) + (dateRange ? 1 : 0);
@@ -1066,205 +1300,240 @@ export function AppointmentManagementForStaff() {
           defaultActiveKey={["1"]}
           bordered={false}
           className="filter-section"
-          items={[{
-            key: "1",
-            label: (
-              <Space>
-                <FilterOutlined />
-                <Text strong>Filters</Text>
-                {activeFilterCount > 0 && (
-                  <Badge count={activeFilterCount} style={{ backgroundColor: "#1890ff" }} />
-                )}
-              </Space>
-            ),
-            children: (
-              <Row gutter={[16, 16]} align="middle">
-                <Col xs={24} sm={12} md={8}>
-                  <Input.Search
-                    placeholder="Search by student name"
-                    value={searchText}
-                    onChange={(e) => debouncedSetSearchText(e.target.value)}
-                    allowClear
-                    prefix={<SearchOutlined />}
-                    className="search-input"
-                    aria-label="Search appointments by student name"
-                  />
-                </Col>
-                <Col xs={24} sm={12} md={8}>
-                  <RangePicker
-                    value={dateRange}
-                    onChange={handleDateRangeChange}
-                    format="DD/MM/YYYY"
-                    className="w-full rounded-lg"
-                    presets={rangePresets}
-                    prefix={<CalendarOutlined />}
-                    aria-label="Select date range for appointments"
-                  />
-                </Col>
-                <Col xs={24} sm={24} md={8}>
-                  <Space size="small" wrap>
-                    <Button
-                      onClick={resetFilters}
-                      icon={<ReloadOutlined />}
-                      className="rounded-lg"
-                      aria-label="Reset all filters"
-                    >
-                      Reset
-                    </Button>
-                    <Button
-                      onClick={handleRefresh}
-                      icon={<ReloadOutlined />}
-                      className="rounded-lg"
-                      aria-label="Refresh appointments"
-                    >
-                      Refresh
-                    </Button>
-                    
-                    <Button
-                      type="primary"
-                      icon={<CalendarOutlined />}
-                      onClick={() => setScheduleModalVisible(true)}
-                      className="rounded-lg"
-                      aria-label="Schedule new appointment"
-                    >
-                      Schedule
-                    </Button>
-                    <Popconfirm
-                      title="Reset User Appointment Status"
-                      description={
-                        <div>
-                          <p>Please enter the User Email to reset their appointment status:</p>
-                          <Input
-                            placeholder="User Email"
-                            value={resetStatusUserId || ""}
-                            onChange={(e) => setResetStatusUserId(e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </div>
-                      }
-                      onConfirm={() => {
-                        if (resetStatusUserId) {
-                          handleAction(
-                            updateUserAppointmentStatusToNormal,
-                            resetStatusUserId,
-                            "User appointment status reset to Normal!",
-                            resetStatusUserId
-                          );
-                        } else {
-                          toast.error("Please enter a User Email");
-                        }
-                      }}
-                      onCancel={() => setResetStatusUserId(null)}
-                      okText="Reset"
-                      cancelText="Cancel"
-                      placement="bottomRight"
-                    >
+          items={[
+            {
+              key: "1",
+              label: (
+                <Space>
+                  <FilterOutlined />
+                  <Text strong>Filters</Text>
+                  {activeFilterCount > 0 && (
+                    <Badge
+                      count={activeFilterCount}
+                      style={{ backgroundColor: "#1890ff" }}
+                    />
+                  )}
+                </Space>
+              ),
+              children: (
+                <Row gutter={[16, 16]} align="middle">
+                  <Col xs={24} sm={12} md={8}>
+                    <Input.Search
+                      placeholder="Search by student name"
+                      value={searchText}
+                      onChange={(e) => debouncedSetSearchText(e.target.value)}
+                      allowClear
+                      prefix={<SearchOutlined />}
+                      className="search-input"
+                      aria-label="Search appointments by student name"
+                    />
+                  </Col>
+                  <Col xs={24} sm={12} md={8}>
+                    <RangePicker
+                      value={dateRange}
+                      onChange={handleDateRangeChange}
+                      format="DD/MM/YYYY"
+                      className="w-full rounded-lg"
+                      presets={rangePresets}
+                      prefix={<CalendarOutlined />}
+                      aria-label="Select date range for appointments"
+                    />
+                  </Col>
+                  <Col xs={24} sm={24} md={8}>
+                    <Space size="small" wrap>
                       <Button
-                        type="default"
-                        icon={<UserSwitchOutlined />}
+                        onClick={resetFilters}
+                        icon={<ReloadOutlined />}
                         className="rounded-lg"
-                        aria-label="Reset user appointment status"
+                        aria-label="Reset all filters"
                       >
-                        Reset User
+                        Reset
                       </Button>
-                    </Popconfirm>
-                  </Space>
-                </Col>
-              </Row>
-            ),
-            extra: <DownOutlined />,
-          }]}
+                      <Button
+                        onClick={handleRefresh}
+                        icon={<ReloadOutlined />}
+                        className="rounded-lg"
+                        aria-label="Refresh appointments"
+                      >
+                        Refresh
+                      </Button>
+
+                      <Button
+                        type="primary"
+                        icon={<CalendarOutlined />}
+                        onClick={() => setScheduleModalVisible(true)}
+                        className="rounded-lg"
+                        aria-label="Schedule new appointment"
+                      >
+                        Schedule
+                      </Button>
+                      <Popconfirm
+                        title="Reset User Appointment Status"
+                        description={
+                          <div>
+                            <p>
+                              Please enter the User Email to reset their
+                              appointment status:
+                            </p>
+                            <Input
+                              placeholder="User Email"
+                              value={resetStatusUserId || ""}
+                              onChange={(e) =>
+                                setResetStatusUserId(e.target.value)
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        }
+                        onConfirm={() => {
+                          if (resetStatusUserId) {
+                            handleAction(
+                              updateUserAppointmentStatusToNormal,
+                              resetStatusUserId,
+                              "User appointment status reset to Normal!",
+                              resetStatusUserId
+                            );
+                          } else {
+                            toast.error("Please enter a User Email");
+                          }
+                        }}
+                        onCancel={() => setResetStatusUserId(null)}
+                        okText="Reset"
+                        cancelText="Cancel"
+                        placement="bottomRight"
+                      >
+                        <Button
+                          type="default"
+                          icon={<UserSwitchOutlined />}
+                          className="rounded-lg"
+                          aria-label="Reset user appointment status"
+                        >
+                          Reset User
+                        </Button>
+                      </Popconfirm>
+                    </Space>
+                  </Col>
+                </Row>
+              ),
+              extra: <DownOutlined />,
+            },
+          ]}
         />
       </Card>
 
       <>
         {happeningAppointments.length > 0 && (
-          <Card className="mb-6 shadow-md rounded-xl" title={<Title level={4}>Current Happening Appointments</Title>}>
+          <Card
+            className="mb-6 shadow-md rounded-xl"
+            title={<Title level={4}>Current Happening Appointments</Title>}
+          >
             <div className="max-h-[30vh] overflow-y-auto pr-2">
-              {happeningAppointments.map(appointment => (
+              {happeningAppointments.map((appointment) => (
                 <Collapse
                   key={appointment.id}
                   className="mb-2 rounded-xl shadow-sm hover:shadow-md transition-shadow blinking-border"
-                  items={[{
-                    key: appointment.id,
-                    label: (
-                      <div className="flex items-center justify-between">
-                        <Space size="small">
-                          <Text strong ellipsis={{ tooltip: appointment.studentName }}>
-                            {appointment.studentName}
-                          </Text>
-                          <Text type="secondary" className="text-xs">
-                            {formatTime(appointment.appointmentDate)} - {formatTime(appointment.endTime)}
-                          </Text>
-                        </Space>
-                        <Space size="small">
-                          <Tooltip title={getStatusTooltip(appointment.status)}>
-                            <Tag
-                              color={getStatusColor(appointment.status)}
-                              icon={getStatusIcon(appointment.status)}
-                              className="flex items-center gap-1"
+                  items={[
+                    {
+                      key: appointment.id,
+                      label: (
+                        <div className="flex items-center justify-between">
+                          <Space size="small">
+                            <Text
+                              strong
+                              ellipsis={{ tooltip: appointment.studentName }}
                             >
-                              {appointment.status}
-                            </Tag>
-                          </Tooltip>
-                          <Tooltip title="View appointment details">
-                            <Button
-                              type="link"
-                              icon={<InfoCircleOutlined />}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleBlockClick(appointment.id);
+                              {appointment.studentName}
+                            </Text>
+                            <Text type="secondary" className="text-xs">
+                              {formatTime(appointment.appointmentDate)} -{" "}
+                              {formatTime(appointment.endTime)}
+                            </Text>
+                          </Space>
+                          <Space size="small">
+                            <Tooltip
+                              title={getStatusTooltip(appointment.status)}
+                            >
+                              <Tag
+                                color={getStatusColor(appointment.status)}
+                                icon={getStatusIcon(appointment.status)}
+                                className="flex items-center gap-1"
+                              >
+                                {appointment.status}
+                              </Tag>
+                            </Tooltip>
+                            <Tooltip title="View appointment details">
+                              <Button
+                                type="link"
+                                icon={<InfoCircleOutlined />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleBlockClick(appointment.id);
+                                }}
+                                aria-label="View appointment details"
+                              />
+                            </Tooltip>
+                            <Dropdown
+                              menu={{ items: getActionMenuItems(appointment) }}
+                              trigger={["click"]}
+                              open={activeDropdown === appointment.id}
+                              onOpenChange={(open) => {
+                                if (open && !actionLoading) {
+                                  setActiveDropdown(appointment.id);
+                                } else {
+                                  setActiveDropdown(null);
+                                }
                               }}
-                              aria-label="View appointment details"
-                            />
-                          </Tooltip>
-                          <Dropdown
-                            menu={{ items: getActionMenuItems(appointment) }}
-                            trigger={["click"]}
-                            open={activeDropdown === appointment.id}
-                            onOpenChange={(open) => {
-                              if (open && !actionLoading) {
-                                setActiveDropdown(appointment.id);
-                              } else {
-                                setActiveDropdown(null);
-                              }
-                            }}
-                            overlayStyle={{ zIndex: 1000 }}
+                              overlayStyle={{ zIndex: 1000 }}
+                            >
+                              <Button
+                                type="link"
+                                icon={<EllipsisOutlined />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveDropdown(
+                                    activeDropdown === appointment.id
+                                      ? null
+                                      : appointment.id
+                                  );
+                                }}
+                                aria-label="More actions"
+                                disabled={!!actionLoading}
+                              />
+                            </Dropdown>
+                          </Space>
+                        </div>
+                      ),
+                      children: (
+                        <div
+                          className="flex flex-col gap-2 p-2 cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={() => handleBlockClick(appointment.id)}
+                        >
+                          <Text type="secondary" className="text-sm">
+                            <CalendarOutlined className="mr-1" />{" "}
+                            <strong>Date:</strong>{" "}
+                            {formatDate(appointment.appointmentDate)}
+                          </Text>
+                          <Text type="secondary" className="text-sm">
+                            <ClockCircleOutlined className="mr-1" />{" "}
+                            <strong>Start Time:</strong>{" "}
+                            {formatTime(appointment.appointmentDate)}
+                          </Text>
+                          <Text type="secondary" className="text-sm">
+                            <ClockCircleOutlined className="mr-1" />{" "}
+                            <strong>End Time:</strong>{" "}
+                            {formatTime(appointment.endTime)}
+                          </Text>
+                          <Text
+                            className="text-sm"
+                            ellipsis={{ tooltip: appointment.reason }}
                           >
-                            <Button
-                              type="link"
-                              icon={<EllipsisOutlined />}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveDropdown(activeDropdown === appointment.id ? null : appointment.id);
-                              }}
-                              aria-label="More actions"
-                              disabled={!!actionLoading}
-                            />
-                          </Dropdown>
-                        </Space>
-                      </div>
-                    ),
-                    children: (
-                      <div
-                        className="flex flex-col gap-2 p-2 cursor-pointer hover:bg-gray-100 transition-colors"
-                        onClick={() => handleBlockClick(appointment.id)}
-                      >
-                        <Text type="secondary" className="text-sm">
-                          <CalendarOutlined className="mr-1" /> <strong>Date:</strong> {formatDate(appointment.appointmentDate)}
-                        </Text>
-                        <Text type="secondary" className="text-sm">
-                          <ClockCircleOutlined className="mr-1" /> <strong>Start Time:</strong> {formatTime(appointment.appointmentDate)}
-                        </Text>
-                        <Text type="secondary" className="text-sm">
-                          <ClockCircleOutlined className="mr-1" /> <strong>End Time:</strong> {formatTime(appointment.endTime)}
-                        </Text>
-                        <Text className="text-sm" ellipsis={{ tooltip: appointment.reason }}>
-                          <strong>Reason:</strong> {appointment.reason || "N/A"}
-                        </Text>
-                      </div>
-                    ),
-                  }]}
+                            <strong>Reason:</strong>{" "}
+                            {appointment.reason || "N/A"}
+                          </Text>
+                        </div>
+                      ),
+                    },
+                  ]}
                   expandIconPosition="end"
                 />
               ))}
