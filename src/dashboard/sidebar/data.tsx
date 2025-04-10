@@ -59,7 +59,7 @@ export const data = [
   {
     groupTitle: "Management",
     items: [
-      { title: "Users", icon: <UsersIcon />, link: "/user/management" },
+      { title: "Users", icon: <UsersIcon />, link: "/user" },
       {
         title: "Drugs",
         icon: <DrugIcon />,

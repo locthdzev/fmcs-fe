@@ -1,26 +1,37 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { resetPassword } from "@/api/auth";
-import { toast } from "react-toastify";
+import { message } from "antd";
 
 export default function ResetPassword() {
   const [newPassword, setNewPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
   const { email, username } = router.query;
+  const [messageApi, contextHolder] = message.useMessage();
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
 
     if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match. Please try again.");
+      messageApi.error({
+        content: "Passwords do not match. Please try again.",
+        duration: 5,
+      });
+      setIsLoading(false);
       return;
     }
 
     try {
       const emailOrUsername = email || username;
       if (!emailOrUsername) {
-        toast.error("Email or username is required.");
+        messageApi.error({
+          content: "Email or username is required.",
+          duration: 5,
+        });
+        setIsLoading(false);
         return;
       }
       const response = await resetPassword({
@@ -31,21 +42,32 @@ export default function ResetPassword() {
       });
 
       if (response.isSuccess) {
-        toast.success("Password reset successful! You can now login.");
+        messageApi.success({
+          content: "Password reset successful! You can now login.",
+          duration: 5,
+        });
         router.push("/");
       } else {
-        toast.error("Password reset failed. Please try again.");
+        messageApi.error({
+          content: "Password reset failed. Please try again.",
+          duration: 5,
+        });
       }
     } catch (error) {
       const err = error as any;
-      toast.error(
-        err.response?.data?.message ||
-          "An error occurred while resetting password."
-      );
+      messageApi.error({
+        content:
+          err.response?.data?.message ||
+          "An error occurred while resetting password.",
+        duration: 5,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
   return (
     <div className="min-h-screen flex justify-center items-center bg-gray-100 relative overflow-hidden">
+      {contextHolder}
       <div className="relative bg-white p-12 rounded-lg shadow-xl w-full max-w-lg border border-gray-200 hover:shadow-2xl transition-shadow duration-300">
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-orange-600 mb-2">
@@ -79,9 +101,10 @@ export default function ResetPassword() {
           </div>
           <button
             type="submit"
-            className="w-full bg-orange-500 text-white py-4 text-lg rounded-lg hover:bg-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+            disabled={isLoading}
+            className="w-full bg-orange-500 text-white py-4 text-lg rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
           >
-            Reset Password
+            {isLoading ? "Resetting..." : "Reset Password"}
           </button>
         </form>
         <div className="mt-8 text-center">

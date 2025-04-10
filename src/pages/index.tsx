@@ -2,11 +2,11 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useContext, useState } from "react";
 import { useRouter } from "next/router";
 import { login, loginWithGoogle } from "@/api/auth";
-import { toast } from "react-toastify";
 import { UserContext } from "@/context/UserContext";
 import Cookies from "js-cookie";
 import { ImagesSlider } from "@/components/ui/images-slider";
 import { motion } from "framer-motion";
+import { message } from "antd";
 
 export default function Login() {
   console.log("Login");
@@ -16,6 +16,7 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
   const context = useContext(UserContext);
+  const [messageApi, contextHolder] = message.useMessage();
 
   const { loginContext } = context || {};
 
@@ -26,17 +27,23 @@ export default function Login() {
       if (loginResponse.isSuccess && loginResponse.data) {
         const { user: loggedInUser, token } = loginResponse.data;
         console.log("Logged in user:", loggedInUser);
-        loginContext?.(loggedInUser.email, token); // Gọi sau
-        toast.success("Login successful!");
+        loginContext?.(loggedInUser.email, token);
+        messageApi.success({ content: "Login successful!", duration: 5 });
         router.push("/home");
       } else {
-        toast.error("Login failed. Please try again.");
+        messageApi.error({
+          content: "Login failed. Please try again.",
+          duration: 5,
+        });
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        toast.error(error.message || "An error occurred with the API");
+        messageApi.error({
+          content: error.message || "An error occurred with the API",
+          duration: 5,
+        });
       } else {
-        toast.error("An unknown error occurred");
+        messageApi.error({ content: "An unknown error occurred", duration: 5 });
       }
     }
   };
@@ -46,25 +53,30 @@ export default function Login() {
       const googleResponse = await loginWithGoogle(response.credential);
       if (googleResponse.isSuccess && googleResponse.data) {
         const { user: loggedInUser, token } = googleResponse.data;
-        loginContext?.(loggedInUser.email, token); // Gọi sau
+        loginContext?.(loggedInUser.email, token);
 
-        // Lưu token vào cookies thay vì localStorage
         if (rememberMe) {
-          Cookies.set("token", token, { expires: 7 }); // Lưu token vào cookies với thời gian sống 7 ngày
+          Cookies.set("token", token, { expires: 7 });
         } else {
-          Cookies.set("token", token); // Lưu token vào cookies, hết phiên sẽ tự động hết hạn
+          Cookies.set("token", token);
         }
 
-        toast.success("Login with Google successful!");
+        messageApi.success({
+          content: "Login with Google successful!",
+          duration: 5,
+        });
         router.push("/home");
       } else {
-        toast.error("Login with Google failed");
+        messageApi.error({ content: "Login with Google failed", duration: 5 });
       }
     } catch (error) {
       if (error instanceof Error) {
-        toast.error(error.message || "An error occurred with the API");
+        messageApi.error({
+          content: error.message || "An error occurred with the API",
+          duration: 5,
+        });
       } else {
-        toast.error("An unknown error occurred");
+        messageApi.error({ content: "An unknown error occurred", duration: 5 });
       }
     }
   };
@@ -91,6 +103,7 @@ export default function Login() {
 
   return (
     <div className="flex flex-col md:flex-row h-screen">
+      {contextHolder}
       {/* Left section with slideshow */}
       <div className="hidden md:flex w-2/3 h-full relative overflow-hidden">
         <ImagesSlider className="h-full w-full" images={images}>
@@ -272,7 +285,10 @@ export default function Login() {
           <GoogleLogin
             onSuccess={handleGoogleLogin}
             onError={() => {
-              toast.error("Google login failed.");
+              messageApi.error({
+                content: "Google login failed.",
+                duration: 5,
+              });
             }}
             containerProps={{ className: "w-full" }}
             theme="filled_black"
