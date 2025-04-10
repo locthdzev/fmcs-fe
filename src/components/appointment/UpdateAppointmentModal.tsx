@@ -19,6 +19,7 @@ import {
   getAvailableTimeSlots,
   TimeSlotDTO,
 } from "@/api/appointment-api";
+import dayjs from "dayjs";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -48,7 +49,11 @@ const UpdateAppointmentModal: React.FC<UpdateAppointmentModalProps> = ({
       if (!token || !appointment?.staffId) return;
       setLoading(true);
       try {
-        const response = await getAvailableTimeSlots(appointment.staffId, date, token);
+        const response = await getAvailableTimeSlots(
+          appointment.staffId,
+          date,
+          token
+        );
         setAvailableSlots(response.data?.availableSlots || []);
       } catch (error: any) {
         console.error("Failed to fetch slots:", error);
@@ -70,7 +75,9 @@ const UpdateAppointmentModal: React.FC<UpdateAppointmentModalProps> = ({
       form.setFieldsValue({
         email: appointment.studentEmail,
         appointmentDate: appointmentDate,
-        timeSlot: `${moment(appointment.appointmentDate).format("HH:mm")} - ${moment(appointment.endTime).format("HH:mm")}`,
+        timeSlot: `${moment(appointment.appointmentDate).format(
+          "HH:mm"
+        )} - ${moment(appointment.endTime).format("HH:mm")}`,
         reason: appointment.reason,
         status: appointment.status,
       });
@@ -117,7 +124,11 @@ const UpdateAppointmentModal: React.FC<UpdateAppointmentModalProps> = ({
         sendNotificationToStaff: true,
       };
 
-      const response = await updateAppointmentByStaff(appointment.id, token, request);
+      const response = await updateAppointmentByStaff(
+        appointment.id,
+        token,
+        request
+      );
       if (response.isSuccess) {
         toast.success("Appointment updated successfully!");
         form.resetFields();
@@ -151,7 +162,9 @@ const UpdateAppointmentModal: React.FC<UpdateAppointmentModalProps> = ({
         <Form.Item
           name="email"
           label="Student/User Email"
-          rules={[{ required: true, message: "Please enter the student/user Email" }]}
+          rules={[
+            { required: true, message: "Please enter the student/user Email" },
+          ]}
         >
           <Input placeholder="Enter student/user Email" disabled />
         </Form.Item>
@@ -164,7 +177,9 @@ const UpdateAppointmentModal: React.FC<UpdateAppointmentModalProps> = ({
           <DatePicker
             format="YYYY-MM-DD"
             onChange={onDateChange}
-            disabledDate={(current) => current && current < moment().startOf("day")}
+            disabledDate={(current) =>
+              current && current.isBefore(dayjs().startOf("day"))
+            }
             style={{ width: "100%" }}
           />
         </Form.Item>
