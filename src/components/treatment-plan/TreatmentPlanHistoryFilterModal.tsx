@@ -75,173 +75,173 @@ const TreatmentPlanHistoryFilterModal: React.FC<FilterModalProps> = ({
       ]}
     >
       <Space direction="vertical" style={{ width: "100%" }}>
+        {/* Search Criteria */}
+        <Divider orientation="left">Search Criteria</Divider>
         <div>
-          <Title level={5}>Search Criteria</Title>
-          <div style={{ marginBottom: "16px" }}>
-            <div className="filter-item" style={{ marginBottom: "16px" }}>
-              <div
-                className="filter-label"
-                style={{ marginBottom: "8px", color: "#666666" }}
-              >
-                Health check code
-              </div>
-              <Select
-                showSearch
-                placeholder="Select Health Check Code"
-                value={filterState.healthCheckResultCode || undefined}
-                onChange={(value) =>
-                  setFilterState((prev) => ({
-                    ...prev,
-                    healthCheckResultCode: value || "",
-                  }))
-                }
-                style={{ width: "100%" }}
-                allowClear
-                filterOption={(input, option) =>
-                  (option?.label?.toString().toLowerCase() || "").includes(
-                    input.toLowerCase()
-                  )
-                }
-                options={uniqueHealthCheckCodes.map((code) => ({
-                  value: code,
-                  label: code,
-                }))}
-              />
+          <div className="filter-item" style={{ marginBottom: "16px" }}>
+            <div
+              className="filter-label"
+              style={{ marginBottom: "8px", color: "#666666" }}
+            >
+              Health check code
             </div>
+            <Select
+              showSearch
+              placeholder="Select Health Check Code"
+              value={filterState.healthCheckResultCode || undefined}
+              onChange={(value) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  healthCheckResultCode: value || "",
+                }))
+              }
+              style={{ width: "100%" }}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.label?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={uniqueHealthCheckCodes.map((code) => ({
+                value: code,
+                label: code,
+              }))}
+            />
+          </div>
 
-            <div className="filter-item">
-              <div
-                className="filter-label"
-                style={{ marginBottom: "8px", color: "#666666" }}
-              >
-                Performed by
-              </div>
-              <Select
-                showSearch
-                placeholder="Select Performed By"
-                value={filterState.performedBySearch || undefined}
-                onChange={(value) =>
-                  setFilterState((prev) => ({
-                    ...prev,
-                    performedBySearch: value || "",
-                  }))
-                }
-                style={{ width: "100%" }}
-                allowClear
-                filterOption={(input, option) =>
-                  (option?.label?.toString().toLowerCase() || "").includes(
-                    input.toLowerCase()
-                  )
-                }
-                optionLabelProp="label"
-                options={uniquePerformers.map((performer) => ({
-                  value: performer.fullName,
-                  label: `${performer.fullName} (${performer.email})`,
-                  email: performer.email,
-                }))}
-              />
+          <div className="filter-item">
+            <div
+              className="filter-label"
+              style={{ marginBottom: "8px", color: "#666666" }}
+            >
+              Performed by
             </div>
+            <Select
+              showSearch
+              placeholder="Select Performed By"
+              value={filterState.performedBySearch || undefined}
+              onChange={(value) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  performedBySearch: value || "",
+                }))
+              }
+              style={{ width: "100%" }}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.label?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              optionLabelProp="label"
+              options={uniquePerformers.map((performer) => ({
+                value: performer.fullName,
+                label: `${performer.fullName} (${performer.email})`,
+                email: performer.email,
+              }))}
+            />
           </div>
         </div>
 
-        <Divider style={{ margin: "8px 0 16px 0" }} />
-
+        {/* Date & Sorting */}
+        <Divider orientation="left">Date & Sorting</Divider>
         <div>
-          <Title level={5}>Date & Sorting</Title>
-          <div>
-            <div className="filter-item" style={{ marginBottom: "16px" }}>
-              <div
-                className="filter-label"
-                style={{ marginBottom: "8px", color: "#666666" }}
-              >
-                Action date range
-              </div>
-              <RangePicker
-                style={{ width: "100%" }}
-                placeholder={["From date", "To date"]}
-                value={filterState.actionDateRange}
-                onChange={(dates) =>
-                  setFilterState((prev) => ({
-                    ...prev,
-                    actionDateRange: dates as [
-                      dayjs.Dayjs | null,
-                      dayjs.Dayjs | null
-                    ],
-                  }))
-                }
-                format="DD/MM/YYYY"
-                allowClear
-                ranges={{
-                  "Last 7 Days": [dayjs().subtract(6, "days"), dayjs()],
-                  "Last 30 Days": [dayjs().subtract(29, "days"), dayjs()],
-                  "This Month": [
-                    dayjs().startOf("month"),
-                    dayjs().endOf("month"),
+          <div className="filter-item" style={{ marginBottom: "16px" }}>
+            <div
+              className="filter-label"
+              style={{ marginBottom: "8px", color: "#666666" }}
+            >
+              Action date range
+            </div>
+            <RangePicker
+              style={{ width: "100%" }}
+              placeholder={["From date", "To date"]}
+              value={filterState.actionDateRange}
+              onChange={(dates) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  actionDateRange: dates as [
+                    dayjs.Dayjs | null,
+                    dayjs.Dayjs | null
                   ],
-                }}
-              />
-            </div>
+                }))
+              }
+              format="DD/MM/YYYY"
+              allowClear
+              ranges={{
+                "Last 7 Days": [dayjs().subtract(6, "days"), dayjs()],
+                "Last 30 Days": [dayjs().subtract(29, "days"), dayjs()],
+                "This Month": [
+                  dayjs().startOf("month"),
+                  dayjs().endOf("month"),
+                ],
+                "All Time (includes 2025)": [
+                  dayjs("2020-01-01"),
+                  dayjs("2030-12-31"),
+                ],
+              }}
+            />
+          </div>
 
-            <div className="filter-item">
-              <div
-                className="filter-label"
-                style={{
-                  marginBottom: "8px",
-                  color: "#666666",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                <SortAscendingOutlined />
-                <span>Sort direction</span>
-              </div>
-              <Radio.Group
-                value={filterState.ascending ? "asc" : "desc"}
-                onChange={(e) =>
-                  setFilterState((prev) => ({
-                    ...prev,
-                    ascending: e.target.value === "asc",
-                  }))
-                }
-                optionType="button"
-                buttonStyle="solid"
-                style={{ width: "100%" }}
-              >
-                <Radio.Button
-                  value="asc"
-                  style={{ width: "50%", textAlign: "center" }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <SortAscendingOutlined />
-                    <span>Oldest First</span>
-                  </div>
-                </Radio.Button>
-                <Radio.Button
-                  value="desc"
-                  style={{ width: "50%", textAlign: "center" }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <SortDescendingOutlined />
-                    <span>Newest First</span>
-                  </div>
-                </Radio.Button>
-              </Radio.Group>
+          <div className="filter-item">
+            <div
+              className="filter-label"
+              style={{
+                marginBottom: "8px",
+                color: "#666666",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              <SortAscendingOutlined />
+              <span>Sort direction</span>
             </div>
+            <Radio.Group
+              value={filterState.ascending ? "asc" : "desc"}
+              onChange={(e) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  ascending: e.target.value === "asc",
+                }))
+              }
+              optionType="button"
+              buttonStyle="solid"
+              style={{ width: "100%" }}
+            >
+              <Radio.Button
+                value="asc"
+                style={{ width: "50%", textAlign: "center" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <SortAscendingOutlined />
+                  <span>Oldest First</span>
+                </div>
+              </Radio.Button>
+              <Radio.Button
+                value="desc"
+                style={{ width: "50%", textAlign: "center" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <SortDescendingOutlined />
+                  <span>Newest First</span>
+                </div>
+              </Radio.Button>
+            </Radio.Group>
           </div>
         </div>
       </Space>

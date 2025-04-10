@@ -12,6 +12,7 @@ import {
   DatePicker,
   Radio,
   Space,
+  Divider,
 } from "antd";
 import {
   exportTreatmentPlansToExcelWithConfig,
@@ -70,7 +71,6 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
-  // Reset form when modal becomes visible
   useEffect(() => {
     if (visible) {
       handleReset();
@@ -82,7 +82,6 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
       const values = await form.validateFields();
       setLoading(true);
 
-      // Validate that either export all pages is selected or at least one filter is applied
       if (!values.exportAllPages) {
         const hasAnyFilter =
           values.filterTreatmentPlanCode ||
@@ -135,7 +134,6 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         includeStatus: values.includeStatus,
       };
 
-      // Get filter values either from form values (if not using all pages) or from current filters
       const useFilters = values.exportAllPages
         ? filters
         : {
@@ -205,16 +203,14 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
           10
         );
         onChange(values);
-        setLoading(false); // Reset loading state before closing
+        setLoading(false);
         onClose();
       } else {
-        messageApi.error(
-          {
-            content: response.message || "Failed to export Excel file",
-            duration: 10,
-          }
-        );
-        setLoading(false); // Only reset loading, don't close modal
+        messageApi.error({
+          content: response.message || "Failed to export Excel file",
+          duration: 10,
+        });
+        setLoading(false);
       }
     } catch (error) {
       console.error("Export error:", error);
@@ -222,7 +218,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         content: "An unexpected error occurred",
         duration: 10,
       });
-      setLoading(false); // Only reset loading, don't close modal
+      setLoading(false);
     }
   };
 
@@ -244,7 +240,6 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
       filterDateRange: null,
       filterCreatedDateRange: null,
       filterUpdatedDateRange: null,
-      // Reset Include Fields to true
       includePatient: true,
       includeHealthCheckCode: true,
       includeDrug: true,
@@ -303,373 +298,370 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         }}
         preserve={false}
       >
-        <Row gutter={[16, 8]}>
-          <Col span={24}>
-            <Typography.Title level={5}>Basic Options</Typography.Title>
-          </Col>
-          <Col span={24}>
-            <Form.Item
-              name="exportAllPages"
-              valuePropName="checked"
-              style={{ marginBottom: "12px" }}
-            >
-              <Checkbox>Export all data (ignore pagination)</Checkbox>
-            </Form.Item>
-          </Col>
-          
-          <Col span={24}>
-            <div style={{ marginBottom: "16px" }}>
-              <div
-                className="filter-label"
-                style={{
-                  marginBottom: "8px",
-                  color: "#666666",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
+        <Space direction="vertical" style={{ width: "100%" }}>
+          {/* Basic Options */}
+          <Divider orientation="left">Basic Options</Divider>
+          <Row gutter={[16, 8]}>
+            <Col span={24}>
+              <Form.Item
+                name="exportAllPages"
+                valuePropName="checked"
+                style={{ marginBottom: "12px" }}
               >
-                <SortAscendingOutlined />
-                <span>Sort direction</span>
-              </div>
-              <Form.Item name="filterSortDirection" noStyle>
-                <Radio.Group
-                  optionType="button"
-                  buttonStyle="solid"
-                  style={{ width: "100%" }}
-                >
-                  <Radio.Button
-                    value="asc"
-                    style={{ width: "50%", textAlign: "center" }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <SortAscendingOutlined />
-                      <span>Oldest First</span>
-                    </div>
-                  </Radio.Button>
-                  <Radio.Button
-                    value="desc"
-                    style={{ width: "50%", textAlign: "center" }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <SortDescendingOutlined />
-                      <span>Newest First</span>
-                    </div>
-                  </Radio.Button>
-                </Radio.Group>
+                <Checkbox>Export all data (ignore pagination)</Checkbox>
               </Form.Item>
-            </div>
-          </Col>
+            </Col>
+            <Col span={24}>
+              <div style={{ marginBottom: "16px" }}>
+                <div
+                  className="filter-label"
+                  style={{
+                    marginBottom: "8px",
+                    color: "#666666",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <SortAscendingOutlined />
+                  <span>Sort direction</span>
+                </div>
+                <Form.Item name="filterSortDirection" noStyle>
+                  <Radio.Group
+                    optionType="button"
+                    buttonStyle="solid"
+                    style={{ width: "100%" }}
+                  >
+                    <Radio.Button
+                      value="asc"
+                      style={{ width: "50%", textAlign: "center" }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <SortAscendingOutlined />
+                        <span>Oldest First</span>
+                      </div>
+                    </Radio.Button>
+                    <Radio.Button
+                      value="desc"
+                      style={{ width: "50%", textAlign: "center" }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <SortDescendingOutlined />
+                        <span>Newest First</span>
+                      </div>
+                    </Radio.Button>
+                  </Radio.Group>
+                </Form.Item>
+              </div>
+            </Col>
+          </Row>
 
-          {/* Use Form.Item dependencies to properly update visibility */}
+          {/* Data Filters */}
           <Form.Item dependencies={["exportAllPages"]} noStyle>
             {({ getFieldValue }) => {
               const exportAll = getFieldValue("exportAllPages");
               return !exportAll ? (
                 <>
-                  <Col span={24}>
-                    <Typography.Title level={5}>Data Filters</Typography.Title>
-                  </Col>
-
-                  <Col span={12}>
-                    <Form.Item
-                      label="Treatment Plan Code"
-                      name="filterTreatmentPlanCode"
-                    >
-                      <Select
-                        placeholder="Select Treatment Plan Code"
-                        style={{ width: "100%" }}
-                        allowClear
-                        showSearch
-                        filterOption={(input, option) =>
-                          (
-                            option?.label?.toString().toLowerCase() || ""
-                          ).includes(input.toLowerCase())
-                        }
-                        options={treatmentPlanCodes.map((code) => ({
-                          value: code,
-                          label: code,
-                        }))}
-                      />
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={12}>
-                    <Form.Item
-                      label="Health Check Result Code"
-                      name="filterHealthCheckResultCode"
-                    >
-                      <Select
-                        placeholder="Select Health Check Result Code"
-                        style={{ width: "100%" }}
-                        allowClear
-                        showSearch
-                        filterOption={(input, option) =>
-                          (
-                            option?.label?.toString().toLowerCase() || ""
-                          ).includes(input.toLowerCase())
-                        }
-                        options={healthCheckCodes.map((code) => ({
-                          value: code,
-                          label: code,
-                        }))}
-                      />
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={12}>
-                    <Form.Item label="Drug" name="filterDrug">
-                      <Select
-                        placeholder="Select Drug"
-                        style={{ width: "100%" }}
-                        allowClear
-                        showSearch
-                        filterOption={(input, option) =>
-                          (
-                            option?.label?.toString().toLowerCase() || ""
-                          ).includes(input.toLowerCase())
-                        }
-                        options={drugOptions.map((drug) => ({
-                          value: drug.name,
-                          label: `${drug.name} (${drug.drugCode})`,
-                        }))}
-                      />
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={12}>
-                    <Form.Item label="Updated By" name="filterUpdatedBy">
-                      <Select
-                        placeholder="Select staff who updated"
-                        style={{ width: "100%" }}
-                        allowClear
-                        showSearch
-                        filterOption={(input, option) =>
-                          (
-                            option?.label?.toString().toLowerCase() || ""
-                          ).includes(input.toLowerCase())
-                        }
-                        optionLabelProp="label"
-                        options={updatedByOptions.map((user) => ({
-                          value: user.fullName,
-                          label: `${user.fullName} (${user.email})`,
-                          email: user.email,
-                        }))}
-                      />
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={12}>
-                    <Form.Item
-                      label="Treatment Date Range"
-                      name="filterDateRange"
-                    >
-                      <RangePicker
-                        style={{ width: "100%" }}
-                        placeholder={["From date", "To date"]}
-                        format="DD/MM/YYYY"
-                        allowClear
-                        presets={[
-                          { label: "Today", value: [dayjs(), dayjs()] },
-                          {
-                            label: "Last 7 Days",
-                            value: [dayjs().subtract(6, "days"), dayjs()],
-                          },
-                          {
-                            label: "Last 30 Days",
-                            value: [dayjs().subtract(29, "days"), dayjs()],
-                          },
-                          {
-                            label: "This Month",
-                            value: [
-                              dayjs().startOf("month"),
-                              dayjs().endOf("month"),
-                            ],
-                          },
-                          {
-                            label: "All Time (includes 2025)",
-                            value: [dayjs("2020-01-01"), dayjs("2030-12-31")],
-                          },
-                        ]}
-                      />
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={12}>
-                    <Form.Item
-                      label="Created Date Range"
-                      name="filterCreatedDateRange"
-                    >
-                      <RangePicker
-                        style={{ width: "100%" }}
-                        placeholder={["From date", "To date"]}
-                        format="DD/MM/YYYY"
-                        allowClear
-                        presets={[
-                          { label: "Today", value: [dayjs(), dayjs()] },
-                          {
-                            label: "Last 7 Days",
-                            value: [dayjs().subtract(6, "days"), dayjs()],
-                          },
-                          {
-                            label: "Last 30 Days",
-                            value: [dayjs().subtract(29, "days"), dayjs()],
-                          },
-                          {
-                            label: "This Month",
-                            value: [
-                              dayjs().startOf("month"),
-                              dayjs().endOf("month"),
-                            ],
-                          },
-                          {
-                            label: "All Time (includes 2025)",
-                            value: [dayjs("2020-01-01"), dayjs("2030-12-31")],
-                          },
-                        ]}
-                      />
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={12}>
-                    <Form.Item
-                      label="Updated Date Range"
-                      name="filterUpdatedDateRange"
-                    >
-                      <RangePicker
-                        style={{ width: "100%" }}
-                        placeholder={["From date", "To date"]}
-                        format="DD/MM/YYYY"
-                        allowClear
-                        presets={[
-                          { label: "Today", value: [dayjs(), dayjs()] },
-                          {
-                            label: "Last 7 Days",
-                            value: [dayjs().subtract(6, "days"), dayjs()],
-                          },
-                          {
-                            label: "Last 30 Days",
-                            value: [dayjs().subtract(29, "days"), dayjs()],
-                          },
-                          {
-                            label: "This Month",
-                            value: [
-                              dayjs().startOf("month"),
-                              dayjs().endOf("month"),
-                            ],
-                          },
-                          {
-                            label: "All Time (includes 2025)",
-                            value: [dayjs("2020-01-01"), dayjs("2030-12-31")],
-                          },
-                        ]}
-                      />
-                    </Form.Item>
-                  </Col>
+                  <Divider orientation="left">Data Filters</Divider>
+                  <Row gutter={[16, 8]}>
+                    <Col span={12}>
+                      <Form.Item
+                        label="Treatment Plan Code"
+                        name="filterTreatmentPlanCode"
+                      >
+                        <Select
+                          placeholder="Select Treatment Plan Code"
+                          style={{ width: "100%" }}
+                          allowClear
+                          showSearch
+                          filterOption={(input, option) =>
+                            (
+                              option?.label?.toString().toLowerCase() || ""
+                            ).includes(input.toLowerCase())
+                          }
+                          options={treatmentPlanCodes.map((code) => ({
+                            value: code,
+                            label: code,
+                          }))}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        label="Health Check Result Code"
+                        name="filterHealthCheckResultCode"
+                      >
+                        <Select
+                          placeholder="Select Health Check Result Code"
+                          style={{ width: "100%" }}
+                          allowClear
+                          showSearch
+                          filterOption={(input, option) =>
+                            (
+                              option?.label?.toString().toLowerCase() || ""
+                            ).includes(input.toLowerCase())
+                          }
+                          options={healthCheckCodes.map((code) => ({
+                            value: code,
+                            label: code,
+                          }))}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item label="Drug" name="filterDrug">
+                        <Select
+                          placeholder="Select Drug"
+                          style={{ width: "100%" }}
+                          allowClear
+                          showSearch
+                          filterOption={(input, option) =>
+                            (
+                              option?.label?.toString().toLowerCase() || ""
+                            ).includes(input.toLowerCase())
+                          }
+                          options={drugOptions.map((drug) => ({
+                            value: drug.name,
+                            label: `${drug.name} (${drug.drugCode})`,
+                          }))}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item label="Updated By" name="filterUpdatedBy">
+                        <Select
+                          placeholder="Select staff who updated"
+                          style={{ width: "100%" }}
+                          allowClear
+                          showSearch
+                          filterOption={(input, option) =>
+                            (
+                              option?.label?.toString().toLowerCase() || ""
+                            ).includes(input.toLowerCase())
+                          }
+                          optionLabelProp="label"
+                          options={updatedByOptions.map((user) => ({
+                            value: user.fullName,
+                            label: `${user.fullName} (${user.email})`,
+                            email: user.email,
+                          }))}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        label="Treatment Date Range"
+                        name="filterDateRange"
+                      >
+                        <RangePicker
+                          style={{ width: "100%" }}
+                          placeholder={["From date", "To date"]}
+                          format="DD/MM/YYYY"
+                          allowClear
+                          presets={[
+                            { label: "Today", value: [dayjs(), dayjs()] },
+                            {
+                              label: "Last 7 Days",
+                              value: [dayjs().subtract(6, "days"), dayjs()],
+                            },
+                            {
+                              label: "Last 30 Days",
+                              value: [dayjs().subtract(29, "days"), dayjs()],
+                            },
+                            {
+                              label: "This Month",
+                              value: [
+                                dayjs().startOf("month"),
+                                dayjs().endOf("month"),
+                              ],
+                            },
+                            {
+                              label: "All Time (includes 2025)",
+                              value: [dayjs("2020-01-01"), dayjs("2030-12-31")],
+                            },
+                          ]}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        label="Created Date Range"
+                        name="filterCreatedDateRange"
+                      >
+                        <RangePicker
+                          style={{ width: "100%" }}
+                          placeholder={["From date", "To date"]}
+                          format="DD/MM/YYYY"
+                          allowClear
+                          presets={[
+                            { label: "Today", value: [dayjs(), dayjs()] },
+                            {
+                              label: "Last 7 Days",
+                              value: [dayjs().subtract(6, "days"), dayjs()],
+                            },
+                            {
+                              label: "Last 30 Days",
+                              value: [dayjs().subtract(29, "days"), dayjs()],
+                            },
+                            {
+                              label: "This Month",
+                              value: [
+                                dayjs().startOf("month"),
+                                dayjs().endOf("month"),
+                              ],
+                            },
+                            {
+                              label: "All Time (includes 2025)",
+                              value: [dayjs("2020-01-01"), dayjs("2030-12-31")],
+                            },
+                          ]}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        label="Updated Date Range"
+                        name="filterUpdatedDateRange"
+                      >
+                        <RangePicker
+                          style={{ width: "100%" }}
+                          placeholder={["From date", "To date"]}
+                          format="DD/MM/YYYY"
+                          allowClear
+                          presets={[
+                            { label: "Today", value: [dayjs(), dayjs()] },
+                            {
+                              label: "Last 7 Days",
+                              value: [dayjs().subtract(6, "days"), dayjs()],
+                            },
+                            {
+                              label: "Last 30 Days",
+                              value: [dayjs().subtract(29, "days"), dayjs()],
+                            },
+                            {
+                              label: "This Month",
+                              value: [
+                                dayjs().startOf("month"),
+                                dayjs().endOf("month"),
+                              ],
+                            },
+                            {
+                              label: "All Time (includes 2025)",
+                              value: [dayjs("2020-01-01"), dayjs("2030-12-31")],
+                            },
+                          ]}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
                 </>
               ) : null;
             }}
           </Form.Item>
 
-          <Col span={24}>
-            <Typography.Title level={5}>Include Fields</Typography.Title>
-          </Col>
-          <Col span={6}>
-            <Form.Item name="includePatient" valuePropName="checked">
-              <Checkbox>Patient Details</Checkbox>
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item name="includeHealthCheckCode" valuePropName="checked">
-              <Checkbox>Health Check Code</Checkbox>
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item name="includeDrug" valuePropName="checked">
-              <Checkbox>Drug Information</Checkbox>
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item
-              name="includeTreatmentDescription"
-              valuePropName="checked"
-            >
-              <Checkbox>Treatment Description</Checkbox>
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item name="includeInstructions" valuePropName="checked">
-              <Checkbox>Instructions</Checkbox>
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item name="includeStartDate" valuePropName="checked">
-              <Checkbox>Start Date</Checkbox>
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item name="includeEndDate" valuePropName="checked">
-              <Checkbox>End Date</Checkbox>
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item name="includeCreatedAt" valuePropName="checked">
-              <Checkbox>Created At</Checkbox>
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item name="includeCreatedBy" valuePropName="checked">
-              <Checkbox>Created By</Checkbox>
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item name="includeUpdatedAt" valuePropName="checked">
-              <Checkbox>Updated At</Checkbox>
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item name="includeUpdatedBy" valuePropName="checked">
-              <Checkbox>Updated By</Checkbox>
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item name="includeStatus" valuePropName="checked">
-              <Checkbox>Status</Checkbox>
-            </Form.Item>
-          </Col>
+          {/* Include Fields */}
+          <Divider orientation="left">Include Fields</Divider>
+          <Row gutter={[16, 8]}>
+            <Col span={6}>
+              <Form.Item name="includePatient" valuePropName="checked">
+                <Checkbox>Patient Details</Checkbox>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="includeHealthCheckCode" valuePropName="checked">
+                <Checkbox>Health Check Code</Checkbox>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="includeDrug" valuePropName="checked">
+                <Checkbox>Drug Information</Checkbox>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item
+                name="includeTreatmentDescription"
+                valuePropName="checked"
+              >
+                <Checkbox>Treatment Description</Checkbox>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="includeInstructions" valuePropName="checked">
+                <Checkbox>Instructions</Checkbox>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="includeStartDate" valuePropName="checked">
+                <Checkbox>Start Date</Checkbox>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="includeEndDate" valuePropName="checked">
+                <Checkbox>End Date</Checkbox>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="includeCreatedAt" valuePropName="checked">
+                <Checkbox>Created At</Checkbox>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="includeCreatedBy" valuePropName="checked">
+                <Checkbox>Created By</Checkbox>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="includeUpdatedAt" valuePropName="checked">
+                <Checkbox>Updated At</Checkbox>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="includeUpdatedBy" valuePropName="checked">
+                <Checkbox>Updated By</Checkbox>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="includeStatus" valuePropName="checked">
+                <Checkbox>Status</Checkbox>
+              </Form.Item>
+            </Col>
+          </Row>
 
-          <Col span={24} style={{ marginTop: "8px" }}>
-            <div
-              style={{
-                background: "#e6f7ff",
-                border: "1px solid #91d5ff",
-                padding: "12px",
-                borderRadius: "4px",
-              }}
-            >
-              <Typography.Text style={{ fontSize: "13px" }}>
-                <InfoCircleOutlined style={{ marginRight: "8px" }} />
-                You must either select "Export all data" or apply at least one
-                filter before exporting. This ensures you get the exact data you
-                need.
-              </Typography.Text>
-            </div>
-          </Col>
-        </Row>
+          {/* Information Note */}
+          <Row gutter={[16, 8]}>
+            <Col span={24} style={{ marginTop: "8px" }}>
+              <div
+                style={{
+                  background: "#e6f7ff",
+                  border: "1px solid #91d5ff",
+                  padding: "12px",
+                  borderRadius: "4px",
+                }}
+              >
+                <Typography.Text style={{ fontSize: "13px" }}>
+                  <InfoCircleOutlined style={{ marginRight: "8px" }} />
+                  You must either select "Export all data" or apply at least one
+                  filter before exporting. This ensures you get the exact data
+                  you need.
+                </Typography.Text>
+              </div>
+            </Col>
+          </Row>
+        </Space>
       </Form>
     </Modal>
   );
