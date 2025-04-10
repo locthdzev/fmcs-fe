@@ -72,6 +72,10 @@ export interface UnavailableTimeSlotDTO {
   reason: string;
 }
 
+export interface CancelPreviousLockRequestDTO {
+  sessionId: string; // Matches backend: Guid in C#, string in TS
+}
+
 export interface AppointmentResponseDTO {
   id: string;
   userId: string;
@@ -186,6 +190,7 @@ export const cancelLockedAppointment = async (
   token?: string
 ): Promise<ResultDTO<null>> => {
   try {
+    console.log(`Canceling lock for userId: ${userId}`); // Log the request
     const response = await axios.post(
       `${API_BASE_URL}/appointments/cancel-lock`,
       { userId },
@@ -195,7 +200,9 @@ export const cancelLockedAppointment = async (
       }
     );
     return response.data;
+    console.log("CancelLockedAppointment response:", response.data); // Log server response
   } catch (error: any) {
+    console.error("Failed to cancel lock:", error.response?.data || error.message);
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -207,7 +214,124 @@ export const cancelLockedAppointment = async (
       };
     }
     throw new Error(
+      
       error.response?.data?.message || `Failed to cancel locked appointment: ${error.message}`
+    );
+  }
+};
+
+
+export const cancelPreviousLockedAppointment = async (
+  request: CancelPreviousLockRequestDTO,
+  token?: string
+): Promise<ResultDTO<AppointmentResponseDTO>> => {
+  try {
+    console.log(`Canceling previous lock for sessionId: ${request.sessionId}`);
+    const response = await axios.post(
+      `${API_BASE_URL}/appointments/cancel-previous-lock`,
+      request,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      }
+    );
+    console.log("CancelPreviousLockedAppointment response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to cancel previous lock:", error.response?.data || error.message);
+    if (error.response) {
+      const errorData = error.response.data;
+      return {
+        isSuccess: false,
+        code: error.response.status,
+        data: null,
+        message: errorData.message || "Failed to cancel previous locked appointment",
+        responseFailed: errorData.responseFailed || undefined,
+      };
+    }
+    throw new Error(
+      error.response?.data?.message || `Failed to cancel previous locked appointment: ${error.message}`
+    );
+  }
+};
+
+
+export const cancelPresentLockedAppointment = async (
+  token?: string
+): Promise<ResultDTO<AppointmentResponseDTO>> => {
+  try {
+    console.log("Canceling present locked appointment");
+    const response = await axios.post(
+      `${API_BASE_URL}/appointments/cancel-present-lock`,
+      {}, // Empty body since UserId comes from token
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      }
+    );
+    console.log("CancelPresentLockedAppointment response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to cancel present lock:", error.response?.data || error.message);
+    if (error.response) {
+      const errorData = error.response.data;
+      return {
+        isSuccess: false,
+        code: error.response.status,
+        data: null,
+        message: errorData.message || "Failed to cancel present locked appointment",
+        responseFailed: errorData.responseFailed || undefined,
+      };
+    }
+    throw new Error(
+      error.response?.data?.message || `Failed to cancel present locked appointment: ${error.message}`
+    );
+  }
+};
+
+// Add this after getHealthcareStaffById and before SignalR setups
+export const getOverlappingAppointments = async (
+  userId: string,
+  startDateTime: string, 
+  endDateTime: string, 
+  token?: string
+): Promise<ResultDTO<AppointmentResponseDTO[]>> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/appointments/overlapping`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      httpsAgent: new https.Agent({
+        rejectUnauthorized: false, // Disable certificate verification (dev only)
+      }),
+      params: {
+        userId,
+        startDateTime,
+        endDateTime,
+      },
+    });
+
+    if (!response.data.isSuccess) {
+      throw new Error(
+        response.data.message || `Failed to fetch overlapping appointments (Code: ${response.data.code})`
+      );
+    }
+
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to fetch overlapping appointments:", error.response?.data || error.message);
+    if (error.response) {
+      const errorData = error.response.data;
+      return {
+        isSuccess: false,
+        code: error.response.status,
+        data: null,
+        message: errorData.message || "Failed to fetch overlapping appointments",
+        responseFailed: errorData.responseFailed || undefined,
+      };
+    }
+    throw new Error(
+      error.response?.data?.message || `Failed to fetch overlapping appointments: ${error.message}`
     );
   }
 };
@@ -332,9 +456,23 @@ export const validateAppointmentRequest = async (
         rejectUnauthorized: false,
       }),
     });
-    return response.data;
+    return response.data; // Success case (e.g., 200 OK)
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to validate appointment request");
+    if (error.response) {
+      const errorData = error.response.data;
+      console.log("Error response data from validate:", errorData); // Debug log
+      return {
+        isSuccess: false,
+        code: error.response.status,
+        data: errorData.data || { existingAppointmentId: errorData.existingAppointmentId }, // Extract conflict data if present
+        message: errorData.message || "Failed to validate appointment request",
+        responseFailed: errorData.responseFailed || undefined,
+      };
+    }
+    // For network errors or other unhandled cases, throw an error
+    throw new Error(
+      error.response?.data?.message || `Failed to validate appointment request: ${error.message}`
+    );
   }
 };
 
@@ -654,7 +792,7 @@ export const setupAppointmentRealTime = (
       }
     };
 
-    setTimeout(startConnection, 500);
+    setTimeout(startConnection, 2000);
   } else {
     console.warn("No token found; skipping SignalR group subscription");
     const startConnection = async () => {
@@ -668,7 +806,7 @@ export const setupAppointmentRealTime = (
         }
       }
     };
-    setTimeout(startConnection, 500);
+    setTimeout(startConnection, 2000);
   }
 
   connection.onreconnecting((err) => console.log("SignalR Reconnecting:", err));
@@ -723,4 +861,375 @@ export const setupHealthcareStaffRealTime = (onUpdate: (staff: AvailableOfficers
   connection.onclose((error?: Error) => console.log("SignalR Connection Closed:", error));
 
   return () => connection.stop().then(() => console.log("SignalR Disconnected"));
+};
+
+
+export const setupConfirmAppointmentRealtime = (
+  staffId: string,
+  onAppointmentConfirmed: (data: { staffId: string; date: string; timeSlot: string; appointmentId: string }) => void,
+  onError?: (error: Error) => void
+): HubConnection => {
+  if (typeof window === "undefined") {
+    console.log("SignalR setup skipped on server-side");
+    return { stop: () => Promise.resolve() } as HubConnection;
+  }
+
+  const token = Cookies.get("token");
+  if (!token) {
+    console.error("No token available for SignalR connection.");
+    throw new Error("Authentication token is missing.");
+  }
+
+  const connection = new HubConnectionBuilder()
+    .withUrl(`${API_BASE_URL.replace("/api/appointment-management", "")}/appointmentHub`, {
+      accessTokenFactory: () => token,
+    })
+    .withAutomaticReconnect([0, 1000, 5000, 10000])
+    .build();
+
+  // Handle appointment confirmed event
+  connection.on("ReceiveAppointmentConfirmed", (data: { staffId: string; date: string; timeSlot: string; appointmentId: string }) => {
+    console.log("SignalR: Appointment confirmed received", data);
+    if (data.staffId === staffId) {
+      onAppointmentConfirmed(data);
+    }
+  });
+
+  const startConnection = async () => {
+    if (connection.state === HubConnectionState.Disconnected) {
+      try {
+        await connection.start();
+        console.log(`SignalR: Connected to /appointmentHub for confirmation (Staff_${staffId})`);
+        await connection.invoke("SubscribeToStaffUpdates", staffId);
+        console.log(`SignalR: Subscribed to Staff_${staffId} for appointment confirmation updates`);
+      } catch (err) {
+        console.error("SignalR: Connection failed for confirmation:", err);
+        onError?.(err as Error);
+        setTimeout(startConnection, 2000); // Retry after 2 seconds
+      }
+    }
+  };
+
+  startConnection();
+
+  connection.onreconnecting((err) => console.log("SignalR Reconnecting (Confirm):", err));
+  connection.onreconnected(() => {
+    console.log("SignalR Reconnected (Confirm)");
+    connection.invoke("SubscribeToStaffUpdates", staffId).catch((err) =>
+      console.error("SignalR: Resubscription failed:", err)
+    );
+  });
+  connection.onclose((err) => console.log("SignalR Connection Closed (Confirm):", err));
+
+  return connection;
+};
+
+
+export const setupScheduleAppointmentLockedRealtime = (
+  staffId: string,
+  onSlotLocked: (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; lockedUntil: string }) => void,
+  onError?: (error: Error) => void
+): HubConnection => {
+  if (typeof window === "undefined") {
+    console.log("SignalR setup skipped on server-side");
+    return { stop: () => Promise.resolve() } as HubConnection;
+  }
+
+  const token = Cookies.get("token");
+  if (!token) {
+    console.error("No token available for SignalR connection.");
+    throw new Error("Authentication token is missing.");
+  }
+
+  const connection = new HubConnectionBuilder()
+    .withUrl(`${API_BASE_URL.replace("/api/appointment-management", "")}/appointmentHub`, {
+      accessTokenFactory: () => token,
+      
+    })
+    .withAutomaticReconnect([0, 1000, 5000, 10000])
+    .build();
+
+  // Handle slot locked event
+  connection.on("ReceiveSlotLocked", (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; lockedUntil: string }) => {
+    console.log("SignalR: Slot locked received", data);
+    if (data.staffId === staffId) {
+      onSlotLocked(data);
+    }
+  });
+
+  const startConnection = async () => {
+    if (connection.state === HubConnectionState.Disconnected) {
+      try {
+        await connection.start();
+        console.log(`SignalR: Connected to /appointmentHub for scheduling (Staff_${staffId})`);
+        await connection.invoke("SubscribeToStaffUpdates", staffId);
+        console.log(`SignalR: Subscribed to Staff_${staffId} for slot locking updates`);
+      } catch (err) {
+        console.error("SignalR: Connection failed for scheduling:", err);
+        onError?.(err as Error);
+        setTimeout(startConnection, 2000); // Retry after 2 seconds
+      }
+    }
+  };
+
+  startConnection();
+
+  connection.onreconnecting((err) => console.log("SignalR Reconnecting (Schedule):", err));
+  connection.onreconnected(() => {
+    console.log("SignalR Reconnected (Schedule)");
+    connection.invoke("SubscribeToStaffUpdates", staffId).catch((err) =>
+      console.error("SignalR: Resubscription failed:", err)
+    );
+  });
+  connection.onclose((err) => console.log("SignalR Connection Closed (Schedule):", err));
+
+  return connection;
+};
+
+export const setupCancelAppointmentRealtime = (
+  staffId: string,
+  onSlotReleased: (data: { staffId: string; date: string; timeSlot: string }) => void,
+  onError?: (error: Error) => void
+): HubConnection => {
+  if (typeof window === "undefined") {
+    console.log("SignalR setup skipped on server-side");
+    return { stop: () => Promise.resolve() } as HubConnection;
+  }
+
+  const token = Cookies.get("token");
+  if (!token) {
+    console.error("No token available for SignalR connection.");
+    throw new Error("Authentication token is missing.");
+  }
+
+  const connection = new HubConnectionBuilder()
+    .withUrl(`${API_BASE_URL.replace("/api/appointment-management", "")}/appointmentHub`, {
+      accessTokenFactory: () => token,
+    })
+    .withAutomaticReconnect([0, 1000, 5000, 10000])
+    .build();
+
+  // Handle slot released event
+  connection.on("ReceiveSlotReleased", (data: { staffId: string; date: string; timeSlot: string }) => {
+    console.log("SignalR: Slot released received", data);
+    if (data.staffId === staffId) {
+      onSlotReleased(data);
+    }
+  });
+
+  const startConnection = async () => {
+    if (connection.state === HubConnectionState.Disconnected) {
+      try {
+        await connection.start();
+        console.log(`SignalR: Connected to /appointmentHub for cancellation (Staff_${staffId})`);
+        await connection.invoke("SubscribeToStaffUpdates", staffId);
+        console.log(`SignalR: Subscribed to Staff_${staffId} for slot release updates`);
+      } catch (err) {
+        console.error("SignalR: Connection failed for cancellation:", err);
+        onError?.(err as Error);
+        setTimeout(startConnection, 2000); // Retry after 2 seconds
+      }
+    }
+  };
+
+  startConnection();
+
+  connection.onreconnecting((err) => console.log("SignalR Reconnecting (Cancel):", err));
+  connection.onreconnected(() => {
+    console.log("SignalR Reconnected (Cancel)");
+    connection.invoke("SubscribeToStaffUpdates", staffId).catch((err) =>
+      console.error("SignalR: Resubscription failed:", err)
+    );
+  });
+  connection.onclose((err) => console.log("SignalR Connection Closed (Cancel):", err));
+
+  return connection;
+};
+
+ 
+ //    CancelPreviousLockedAppointmentRealtime
+
+export const setupCancelPreviousLockedAppointmentRealtime = (
+  staffId: string,
+  onPreviousSlotReleased: (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; userId: string }) => void,
+  onError?: (error: Error) => void
+): HubConnection => {
+  if (typeof window === "undefined") {
+    console.log("SignalR setup skipped on server-side");
+    return { stop: () => Promise.resolve() } as HubConnection;
+  }
+
+  const token = Cookies.get("token");
+  if (!token) {
+    console.error("No token available for SignalR connection.");
+    throw new Error("Authentication token is missing.");
+  }
+
+  const connection = new HubConnectionBuilder()
+    .withUrl(`${API_BASE_URL.replace("/api/appointment-management", "")}/appointmentHub`, {
+      accessTokenFactory: () => token,
+    })
+    .withAutomaticReconnect([0, 1000, 5000, 10000])
+    .build();
+
+  // Handle previous slot released event
+  connection.on("ReceivePreviousSlotReleased", (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; userId: string }) => {
+    console.log("SignalR: Previous slot released received", data);
+    if (data.staffId === staffId) {
+      onPreviousSlotReleased(data);
+    }
+  });
+
+  const startConnection = async () => {
+    if (connection.state === HubConnectionState.Disconnected) {
+      try {
+        await connection.start();
+        console.log(`SignalR: Connected to /appointmentHub for previous lock cancellation (Staff_${staffId})`);
+        await connection.invoke("SubscribeToStaffUpdates", staffId);
+        console.log(`SignalR: Subscribed to Staff_${staffId} for previous slot release updates`);
+      } catch (err) {
+        console.error("SignalR: Connection failed for previous lock cancellation:", err);
+        onError?.(err as Error);
+        setTimeout(startConnection, 2000); // Retry after 2 seconds
+      }
+    }
+  };
+
+  startConnection();
+
+  connection.onreconnecting((err) => console.log("SignalR Reconnecting (Previous Lock Cancel):", err));
+  connection.onreconnected(() => {
+    console.log("SignalR Reconnected (Previous Lock Cancel)");
+    connection.invoke("SubscribeToStaffUpdates", staffId).catch((err) =>
+      console.error("SignalR: Resubscription failed:", err)
+    );
+  });
+  connection.onclose((err) => console.log("SignalR Connection Closed (Previous Lock Cancel):", err));
+
+  return connection;
+};
+
+
+ //    CancelPreviousLockedAppointmentRealtime
+
+export const setupCancelPresentLockedAppointmentRealtime = (
+  staffId: string,
+  onPresentSlotReleased: (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; userId: string }) => void,
+  onError?: (error: Error) => void
+): HubConnection => {
+  if (typeof window === "undefined") {
+    console.log("SignalR setup skipped on server-side");
+    return { stop: () => Promise.resolve() } as HubConnection;
+  }
+
+  const token = Cookies.get("token");
+  if (!token) {
+    console.error("No token available for SignalR connection.");
+    throw new Error("Authentication token is missing.");
+  }
+
+  const connection = new HubConnectionBuilder()
+    .withUrl(`${API_BASE_URL.replace("/api/appointment-management", "")}/appointmentHub`, {
+      accessTokenFactory: () => token,
+    })
+    .withAutomaticReconnect([0, 1000, 5000, 10000])
+    .build();
+
+  // Handle present slot released event
+  connection.on("ReceiveSlotReleased", (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; userId: string }) => {
+    console.log("SignalR: Present slot released received", data);
+    if (data.staffId === staffId) {
+      onPresentSlotReleased(data);
+    }
+  });
+
+  const startConnection = async () => {
+    if (connection.state === HubConnectionState.Disconnected) {
+      try {
+        await connection.start();
+        console.log(`SignalR: Connected to /appointmentHub for present lock cancellation (Staff_${staffId})`);
+        await connection.invoke("SubscribeToStaffUpdates", staffId);
+        console.log(`SignalR: Subscribed to Staff_${staffId} for present slot release updates`);
+      } catch (err) {
+        console.error("SignalR: Connection failed for present lock cancellation:", err);
+        onError?.(err as Error);
+        setTimeout(startConnection, 2000); // Retry after 2 seconds
+      }
+    }
+  };
+
+  startConnection();
+
+  connection.onreconnecting((err) => console.log("SignalR Reconnecting (Present Lock Cancel):", err));
+  connection.onreconnected(() => {
+    console.log("SignalR Reconnected (Present Lock Cancel)");
+    connection.invoke("SubscribeToStaffUpdates", staffId).catch((err) =>
+      console.error("SignalR: Resubscription failed:", err)
+    );
+  });
+  connection.onclose((err) => console.log("SignalR Connection Closed (Present Lock Cancel):", err));
+
+  return connection;
+};
+
+
+export const setupOverlappingAppointmentsRealtime = (
+  onOverlappingUpdate: (data: {
+    userId: string;
+    startDateTime: string;
+    endDateTime: string;
+    appointments: AppointmentResponseDTO[];
+  }) => void,
+  onError?: (error: Error) => void
+): HubConnection => {
+  if (typeof window === "undefined") {
+    console.log("SignalR setup skipped on server-side");
+    return { stop: () => Promise.resolve() } as HubConnection;
+  }
+
+  const token = Cookies.get("token");
+  if (!token) {
+    console.error("No token available for SignalR connection.");
+    throw new Error("Authentication token is missing.");
+  }
+
+  const connection = new HubConnectionBuilder()
+    .withUrl(`${API_BASE_URL.replace("/api/appointment-management", "")}/appointmentHub`, {
+      accessTokenFactory: () => token,
+    })
+    .withAutomaticReconnect([0, 1000, 5000, 10000])
+    .build();
+
+  // Handle overlapping appointments update event
+  connection.on("ReceiveOverlappingAppointmentsUpdate", (data: {
+    userId: string;
+    startDateTime: string;
+    endDateTime: string;
+    appointments: AppointmentResponseDTO[];
+  }) => {
+    console.log("SignalR: Overlapping appointments update received", data);
+    onOverlappingUpdate(data);
+  });
+
+  const startConnection = async () => {
+    if (connection.state === HubConnectionState.Disconnected) {
+      try {
+        await connection.start();
+        console.log("SignalR: Connected to /appointmentHub for overlapping appointments");
+        // No specific group subscription needed since this is user-specific
+      } catch (err) {
+        console.error("SignalR: Connection failed for overlapping appointments:", err);
+        onError?.(err as Error);
+        setTimeout(startConnection, 2000); // Retry after 2 seconds
+      }
+    }
+  };
+
+  startConnection();
+
+  connection.onreconnecting((err) => console.log("SignalR Reconnecting (Overlapping):", err));
+  connection.onreconnected(() => console.log("SignalR Reconnected (Overlapping)"));
+  connection.onclose((err) => console.log("SignalR Connection Closed (Overlapping):", err));
+
+  return connection;
 };

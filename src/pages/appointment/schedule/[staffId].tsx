@@ -3,7 +3,6 @@ import { CalendarOutlined } from "@ant-design/icons";
 import { GetServerSideProps } from "next";
 import { v4 as uuidv4 } from "uuid";
 import jwtDecode from "jwt-decode";
-
 import {
   getAppointment,
   AppointmentCreateRequestDTO,
@@ -19,6 +18,13 @@ import {
   TimeSlotDTO,
   AppointmentResponseDTO,
   AppointmentConflictResponseDTO,
+  setupScheduleAppointmentLockedRealtime,
+  setupCancelAppointmentRealtime,
+  setupConfirmAppointmentRealtime,
+  setupCancelPreviousLockedAppointmentRealtime,
+  cancelPreviousLockedAppointment,
+  cancelPresentLockedAppointment,
+  setupCancelPresentLockedAppointmentRealtime,
 } from "@/api/appointment-api";
 import { Button, Spin, Typography, Row, Col } from "antd";
 import { toast } from "react-toastify";
@@ -26,26 +32,13 @@ import moment from "moment-timezone";
 import Cookies from "js-cookie";
 import { HubConnection, HubConnectionState } from "@microsoft/signalr";
 
-
 const { Title, Text } = Typography;
 
 const allTimeSlots = [
-  "08:00 - 08:30",
-  "08:30 - 09:00",
-  "09:00 - 09:30",
-  "09:30 - 10:00",
-  "10:00 - 10:30",
-  "10:30 - 11:00",
-  "11:00 - 11:30",
-  "11:30 - 12:00",
-  "13:30 - 14:00",
-  "14:00 - 14:30",
-  "14:30 - 15:00",
-  "15:00 - 15:30",
-  "15:30 - 16:00",
-  "16:00 - 16:30",
-  "16:30 - 17:00",
-  "17:00 - 17:30",
+  "08:00 - 08:30", "08:30 - 09:00", "09:00 - 09:30", "09:30 - 10:00",
+  "10:00 - 10:30", "10:30 - 11:00", "11:00 - 11:30", "11:30 - 12:00",
+  "13:30 - 14:00", "14:00 - 14:30", "14:30 - 15:00", "15:00 - 15:30",
+  "15:30 - 16:00", "16:00 - 16:30", "16:30 - 17:00", "17:00 - 17:30",
 ];
 
 interface ScheduleAppointmentProps {
@@ -58,6 +51,7 @@ interface TimeSlot {
   isAvailable: boolean;
   isLocked: boolean;
   lockedByCurrentUser: boolean;
+  isConfirmed?: boolean;
 }
 
 const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({ staff, token }) => {
@@ -79,7 +73,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({ staff, token 
   const connectionRef = useRef<HubConnection | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
-  const confirmConnectionRef = useRef<HubConnection | null>(null); // For confirmation updates
+  const confirmConnectionRef = useRef<HubConnection | null>(null); // Unused but kept for original structure
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
 
@@ -100,7 +94,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({ staff, token 
       lockedUntil?: string | null;
     };
   }
-  
+
   interface AppointmentUpdatePayload {
     appointmentId: string;
     userId: string;
@@ -133,32 +127,36 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({ staff, token 
         const slotData = response.data?.availableSlots || [];
         const newSlots: TimeSlot[] = allTimeSlots.map((timeSlot) => {
           const slotFromApi = slotData.find((s: TimeSlotDTO) => s.timeSlot === timeSlot);
-          return slotFromApi || {
+          const result = slotFromApi || {
             timeSlot,
             isAvailable: false,
             isLocked: false,
             lockedByCurrentUser: false,
+            isConfirmed: false,
           };
+          console.log(`Slot ${timeSlot}:`, result); // Log each slot’s state
+          return result;
         });
         setAvailableSlots(newSlots);
-
+        console.log("New availableSlots set:", newSlots);
+  
         const userSelected = newSlots.find((s) => s.lockedByCurrentUser);
         if (userSelected) {
           setSelectedTimeSlot(userSelected.timeSlot);
           setAppointmentId(response.data?.lockedAppointmentId || null);
           setLockedUntil(response.data?.lockedUntil ? moment(response.data.lockedUntil) : null);
-          setIsConfirmed(false); // Reset confirmation state
+          setIsConfirmed(false);
           setIsConfirming(false);
         } else if (
           selectedTimeSlot &&
           !newSlots.some((s) => s.timeSlot === selectedTimeSlot && (s.isAvailable || s.lockedByCurrentUser))
         ) {
-          toast.warn(`Time slot ${selectedTimeSlot} is no longer available.`);
           setSelectedTimeSlot(null);
           setAppointmentId(null);
           setLockedUntil(null);
         }
       } catch (error: any) {
+        console.error("Failed to fetch slots:", error);
         toast.error("Failed to load slots: " + (error.message || "Unknown error"));
       } finally {
         setFetchingSlots(false);
@@ -167,21 +165,43 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({ staff, token 
     [staff.staffId, token, userId, selectedTimeSlot, schedulingInProgress]
   );
 
-
-  // Initialize BroadcastChannel
+  // Initialize BroadcastChannel with local updates and slot release
   useEffect(() => {
     if (typeof window !== "undefined") {
       broadcastChannelRef.current = new BroadcastChannel("appointment_channel");
       broadcastChannelRef.current.onmessage = (event) => {
-        const { type, appointmentId: broadcastedId, lockedUntil, timeSlot, selectedDate: broadcastedDate } = event.data;
+        const { type, appointmentId: broadcastedId, lockedUntil, timeSlot, selectedDate: broadcastedDate, staffId: broadcastedStaffId, canceledTimeSlot, reason } = event.data;
+        if (broadcastedStaffId !== staff.staffId) return;
+
         if (type === "LOCK_SLOT" && broadcastedDate === selectedDate) {
+          setAvailableSlots((prev) =>
+            prev.map((slot) =>
+              slot.timeSlot === timeSlot
+                ? { ...slot, isAvailable: false, isLocked: true, lockedByCurrentUser: true }
+                : slot
+            )
+          );
           setAppointmentId(broadcastedId);
           setLockedUntil(lockedUntil ? moment(lockedUntil) : null);
           setSelectedTimeSlot(timeSlot);
           setIsConfirmed(false);
           setIsConfirming(false);
-          // Fetch slots to ensure consistency with server state
-          if (selectedDate) fetchAvailableSlots(selectedDate);
+        } else if (type === "CANCEL_SLOT" && broadcastedDate === selectedDate) {
+          setAvailableSlots((prev) =>
+            prev.map((slot) =>
+              slot.timeSlot === canceledTimeSlot
+                ? { ...slot, isAvailable: true, isLocked: false, lockedByCurrentUser: false }
+                : slot
+            )
+          );
+          if (canceledTimeSlot === selectedTimeSlot) {
+            setSelectedTimeSlot(null);
+            setAppointmentId(null);
+            setLockedUntil(null);
+            if (reason === "user-initiated") {
+              toast.info("Your locked appointment was canceled.");
+            }
+          }
         } else if (broadcastedId === appointmentId) {
           if (type === "START_CONFIRMATION") {
             setIsConfirming(true);
@@ -193,6 +213,13 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({ staff, token 
             setSelectedTimeSlot(null);
             setIsConfirming(false);
             setLoading(false);
+            setAvailableSlots((prev) =>
+              prev.map((slot) =>
+                slot.timeSlot === timeSlot
+                  ? { ...slot, isAvailable: false, isLocked: true, lockedByCurrentUser: false, isConfirmed: true }
+                  : slot
+              )
+            );
             toast.success("Appointment confirmed in another tab!");
           }
         }
@@ -201,11 +228,10 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({ staff, token 
     return () => {
       broadcastChannelRef.current?.close();
     };
-  }, [appointmentId, selectedDate, fetchAvailableSlots]); // Ensure fetchAvailableSlots is included
+  }, [appointmentId, selectedDate, staff.staffId]);
 
-  // Modified useCountdown to stop when confirmed
-const useCountdown = (lockedUntil: moment.Moment | null, isConfirmed: boolean) => {
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const useCountdown = (lockedUntil: moment.Moment | null, isConfirmed: boolean) => {
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
   
     useEffect(() => {
       if (!lockedUntil || isConfirmed || isConfirming) {
@@ -219,105 +245,128 @@ const useCountdown = (lockedUntil: moment.Moment | null, isConfirmed: boolean) =
           setAppointmentId(null);
           setSelectedTimeSlot(null);
           setLockedUntil(null);
-          if (userId && token) {
-            cancelLockedAppointment(userId, token)
-              .then(() => {
-                if (selectedDate) {
-                  return fetchAvailableSlots(selectedDate);
+          if (token) { // Check for token instead of userId since sessionId is used
+            cancelPresentLockedAppointment(token)
+              .then((response) => {
+                if (response.isSuccess) {
+                  if (selectedDate) {
+                    setAvailableSlots((prev) =>
+                      prev.map((slot) =>
+                        slot.lockedByCurrentUser
+                          ? { ...slot, isAvailable: true, isLocked: false, lockedByCurrentUser: false }
+                          : slot
+                      )
+                    );
+                    broadcastChannelRef.current?.postMessage({
+                      type: "CANCEL_SLOT",
+                      canceledTimeSlot: selectedTimeSlot,
+                      selectedDate,
+                      staffId: staff.staffId,
+                      reason: "expiration"
+                    });
+                    // return fetchAvailableSlots(selectedDate);
+                    toast.error("Appointment lock expired.");
+                  }
+                  
+                } else {
+                  console.error("Failed to cancel previous locked appointment:", response.message);
+                  toast.error("Failed to free expired slot.");
                 }
-                return;
               })
               .catch((error) => {
-                console.error("Cancel locked appointment failed:", error);
+                console.error("Cancel previous locked appointment failed:", error);
                 toast.error("Failed to free expired slot.");
               });
           }
-          toast.error("Appointment lock expired.");
+          
         } else {
           setTimeLeft(Math.ceil(diff / 1000));
         }
       }, 1000);
       return () => clearInterval(interval);
-    }, [lockedUntil, isConfirmed, isConfirming, fetchAvailableSlots, userId, token, selectedDate]);
+    }, [lockedUntil, isConfirmed, isConfirming, token, selectedDate, selectedTimeSlot, sessionId]);
   
     return timeLeft;
   };
-    
+  
   const timeLeft = useCountdown(lockedUntil, isConfirmed);
-    const fetchAvailableSlotCount = useCallback(
-      async (date: string) => {
-        if (!token) return;
-        setFetchingSlotCounts(true);
-        try {
-          const response = await getAvailableSlotCount(staff.staffId, date, token);
-          setSlotCounts((prev) => ({ ...prev, [date]: response.data }));
-        } catch (error: any) {
-          console.error("Fetch slot count error:", error);
-        } finally {
-          setFetchingSlotCounts(false);
-        }
-      },
-      [staff.staffId, token]
-    );
 
-  
+  const fetchAvailableSlotCount = useCallback(
+    async (date: string) => {
+      if (!token) return;
+      setFetchingSlotCounts(true);
+      try {
+        const response = await getAvailableSlotCount(staff.staffId, date, token);
+        setSlotCounts((prev) => ({ ...prev, [date]: response.data }));
+      } catch (error: any) {
+        console.error("Fetch slot count error:", error);
+      } finally {
+        setFetchingSlotCounts(false);
+      }
+    },
+    [staff.staffId, token]
+  );
 
-  
-  
   const eventHandlers = useMemo(
     () => ({
       ReceiveAvailableSlotsUpdate: (data: SlotUpdatePayload) => {
         if (data.staffId === staff.staffId && data.date === selectedDate && !schedulingInProgress) {
-          const newSlots: TimeSlot[] = allTimeSlots.map((timeSlot) => {
-            const slotFromApi = data.slots.availableSlots.find((s) => s.timeSlot === timeSlot);
-            return slotFromApi || {
-              timeSlot,
-              isAvailable: false,
-              isLocked: false,
-              lockedByCurrentUser: false,
-            };
+          setAvailableSlots((prev) => {
+            const newSlots = allTimeSlots.map((timeSlot) => {
+              const slotFromApi = data.slots.availableSlots.find((s) => s.timeSlot === timeSlot);
+              return slotFromApi || {
+                timeSlot,
+                isAvailable: false,
+                isLocked: false,
+                lockedByCurrentUser: false,
+              };
+            });
+            const userSelected = newSlots.find((s) => s.lockedByCurrentUser);
+            if (userSelected) {
+              setSelectedTimeSlot(userSelected.timeSlot);
+              setAppointmentId(data.slots.lockedAppointmentId || null);
+              setLockedUntil(data.slots.lockedUntil ? moment(data.slots.lockedUntil) : null);
+              setIsConfirmed(false);
+              setIsConfirming(false);
+            } else if (
+              selectedTimeSlot &&
+              !newSlots.some((s) => s.timeSlot === selectedTimeSlot && (s.isAvailable || s.lockedByCurrentUser))
+            ) {
+              console.log(`Slot ${selectedTimeSlot} no longer available after update.`);
+              setSelectedTimeSlot(null);
+              setAppointmentId(null);
+              setLockedUntil(null);
+              setIsConfirmed(false);
+              setIsConfirming(false);
+            }
+            return newSlots;
           });
-          setAvailableSlots(newSlots);
-
-          const userSelected = newSlots.find((s) => s.lockedByCurrentUser);
-          if (userSelected) {
-            setSelectedTimeSlot(userSelected.timeSlot);
-            setAppointmentId(data.slots.lockedAppointmentId || null);
-            setLockedUntil(data.slots.lockedUntil ? moment(data.slots.lockedUntil) : null);
-          } else if (
-            selectedTimeSlot &&
-            !newSlots.some((s) => s.timeSlot === selectedTimeSlot && (s.isAvailable || s.lockedByCurrentUser))
-          ) {
-            toast.warn(`Time slot ${selectedTimeSlot} is no longer available.`);
-            setSelectedTimeSlot(null);
-            setAppointmentId(null);
-            setLockedUntil(null);
-          }
         }
       },
       ReceivePersonalSlotsUpdate: (data: SlotUpdatePayload) => {
         if (data.staffId === staff.staffId && data.date === selectedDate && !schedulingInProgress) {
-          const newSlots: TimeSlot[] = allTimeSlots.map((timeSlot) => {
-            const slotFromApi = data.slots.availableSlots.find((s) => s.timeSlot === timeSlot);
-            return slotFromApi || {
-              timeSlot,
-              isAvailable: false,
-              isLocked: false,
-              lockedByCurrentUser: false,
-            };
+          setAvailableSlots((prev) => {
+            const newSlots = allTimeSlots.map((timeSlot) => {
+              const slotFromApi = data.slots.availableSlots.find((s) => s.timeSlot === timeSlot);
+              return slotFromApi || {
+                timeSlot,
+                isAvailable: false,
+                isLocked: false,
+                lockedByCurrentUser: false,
+              };
+            });
+            const userSelected = newSlots.find((s) => s.lockedByCurrentUser);
+            if (userSelected) {
+              setSelectedTimeSlot(userSelected.timeSlot);
+              setAppointmentId(data.slots.lockedAppointmentId || null);
+              setLockedUntil(data.slots.lockedUntil ? moment(data.slots.lockedUntil) : null);
+            } else {
+              setSelectedTimeSlot(null);
+              setAppointmentId(null);
+              setLockedUntil(null);
+            }
+            return newSlots;
           });
-          setAvailableSlots(newSlots);
-
-          const userSelected = newSlots.find((s) => s.lockedByCurrentUser);
-          if (userSelected) {
-            setSelectedTimeSlot(userSelected.timeSlot);
-            setAppointmentId(data.slots.lockedAppointmentId || null);
-            setLockedUntil(data.slots.lockedUntil ? moment(data.slots.lockedUntil) : null);
-          } else {
-            setSelectedTimeSlot(null);
-            setAppointmentId(null);
-            setLockedUntil(null);
-          }
         }
       },
       ReceivePersonalSlotCountUpdate: (data: { staffId: string; date: string; count: number }) => {
@@ -328,7 +377,7 @@ const useCountdown = (lockedUntil: moment.Moment | null, isConfirmed: boolean) =
     }),
     [staff.staffId, selectedDate, selectedTimeSlot, schedulingInProgress, userId]
   );
-  
+
   const initializeConnection = useCallback(async () => {
     if (!token) {
       console.log("SignalR: Skipping initialization - no token");
@@ -336,9 +385,16 @@ const useCountdown = (lockedUntil: moment.Moment | null, isConfirmed: boolean) =
     }
 
     let connection = connectionRef.current;
+
     if (connection) {
       if (connection.state !== HubConnectionState.Disconnected) {
-        await connection.stop();
+        try {
+          console.log(`Stopping existing connection (state: ${connection.state})...`);
+          await connection.stop();
+          console.log("Existing connection stopped.");
+        } catch (err) {
+          console.error("SignalR: Failed to stop existing connection:", err);
+        }
       }
       connectionRef.current = null;
     }
@@ -349,14 +405,43 @@ const useCountdown = (lockedUntil: moment.Moment | null, isConfirmed: boolean) =
     );
     connectionRef.current = connection;
 
-    if (connection.state === HubConnectionState.Connected) {
-      await connection.invoke("SubscribeToStaffUpdates", staff.staffId);
-    } else {
-      connection.on("connected", () => {
-        connection.invoke("SubscribeToStaffUpdates", staff.staffId);
-      });
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    try {
+      if (connection.state === HubConnectionState.Disconnected) {
+        console.log(`Starting SignalR connection for staffId: ${staff.staffId}`);
+        await connection.start();
+        await connection.invoke("SubscribeToStaffUpdates", staff.staffId);
+        console.log(`Subscribed to staff updates for staffId: ${staff.staffId}`);
+      } else {
+        console.warn(`Cannot start connection. Current state: ${connection.state}`);
+      }
+    } catch (err) {
+      console.error("SignalR: Connection start failed:", err);
     }
+
+    connection.on("connected", () => {
+      console.log("SignalR: Connection established.");
+      connection.invoke("SubscribeToStaffUpdates", staff.staffId).catch((err) =>
+        console.error("SignalR: Subscription failed on connect:", err)
+      );
+    });
   }, [staff.staffId, token, eventHandlers]);
+
+  useEffect(() => {
+    initializeConnection().catch((err) => console.error("SignalR: Setup failed:", err));
+
+    return () => {
+      const connection = connectionRef.current;
+      if (connection && connection.state !== HubConnectionState.Disconnected) {
+        console.log("Cleaning up SignalR connection...");
+        connection
+          .stop()
+          .then(() => console.log("SignalR connection stopped during cleanup."))
+          .catch((err) => console.error("SignalR: Disconnect error during cleanup:", err));
+      }
+    };
+  }, [initializeConnection]);
 
   useEffect(() => {
     const dates = Array.from({ length: 32 }, (_, i) =>
@@ -405,16 +490,39 @@ const useCountdown = (lockedUntil: moment.Moment | null, isConfirmed: boolean) =
   const handleTimeSlotSelect = async (timeSlot: string) => {
     if (timeSlot === selectedTimeSlot) {
       if (appointmentId) {
-        if (!userId) {
-          toast.error("User authentication is missing. Cannot cancel the appointment.");
+        if (!token) {
+          toast.error("Authentication token is missing. Cannot cancel the appointment.");
           return;
         }
         try {
-          await cancelLockedAppointment(userId, token);
-          setAppointmentId(null);
-          setLockedUntil(null);
-          setSelectedTimeSlot(null);
-          console.log(`Canceled lock for time slot ${timeSlot}.`);
+          const cancelResponse = await cancelPresentLockedAppointment(token);
+          if (cancelResponse.isSuccess) {
+            setSelectedTimeSlot(null);
+            setAppointmentId(null);
+            setLockedUntil(null);
+            setIsConfirmed(false);
+            setIsConfirming(false);
+            setAvailableSlots((prev) =>
+              prev.map((s) =>
+                s.timeSlot === timeSlot
+                  ? { ...s, isAvailable: true, isLocked: false, lockedByCurrentUser: false }
+                  : s
+              )
+            );
+            toast.info("Your locked appointment was canceled.");
+            broadcastChannelRef.current?.postMessage({
+              type: "CANCEL_SLOT",
+              canceledTimeSlot: timeSlot,
+              selectedDate,
+              staffId: staff.staffId,
+              reason: "user-initiated",
+            });
+            console.log(`Canceled lock for time slot ${timeSlot}.`);
+          } else {
+            console.error("Failed to cancel previous locked appointment:", cancelResponse.message);
+            toast.error(`Failed to cancel the appointment lock: ${cancelResponse.message || "Unknown error"}`);
+            return;
+          }
         } catch (error: any) {
           console.error("Failed to cancel lock:", error);
           toast.error("Failed to cancel the appointment lock.");
@@ -426,11 +534,13 @@ const useCountdown = (lockedUntil: moment.Moment | null, isConfirmed: boolean) =
       console.log(`Time slot ${timeSlot} unselected.`);
       return;
     }
-
+  
     setSelectedTimeSlot(timeSlot);
     await handleScheduleAppointment(timeSlot);
   };
 
+
+  // handleScheduleAppointment
   const handleScheduleAppointment = async (timeSlot: string) => {
     if (!selectedDate || !timeSlot || !token || !userId) {
       toast.error("Please select a date and time slot, or authentication/user info is missing.");
@@ -455,13 +565,149 @@ const useCountdown = (lockedUntil: moment.Moment | null, isConfirmed: boolean) =
         sendNotificationToStaff: true,
         sessionId,
       };
+      
 
-      const validationResponse = await validateAppointmentRequest(request, token);
-      if (!validationResponse.isSuccess) {
+      // Step 1: Validate the appointment request
+    const validationResponse = await validateAppointmentRequest(request, token);
+    if (!validationResponse.isSuccess) {
+      if (validationResponse.code === 409 && validationResponse.message?.includes("You already have a locked appointment")) {
+        // Locked conflict case
+        const conflictData = validationResponse.data as AppointmentConflictResponseDTO;
+        const existingAppointmentId = conflictData?.existingAppointmentId;
+
+        if (existingAppointmentId) {
+         
+          const existingAppointmentResponse = await getAppointment(existingAppointmentId, token);
+          const existingAppointment = existingAppointmentResponse.data as AppointmentResponseDTO;
+          const canceledStartMoment = moment.tz(existingAppointment.appointmentDate, "Asia/Ho_Chi_Minh");
+          const canceledEndMoment = moment.tz(existingAppointment.endTime || canceledStartMoment.clone().add(30, "minutes"), "Asia/Ho_Chi_Minh");
+          const canceledTimeSlot = `${canceledStartMoment.format("HH:mm")} - ${canceledEndMoment.format("HH:mm")}`;
+          const canceledDate = canceledStartMoment.format("YYYY-MM-DD");
+          const existingStaffId = existingAppointment.staffId;
+
+
+          const confirmCancel = window.confirm(validationResponse.message);
+          
+          
+          if (confirmCancel) {
+            // Check availability of the new time slot before canceling the existing lock
+            
+            const slotResponse = await getAvailableTimeSlots(staff.staffId, selectedDate, token);
+            const availableSlots = slotResponse.data?.availableSlots || [];
+            const isSlotAvailable = availableSlots.some(
+              (slot: TimeSlotDTO) => slot.timeSlot === timeSlot && slot.isAvailable && !slot.isLocked
+            );
+
+            if (!isSlotAvailable) {
+              toast.error(`The selected time slot ${timeSlot} is no longer available.`);
+              setSelectedTimeSlot(null);
+              await fetchAvailableSlots(selectedDate); // Refresh slots
+              return;
+            }
+          const cancelResponse = await cancelPresentLockedAppointment(token);
+          if (cancelResponse.isSuccess) {
+            setSelectedTimeSlot(null);
+            setAppointmentId(null);
+            setLockedUntil(null);
+            setIsConfirmed(false);  
+            setIsConfirming(false);
+            setAvailableSlots((prev) =>
+              prev.map((s) =>
+                s.timeSlot === timeSlot
+                  ? { ...s, isAvailable: true, isLocked: false, lockedByCurrentUser: false }
+                  : s
+              )
+            );
+            broadcastChannelRef.current?.postMessage({
+              type: "CANCEL_SLOT",
+              canceledTimeSlot,
+              canceledDate,
+              staffId: existingStaffId,
+            });
+            console.log(`Canceled lock for time slot ${timeSlot}.`);
+            console.log(`Canceled lock for existingStaffId ${existingStaffId}.`);
+          }
+            const scheduleRetry = await scheduleAppointment(request, token);
+            if (scheduleRetry.isSuccess && scheduleRetry.data) {
+              const retryData = scheduleRetry.data as AppointmentResponseDTO;
+              setAppointmentId(retryData.id);
+              setLockedUntil(moment(retryData.lockedUntil));
+              setAvailableSlots((prev) =>
+                prev.map((s) =>
+                  s.timeSlot === timeSlot
+                    ? { ...s, isAvailable: false, isLocked: true, lockedByCurrentUser: true }
+                    : s
+                )
+              );
+              broadcastChannelRef.current?.postMessage({
+                type: "LOCK_SLOT",
+                appointmentId: retryData.id,
+                lockedUntil: retryData.lockedUntil,
+                timeSlot,
+                selectedDate,
+                staffId: staff.staffId,
+              });
+              toast.info(`New appointment locked until ${moment(retryData.lockedUntil).format("HH:mm")}.`);
+            } else {
+              toast.error(`Retry failed: ${scheduleRetry.message || "Unknown error"}`);
+              setSelectedTimeSlot(null);
+            }
+          } else {
+            toast.info("Keeping the existing locked appointment.");
+            setSelectedTimeSlot(null);
+          }
+        } else {
+          toast.error(`Locked conflict detected, but no existing appointment ID provided: ${validationResponse.message}`);
+          setSelectedTimeSlot(null);
+        }
+      } else if (validationResponse.code === 400 && validationResponse.message?.includes("You already have a scheduled appointment")) {
+        // Scheduled conflict case
+        toast.error(validationResponse.message);
+        setSelectedTimeSlot(null);
+      } else {
+        // Other validation failures (e.g., daily limit, staff conflict)
         toast.error(`Validation failed: ${validationResponse.message || "Invalid request"}`);
-        return;
+        setSelectedTimeSlot(null);
       }
+      return;
+    }
 
+      // Step 2: Check and cancel any previous locked appointment
+    const cancelResponse = await cancelPreviousLockedAppointment({ sessionId }, token);
+    if (cancelResponse.isSuccess) {
+      if (cancelResponse.data) {
+        // Previous lock was canceled successfully
+        const canceledAppointment = cancelResponse.data as AppointmentResponseDTO;
+        const canceledStartMoment = moment.tz(canceledAppointment.appointmentDate, "Asia/Ho_Chi_Minh");
+        const canceledEndMoment = moment.tz(canceledAppointment.endTime || canceledStartMoment.clone().add(30, "minutes"), "Asia/Ho_Chi_Minh");
+        const canceledTimeSlot = `${canceledStartMoment.format("HH:mm")} - ${canceledEndMoment.format("HH:mm")}`;
+        const canceledDate = canceledStartMoment.format("YYYY-MM-DD");
+
+        // Update local state to reflect the released slot
+        setAvailableSlots((prev) =>
+          prev.map((s) =>
+            s.timeSlot === canceledTimeSlot && canceledDate === selectedDate
+              ? { ...s, isAvailable: true, isLocked: false, lockedByCurrentUser: false }
+              : s
+          )
+        );
+
+        // Broadcast cancellation to other tabs
+        broadcastChannelRef.current?.postMessage({
+          type: "CANCEL_SLOT",
+          canceledTimeSlot,
+          selectedDate: canceledDate,
+          staffId: staff.staffId,
+        });
+      } else {
+        console.log("No previous locked appointment found to cancel.");
+      }
+    } else {
+      toast.error(`Failed to release previous lock: ${cancelResponse.message || "Unknown error"}`);
+      setSelectedTimeSlot(null);
+      return;
+    }
+// Step 3: Schedule the new appointment
       const scheduleResponse = await scheduleAppointment(request, token);
       console.log("Schedule response:", scheduleResponse);
 
@@ -469,16 +715,22 @@ const useCountdown = (lockedUntil: moment.Moment | null, isConfirmed: boolean) =
         const appointmentData = scheduleResponse.data as AppointmentResponseDTO;
         setAppointmentId(appointmentData.id);
         setLockedUntil(moment(appointmentData.lockedUntil));
-        // Broadcast the locked slot to other tabs
-          broadcastChannelRef.current?.postMessage({
-            type: "LOCK_SLOT",
-            appointmentId: appointmentData.id,
-            lockedUntil: appointmentData.lockedUntil,
-            timeSlot,
-            selectedDate,
-          });
+        setAvailableSlots((prev) =>
+          prev.map((s) =>
+            s.timeSlot === timeSlot
+              ? { ...s, isAvailable: false, isLocked: true, lockedByCurrentUser: true }
+              : s
+          )
+        );
+        broadcastChannelRef.current?.postMessage({
+          type: "LOCK_SLOT",
+          appointmentId: appointmentData.id,
+          lockedUntil: appointmentData.lockedUntil,
+          timeSlot,
+          selectedDate,
+          staffId: staff.staffId,
+        });
         toast.info(`Appointment locked until ${moment(appointmentData.lockedUntil).format("HH:mm")}.`);
-        
       } else if (!scheduleResponse.isSuccess && scheduleResponse.code === 409) {
         console.log("Conflict detected, data:", scheduleResponse.data);
         if (
@@ -520,19 +772,55 @@ const useCountdown = (lockedUntil: moment.Moment | null, isConfirmed: boolean) =
           );
 
           if (confirmCancel) {
-            const retryValidation = await validateAppointmentRequest(request, token);
-            if (!retryValidation.isSuccess) {
-              toast.error(`Validation failed on retry: ${retryValidation.message || "Invalid request"}`);
+            const validationResponse = await validateAppointmentRequest(request, token);
+            if (!validationResponse.isSuccess) {
+              toast.error(`Validation failed on retry: ${validationResponse.message || "Invalid request"}`);
               setSelectedTimeSlot(null);
               return;
             }
 
-            await cancelLockedAppointment(userId, token);
+          const cancelResponse = await cancelPresentLockedAppointment(token);
+          if (cancelResponse.isSuccess) {
+            setSelectedTimeSlot(null);
+            setAppointmentId(null);
+            setLockedUntil(null);
+            setIsConfirmed(false);
+            setIsConfirming(false);
+            setAvailableSlots((prev) =>
+              prev.map((s) =>
+                s.timeSlot === timeSlot
+                  ? { ...s, isAvailable: true, isLocked: false, lockedByCurrentUser: false }
+                  : s
+              )
+            );
+            broadcastChannelRef.current?.postMessage({
+              type: "CANCEL_SLOT",
+              canceledTimeSlot: timeSlot,
+              selectedDate,
+              staffId: staff.staffId,
+            });
+            console.log(`Canceled lock for time slot ${timeSlot}.`);
+          }
             const scheduleRetry = await scheduleAppointment(request, token);
             if (scheduleRetry.isSuccess && scheduleRetry.data) {
               const retryData = scheduleRetry.data as AppointmentResponseDTO;
               setAppointmentId(retryData.id);
               setLockedUntil(moment(retryData.lockedUntil));
+              setAvailableSlots((prev) =>
+                prev.map((s) =>
+                  s.timeSlot === timeSlot
+                    ? { ...s, isAvailable: false, isLocked: true, lockedByCurrentUser: true }
+                    : s
+                )
+              );
+              broadcastChannelRef.current?.postMessage({
+                type: "LOCK_SLOT",
+                appointmentId: retryData.id,
+                lockedUntil: retryData.lockedUntil,
+                timeSlot,
+                selectedDate,
+                staffId: staff.staffId,
+              });
               toast.info(`New appointment locked until ${moment(retryData.lockedUntil).format("HH:mm")}.`);
             } else {
               toast.error(`Retry failed: ${scheduleRetry.message || "Unknown error"}`);
@@ -559,99 +847,266 @@ const useCountdown = (lockedUntil: moment.Moment | null, isConfirmed: boolean) =
     } finally {
       setLoading(false);
       setSchedulingInProgress(false);
-      if (selectedDate) await fetchAvailableSlots(selectedDate);
     }
   };
 
   const [shouldRedirect, setShouldRedirect] = useState(false);
+
+  const setupRealtimeConnections = useCallback(() => {
+    const slotLockedConnection = setupScheduleAppointmentLockedRealtime(
+      staff.staffId,
+      (data) => {
+        console.log("Slot locked:", data);
+        if (!schedulingInProgress && selectedDate === data.date) {
+          setAvailableSlots((prevSlots) =>
+            prevSlots.map((slot) =>
+              slot.timeSlot === data.timeSlot
+                ? { ...slot, isAvailable: false, isLocked: true, lockedByCurrentUser: false, isConfirmed: false }
+                : slot
+            )
+          );
+        }
+      },
+      (error) => console.error("Slot locked connection error:", error)
+    );
   
+    const slotReleasedConnection = setupCancelAppointmentRealtime(
+      staff.staffId,
+      (data) => {
+        console.log("Slot released:", data);
+        if (!schedulingInProgress) {
+          setAvailableSlots((prevSlots) => {
+            const normalizedTimeSlot = data.timeSlot.trim();
+            const updatedSlots = prevSlots.map((slot) =>
+              slot.timeSlot === normalizedTimeSlot
+                ? { ...slot, isAvailable: true, isLocked: false, lockedByCurrentUser: false, isConfirmed: false }
+                : slot
+            );
+            console.log("Updated availableSlots after release:", updatedSlots);
+            return updatedSlots;
+          });
+          if (selectedDate === data.date) {
+            // setTimeout(() => fetchAvailableSlots(data.date), 3000);
+          }
+        }
+      },
+      (error) => console.error("Slot released connection error:", error)
+    );
+  
+    const slotConfirmedConnection = setupConfirmAppointmentRealtime(
+      staff.staffId,
+      (data) => {
+        console.log("Slot confirmed:", data);
+        if (!schedulingInProgress && selectedDate === data.date) {
+          setAvailableSlots((prevSlots) =>
+            prevSlots.map((slot) =>
+              slot.timeSlot === data.timeSlot
+                ? { ...slot, isAvailable: false, isLocked: true, lockedByCurrentUser: false, isConfirmed: true }
+                : slot
+            )
+          );
+          toast.info(`Appointment confirmed for ${data.timeSlot} by another user.`);
+        }
+      },
+      (error) => console.error("Slot confirmed connection error:", error)
+    );
+  
+    const previousSlotReleasedConnection = setupCancelPreviousLockedAppointmentRealtime(
+      staff.staffId,
+      (data) => {
+        console.log("Previous slot released:", data);
+        if (!schedulingInProgress && selectedDate === data.date) {
+          setAvailableSlots((prevSlots) => {
+            const updatedSlots = prevSlots.map((slot) =>
+              slot.timeSlot === data.timeSlot
+                ? { ...slot, isAvailable: true, isLocked: false, lockedByCurrentUser: false, isConfirmed: false }
+                : slot
+            );
+            console.log("Updated availableSlots after previous slot released:", updatedSlots);
+            return updatedSlots;
+          });
+          
+        }
+      },
+      (error) => console.error("Previous slot released connection error:", error)
+    );
 
-const handleConfirmAppointment = async () => {
-  if (!appointmentId || !lockedUntil || !token) {
-    toast.error("No appointment to confirm or missing token.");
-    return;
-  }
-  if (moment().isAfter(lockedUntil)) {
-    toast.error("Appointment lock has expired. Please try again.");
-    setAppointmentId(null);
-    setLockedUntil(null);
-    setSelectedTimeSlot(null);
-    return;
-  }
 
-  // Broadcast that confirmation is starting
-  broadcastChannelRef.current?.postMessage({
-    type: "START_CONFIRMATION",
-    appointmentId,
-  });
-
-  setLoading(true);
-  setIsConfirming(true);
-  try {
-    const response = await confirmAppointment(appointmentId, token);
-    if (response.isSuccess) {
-      // Broadcast confirmation to other tabs
-      broadcastChannelRef.current?.postMessage({
-        type: "CONFIRM_APPOINTMENT",
-        appointmentId,
-      });
-
-      setIsConfirmed(true);
-      toast.success("Appointment confirmed successfully!");
-
-      if (selectedDate) {
-        const slotsResponse = await getAvailableTimeSlots(staff.staffId, selectedDate, token);
-        const slotData = slotsResponse.data?.availableSlots || [];
-        const newSlots: TimeSlot[] = allTimeSlots.map((timeSlot) => {
-          const slotFromApi = slotData.find((s: TimeSlotDTO) => s.timeSlot === timeSlot);
-          return slotFromApi || {
-            timeSlot,
-            isAvailable: false,
-            isLocked: false,
-            lockedByCurrentUser: false,
-          };
+    // Add setupCancelPresentLockedAppointmentRealtime
+  const presentSlotReleasedConnection = setupCancelPresentLockedAppointmentRealtime(
+    staff.staffId,
+    (data) => {
+      console.log("Present slot released:", data);
+      if (!schedulingInProgress && selectedDate === data.date) {
+        setAvailableSlots((prevSlots) => {
+          const updatedSlots = prevSlots.map((slot) =>
+            slot.timeSlot === data.timeSlot
+              ? { ...slot, isAvailable: true, isLocked: false, lockedByCurrentUser: false, isConfirmed: false }
+              : slot
+          );
+          console.log("Updated availableSlots after present slot released:", updatedSlots);
+          return updatedSlots;
         });
-        setAvailableSlots(newSlots);
+        // If the canceled slot was the user's selected one, clear the selection
+        if (data.timeSlot === selectedTimeSlot && data.appointmentId === appointmentId) {
+          setSelectedTimeSlot(null);
+          setAppointmentId(null);
+          setLockedUntil(null);
+          // toast.info("Your locked appointment was canceled.");
+        }
+        // setTimeout(() => fetchAvailableSlots(data.date), 3000); // Refresh slots after a delay
+      }
+    },
+    (error) => console.error("Present slot released connection error:", error)
+  );
+  
+    return () => {
+      slotLockedConnection.stop().then(() => console.log("Slot locked SignalR stopped"));
+      slotReleasedConnection.stop().then(() => console.log("Slot released SignalR stopped"));
+      slotConfirmedConnection.stop().then(() => console.log("Slot confirmed SignalR stopped"));
+      previousSlotReleasedConnection.stop().then(() => console.log("Previous slot released SignalR stopped"));
+    };
+  // }, [staff.staffId, selectedDate, schedulingInProgress, fetchAvailableSlots]);
+}, [staff.staffId, selectedDate, schedulingInProgress, fetchAvailableSlots]);
+
+  useEffect(() => {
+    const cleanup = setupRealtimeConnections();
+    return cleanup;
+  }, [setupRealtimeConnections]);
+
+  const handleConfirmAppointment = async () => {
+    if (!appointmentId || !lockedUntil || !token) {
+      toast.error("No appointment to confirm or missing token.");
+      return;
+    }
+    // if (moment().isAfter(lockedUntil)) {
+    //   toast.error("Appointment lock has expired. Please try again.");
+    //   // setLoading(true);
+    //   // try {
+    //   //   const cancelResponse = await cancelPresentLockedAppointment(token);
+    //   //   if (cancelResponse.isSuccess) {
+    //   //     setAvailableSlots((prev) =>
+    //   //       prev.map((s) =>
+    //   //         s.timeSlot === selectedTimeSlot
+    //   //           ? { ...s, isAvailable: true, isLocked: false, lockedByCurrentUser: false }
+    //   //           : s
+    //   //       )
+    //   //     );
+    //   //     broadcastChannelRef.current?.postMessage({
+    //   //       type: "CANCEL_SLOT",
+    //   //       canceledTimeSlot: selectedTimeSlot,
+    //   //       selectedDate,
+    //   //       staffId: staff.staffId,
+    //   //     });
+    //   //     console.log(`Canceled expired lock for ${selectedTimeSlot}`);
+    //   //   } else {
+    //   //     toast.error(`Failed to cancel expired lock: ${cancelResponse.message || "Unknown error"}`);
+    //   //   }
+    //   // } catch (error: any) {
+    //   //   console.error("Failed to cancel expired lock:", error);
+    //   //   toast.error("Failed to cancel expired lock.");
+    //   // } finally {
+    //   //   setAppointmentId(null);
+    //   //   setLockedUntil(null);
+    //   //   setSelectedTimeSlot(null);
+    //   //   setLoading(false);
+    //   // }
+    //   return;
+    // }
+
+    broadcastChannelRef.current?.postMessage({
+      type: "START_CONFIRMATION",
+      appointmentId,
+      staffId: staff.staffId,
+    });
+
+    setLoading(true);
+    setIsConfirming(true);
+    try {
+      const response = await confirmAppointment(appointmentId, token);
+      if (response.isSuccess) {
+        broadcastChannelRef.current?.postMessage({
+          type: "CONFIRM_APPOINTMENT",
+          appointmentId,
+          staffId: staff.staffId,
+        });
+
+        setIsConfirmed(true);
+        setAvailableSlots((prev) =>
+          prev.map((s) =>
+            s.timeSlot === selectedTimeSlot
+              ? { ...s, isAvailable: false, isLocked: true, lockedByCurrentUser: false, isConfirmed: true }
+              : s
+          )
+        );
+        toast.success("Appointment confirmed successfully!");
+
         setSelectedTimeSlot(null);
         setAppointmentId(null);
         setLockedUntil(null);
-      }
+        setIsConfirming(false);
 
-      setShouldRedirect(true);
-    } else {
-      toast.error(`Failed to confirm: ${response.message || "Unknown error"}`);
+        setShouldRedirect(true);
+      } else {
+        toast.error(`Failed to confirm: ${response.message || "Unknown error"}`);
+        setAppointmentId(null);
+        setLockedUntil(null);
+        setSelectedTimeSlot(null);
+      }
+    } catch (error: any) {
+      toast.error("Failed to confirm: " + (error.message || "Unknown error"));
       setAppointmentId(null);
       setLockedUntil(null);
       setSelectedTimeSlot(null);
+    } finally {
+      setLoading(false);
+      setIsConfirming(false);
     }
-  } catch (error: any) {
-    toast.error("Failed to confirm: " + (error.message || "Unknown error"));
-    setAppointmentId(null);
-    setLockedUntil(null);
-    setSelectedTimeSlot(null);
-  } finally {
-    setLoading(false);
-    setIsConfirming(false);
-  }
-};
+  };
 
-useEffect(() => {
-  if (shouldRedirect) {
-    const timer = setTimeout(() => {
-      window.location.href = "/appointment";
-    }, 500); // Delay redirect to allow SignalR update
-    return () => clearTimeout(timer);
-  }
-}, [shouldRedirect]);
+  useEffect(() => {
+    if (shouldRedirect) {
+      const timer = setTimeout(() => {
+        window.location.href = "/appointment";
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldRedirect]);
 
   const renderTimeSlotButton = (slot: TimeSlot, index: string) => {
-    const { timeSlot, isAvailable, isLocked, lockedByCurrentUser } = slot;
+    const { timeSlot, isAvailable, isLocked, lockedByCurrentUser, isConfirmed = false } = slot;
     const isSelected = selectedTimeSlot === timeSlot;
     const isHovered = hoveredIndex === index;
-
     const isDisabled = !isAvailable && !(lockedByCurrentUser && isSelected);
     const isLockedByCurrentUserInOtherTab = lockedByCurrentUser && appointmentId && timeSlot !== selectedTimeSlot;
-
+  
+    console.log(`Rendering ${timeSlot}: isAvailable=${isAvailable}, isLocked=${isLocked}, lockedByCurrentUser=${lockedByCurrentUser}, isConfirmed=${isConfirmed}`);
+  
+    let backgroundColor = "#ffffff";
+    if (isLocked && !lockedByCurrentUser && !isConfirmed) {
+      backgroundColor = "#FFA500"; // Taken
+    } else if (isLocked && !lockedByCurrentUser && isConfirmed) {
+      backgroundColor = "#d3d3d3"; // Confirmed
+    } else if (lockedByCurrentUser) {
+      backgroundColor = "#90ee90"; // Locked by user
+    }else if (isDisabled) {
+      backgroundColor = "#d3d3d3"; // Disabled
+    }
+    
+  
+    let textColor = "#000000";
+    if (isLocked && !lockedByCurrentUser && !isConfirmed) {
+      textColor = "#333333";
+    } else if (isLocked && !lockedByCurrentUser && isConfirmed) {
+      textColor = "#666666";
+    } else if (lockedByCurrentUser) {
+      textColor = "#155724";
+    } else if (isDisabled) {
+      textColor = "#666666";
+    } else if (isHovered) {
+      textColor = "#155724";
+    }
+  
     return (
       <Col key={timeSlot} xs={8} sm={6} md={4} lg={3}>
         <Button
@@ -664,20 +1119,14 @@ useEffect(() => {
             width: "100%",
             height: "40px",
             borderRadius: "20px",
-            backgroundColor: lockedByCurrentUser
-              ? "#c3e6cb"
+            backgroundColor: isSelected
+              ? "#1890ff"
               : isDisabled
-              ? "#f5f5f5"
+              ? backgroundColor
               : isHovered
               ? "#d4edda"
-              : "#ffffff",
-            color: lockedByCurrentUser
-              ? "#000000"
-              : isDisabled
-              ? "#999999"
-              : isHovered
-              ? "#155724"
-              : "#000000",
+              : backgroundColor,
+            color: isSelected ? "#ffffff" : textColor,
             borderColor: isSelected ? "#1890ff" : isHovered ? "#c3e6cb" : "#d9d9d9",
             borderWidth: isSelected ? "2px" : "1px",
             borderStyle: "solid",
@@ -697,10 +1146,15 @@ useEffect(() => {
               <span>{timeSlot}</span>
               <span style={{ fontSize: "10px", lineHeight: "10px", color: "#155724" }}>(Locked by you)</span>
             </>
-          ) : isLocked && !lockedByCurrentUser ? (
+          ) : isLocked && !lockedByCurrentUser && isConfirmed ? (   // Confirmed
             <>
               <span>{timeSlot}</span>
-              <span style={{ fontSize: "10px", lineHeight: "10px", color: "#999999" }}>Taken</span>
+              <div style={{ fontSize: "10px", lineHeight: "10px", color: "#666666" }}></div>      
+            </>
+          ) : isLocked && !lockedByCurrentUser ? (   // Taken
+            <>
+              <span>{timeSlot}</span>   
+              <div style={{ fontSize: "10px", lineHeight: "10px", color: "#cc6600" }}></div>
             </>
           ) : (
             <span>{timeSlot}</span>
@@ -869,22 +1323,22 @@ useEffect(() => {
 
                 {appointmentId && lockedUntil && !isConfirmed && (
                   <div style={{ marginTop: "16px", textAlign: "center" }}>
-                  <Text>
-                    Appointment locked. Confirm within{" "}
-                    {timeLeft !== null
-                      ? `${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, "0")}`
-                      : "expired"}
-                  </Text>
-                  <br />
-                  <Button
-                    type="primary"
-                    onClick={handleConfirmAppointment}
-                    disabled={loading || isConfirming || timeLeft === null}
-                    style={{ marginTop: "8px", borderRadius: "8px" }}
-                  >
-                    {loading || isConfirming ? <Spin /> : "Confirm Appointment"}
-                  </Button>
-                </div>
+                    <Text>
+                      Appointment locked. Confirm within{" "}
+                      {timeLeft !== null
+                        ? `${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, "0")}`
+                        : "expired"}
+                    </Text>
+                    <br />
+                    <Button
+                      type="primary"
+                      onClick={handleConfirmAppointment}
+                      disabled={loading || isConfirming || timeLeft === null}
+                      style={{ marginTop: "8px", borderRadius: "8px" }}
+                    >
+                      {loading || isConfirming ? <Spin /> : "Confirm Appointment"}
+                    </Button>
+                  </div>
                 )}
               </>
             ) : (
