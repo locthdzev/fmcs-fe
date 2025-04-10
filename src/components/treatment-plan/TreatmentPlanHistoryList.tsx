@@ -634,10 +634,10 @@ export function TreatmentPlanHistoryListNew() {
                 setCurrentPage(1);
                 setLoading(true);
               }}
-              style={{ width: "300px" }}
+              style={{ width: "320px" }}
               allowClear
               filterOption={(input, option) =>
-                (option?.label?.toString().toLowerCase() || "").includes(
+                (option?.value?.toString().toLowerCase() || "").includes(
                   input.toLowerCase()
                 )
               }
@@ -645,7 +645,7 @@ export function TreatmentPlanHistoryListNew() {
                 value: code,
                 label: code,
               }))}
-              prefix={<SearchOutlined />}
+              dropdownStyle={{ minWidth: "320px" }}
             />
 
             <Tooltip title="Advanced Filters">

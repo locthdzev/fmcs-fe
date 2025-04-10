@@ -148,8 +148,7 @@ const TreatmentPlanFilterModal: React.FC<TreatmentPlanFilterModalProps> = ({
       ]}
     >
       <Space direction="vertical" style={{ width: "100%" }}>
-        {/* Search Criteria Section */}
-        <Title level={5}>Search Criteria</Title>
+        <Divider orientation="left">Search Criteria</Divider>
         <Row gutter={16}>
           {/* Health Check Result Code */}
           <Col span={12}>
@@ -234,10 +233,7 @@ const TreatmentPlanFilterModal: React.FC<TreatmentPlanFilterModalProps> = ({
           </Col>
         </Row>
 
-        <Divider style={{ margin: "8px 0 16px 0" }} />
-
-        {/* Date & Sorting Section */}
-        <Title level={5}>Date & Sorting</Title>
+        <Divider orientation="left">Date & Sorting</Divider>
 
         <Row gutter={16}>
           {/* Treatment Date Range */}

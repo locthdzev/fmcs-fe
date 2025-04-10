@@ -22,11 +22,11 @@ import {
   message,
 } from "antd";
 import type { ColumnsType, ColumnType } from "antd/es/table";
-import { 
-  HistoryOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
-  UndoOutlined, 
+import {
+  HistoryOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UndoOutlined,
   CloseCircleOutlined,
   DownOutlined,
 } from "@ant-design/icons";
@@ -895,6 +895,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
             loading={loading}
             pagination={false}
             scroll={{ x: "max-content" }}
+            bordered
           />
         </div>
 
@@ -904,33 +905,33 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
             <Space size="large" align="center">
               <Text type="secondary">Total {totalItems} items</Text>
               <Space align="center" size="large">
-              <Pagination
-                current={currentPage}
-                pageSize={pageSize}
-                total={totalItems}
-                onChange={handlePageChange}
-                showSizeChanger={false}
-                showTotal={() => ""}
-              />
-              <Space align="center">
-                <Text type="secondary">Go to page:</Text>
-                <InputNumber
-                  min={1}
-                  max={Math.ceil(totalItems / pageSize)}
-                  value={currentPage}
-                  onChange={(value) => {
-                    if (
-                      value &&
-                      Number(value) > 0 &&
-                      Number(value) <= Math.ceil(totalItems / pageSize)
-                    ) {
-                      handlePageChange(Number(value), pageSize);
-                    }
-                  }}
-                  style={{ width: "60px" }}
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={totalItems}
+                  onChange={handlePageChange}
+                  showSizeChanger={false}
+                  showTotal={() => ""}
                 />
+                <Space align="center">
+                  <Text type="secondary">Go to page:</Text>
+                  <InputNumber
+                    min={1}
+                    max={Math.ceil(totalItems / pageSize)}
+                    value={currentPage}
+                    onChange={(value) => {
+                      if (
+                        value &&
+                        Number(value) > 0 &&
+                        Number(value) <= Math.ceil(totalItems / pageSize)
+                      ) {
+                        handlePageChange(Number(value), pageSize);
+                      }
+                    }}
+                    style={{ width: "60px" }}
+                  />
+                </Space>
               </Space>
-            </Space>
             </Space>
           </Row>
         </Card>
@@ -939,4 +940,4 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   );
 };
 
-export default TreatmentPlanTable; 
+export default TreatmentPlanTable;
