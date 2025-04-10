@@ -17,10 +17,10 @@ import {
   Divider,
 } from "antd";
 import {
-  // Assume this API function will be created
-  exportDrugSuppliersToExcelWithConfig, 
-  DrugSupplierResponse, // Use existing response type for options
-} from "@/api/drugsupplier"; 
+  exportTrucksToExcel,
+  TruckResponse,
+  TruckExportConfigDTO
+} from "@/api/truck"; 
 import dayjs from "dayjs";
 import {
   SortAscendingOutlined,
@@ -29,39 +29,37 @@ import {
   UndoOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
-import { DrugSupplierAdvancedFilters } from "./DrugSupplierFilterModal"; // Import filter type
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
-// 1. Define the DTO for Drug Supplier Export Configuration
-export interface DrugSupplierExportConfigDTO {
-  exportAllPages: boolean;
-  includeSupplierName: boolean;
-  includeContactNumber: boolean;
-  includeEmail: boolean;
-  includeAddress: boolean;
-  includeCreatedAt: boolean;
-  includeUpdatedAt: boolean;
-  includeStatus: boolean;
+// Define the filter type we'll use
+export interface TruckAdvancedFilters {
+  createdDateRange?: any[];
+  updatedDateRange?: any[];
+  ascending?: boolean;
 }
 
-// 2. Define Props, adjusting filters and options
+// Update interface definition to include exportAllPages property
+export interface TruckExportConfigWithUI extends TruckExportConfigDTO {
+  exportAllPages: boolean;
+}
+
+// Define Props for the Export Config Modal
 interface ExportConfigModalProps {
   visible: boolean;
   onClose: () => void;
-  config: DrugSupplierExportConfigDTO;
-  onChange: (values: Partial<DrugSupplierExportConfigDTO>) => void; // Changed to Partial
-  filters: { // Adjusted filter structure
-    filterValue: string; // Search by name
+  config: TruckExportConfigWithUI;
+  onChange: (values: Partial<TruckExportConfigWithUI>) => void;
+  filters: {
+    filterValue: string; // Search by license plate
     statusFilter: string[]; // Status array
-    advancedFilters: DrugSupplierAdvancedFilters; // Contains date ranges and sort
-    // Pagination info might be needed if not exporting all
-    currentPage: number; 
+    advancedFilters: TruckAdvancedFilters;
+    currentPage: number;
     pageSize: number;
   };
-  suppliers?: DrugSupplierResponse[]; // For name dropdown
+  trucks?: TruckResponse[]; // For license plate dropdown
   statusOptions?: { label: string; value: string }[]; // For status dropdown
 }
 
@@ -71,7 +69,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
   config,
   onChange,
   filters,
-  suppliers = [],
+  trucks = [],
   statusOptions = [],
 }) => {
   const [form] = Form.useForm();
@@ -81,9 +79,11 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
   // Reset form when modal becomes visible
   useEffect(() => {
     if (visible) {
-      form.resetFields();
+      // Không gọi onChange ở đây để tránh vòng lặp vô hạn
+      // Chỉ reset form fields
+      handleReset();
     }
-  }, [visible, form]);
+  }, [visible]);
 
   const handleSubmit = async () => {
     try {
@@ -93,7 +93,8 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
       // Validate that either export all pages is selected or at least one filter is applied
       if (!values.exportAllPages) {
         const hasAnyFilter =
-          values.filterSupplierName ||
+          values.filterLicensePlate ||
+          values.filterDriverName ||
           (values.filterStatus && values.filterStatus.length > 0) ||
           (values.filterCreatedDateRange && (values.filterCreatedDateRange[0] || values.filterCreatedDateRange[1])) ||
           (values.filterUpdatedDateRange && (values.filterUpdatedDateRange[0] || values.filterUpdatedDateRange[1])) ||
@@ -112,13 +113,14 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         }
       }
 
-      // 3. Construct the DTO
-      const exportConfig: DrugSupplierExportConfigDTO = {
-        exportAllPages: values.exportAllPages,
-        includeSupplierName: values.includeSupplierName,
-        includeContactNumber: values.includeContactNumber,
-        includeEmail: values.includeEmail,
-        includeAddress: values.includeAddress,
+      // Construct the DTO
+      const exportConfig: TruckExportConfigDTO = {
+        // Include fields selection
+        includeLicensePlate: values.includeLicensePlate,
+        includeDriverName: values.includeDriverName,
+        includeDriverContact: values.includeDriverContact,
+        includeDescription: values.includeDescription,
+        includeTruckImage: values.includeTruckImage,
         includeCreatedAt: values.includeCreatedAt,
         includeUpdatedAt: values.includeUpdatedAt,
         includeStatus: values.includeStatus,
@@ -129,7 +131,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         ? {
             currentPage: filters.currentPage,
             pageSize: filters.pageSize,
-            supplierNameSearch: filters.filterValue,
+            licensePlateSearch: filters.filterValue,
             statusFilter: filters.statusFilter,
             createdDateRange: filters.advancedFilters?.createdDateRange,
             updatedDateRange: filters.advancedFilters?.updatedDateRange,
@@ -138,7 +140,8 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         : {
             currentPage: filters.currentPage,
             pageSize: filters.pageSize,
-            supplierNameSearch: values.filterSupplierName,
+            licensePlateSearch: values.filterLicensePlate,
+            driverNameSearch: values.filterDriverName,
             statusFilter: values.filterStatus,
             createdDateRange: values.filterCreatedDateRange,
             updatedDateRange: values.filterUpdatedDateRange,
@@ -149,7 +152,8 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
       const {
         currentPage,
         pageSize,
-        supplierNameSearch,
+        licensePlateSearch,
+        driverNameSearch,
         statusFilter,
         createdDateRange,
         updatedDateRange,
@@ -163,24 +167,27 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
       const updatedEndDate = updatedDateRange?.[1]?.format("YYYY-MM-DD");
 
       // Call API with all params
-      const response = await exportDrugSuppliersToExcelWithConfig(
+      const response = await exportTrucksToExcel(
         exportConfig,
-        currentPage,
-        pageSize,
-        supplierNameSearch,
-        statusFilter,
-        createdStartDate,
-        createdEndDate,
-        updatedStartDate,
-        updatedEndDate,
-        ascending,
-        values.exportAllPages
+        {
+          exportAllPages: values.exportAllPages,
+          page: currentPage,
+          pageSize: pageSize,
+          licensePlateSearch: licensePlateSearch,
+          driverNameSearch: driverNameSearch,
+          status: statusFilter?.join(','),
+          createdStartDate: createdStartDate,
+          createdEndDate: createdEndDate,
+          updatedStartDate: updatedStartDate,
+          updatedEndDate: updatedEndDate,
+          ascending: ascending
+        }
       );
 
       // Handle response
-      if (response.success && response.data) {
-        // Ensure response.data is a valid URL (string)
-        const fileUrl = typeof response.data === 'string' ? response.data : '';
+      if (response.isSuccess && response.data) {
+        // Đảm bảo response.data là một URL hợp lệ (string)
+        const fileUrl = typeof response.data === 'string' ? response.data : response.data.fileUrl || response.data.url || '';
         
         if (!fileUrl) {
           messageApi.error({
@@ -191,23 +198,10 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
           return;
         }
         
-        // Open URL in new tab
+        // Mở URL trong tab mới
         window.open(fileUrl, "_blank");
-        messageApi.success("Drug suppliers exported to Excel successfully", 10);
-        
-        // Save config settings for next time
-        const configValues = {
-          exportAllPages: values.exportAllPages,
-          includeSupplierName: values.includeSupplierName,
-          includeContactNumber: values.includeContactNumber,
-          includeEmail: values.includeEmail,
-          includeAddress: values.includeAddress,
-          includeCreatedAt: values.includeCreatedAt,
-          includeUpdatedAt: values.includeUpdatedAt,
-          includeStatus: values.includeStatus,
-        };
-        onChange(configValues);
-        
+        messageApi.success("Trucks exported to Excel successfully", 10);
+        onChange(exportConfig);
         setLoading(false); // Reset loading state before closing
         onClose();
       } else {
@@ -228,21 +222,37 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
   };
 
   const handleCancel = () => {
-    // Don't reset here, reset happens on open or via reset button
     onClose();
   };
 
-  // Reset form to default values
   const handleReset = () => {
-    // Simply reset form to its initialValues
     form.resetFields();
+    // Set default values including include fields to true
+    const defaultValues = {
+      exportAllPages: true,
+      filterLicensePlate: null,
+      filterDriverName: null,
+      filterStatus: [],
+      filterCreatedDateRange: null,
+      filterUpdatedDateRange: null,
+      filterSortDirection: "desc", // Always set to desc (Newest First)
+      includeLicensePlate: true,
+      includeDriverName: true,
+      includeDriverContact: true,
+      includeDescription: true,
+      includeTruckImage: true,
+      includeCreatedAt: true,
+      includeUpdatedAt: true,
+      includeStatus: true,
+    };
     
-    // No need to call onChange here since the form's onValuesChange will handle it
+    // Update form
+    form.setFieldsValue(defaultValues);
   };
 
   return (
     <Modal
-      title="Export Configuration"
+      title="Export Truck Data"
       open={visible}
       onCancel={handleCancel}
       width={800}
@@ -274,30 +284,50 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
           initialValues={{
             exportAllPages: true,
             filterSortDirection: "desc",
-            includeSupplierName: true,
-            includeContactNumber: true,
-            includeEmail: true,
-            includeAddress: true,
+            includeLicensePlate: true,
+            includeDriverName: true,
+            includeDriverContact: true,
+            includeDescription: true,
+            includeTruckImage: true,
             includeCreatedAt: true,
             includeUpdatedAt: true,
-            includeStatus: true
+            includeStatus: true,
           }}
           onValuesChange={(changedValues) => {
-            // Don't trigger onChange for initial form setup
-            // Only handle user interactions
+            // Auto-select all include fields when "Export all data" is checked
             if ('exportAllPages' in changedValues && changedValues.exportAllPages) {
-              // When "Export all data" is checked, update include fields to be all checked
               const allSelectedFields = {
-                includeSupplierName: true,
-                includeContactNumber: true,
-                includeEmail: true,
-                includeAddress: true,
+                includeLicensePlate: true,
+                includeDriverName: true,
+                includeDriverContact: true,
+                includeDescription: true,
+                includeTruckImage: true,
                 includeCreatedAt: true,
                 includeUpdatedAt: true,
                 includeStatus: true,
               };
-              // This won't trigger another onValuesChange because we're using batch update
               form.setFieldsValue(allSelectedFields);
+              onChange({
+                ...allSelectedFields,
+                exportAllPages: true
+              });
+              return;
+            }
+
+            // Handle other changes for config fields
+            if (Object.keys(changedValues).some(key => 
+              key.startsWith('include') || 
+              key === 'exportAllPages')) {
+              // Only call onChange for config fields
+              const configChanges = Object.fromEntries(
+                Object.entries(changedValues).filter(([key]) => 
+                  key.startsWith('include') || 
+                  key === 'exportAllPages'
+                )
+              );
+              if (Object.keys(configChanges).length > 0) {
+                onChange(configChanges);
+              }
             }
           }}
           preserve={false}
@@ -340,16 +370,34 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                   
                   <Row gutter={[16, 16]}>
                     <Col span={12}>
-                      <Form.Item label="Supplier Name" name="filterSupplierName">
+                      <Form.Item label="License Plate" name="filterLicensePlate">
                         <Select
-                          placeholder="Select Supplier Name"
+                          placeholder="Select License Plate"
                           style={{ width: "100%" }}
                           allowClear
                           showSearch
                           filterOption={(input, option) => 
                             (option?.label?.toString().toLowerCase() ?? '').includes(input.toLowerCase())
                           }
-                          options={suppliers.map((s) => ({ value: s.supplierName, label: s.supplierName }))}
+                          options={trucks.map((t) => ({ value: t.licensePlate, label: t.licensePlate }))}
+                        />
+                      </Form.Item>
+                    </Col>
+
+                    <Col span={12}>
+                      <Form.Item label="Driver Name" name="filterDriverName">
+                        <Select
+                          placeholder="Select Driver Name"
+                          style={{ width: "100%" }}
+                          allowClear
+                          showSearch
+                          filterOption={(input, option) => 
+                            (option?.label?.toString().toLowerCase() ?? '').includes(input.toLowerCase())
+                          }
+                          options={trucks.map((t) => ({ 
+                            value: t.driverName, 
+                            label: t.driverName 
+                          })).filter((opt) => opt.value)}
                         />
                       </Form.Item>
                     </Col>
@@ -397,23 +445,28 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
             
             <Row gutter={[24, 16]}>
               <Col span={8}>
-                <Form.Item name="includeSupplierName" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Supplier Name</Checkbox>
+                <Form.Item name="includeLicensePlate" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                  <Checkbox>License Plate</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeContactNumber" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Contact Number</Checkbox>
+                <Form.Item name="includeDriverName" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                  <Checkbox>Driver Name</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeEmail" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Email</Checkbox>
+                <Form.Item name="includeDriverContact" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                  <Checkbox>Driver Contact</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeAddress" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Address</Checkbox>
+                <Form.Item name="includeDescription" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                  <Checkbox>Description</Checkbox>
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="includeTruckImage" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                  <Checkbox>Truck Image</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>

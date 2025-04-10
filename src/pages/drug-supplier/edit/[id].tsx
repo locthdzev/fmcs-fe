@@ -1,12 +1,13 @@
 import { GetServerSideProps } from 'next';
-import { DrugSupplierDetail } from '@/components/drug-supplier/DrugSupplierDetails';
+import { DrugSupplierEdit } from '@/components/drug-supplier/DrugSupplierEdit';
+import { useRouter } from 'next/router';
 
-interface DrugSupplierDetailPageProps {
+interface DrugSupplierEditPageProps {
   id: string;
 }
 
-export default function DrugSupplierDetailPage({ id }: DrugSupplierDetailPageProps) {
-  return <DrugSupplierDetail id={id} />;
+export default function DrugSupplierEditPage({ id }: DrugSupplierEditPageProps) {
+  return <DrugSupplierEdit id={id} />;
 }
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
@@ -23,4 +24,4 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       id,
     },
   };
-};
+}; 
