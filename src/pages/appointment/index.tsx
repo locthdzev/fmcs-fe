@@ -98,7 +98,6 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({ initialStaf
       setStaffList((prevList) => {
         // Only update if the new list is valid; otherwise, keep previous state
         if (updatedStaffList && updatedStaffList.length > 0) {
-          toast.info("Healthcare staff list updated in real-time!");
           return updatedStaffList;
         }
         console.warn("Ignoring invalid SignalR update, retaining previous list");
@@ -173,7 +172,7 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({ initialStaf
 
                 return (
                   <div key={staff.staffId} className="w-full md:w-56 p-2">
-                    <Link href={`/appointment/schedule/${staff.staffId}`}>
+                    <Link href={`/appointment/schedule-appointment/${staff.staffId}`}>
                       <div
                         className={`rounded-3xl p-2 ${color.bg} cursor-pointer hover:shadow-lg transition-shadow flex flex-col items-center`}
                         style={{ minHeight: "220px" }}
