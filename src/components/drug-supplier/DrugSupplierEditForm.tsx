@@ -32,6 +32,7 @@ export const EditDrugSupplierForm: React.FC<EditDrugSupplierFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [originalCreatedAt, setOriginalCreatedAt] = useState<string | null>(null);
+  const [originalStatus, setOriginalStatus] = useState<string | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
 
   useEffect(() => {
@@ -59,6 +60,7 @@ export const EditDrugSupplierForm: React.FC<EditDrugSupplierFormProps> = ({
             status: drugSupplierData.status || "Active",
           });
           setOriginalCreatedAt(drugSupplierData.createdAt);
+          setOriginalStatus(drugSupplierData.status || "Active");
         }
       } catch (error: any) {
         messageApi.error(`Failed to load drug supplier details: ${error.message || 'Unknown error'}`, 5);
@@ -72,7 +74,7 @@ export const EditDrugSupplierForm: React.FC<EditDrugSupplierFormProps> = ({
   }, [drugSupplierId, form, messageApi]);
 
   const handleSubmit = async () => {
-    if (!originalCreatedAt) {
+    if (!originalCreatedAt || !originalStatus) {
       messageApi.error("Original data not fully loaded. Please wait and try again.", 5);
       return;
     }
@@ -86,7 +88,7 @@ export const EditDrugSupplierForm: React.FC<EditDrugSupplierFormProps> = ({
         contactNumber: values.contactNumber || null,
         email: values.email || null,
         address: values.address || null,
-        status: values.status,
+        status: originalStatus,
         createdAt: originalCreatedAt,
       };
 
@@ -164,7 +166,7 @@ export const EditDrugSupplierForm: React.FC<EditDrugSupplierFormProps> = ({
             label="Status"
             rules={[{ required: true, message: "Please select a status" }]}
           >
-            <Select placeholder="Select status">
+            <Select placeholder="Select status" disabled>
               <Option value="Active">Active</Option>
               <Option value="Inactive">Inactive</Option>
             </Select>

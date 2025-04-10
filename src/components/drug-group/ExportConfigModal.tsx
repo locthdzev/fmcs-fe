@@ -17,52 +17,42 @@ import {
   Divider,
 } from "antd";
 import {
-  // Assume this API function will be created
-  exportDrugSuppliersToExcelWithConfig, 
-  DrugSupplierResponse, // Use existing response type for options
-} from "@/api/drugsupplier"; 
+  exportDrugGroupsToExcel,
+  DrugGroupResponse,
+  DrugGroupExportConfig,
+} from "@/api/druggroup"; 
 import dayjs from "dayjs";
 import {
   SortAscendingOutlined,
   SortDescendingOutlined,
   InfoCircleOutlined,
-  UndoOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
-import { DrugSupplierAdvancedFilters } from "./DrugSupplierFilterModal"; // Import filter type
+import { DrugGroupAdvancedFilters } from "./DrugGroupFilterModal";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
-// 1. Define the DTO for Drug Supplier Export Configuration
-export interface DrugSupplierExportConfigDTO {
+// UI-specific version of the config with additional properties
+export interface DrugGroupExportConfigWithUI extends DrugGroupExportConfig {
   exportAllPages: boolean;
-  includeSupplierName: boolean;
-  includeContactNumber: boolean;
-  includeEmail: boolean;
-  includeAddress: boolean;
-  includeCreatedAt: boolean;
-  includeUpdatedAt: boolean;
-  includeStatus: boolean;
 }
 
-// 2. Define Props, adjusting filters and options
 interface ExportConfigModalProps {
   visible: boolean;
   onClose: () => void;
-  config: DrugSupplierExportConfigDTO;
-  onChange: (values: Partial<DrugSupplierExportConfigDTO>) => void; // Changed to Partial
-  filters: { // Adjusted filter structure
-    filterValue: string; // Search by name
-    statusFilter: string[]; // Status array
-    advancedFilters: DrugSupplierAdvancedFilters; // Contains date ranges and sort
-    // Pagination info might be needed if not exporting all
-    currentPage: number; 
+  config: DrugGroupExportConfigWithUI;
+  onChange: (values: Partial<DrugGroupExportConfigWithUI>) => void;
+  filters: {
+    filterValue: string;
+    statusFilter: string[];
+    advancedFilters: DrugGroupAdvancedFilters;
+    currentPage: number;
     pageSize: number;
   };
-  suppliers?: DrugSupplierResponse[]; // For name dropdown
-  statusOptions?: { label: string; value: string }[]; // For status dropdown
+  drugGroups?: DrugGroupResponse[];
+  statusOptions?: { label: string; value: string }[];
 }
 
 const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
@@ -71,7 +61,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
   config,
   onChange,
   filters,
-  suppliers = [],
+  drugGroups = [],
   statusOptions = [],
 }) => {
   const [form] = Form.useForm();
@@ -93,11 +83,11 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
       // Validate that either export all pages is selected or at least one filter is applied
       if (!values.exportAllPages) {
         const hasAnyFilter =
-          values.filterSupplierName ||
+          values.filterGroupName ||
           (values.filterStatus && values.filterStatus.length > 0) ||
           (values.filterCreatedDateRange && (values.filterCreatedDateRange[0] || values.filterCreatedDateRange[1])) ||
           (values.filterUpdatedDateRange && (values.filterUpdatedDateRange[0] || values.filterUpdatedDateRange[1])) ||
-          filters.filterValue || // Check original filters as well
+          filters.filterValue ||
           (filters.statusFilter && filters.statusFilter.length > 0) ||
           (filters.advancedFilters?.createdDateRange && (filters.advancedFilters.createdDateRange[0] || filters.advancedFilters.createdDateRange[1])) ||
           (filters.advancedFilters?.updatedDateRange && (filters.advancedFilters.updatedDateRange[0] || filters.advancedFilters.updatedDateRange[1]));
@@ -112,13 +102,11 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         }
       }
 
-      // 3. Construct the DTO
-      const exportConfig: DrugSupplierExportConfigDTO = {
+      // Construct the export config
+      const exportConfig: DrugGroupExportConfig = {
         exportAllPages: values.exportAllPages,
-        includeSupplierName: values.includeSupplierName,
-        includeContactNumber: values.includeContactNumber,
-        includeEmail: values.includeEmail,
-        includeAddress: values.includeAddress,
+        includeGroupName: values.includeGroupName,
+        includeDescription: values.includeDescription,
         includeCreatedAt: values.includeCreatedAt,
         includeUpdatedAt: values.includeUpdatedAt,
         includeStatus: values.includeStatus,
@@ -129,93 +117,78 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         ? {
             currentPage: filters.currentPage,
             pageSize: filters.pageSize,
-            supplierNameSearch: filters.filterValue,
-            statusFilter: filters.statusFilter,
-            createdDateRange: filters.advancedFilters?.createdDateRange,
-            updatedDateRange: filters.advancedFilters?.updatedDateRange,
-            ascending: values.filterSortDirection === "asc", // Always take sort from modal
+            groupNameSearch: filters.filterValue,
+            descriptionSearch: undefined,
+            sortBy: "GroupName",
+            status: filters.statusFilter?.join(","),
+            ascending: values.filterSortDirection === "asc",
+            createdStartDate: filters.advancedFilters?.createdDateRange?.[0]?.toDate(),
+            createdEndDate: filters.advancedFilters?.createdDateRange?.[1]?.toDate(),
+            updatedStartDate: filters.advancedFilters?.updatedDateRange?.[0]?.toDate(),
+            updatedEndDate: filters.advancedFilters?.updatedDateRange?.[1]?.toDate(),
           }
         : {
             currentPage: filters.currentPage,
             pageSize: filters.pageSize,
-            supplierNameSearch: values.filterSupplierName,
-            statusFilter: values.filterStatus,
-            createdDateRange: values.filterCreatedDateRange,
-            updatedDateRange: values.filterUpdatedDateRange,
+            groupNameSearch: values.filterGroupName,
+            descriptionSearch: undefined,
+            sortBy: "GroupName",
+            status: values.filterStatus?.join(","),
             ascending: values.filterSortDirection === "asc",
+            createdStartDate: values.filterCreatedDateRange?.[0]?.toDate(),
+            createdEndDate: values.filterCreatedDateRange?.[1]?.toDate(),
+            updatedStartDate: values.filterUpdatedDateRange?.[0]?.toDate(),
+            updatedEndDate: values.filterUpdatedDateRange?.[1]?.toDate(),
           };
 
-      // Extract values from useFilters
-      const {
-        currentPage,
-        pageSize,
-        supplierNameSearch,
-        statusFilter,
-        createdDateRange,
-        updatedDateRange,
-        ascending,
-      } = useFilters;
-
-      // Format dates for API
-      const createdStartDate = createdDateRange?.[0]?.format("YYYY-MM-DD");
-      const createdEndDate = createdDateRange?.[1]?.format("YYYY-MM-DD");
-      const updatedStartDate = updatedDateRange?.[0]?.format("YYYY-MM-DD");
-      const updatedEndDate = updatedDateRange?.[1]?.format("YYYY-MM-DD");
-
-      // Call API with all params
-      const response = await exportDrugSuppliersToExcelWithConfig(
-        exportConfig,
-        currentPage,
-        pageSize,
-        supplierNameSearch,
-        statusFilter,
-        createdStartDate,
-        createdEndDate,
-        updatedStartDate,
-        updatedEndDate,
-        ascending,
-        values.exportAllPages
-      );
+      // Call API to export
+      const response = await exportDrugGroupsToExcel(exportConfig, useFilters);
 
       // Handle response
-      if (response.success && response.data) {
-        // Ensure response.data is a valid URL (string)
-        const fileUrl = typeof response.data === 'string' ? response.data : '';
+      console.log("Export API response:", response);
+      
+      if (response && response.isSuccess) {
+        let fileUrl = '';
         
-        if (!fileUrl) {
+        // Extract file URL from response
+        if (typeof response.data === 'string') {
+          fileUrl = response.data;
+        } else if (response.data && response.data.fileUrl) {
+          fileUrl = response.data.fileUrl;
+        } else if (response.fileUrl) {
+          fileUrl = response.fileUrl;
+        }
+        
+        if (fileUrl) {
+          // Open URL in new tab
+          window.open(fileUrl, "_blank");
+          messageApi.success("Drug groups exported to Excel successfully", 10);
+          
+          // Save config settings for next time
+          onChange({
+            exportAllPages: values.exportAllPages,
+            includeGroupName: values.includeGroupName,
+            includeDescription: values.includeDescription,
+            includeCreatedAt: values.includeCreatedAt,
+            includeUpdatedAt: values.includeUpdatedAt,
+            includeStatus: values.includeStatus,
+          });
+          
+          setLoading(false);
+          onClose();
+        } else {
           messageApi.error({
             content: "Invalid file URL in response",
             duration: 10,
           });
           setLoading(false);
-          return;
         }
-        
-        // Open URL in new tab
-        window.open(fileUrl, "_blank");
-        messageApi.success("Drug suppliers exported to Excel successfully", 10);
-        
-        // Save config settings for next time
-        const configValues = {
-          exportAllPages: values.exportAllPages,
-          includeSupplierName: values.includeSupplierName,
-          includeContactNumber: values.includeContactNumber,
-          includeEmail: values.includeEmail,
-          includeAddress: values.includeAddress,
-          includeCreatedAt: values.includeCreatedAt,
-          includeUpdatedAt: values.includeUpdatedAt,
-          includeStatus: values.includeStatus,
-        };
-        onChange(configValues);
-        
-        setLoading(false); // Reset loading state before closing
-        onClose();
       } else {
         messageApi.error({
-          content: response.message || "Failed to export Excel file",
+          content: response?.message || "Failed to export Excel file",
           duration: 10,
         });
-        setLoading(false); // Only reset loading, don't close modal
+        setLoading(false);
       }
     } catch (error) {
       console.error("Export error:", error);
@@ -223,21 +196,16 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         content: "An unexpected error occurred",
         duration: 10,
       });
-      setLoading(false); // Only reset loading, don't close modal
+      setLoading(false);
     }
   };
 
   const handleCancel = () => {
-    // Don't reset here, reset happens on open or via reset button
     onClose();
   };
 
-  // Reset form to default values
   const handleReset = () => {
-    // Simply reset form to its initialValues
     form.resetFields();
-    
-    // No need to call onChange here since the form's onValuesChange will handle it
   };
 
   return (
@@ -274,29 +242,21 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
           initialValues={{
             exportAllPages: true,
             filterSortDirection: "desc",
-            includeSupplierName: true,
-            includeContactNumber: true,
-            includeEmail: true,
-            includeAddress: true,
+            includeGroupName: true,
+            includeDescription: true,
             includeCreatedAt: true,
             includeUpdatedAt: true,
             includeStatus: true
           }}
           onValuesChange={(changedValues) => {
-            // Don't trigger onChange for initial form setup
-            // Only handle user interactions
             if ('exportAllPages' in changedValues && changedValues.exportAllPages) {
-              // When "Export all data" is checked, update include fields to be all checked
               const allSelectedFields = {
-                includeSupplierName: true,
-                includeContactNumber: true,
-                includeEmail: true,
-                includeAddress: true,
+                includeGroupName: true,
+                includeDescription: true,
                 includeCreatedAt: true,
                 includeUpdatedAt: true,
                 includeStatus: true,
               };
-              // This won't trigger another onValuesChange because we're using batch update
               form.setFieldsValue(allSelectedFields);
             }
           }}
@@ -340,16 +300,16 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                   
                   <Row gutter={[16, 16]}>
                     <Col span={12}>
-                      <Form.Item label="Supplier Name" name="filterSupplierName">
+                      <Form.Item label="Group Name" name="filterGroupName">
                         <Select
-                          placeholder="Select Supplier Name"
+                          placeholder="Select Group Name"
                           style={{ width: "100%" }}
                           allowClear
                           showSearch
                           filterOption={(input, option) => 
                             (option?.label?.toString().toLowerCase() ?? '').includes(input.toLowerCase())
                           }
-                          options={suppliers.map((s) => ({ value: s.supplierName, label: s.supplierName }))}
+                          options={drugGroups.map((group) => ({ value: group.groupName, label: group.groupName }))}
                         />
                       </Form.Item>
                     </Col>
@@ -397,23 +357,13 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
             
             <Row gutter={[24, 16]}>
               <Col span={8}>
-                <Form.Item name="includeSupplierName" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Supplier Name</Checkbox>
+                <Form.Item name="includeGroupName" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                  <Checkbox>Group Name</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeContactNumber" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Contact Number</Checkbox>
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name="includeEmail" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Email</Checkbox>
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name="includeAddress" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Address</Checkbox>
+                <Form.Item name="includeDescription" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                  <Checkbox>Description</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>

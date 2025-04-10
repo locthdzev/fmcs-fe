@@ -63,17 +63,17 @@ export const data = [
           {
             title: "Drugs",
             icon: <DrugIcon />,
-            link: "/drug/management",
+            link: "/drug",
           },
           {
             title: "DrugGroups",
             icon: <DrugGroupIcon />,
-            link: "/drug-group/management",
+            link: "/drug-group",
           },
           {
             title: "DrugOrders",
             icon: <DrugOrderIcon />,
-            link: "/drug-order/management",
+            link: "/drug-order",
           },
           {
             title: "DrugSuppliers",
@@ -105,7 +105,7 @@ export const data = [
           {
             title: "Trucks",
             icon: <TrucksIcon />,
-            link: "/truck/management",
+            link: "/truck",
           },
         ],
       },

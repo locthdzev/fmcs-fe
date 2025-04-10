@@ -174,3 +174,161 @@ export function TrucksIcon() {
       </svg>
     );
   }
+
+export const AppsIcon = ({
+  size = 24,
+  width,
+  height,
+  ...props
+}: IconSvgProps) => {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      focusable="false"
+      height={size || height}
+      role="presentation"
+      viewBox="0 0 24 24"
+      width={size || width}
+      {...props}
+    >
+      <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+      <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+      <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+      <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+};
+
+export const FilterIcon = ({
+  size = 24,
+  width,
+  height,
+  ...props
+}: IconSvgProps) => {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      focusable="false"
+      height={size || height}
+      role="presentation"
+      viewBox="0 0 24 24"
+      width={size || width}
+      {...props}
+    >
+      <path 
+        d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+};
+
+export const UndoIcon = ({
+  size = 24,
+  width,
+  height,
+  ...props
+}: IconSvgProps) => {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      focusable="false"
+      height={size || height}
+      role="presentation"
+      viewBox="0 0 24 24"
+      width={size || width}
+      {...props}
+    >
+      <path 
+        d="M3 9h13a5 5 0 0 1 5 5v0a5 5 0 0 1-5 5h-7" 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="1.5"
+      />
+      <path 
+        d="M6 5L3 9l3 4" 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+};
+
+export const TagIcon = ({
+  size = 24,
+  width,
+  height,
+  ...props
+}: IconSvgProps) => {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      focusable="false"
+      height={size || height}
+      role="presentation"
+      viewBox="0 0 24 24"
+      width={size || width}
+      {...props}
+    >
+      <path 
+        d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="1.5"
+      />
+      <path 
+        d="M7 7h.01" 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="3"
+      />
+    </svg>
+  );
+};
+
+export const GearIcon = ({
+  size = 24,
+  width,
+  height,
+  ...props
+}: IconSvgProps) => {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      focusable="false"
+      height={size || height}
+      role="presentation"
+      viewBox="0 0 24 24"
+      width={size || width}
+      {...props}
+    >
+      <path 
+        d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="1.5"
+      />
+      <path 
+        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+};
