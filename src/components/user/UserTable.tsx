@@ -18,6 +18,7 @@ import {
   message,
   TableProps,
 } from "antd";
+import type { ColumnsType, ColumnType } from "antd/es/table";
 import {
   EditOutlined,
   DeleteOutlined,
@@ -129,7 +130,7 @@ const UserTable: React.FC<UserTableProps> = ({
   };
 
   // Define table columns
-  const columns = [
+  const columns: ColumnsType<UserResponseDTO> = [
     {
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
@@ -139,6 +140,8 @@ const UserTable: React.FC<UserTableProps> = ({
       dataIndex: "fullName",
       key: "fullName",
       ellipsis: true,
+      fixed: "left" as const,
+      width: 180,
       render: (text: string, record: UserResponseDTO) => (
         <Button
           type="link"
@@ -153,7 +156,6 @@ const UserTable: React.FC<UserTableProps> = ({
           {text}
         </Button>
       ),
-      hidden: !columnVisibility.fullName,
     },
     {
       title: (
@@ -164,7 +166,7 @@ const UserTable: React.FC<UserTableProps> = ({
       dataIndex: "userName",
       key: "userName",
       ellipsis: true,
-      hidden: !columnVisibility.userName,
+      width: 150,
     },
     {
       title: (
@@ -176,7 +178,6 @@ const UserTable: React.FC<UserTableProps> = ({
       key: "email",
       ellipsis: true,
       width: 250,
-      hidden: !columnVisibility.email,
     },
     {
       title: (
@@ -187,7 +188,8 @@ const UserTable: React.FC<UserTableProps> = ({
       dataIndex: "phone",
       key: "phone",
       ellipsis: true,
-      hidden: !columnVisibility.phone,
+      width: 100,
+      align: "center" as const,
     },
     {
       title: (
@@ -197,7 +199,8 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "gender",
       key: "gender",
-      hidden: !columnVisibility.gender,
+      width: 90,
+      align: "center" as const,
     },
     {
       title: (
@@ -207,8 +210,8 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "dob",
       key: "dob",
+      width: 120,
       render: (date: string) => formatDate(date).split(" ")[0],
-      hidden: !columnVisibility.dob,
     },
     {
       title: (
@@ -219,7 +222,7 @@ const UserTable: React.FC<UserTableProps> = ({
       dataIndex: "address",
       key: "address",
       ellipsis: true,
-      hidden: !columnVisibility.address,
+      width: 200,
     },
     {
       title: (
@@ -229,6 +232,7 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "roles",
       key: "roles",
+      width: 100,
       align: "center" as const,
       render: (roles: string[]) => {
         // Nếu người dùng không có role nào
@@ -312,7 +316,6 @@ const UserTable: React.FC<UserTableProps> = ({
           </div>
         );
       },
-      hidden: !columnVisibility.roles,
     },
     {
       title: (
@@ -322,13 +325,13 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "status",
       key: "status",
+      width: 120,
       align: "center" as const,
       render: (status: string) => (
         <div style={{ display: "flex", justifyContent: "center" }}>
           {renderStatusTag(status)}
         </div>
       ),
-      hidden: !columnVisibility.status,
     },
     {
       title: (
@@ -338,8 +341,8 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "createdAt",
       key: "createdAt",
+      width: 180,
       render: (date: string) => formatDate(date),
-      hidden: !columnVisibility.createdAt,
     },
     {
       title: (
@@ -349,8 +352,8 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "updatedAt",
       key: "updatedAt",
+      width: 180,
       render: (date: string) => (date ? formatDate(date) : "N/A"),
-      hidden: !columnVisibility.updatedAt,
     },
     {
       title: (
@@ -366,6 +369,8 @@ const UserTable: React.FC<UserTableProps> = ({
         </span>
       ),
       key: "actions",
+      fixed: "right" as const,
+      width: 120,
       render: (text: string, record: UserResponseDTO) => (
         <Space style={{ display: "flex", justifyContent: "center" }}>
           <Tooltip title="Edit">
@@ -417,13 +422,13 @@ const UserTable: React.FC<UserTableProps> = ({
         </Space>
       ),
       align: "center" as const,
-      hidden: !columnVisibility.actions,
     },
   ];
 
   // Filter columns based on visibility settings
   const visibleColumns = columns.filter((column) => {
-    return columnVisibility[column.key as keyof typeof columnVisibility];
+    const key = column.key as string;
+    return key in columnVisibility ? columnVisibility[key] : true;
   });
 
   if (loading) {
