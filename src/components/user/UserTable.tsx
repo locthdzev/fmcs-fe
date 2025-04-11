@@ -236,13 +236,11 @@ const UserTable: React.FC<UserTableProps> = ({
 
         // Sắp xếp roles theo thứ tự ưu tiên
         const priority: Record<string, number> = {
-          "Admin": 1,
-          "Manager": 2,
+          Admin: 1,
+          Manager: 2,
           "Healthcare Staff": 3,
           "Canteen Staff": 4,
-          "Staff": 5,
-          "User": 6,
-          "Student": 7
+          User: 5,
         };
 
         // Lấy role có mức ưu tiên cao nhất (số nhỏ nhất)
@@ -281,12 +279,17 @@ const UserTable: React.FC<UserTableProps> = ({
         // Hiển thị một tag role duy nhất (quan trọng nhất)
         // Nếu có nhiều role, thêm badge với tooltip
         return (
-          <Tooltip 
-            title={otherRolesCount > 0 ? `+ ${sortedRoles.slice(1).join(', ')}` : undefined}
+          <Tooltip
+            title={
+              otherRolesCount > 0
+                ? `+ ${sortedRoles.slice(1).join(", ")}`
+                : undefined
+            }
             placement="topLeft"
           >
             <Tag color={color}>
-              {primaryRole}{otherRolesCount > 0 ? ` +${otherRolesCount}` : ''}
+              {primaryRole}
+              {otherRolesCount > 0 ? ` +${otherRolesCount}` : ""}
             </Tag>
           </Tooltip>
         );
@@ -333,7 +336,14 @@ const UserTable: React.FC<UserTableProps> = ({
     },
     {
       title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold", display: "flex", justifyContent: "center" }}>
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
           ACTIONS
         </span>
       ),
@@ -378,7 +388,11 @@ const UserTable: React.FC<UserTableProps> = ({
               placement="topLeft"
             >
               <Tooltip title="Activate">
-                <Button type="text" icon={<CheckCircleOutlined />} style={{ color: "#52c41a" }} />
+                <Button
+                  type="text"
+                  icon={<CheckCircleOutlined />}
+                  style={{ color: "#52c41a" }}
+                />
               </Tooltip>
             </Popconfirm>
           )}
