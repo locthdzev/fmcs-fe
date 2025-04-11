@@ -119,7 +119,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         
         // Lọc ra người dùng thông thường (không phải staff)
         const normalUsers = users.filter((user: any) => 
-          user.roles && !user.roles.some((role: string) => role === "Medical_Staff" || role === "Admin")
+          user.roles && !user.roles.some((role: string) => role === "Healthcare Staff" || role === "Admin")
         );
         setUserOptions(normalUsers.map((user: any) => ({
           id: user.id,
@@ -129,7 +129,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         
         // Lấy danh sách staff y tế
         const medicalStaff = users.filter((user: any) => 
-          user.roles && user.roles.some((role: string) => role === "Medical_Staff")
+          user.roles && user.roles.some((role: string) => role === "Healthcare Staff")
         );
         setStaffOptions(medicalStaff.map((staff: any) => ({
           id: staff.id,
