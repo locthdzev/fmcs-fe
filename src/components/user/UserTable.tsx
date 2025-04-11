@@ -93,16 +93,16 @@ const UserTable: React.FC<UserTableProps> = ({
       return;
     }
 
-    // Determine status from selected option
+    // For dropdown selections, determine status directly from the selection option
     if (selectedOption) {
-      if (selectedOption.includes('active')) {
+      if (selectedOption === "all-active" || selectedOption === "page-active") {
         setSelectedItemTypes({
           hasActive: true,
           hasInactive: false,
         });
         return;
       } 
-      if (selectedOption.includes('inactive')) {
+      if (selectedOption === "all-inactive" || selectedOption === "page-inactive") {
         setSelectedItemTypes({
           hasActive: false,
           hasInactive: true,
@@ -111,8 +111,8 @@ const UserTable: React.FC<UserTableProps> = ({
       }
     }
 
-    // If using select all or individual selection
-    // First check current page data
+    // For "select all" checkbox or individual selections:
+    // First check current page data to determine visible selected users
     const visibleSelectedUsers = users.filter((user) => 
       selectedUsers.includes(user.id)
     );
@@ -125,15 +125,16 @@ const UserTable: React.FC<UserTableProps> = ({
       (user) => user.status === "Inactive"
     );
 
-    // If we can't determine all statuses from current page data
+    // For select all or selection that includes users from other pages
     if (visibleSelectedUsers.length < selectedUsers.length) {
-      // Show both buttons if select all checkbox was used
+      // When select all is used, we need to show both buttons
+      // since we assume there could be both active and inactive users
       setSelectedItemTypes({
-        hasActive: true,
+        hasActive: true, 
         hasInactive: true,
       });
     } else {
-      // Use what we found on current page
+      // For selections only on current page
       setSelectedItemTypes({
         hasActive: hasActiveInCurrentPage,
         hasInactive: hasInactiveInCurrentPage,
@@ -227,7 +228,6 @@ const UserTable: React.FC<UserTableProps> = ({
   const renderSelectAll = () => {
     // Count users by status to determine which options to show
     const activeCount = users.filter((user) => user.status === "Active").length;
-
     const inactiveCount = users.filter(
       (user) => user.status === "Inactive"
     ).length;
@@ -252,22 +252,24 @@ const UserTable: React.FC<UserTableProps> = ({
       });
     }
 
-    // Always add "select all pages" option for Active users
-    items.push({
-      key: "all-active",
-      label: (
-        <div>
-          {isLoadingAllItems && selectedOption === "all-active" ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Spin size="small" />
-              <span>Loading all Active users...</span>
-            </div>
-          ) : (
-            <span>Select all Active users (all pages)</span>
-          )}
-        </div>
-      ),
-    });
+    // Only add "select all pages" option for Active users if there are active users
+    if (activeCount > 0 || (getAllUserIdsByStatus && totalItems > 0)) {
+      items.push({
+        key: "all-active",
+        label: (
+          <div>
+            {isLoadingAllItems && selectedOption === "all-active" ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Spin size="small" />
+                <span>Loading all Active users...</span>
+              </div>
+            ) : (
+              <span>Select all Active users (all pages)</span>
+            )}
+          </div>
+        ),
+      });
+    }
 
     // Only add "select this page" option if we have inactive users on current page
     if (inactiveCount > 0) {
@@ -281,22 +283,24 @@ const UserTable: React.FC<UserTableProps> = ({
       });
     }
 
-    // Always add "select all pages" option for Inactive users
-    items.push({
-      key: "all-inactive",
-      label: (
-        <div>
-          {isLoadingAllItems && selectedOption === "all-inactive" ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Spin size="small" />
-              <span>Loading all Inactive users...</span>
-            </div>
-          ) : (
-            <span>Select all Inactive users (all pages)</span>
-          )}
-        </div>
-      ),
-    });
+    // Only add "select all pages" option for Inactive users if there are inactive users
+    if (inactiveCount > 0) {
+      items.push({
+        key: "all-inactive",
+        label: (
+          <div>
+            {isLoadingAllItems && selectedOption === "all-inactive" ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Spin size="small" />
+                <span>Loading all Inactive users...</span>
+              </div>
+            ) : (
+              <span>Select all Inactive users (all pages)</span>
+            )}
+          </div>
+        ),
+      });
+    }
 
     return (
       <>
@@ -337,13 +341,13 @@ const UserTable: React.FC<UserTableProps> = ({
     );
   };
 
-  // Improved select all toggle - selects all users on page when unchecked, clears selection when checked
+  // Improved select all toggle - selects all users across all pages
   const handleSelectAllToggle = async (e: any) => {
     if (e.target.checked) {
-      // Nếu được chọn, chọn tất cả users từ tất cả các trang (cả Active và Inactive)
+      // When checked, select all users from all pages (including both Active and Inactive)
       try {
         setIsLoadingAllItems(true);
-        // Lấy tất cả user IDs từ cả Active và Inactive
+        // Get all user IDs (both Active and Inactive) from all pages
         let allIds: string[] = [];
         if (getAllUserIdsByStatus) {
           allIds = await getAllUserIdsByStatus(["Active", "Inactive"]);
@@ -351,7 +355,23 @@ const UserTable: React.FC<UserTableProps> = ({
           allIds = users.map(user => user.id);
         }
         
+        // Clear dropdown selection
+        setSelectedOption(null);
+        
+        // Select all users
         onUserSelect(allIds);
+        
+        // Check if we have any inactive users
+        const hasInactiveUsers = users.some(user => user.status === "Inactive");
+        // Check if we have any active users
+        const hasActiveUsers = users.some(user => user.status === "Active");
+        
+        // Show buttons based on actual user statuses
+        setSelectedItemTypes({
+          hasActive: hasActiveUsers,
+          hasInactive: hasInactiveUsers,
+        });
+        
         setIsLoadingAllItems(false);
       } catch (error) {
         console.error("Error selecting all users:", error);
@@ -359,7 +379,7 @@ const UserTable: React.FC<UserTableProps> = ({
         setIsLoadingAllItems(false);
       }
     } else {
-      // Nếu bỏ chọn, xóa tất cả selection
+      // If unchecked, clear all selections
       clearAllSelections();
     }
   };
@@ -376,24 +396,44 @@ const UserTable: React.FC<UserTableProps> = ({
 
       switch (key) {
         case "all-active":
-          // Select all Active users
+          // Select all Active users from all pages
           const activeIds = await getItemIdsByStatus(["Active"], false);
           onUserSelect(activeIds);
+          // Set proper button visibility
+          setSelectedItemTypes({
+            hasActive: true,
+            hasInactive: false,
+          });
           break;
         case "all-inactive":
-          // Select all Inactive users
+          // Select all Inactive users from all pages
           const inactiveIds = await getItemIdsByStatus(["Inactive"], false);
           onUserSelect(inactiveIds);
+          // Set proper button visibility
+          setSelectedItemTypes({
+            hasActive: false,
+            hasInactive: true,
+          });
           break;
         case "page-active":
           // Select Active users on current page
           const pageActiveIds = await getItemIdsByStatus(["Active"], true);
           onUserSelect(pageActiveIds);
+          // Set proper button visibility
+          setSelectedItemTypes({
+            hasActive: true,
+            hasInactive: false,
+          });
           break;
         case "page-inactive":
           // Select Inactive users on current page
           const pageInactiveIds = await getItemIdsByStatus(["Inactive"], true);
           onUserSelect(pageInactiveIds);
+          // Set proper button visibility
+          setSelectedItemTypes({
+            hasActive: false,
+            hasInactive: true,
+          });
           break;
         default:
           break;
@@ -405,9 +445,8 @@ const UserTable: React.FC<UserTableProps> = ({
   const renderActionButtons = () => {
     if (selectedUsers.length === 0) return null;
 
-    // Sử dụng trạng thái được theo dõi từ state chứ không phụ thuộc vào dữ liệu trang hiện tại
-    const hasActiveUsers = selectedItemTypes.hasActive;
-    const hasInactiveUsers = selectedItemTypes.hasInactive;
+    // Use the tracked state to determine which buttons to show
+    const { hasActive, hasInactive } = selectedItemTypes;
 
     return (
       <>
@@ -416,7 +455,7 @@ const UserTable: React.FC<UserTableProps> = ({
         </Text>
 
         {/* Show Activate button only if there are inactive users in selection */}
-        {hasInactiveUsers && (
+        {hasInactive && (
           <Tooltip title="Activate selected inactive users">
             <Popconfirm
               title={<div style={{ padding: "0 10px" }}>Activate selected users</div>}
@@ -427,7 +466,7 @@ const UserTable: React.FC<UserTableProps> = ({
               }
               onConfirm={async () => {
                 try {
-                  // Nếu có getAllUserIdsByStatus, sử dụng để xác nhận đúng danh sách users inactive đã chọn
+                  // Get list of selected inactive user IDs
                   const inactiveUserIds = selectedUsers;
                   
                   if (inactiveUserIds.length > 0) {
@@ -443,7 +482,7 @@ const UserTable: React.FC<UserTableProps> = ({
                   messageApi.error("Failed to activate some users");
                 }
               }}
-              onCancel={clearAllSelections}
+              onCancel={() => {}}
               okText="Activate"
               cancelText="Cancel"
               placement="rightBottom"
@@ -459,7 +498,7 @@ const UserTable: React.FC<UserTableProps> = ({
         )}
         
         {/* Show Deactivate button only if there are active users in selection */}
-        {hasActiveUsers && (
+        {hasActive && (
           <Tooltip title="Deactivate selected active users">
             <Popconfirm
               title={<div style={{ padding: "0 10px" }}>Deactivate selected users</div>}
@@ -470,7 +509,7 @@ const UserTable: React.FC<UserTableProps> = ({
               }
               onConfirm={async () => {
                 try {
-                  // Nếu có getAllUserIdsByStatus, sử dụng để xác nhận đúng danh sách users active đã chọn
+                  // Get list of selected active user IDs
                   const activeUserIds = selectedUsers;
                   
                   if (activeUserIds.length > 0) {
@@ -486,7 +525,7 @@ const UserTable: React.FC<UserTableProps> = ({
                   messageApi.error("Failed to deactivate some users");
                 }
               }}
-              onCancel={clearAllSelections}
+              onCancel={() => {}}
               okText="Deactivate"
               cancelText="Cancel"
               placement="rightBottom"
