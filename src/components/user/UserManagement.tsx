@@ -271,7 +271,13 @@ export function UserManagement() {
       //   setRoleOptions(rolesResponse.data.map((role) => role.roleName));
       // }
 
-      setRoleOptions(["Admin", "Manager", "Staff", "User"]);
+      setRoleOptions([
+        "Admin",
+        "Manager",
+        "Healthcare Staff",
+        "Canteen Staff",
+        "User",
+      ]);
       setUserOptions(["Male", "Female"]);
 
       // Không cập nhật fullNameOptions ở đây nữa, vì đã có fetchAllUsersForDropdown
@@ -367,10 +373,15 @@ export function UserManagement() {
       );
 
       if (response.isSuccess) {
-        console.log(`API returned ${response.data.length} users for filter modal dropdowns`);
+        console.log(
+          `API returned ${response.data.length} users for filter modal dropdowns`
+        );
         setAllUsers(response.data);
       } else {
-        console.error("API call failed for filter dropdowns:", response.message);
+        console.error(
+          "API call failed for filter dropdowns:",
+          response.message
+        );
       }
     } catch (error) {
       console.error("Error fetching all users for filter dropdowns:", error);
@@ -441,7 +452,7 @@ export function UserManagement() {
     setSortBy("CreatedAt");
     setAscending(false);
     setCurrentPage(1);
-    
+
     // Reset all form values
     searchForm.setFieldsValue({
       fullNameSearch: "",
@@ -455,7 +466,7 @@ export function UserManagement() {
       createdDateRange: null,
       updatedDateRange: null,
       sortBy: "CreatedAt",
-      ascending: false
+      ascending: false,
     });
   };
 
@@ -598,9 +609,9 @@ export function UserManagement() {
     setSortBy("CreatedAt");
     setAscending(false);
     setCurrentPage(1);
-    
+
     // Update the filter state for the modal
-    setFilterState(prev => ({
+    setFilterState((prev) => ({
       ...prev,
       userNameSearch: "",
       emailSearch: "",
@@ -610,9 +621,9 @@ export function UserManagement() {
       createdDateRange: [null, null],
       updatedDateRange: [null, null],
       sortBy: "CreatedAt",
-      ascending: false
+      ascending: false,
     }));
-    
+
     setFilterModalVisible(false);
   };
 
@@ -865,10 +876,12 @@ export function UserManagement() {
                 value: combined,
               }))}
               optionRender={(option) => {
-                const optionParts = (option.value?.toString() || "").split(" | ");
+                const optionParts = (option.value?.toString() || "").split(
+                  " | "
+                );
                 const fullName = optionParts[0];
                 const email = optionParts[1];
-                
+
                 return (
                   <div className="custom-select-option">
                     <div className="name">{fullName}</div>
@@ -924,7 +937,7 @@ export function UserManagement() {
                 placeholder={
                   <div style={{ display: "flex", alignItems: "center" }}>
                     <TeamOutlined style={{ marginRight: 8 }} />
-                    <span>Role</span>
+                    <span>Select Role</span>
                   </div>
                 }
                 value={roleFilter || undefined}
@@ -932,7 +945,7 @@ export function UserManagement() {
                   setRoleFilter(value || "");
                   setCurrentPage(1);
                 }}
-                style={{ width: "110px" }}
+                style={{ width: "140px" }}
                 allowClear
                 disabled={loading}
               >

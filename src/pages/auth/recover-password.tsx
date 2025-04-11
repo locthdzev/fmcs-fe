@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { sendOtp, verifyOtp } from "@/api/otp";
-import { toast } from "react-toastify";
 import OTPInput from "react-otp-input";
+import { message } from "antd";
 
 export default function Recovery() {
   const [emailOrUserName, setEmailOrUserName] = useState<string>("");
@@ -10,6 +10,7 @@ export default function Recovery() {
   const [step, setStep] = useState<"send" | "verify">("send");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,28 +18,38 @@ export default function Recovery() {
     try {
       const response = await sendOtp(emailOrUserName);
       if (response.isSuccess) {
-        toast.success("OTP has been sent to your email!");
+        messageApi.success({
+          content: "OTP has been sent to your email!",
+          duration: 5,
+        });
         setStep("verify");
       } else {
-        toast.error(
-          response.message || "Failed to send OTP. Please try again."
-        );
+        messageApi.error({
+          content: response.message || "Failed to send OTP. Please try again.",
+          duration: 5,
+        });
       }
     } catch (error: any) {
-      toast.error(error.message || "An error occurred while sending OTP.");
+      messageApi.error({
+        content: error.message || "An error occurred while sending OTP.",
+        duration: 5,
+      });
     } finally {
       setIsLoading(false);
     }
   };
+
   const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     try {
       const response = await verifyOtp({ emailOrUserName, OTPCode: otpCode });
       if (response.isSuccess) {
-        toast.success(
-          "OTP verification successful! Redirecting to reset password..."
-        );
+        messageApi.success({
+          content:
+            "OTP verification successful! Redirecting to reset password...",
+          duration: 5,
+        });
         router.push({
           pathname: "/auth/reset-password",
           query: {
@@ -47,18 +58,25 @@ export default function Recovery() {
           },
         });
       } else {
-        toast.error(
-          response.message || "OTP verification failed. Please try again."
-        );
+        messageApi.error({
+          content:
+            response.message || "OTP verification failed. Please try again.",
+          duration: 5,
+        });
       }
     } catch (error: any) {
-      toast.error(error.message || "An error occurred while verifying OTP.");
+      messageApi.error({
+        content: error.message || "An error occurred while verifying OTP.",
+        duration: 5,
+      });
     } finally {
       setIsLoading(false);
     }
   };
+
   return (
     <div className="min-h-screen flex justify-center items-center bg-gray-100 relative overflow-hidden">
+      {contextHolder}
       <div className="relative bg-white p-12 rounded-lg shadow-xl w-full max-w-lg border border-gray-200 hover:shadow-2xl transition-shadow duration-300">
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-orange-600 mb-2">
