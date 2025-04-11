@@ -8,52 +8,50 @@ import {
   message,
   Row,
   Col,
-  Select,
-  DatePicker,
   Radio,
   Spin,
   Space,
   Tooltip,
-  InputNumber,
   Divider,
+  Select,
+  DatePicker,
+  InputNumber,
 } from "antd";
 import {
-  exportDrugsToExcel,
-  DrugExportConfigDTO,
-  DrugResponse,
-  DrugFilterParams
-} from "@/api/drug";
-import { getDrugGroups } from "@/api/druggroup";
-import dayjs from "dayjs";
+  exportCanteenItemsToExcel,
+  CanteenItemExportConfigDTO,
+  CanteenItemResponse
+} from "@/api/canteenitems";
 import {
   SortAscendingOutlined,
   SortDescendingOutlined,
   InfoCircleOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
-const { Option } = Select;
 const { RangePicker } = DatePicker;
+const { Option } = Select;
 
 // UI-specific version of the config with additional properties
-export interface DrugExportConfigWithUI extends DrugExportConfigDTO {
+export interface CanteenItemExportConfigWithUI extends CanteenItemExportConfigDTO {
   exportAllPages: boolean;
 }
 
 interface ExportConfigModalProps {
   visible: boolean;
   onClose: () => void;
-  config: DrugExportConfigWithUI;
-  onChange: (values: Partial<DrugExportConfigWithUI>) => void;
-  filters: {
+  config: CanteenItemExportConfigWithUI;
+  onChange: (values: Partial<CanteenItemExportConfigWithUI>) => void;
+  filters?: {
     filterValue: string;
     statusFilter: string[];
     advancedFilters: any;
     currentPage: number;
     pageSize: number;
   };
-  drugs?: DrugResponse[];
+  canteenItems?: CanteenItemResponse[];
   statusOptions?: { label: string; value: string }[];
 }
 
@@ -62,34 +60,22 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
   onClose,
   config,
   onChange,
-  filters,
-  drugs = [],
-  statusOptions = [],
+  filters = { filterValue: "", statusFilter: [], advancedFilters: {}, currentPage: 1, pageSize: 10 },
+  canteenItems = [],
+  statusOptions = [
+    { label: "Active", value: "Active" },
+    { label: "Inactive", value: "Inactive" }
+  ],
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-  const [drugGroups, setDrugGroups] = useState<any[]>([]);
 
-  // Fetch drug groups when modal becomes visible
   useEffect(() => {
     if (visible) {
       form.resetFields();
-      fetchDrugGroups();
     }
   }, [visible, form]);
-
-  const fetchDrugGroups = async () => {
-    try {
-      const data = await getDrugGroups();
-      // Ensure data is an array before setting state
-      setDrugGroups(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Failed to load drug groups:", error);
-      // In case of error, set an empty array to prevent map errors
-      setDrugGroups([]);
-    }
-  };
 
   const handleSubmit = async () => {
     try {
@@ -99,21 +85,16 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
       // Validate that either export all pages is selected or at least one filter is applied
       if (!values.exportAllPages) {
         const hasAnyFilter =
-          values.filterDrugCode ||
-          values.filterName ||
-          values.filterManufacturer ||
-          values.filterDescription ||
-          (values.filterDrugGroup && values.filterDrugGroup.length > 0) ||
+          values.filterItemName ||
           values.filterMinPrice ||
           values.filterMaxPrice ||
+          (values.filterAvailability && values.filterAvailability.length > 0) ||
           (values.filterStatus && values.filterStatus.length > 0) ||
           (values.filterCreatedDateRange && (values.filterCreatedDateRange[0] || values.filterCreatedDateRange[1])) ||
           (values.filterUpdatedDateRange && (values.filterUpdatedDateRange[0] || values.filterUpdatedDateRange[1])) ||
           filters.filterValue ||
           (filters.statusFilter && filters.statusFilter.length > 0) ||
-          (filters.advancedFilters?.priceRange && (filters.advancedFilters.priceRange[0] || filters.advancedFilters.priceRange[1])) ||
-          (filters.advancedFilters?.createdDateRange && (filters.advancedFilters.createdDateRange[0] || filters.advancedFilters.createdDateRange[1])) ||
-          (filters.advancedFilters?.updatedDateRange && (filters.advancedFilters.updatedDateRange[0] || filters.advancedFilters.updatedDateRange[1]));
+          (filters.advancedFilters?.priceRange && (filters.advancedFilters.priceRange[0] || filters.advancedFilters.priceRange[1]));
 
         if (!hasAnyFilter) {
           messageApi.error({
@@ -126,82 +107,23 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
       }
 
       // Construct the export config DTO
-      const exportConfig: DrugExportConfigDTO = {
-        includeDrugCode: values.includeDrugCode,
-        includeName: values.includeName,
-        includeUnit: values.includeUnit,
-        includePrice: values.includePrice,
+      const exportConfig: CanteenItemExportConfigDTO = {
+        includeId: values.includeId,
+        includeItemName: values.includeItemName,
         includeDescription: values.includeDescription,
-        includeManufacturer: values.includeManufacturer,
-        includeDrugGroup: values.includeDrugGroup,
+        includeUnitPrice: values.includeUnitPrice,
+        includeAvailable: values.includeAvailable,
+        includeImageUrl: values.includeImageUrl,
         includeCreatedAt: values.includeCreatedAt,
         includeUpdatedAt: values.includeUpdatedAt,
         includeStatus: values.includeStatus,
-        fileName: "Drugs_Export"
+        fileName: "CanteenItems_Export"
       };
 
-      // Get filter values either from form values (if not using all pages) or from current filters
-      const useFilters = values.exportAllPages
-        ? {
-            currentPage: filters.currentPage,
-            pageSize: filters.pageSize,
-            drugCodeSearch: filters.filterValue,
-            nameSearch: filters.filterValue,
-            manufacturerSearch: filters.filterValue,
-            descriptionSearch: filters.filterValue,
-            drugGroupId: filters.advancedFilters?.drugGroupId,
-            minPrice: filters.advancedFilters?.priceRange?.[0],
-            maxPrice: filters.advancedFilters?.priceRange?.[1],
-            sortBy: filters.advancedFilters?.sortBy || "Name",
-            ascending: values.filterSortDirection === "asc",
-            status: filters.statusFilter?.join(","),
-            createdStartDate: filters.advancedFilters?.createdDateRange?.[0]?.format("YYYY-MM-DD"),
-            createdEndDate: filters.advancedFilters?.createdDateRange?.[1]?.format("YYYY-MM-DD"),
-            updatedStartDate: filters.advancedFilters?.updatedDateRange?.[0]?.format("YYYY-MM-DD"),
-            updatedEndDate: filters.advancedFilters?.updatedDateRange?.[1]?.format("YYYY-MM-DD"),
-          }
-        : {
-            currentPage: filters.currentPage,
-            pageSize: filters.pageSize,
-            drugCodeSearch: values.filterDrugCode,
-            nameSearch: values.filterName,
-            manufacturerSearch: values.filterManufacturer,
-            descriptionSearch: values.filterDescription,
-            drugGroupId: values.filterDrugGroup,
-            minPrice: values.filterMinPrice,
-            maxPrice: values.filterMaxPrice,
-            sortBy: "Name",
-            ascending: values.filterSortDirection === "asc",
-            status: values.filterStatus?.join(","),
-            createdStartDate: values.filterCreatedDateRange?.[0]?.format("YYYY-MM-DD"),
-            createdEndDate: values.filterCreatedDateRange?.[1]?.format("YYYY-MM-DD"),
-            updatedStartDate: values.filterUpdatedDateRange?.[0]?.format("YYYY-MM-DD"),
-            updatedEndDate: values.filterUpdatedDateRange?.[1]?.format("YYYY-MM-DD"),
-          };
+      // Call the API to export with filters
+      const response = await exportCanteenItemsToExcel(exportConfig);
 
-      // Call the API to export
-      const response = await exportDrugsToExcel(
-        exportConfig,
-        values.exportAllPages,
-        useFilters.currentPage,
-        useFilters.pageSize,
-        useFilters.drugCodeSearch,
-        useFilters.nameSearch,
-        useFilters.manufacturerSearch,
-        useFilters.descriptionSearch,
-        useFilters.drugGroupId,
-        useFilters.minPrice,
-        useFilters.maxPrice,
-        useFilters.sortBy,
-        useFilters.ascending,
-        useFilters.status,
-        useFilters.createdStartDate,
-        useFilters.createdEndDate,
-        useFilters.updatedStartDate,
-        useFilters.updatedEndDate
-      );
-
-      // Handle response - cần kiểm tra nhiều cấu trúc phản hồi có thể có
+      // Handle response
       console.log("Export response:", response);
       
       // Kiểm tra nếu response không tồn tại
@@ -268,13 +190,12 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         // Save config settings for next time
         const configValues = {
           exportAllPages: values.exportAllPages,
-          includeDrugCode: values.includeDrugCode,
-          includeName: values.includeName,
-          includeUnit: values.includeUnit,
-          includePrice: values.includePrice,
+          includeId: values.includeId,
+          includeItemName: values.includeItemName,
           includeDescription: values.includeDescription,
-          includeManufacturer: values.includeManufacturer,
-          includeDrugGroup: values.includeDrugGroup,
+          includeUnitPrice: values.includeUnitPrice,
+          includeAvailable: values.includeAvailable,
+          includeImageUrl: values.includeImageUrl,
           includeCreatedAt: values.includeCreatedAt,
           includeUpdatedAt: values.includeUpdatedAt,
           includeStatus: values.includeStatus,
@@ -301,18 +222,17 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
       if (fileUrl) {
         // Open URL in new tab
         window.open(fileUrl, "_blank");
-        messageApi.success("Drugs exported to Excel successfully", 10);
+        messageApi.success("Canteen items exported to Excel successfully", 10);
         
         // Save config settings for next time
         const configValues = {
           exportAllPages: values.exportAllPages,
-          includeDrugCode: values.includeDrugCode,
-          includeName: values.includeName,
-          includeUnit: values.includeUnit,
-          includePrice: values.includePrice,
+          includeId: values.includeId,
+          includeItemName: values.includeItemName,
           includeDescription: values.includeDescription,
-          includeManufacturer: values.includeManufacturer,
-          includeDrugGroup: values.includeDrugGroup,
+          includeUnitPrice: values.includeUnitPrice,
+          includeAvailable: values.includeAvailable,
+          includeImageUrl: values.includeImageUrl,
           includeCreatedAt: values.includeCreatedAt,
           includeUpdatedAt: values.includeUpdatedAt,
           includeStatus: values.includeStatus,
@@ -380,50 +300,57 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
           initialValues={{
             exportAllPages: true,
             filterSortDirection: "desc",
-            includeDrugCode: true,
-            includeName: true,
-            includeUnit: true,
-            includePrice: true,
+            includeId: true,
+            includeItemName: true,
             includeDescription: true,
-            includeManufacturer: true,
-            includeDrugGroup: true,
+            includeUnitPrice: true,
+            includeAvailable: true,
+            includeImageUrl: true,
             includeCreatedAt: true,
             includeUpdatedAt: true,
             includeStatus: true
           }}
-          onValuesChange={(changedValues) => {
+          onValuesChange={(changedValues, allValues) => {
+            // Notify parent component of the change
+            onChange({
+              ...allValues,
+              // Ensure we keep other fields that might not be in the form
+              ...config,
+              ...changedValues
+            });
+            
+            // Handle when "Export all data" is toggled
             if ('exportAllPages' in changedValues) {
-              if (changedValues.exportAllPages) {
-                // Set all selected when exportAllPages is true
+              if (changedValues.exportAllPages === true) {
+                // When checked, select all fields
                 const allSelectedFields = {
-                  includeDrugCode: true,
-                  includeName: true,
-                  includeUnit: true,
-                  includePrice: true,
+                  includeId: true,
+                  includeItemName: true,
                   includeDescription: true,
-                  includeManufacturer: true,
-                  includeDrugGroup: true,
+                  includeUnitPrice: true,
+                  includeAvailable: true,
+                  includeImageUrl: true,
                   includeCreatedAt: true,
                   includeUpdatedAt: true,
                   includeStatus: true,
                 };
                 form.setFieldsValue(allSelectedFields);
               } else {
-                // Clear all when exportAllPages is false
-                const clearFieldsValues = {
-                  includeDrugCode: false,
-                  includeName: false,
-                  includeUnit: false,
-                  includePrice: false,
+                // When unchecked, unselect all fields
+                const allUnselectedFields = {
+                  includeId: false,
+                  includeItemName: false,
                   includeDescription: false,
-                  includeManufacturer: false,
-                  includeDrugGroup: false,
+                  includeUnitPrice: false,
+                  includeAvailable: false,
+                  includeImageUrl: false,
                   includeCreatedAt: false,
                   includeUpdatedAt: false,
                   includeStatus: false,
                 };
-                form.setFieldsValue(clearFieldsValues);
+                form.setFieldsValue(allUnselectedFields);
               }
+              console.log("Export all pages toggled:", changedValues.exportAllPages);
             }
           }}
           preserve={false}
@@ -432,11 +359,44 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
             <Divider orientation="left">Basic Options</Divider>
             
             <Form.Item name="exportAllPages" valuePropName="checked" style={{ marginBottom: '16px' }}>
-              <Checkbox>Export all data (ignore pagination)</Checkbox>
+              <Checkbox onChange={(e) => {
+                console.log("Checkbox changed:", e.target.checked);
+                // When checked, select all fields
+                if (e.target.checked) {
+                  const allSelectedFields = {
+                    includeId: true,
+                    includeItemName: true,
+                    includeDescription: true,
+                    includeUnitPrice: true,
+                    includeAvailable: true,
+                    includeImageUrl: true,
+                    includeCreatedAt: true,
+                    includeUpdatedAt: true,
+                    includeStatus: true,
+                  };
+                  form.setFieldsValue(allSelectedFields);
+                } else {
+                  // When unchecked, unselect all fields
+                  const allUnselectedFields = {
+                    includeId: false,
+                    includeItemName: false,
+                    includeDescription: false,
+                    includeUnitPrice: false,
+                    includeAvailable: false,
+                    includeImageUrl: false,
+                    includeCreatedAt: false,
+                    includeUpdatedAt: false,
+                    includeStatus: false,
+                  };
+                  form.setFieldsValue(allUnselectedFields);
+                }
+              }}>Export all data (ignore pagination)</Checkbox>
             </Form.Item>
             
             <div>
-              <Text style={{ fontSize: '14px', marginBottom: '8px', display: 'block' }}>Sort direction</Text>
+              <Typography.Text style={{ fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+                Sort direction
+              </Typography.Text>
               <Form.Item name="filterSortDirection" noStyle>
                 <Radio.Group buttonStyle="solid" style={{ width: '100%' }}>
                   <Radio.Button value="asc" style={{ width: '50%', textAlign: 'center' }}>
@@ -466,90 +426,30 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                   
                   <Row gutter={[16, 16]}>
                     <Col span={12}>
-                      <Form.Item label="Drug Code" name="filterDrugCode">
+                      <Form.Item label="Item Name" name="filterItemName">
                         <Select
-                          placeholder="Select Drug Code"
+                          placeholder="Select Item Name"
                           style={{ width: "100%" }}
                           allowClear
                           showSearch
                           filterOption={(input, option) => 
                             (option?.label?.toString().toLowerCase() ?? '').includes(input.toLowerCase())
                           }
-                          options={drugs.map((d) => ({ value: d.drugCode, label: d.drugCode }))}
+                          options={canteenItems.map((item) => ({ value: item.itemName, label: item.itemName }))}
                         />
                       </Form.Item>
                     </Col>
 
                     <Col span={12}>
-                      <Form.Item label="Drug Name" name="filterName">
+                      <Form.Item label="Availability" name="filterAvailability">
                         <Select
-                          placeholder="Select Drug Name"
+                          placeholder="Select Availability"
                           style={{ width: "100%" }}
                           allowClear
-                          showSearch
-                          filterOption={(input, option) => 
-                            (option?.label?.toString().toLowerCase() ?? '').includes(input.toLowerCase())
-                          }
-                          options={drugs.map((d) => ({ value: d.name, label: d.name }))}
-                        />
-                      </Form.Item>
-                    </Col>
-
-                    <Col span={12}>
-                      <Form.Item label="Manufacturer" name="filterManufacturer">
-                        <Select
-                          placeholder="Select Manufacturer"
-                          style={{ width: "100%" }}
-                          allowClear
-                          showSearch
-                          filterOption={(input, option) => 
-                            (option?.label?.toString().toLowerCase() ?? '').includes(input.toLowerCase())
-                          }
-                          options={Array.from(new Set(drugs.map(d => d.manufacturer).filter(Boolean)))
-                            .map(manufacturer => ({ value: manufacturer, label: manufacturer }))}
-                        />
-                      </Form.Item>
-                    </Col>
-
-                    <Col span={12}>
-                      <Form.Item label="Description" name="filterDescription">
-                        <Select
-                          placeholder="Select Description"
-                          style={{ width: "100%" }}
-                          allowClear
-                          showSearch
-                          filterOption={(input, option) => 
-                            (option?.label?.toString().toLowerCase() ?? '').includes(input.toLowerCase())
-                          }
-                          options={Array.from(new Set(drugs.map(d => d.description).filter(Boolean)))
-                            .map(description => ({ value: description, label: description }))}
-                        />
-                      </Form.Item>
-                    </Col>
-
-                    <Col span={12}>
-                      <Form.Item label="Drug Group" name="filterDrugGroup">
-                        <Select
-                          placeholder="Select Drug Group"
-                          style={{ width: "100%" }}
-                          allowClear
-                          showSearch
-                          filterOption={(input, option) => 
-                            (option?.label?.toString().toLowerCase() ?? '').includes(input.toLowerCase())
-                          }
-                          options={(Array.isArray(drugGroups) ? drugGroups : []).map((g) => ({ value: g?.id || '', label: g?.groupName || 'Unknown' }))}
-                        />
-                      </Form.Item>
-                    </Col>
-
-                    <Col span={12}>
-                      <Form.Item label="Status" name="filterStatus">
-                        <Select
-                          mode="multiple"
-                          placeholder="Select Status"
-                          style={{ width: "100%" }}
-                          allowClear
-                          options={statusOptions}
+                          options={[
+                            { value: "true", label: "Available" },
+                            { value: "false", label: "Out of Stock" }
+                          ]}
                         />
                       </Form.Item>
                     </Col>
@@ -570,6 +470,18 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                           style={{ width: "100%" }}
                           placeholder="Enter maximum price"
                           min={0}
+                        />
+                      </Form.Item>
+                    </Col>
+
+                    <Col span={12}>
+                      <Form.Item label="Status" name="filterStatus">
+                        <Select
+                          mode="multiple"
+                          placeholder="Select Status"
+                          style={{ width: "100%" }}
+                          allowClear
+                          options={statusOptions}
                         />
                       </Form.Item>
                     </Col>
@@ -605,23 +517,13 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
             
             <Row gutter={[24, 16]}>
               <Col span={8}>
-                <Form.Item name="includeDrugCode" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Drug Code</Checkbox>
+                <Form.Item name="includeId" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                  <Checkbox>ID</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeName" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Name</Checkbox>
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name="includeUnit" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Unit</Checkbox>
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name="includePrice" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Price</Checkbox>
+                <Form.Item name="includeItemName" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                  <Checkbox>Item Name</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
@@ -630,13 +532,18 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeManufacturer" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Manufacturer</Checkbox>
+                <Form.Item name="includeUnitPrice" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                  <Checkbox>Unit Price</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeDrugGroup" valuePropName="checked" style={{ marginBottom: '8px' }}>
-                  <Checkbox>Drug Group</Checkbox>
+                <Form.Item name="includeAvailable" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                  <Checkbox>Availability</Checkbox>
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="includeImageUrl" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                  <Checkbox>Image URL</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
@@ -670,9 +577,18 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
             }}
           >
             <InfoCircleOutlined style={{ color: '#1890ff', marginTop: '2px' }} />
-            <Text style={{ fontSize: "14px" }}>
-              You must either select "Export all data" or apply at least one filter before exporting. This ensures you get the exact data you need.
-            </Text>
+            <Form.Item dependencies={["exportAllPages"]} noStyle>
+              {({ getFieldValue }) => {
+                const exportAll = getFieldValue("exportAllPages");
+                return (
+                  <Typography.Text style={{ fontSize: "14px" }}>
+                    {exportAll 
+                      ? "Select which fields you want to include in the Excel file. The export will include all canteen items."
+                      : "Please select 'Export all data' or apply at least one filter before exporting. This ensures you get the exact data you need."}
+                  </Typography.Text>
+                );
+              }}
+            </Form.Item>
           </div>
         </Form>
       </Spin>

@@ -13,109 +13,86 @@ import {
   Select,
   Upload,
   Divider,
-  Tag
+  Tag,
+  Switch,
+  InputNumber
 } from "antd";
-import { getDrugById, updateDrug, DrugResponse } from "@/api/drug";
-import { getDrugGroups } from "@/api/druggroup";
+import { getCanteenItem, updateCanteenItem, CanteenItemResponse } from "@/api/canteenitems";
 import { ArrowLeftOutlined, InboxOutlined } from "@ant-design/icons";
 import { useRouter } from "next/router";
-import { DrugIcon } from "./Icons";
+import { CanteenItemIcon } from "./Icons";
 import type { UploadFile, UploadProps } from "antd/es/upload/interface";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Dragger } = Upload;
 
-interface DrugEditProps {
+interface CanteenItemEditProps {
   id: string;
 }
 
-export const DrugEdit: React.FC<DrugEditProps> = ({ id }) => {
+export const CanteenItemEdit: React.FC<CanteenItemEditProps> = ({ id }) => {
   const router = useRouter();
   const [form] = Form.useForm();
-  const [drug, setDrug] = useState<DrugResponse | null>(null);
+  const [canteenItem, setCanteenItem] = useState<CanteenItemResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-  const [drugGroups, setDrugGroups] = useState<any[]>([]);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
-      fetchDrugDetails();
-      fetchDrugGroups();
+      fetchCanteenItemDetails();
     }
   }, [id]);
 
-  const fetchDrugGroups = async () => {
-    try {
-      const response = await getDrugGroups();
-      if (response && response.isSuccess && Array.isArray(response.data)) {
-        setDrugGroups(response.data);
-      } else {
-        setDrugGroups([]);
-        messageApi.error("Failed to load drug groups: Invalid response format");
-      }
-    } catch (error) {
-      console.error("Error fetching drug groups:", error);
-      messageApi.error("Failed to load drug groups");
-      setDrugGroups([]);
-    }
-  };
-
-  const fetchDrugDetails = async () => {
+  const fetchCanteenItemDetails = async () => {
     setLoading(true);
     try {
-      const response = await getDrugById(id);
+      const response = await getCanteenItem(id);
       if (response && typeof response === 'object') {
-        setDrug(response);
+        setCanteenItem(response);
         form.setFieldsValue({
-          drugCode: response.drugCode,
-          name: response.name,
-          unit: response.unit,
-          price: response.price,
-          drugGroupId: response.drugGroup?.id,
-          manufacturer: response.manufacturer,
+          itemName: response.itemName,
           description: response.description,
+          unitPrice: response.unitPrice,
+          available: response.available,
         });
         
         if (response.imageUrl) {
           setImageUrl(response.imageUrl);
         }
       } else {
-        messageApi.error("Failed to fetch drug details: Invalid data format");
-        setDrug(null);
+        messageApi.error("Failed to fetch canteen item details: Invalid data format");
+        setCanteenItem(null);
       }
     } catch (error) {
-      console.error("Error fetching drug details:", error);
-      messageApi.error("Failed to fetch drug details");
-      setDrug(null);
+      console.error("Error fetching canteen item details:", error);
+      messageApi.error("Failed to fetch canteen item details");
+      setCanteenItem(null);
     } finally {
       setLoading(false);
     }
   };
 
   const handleUpdate = async (values: any) => {
-    if (!drug) return;
+    if (!canteenItem) return;
     
     setSubmitLoading(true);
     
     try {
-      const formData = new FormData();
+      // Tạo đối tượng DTO thay vì FormData
+      const updateData: any = {
+        itemName: values.itemName,
+        description: values.description || "",
+        unitPrice: values.unitPrice,
+        available: values.available,
+        updatedAt: new Date().toISOString(),
+        status: canteenItem.status || "Active"
+      };
       
-      // Append form values
-      Object.entries(values).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && key !== 'imageFile') {
-          formData.append(key, value as string);
-        }
-      });
-      
-      // Keep the original status
-      formData.append("status", drug.status || "");
-      
-      // Thêm ImageUrl vào FormData
-      formData.append("ImageUrl", drug.imageUrl || "");
+      let imageFile: File | undefined = undefined;
       
       // Kiểm tra và chuẩn bị file
       if (fileList.length > 0) {
@@ -130,15 +107,15 @@ export const DrugEdit: React.FC<DrugEditProps> = ({ id }) => {
         // Trường hợp 1: File mới upload (có originFileObj)
         if (fileList[0].originFileObj) {
           console.log("Using originFileObj");
-          formData.append("imageFile", fileList[0].originFileObj);
+          imageFile = fileList[0].originFileObj;
           
-          // Sau khi thêm file, gọi API
-          const response = await updateDrug(drug.id, formData);
-          messageApi.success("Drug updated successfully");
+          // Gọi API update với file
+          await updateCanteenItem(canteenItem.id, updateData, imageFile);
+          messageApi.success("Canteen item updated successfully");
           
           // Redirect sau khi update
           setTimeout(() => {
-            router.push(`/drug/${id}`);
+            router.push(`/canteen-item/${id}`);
           }, 1500);
         }
         // Trường hợp 2: File không có originFileObj nhưng có url
@@ -147,23 +124,21 @@ export const DrugEdit: React.FC<DrugEditProps> = ({ id }) => {
           try {
             const response = await fetch(fileList[0].url || fileList[0].thumbUrl || "");
             const blob = await response.blob();
-            const file = new File([blob], fileList[0].name || "image.jpg", { type: blob.type });
+            imageFile = new File([blob], fileList[0].name || "image.jpg", { type: blob.type });
             
             console.log("Created file from URL:", {
-              name: file.name,
-              type: file.type,
-              size: file.size
+              name: imageFile.name,
+              type: imageFile.type,
+              size: imageFile.size
             });
             
-            formData.append("imageFile", file);
-            
-            // Sau khi thêm file, gọi API
-            await updateDrug(drug.id, formData);
-            messageApi.success("Drug updated successfully");
+            // Gọi API update với file
+            await updateCanteenItem(canteenItem.id, updateData, imageFile);
+            messageApi.success("Canteen item updated successfully");
             
             // Redirect sau khi update
             setTimeout(() => {
-              router.push(`/drug/${id}`);
+              router.push(`/canteen-item/${id}`);
             }, 1500);
           } catch (error) {
             console.error("Error fetching image:", error);
@@ -176,12 +151,12 @@ export const DrugEdit: React.FC<DrugEditProps> = ({ id }) => {
           messageApi.warning("Cannot process the selected image file");
           
           // Vẫn tiếp tục update các thông tin khác không bao gồm ảnh
-          await updateDrug(drug.id, formData);
-          messageApi.success("Drug updated successfully (without new image)");
+          await updateCanteenItem(canteenItem.id, updateData);
+          messageApi.success("Canteen item updated successfully (without new image)");
           
           // Redirect sau khi update
           setTimeout(() => {
-            router.push(`/drug/${id}`);
+            router.push(`/canteen-item/${id}`);
           }, 1500);
         }
       } 
@@ -190,24 +165,18 @@ export const DrugEdit: React.FC<DrugEditProps> = ({ id }) => {
         console.log("No new image file to upload");
         
         // Gọi API update không có file
-        await updateDrug(drug.id, formData);
-        messageApi.success("Drug updated successfully");
+        await updateCanteenItem(canteenItem.id, updateData);
+        messageApi.success("Canteen item updated successfully");
         
         // Redirect sau khi update
         setTimeout(() => {
-          router.push(`/drug/${id}`);
+          router.push(`/canteen-item/${id}`);
         }, 1500);
       }
       
-      // Log FormData content for debugging
-      console.log("FormData entries:");
-      for (let pair of formData.entries()) {
-        console.log(pair[0], pair[1]);
-      }
-      
     } catch (error) {
-      console.error("Error updating drug:", error);
-      messageApi.error("Failed to update drug");
+      console.error("Error updating canteen item:", error);
+      messageApi.error("Failed to update canteen item");
     } finally {
       setSubmitLoading(false);
     }
@@ -273,28 +242,28 @@ export const DrugEdit: React.FC<DrugEditProps> = ({ id }) => {
     return (
       <div className="flex justify-center items-center h-screen">
         {contextHolder}
-        <Spin size="large" tip="Loading drug details..." />
+        <Spin size="large" tip="Loading canteen item details..." />
       </div>
     );
   }
 
-  if (!drug) {
+  if (!canteenItem) {
     return (
       <div className="p-4">
         {contextHolder}
         <div className="flex items-center gap-2 mb-4">
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/drug")}
+            onClick={() => router.push("/canteen-items")}
             style={{ marginRight: "8px" }}
           >
             Back
           </Button>
-          <DrugIcon />
-          <h3 className="text-xl font-bold">Drug Not Found</h3>
+          <CanteenItemIcon />
+          <h3 className="text-xl font-bold">Canteen Item Not Found</h3>
         </div>
         <Card>
-          <Text>The requested drug could not be found or loaded.</Text>
+          <Text>The requested canteen item could not be found or loaded.</Text>
         </Card>
       </div>
     );
@@ -306,22 +275,22 @@ export const DrugEdit: React.FC<DrugEditProps> = ({ id }) => {
       <div className="flex items-center gap-2 mb-4">
         <Button
           icon={<ArrowLeftOutlined />}
-          onClick={() => router.push(`/drug/${id}`)}
+          onClick={() => router.push(`/canteen-item/${id}`)}
           style={{ marginRight: "8px" }}
         >
           Back to Details
         </Button>
-        <DrugIcon />
-        <h3 className="text-xl font-bold">Edit Drug</h3>
+        <CanteenItemIcon />
+        <h3 className="text-xl font-bold">Edit Canteen Item</h3>
       </div>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} md={16}>
           <Card 
-            title={<Title level={5}>Drug Information</Title>}
+            title={<Title level={5}>Item Information</Title>}
             extra={
-              <Tag color={getStatusColor(drug.status)}>
-                {drug.status ? drug.status.toUpperCase() : ""}
+              <Tag color={getStatusColor(canteenItem.status)}>
+                {canteenItem.status ? canteenItem.status.toUpperCase() : ""}
               </Tag>
             }
           >
@@ -329,83 +298,43 @@ export const DrugEdit: React.FC<DrugEditProps> = ({ id }) => {
               form={form}
               layout="vertical"
               onFinish={handleUpdate}
-              initialValues={drug}
+              initialValues={canteenItem}
             >
               <Row gutter={16}>
-                <Col xs={24} sm={12}>
+                <Col xs={24}>
                   <Form.Item
-                    name="drugCode"
-                    label="Drug Code"
-                    rules={[{ required: true, message: "Please enter drug code" }]}
+                    name="itemName"
+                    label="Item Name"
+                    rules={[{ required: true, message: "Please enter item name" }]}
                   >
-                    <Input placeholder="Enter drug code" />
+                    <Input placeholder="Enter item name" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
                   <Form.Item
-                    name="name"
-                    label="Name"
-                    rules={[{ required: true, message: "Please enter drug name" }]}
-                  >
-                    <Input placeholder="Enter drug name" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} sm={12}>
-                  <Form.Item
-                    name="unit"
-                    label="Unit"
-                    rules={[{ required: true, message: "Please enter unit" }]}
-                  >
-                    <Input placeholder="Enter unit (e.g., pill, bottle)" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} sm={12}>
-                  <Form.Item
-                    name="price"
+                    name="unitPrice"
                     label="Price"
-                    rules={[{ required: true, message: "Please enter price" }]}
+                    rules={[
+                      { required: true, message: "Please enter price" },
+                      { type: 'number', min: 0, message: "Price must be a positive number" }
+                    ]}
                   >
-                    <Input
-                      type="number"
+                    <InputNumber
+                      style={{ width: '100%' }}
                       placeholder="Enter price"
+                      formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={(value) => value?.replace(/\$\s?|(,*)/g, '') || ''}
                       suffix="VND"
                     />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
                   <Form.Item
-                    name="drugGroupId"
-                    label="Drug Group"
-                    rules={[{ required: true, message: "Please select a drug group" }]}
+                    name="available"
+                    label="Availability"
+                    valuePropName="checked"
                   >
-                    <Select
-                      showSearch
-                      placeholder="Select Drug Group"
-                      optionFilterProp="label"
-                      filterSort={(optionA, optionB) =>
-                        (optionA?.label ?? "")
-                          .toLowerCase()
-                          .localeCompare((optionB?.label ?? "").toLowerCase())
-                      }
-                      options={Array.isArray(drugGroups) 
-                        ? drugGroups
-                            .filter(group => group.status === "Active")
-                            .map(group => ({
-                              value: group.id,
-                              label: group.groupName,
-                            }))
-                        : []
-                      }
-                    />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} sm={12}>
-                  <Form.Item
-                    name="manufacturer"
-                    label="Manufacturer"
-                    rules={[{ required: true, message: "Please enter manufacturer" }]}
-                  >
-                    <Input placeholder="Enter manufacturer" />
+                    <Switch checkedChildren="Available" unCheckedChildren="Out of Stock" />
                   </Form.Item>
                 </Col>
                 <Col xs={24}>
@@ -422,7 +351,7 @@ export const DrugEdit: React.FC<DrugEditProps> = ({ id }) => {
 
               <div className="flex justify-end gap-2">
                 <Button 
-                  onClick={() => router.push(`/drug/${id}`)}
+                  onClick={() => router.push(`/canteen-item/${id}`)}
                 >
                   Cancel
                 </Button>
@@ -438,14 +367,14 @@ export const DrugEdit: React.FC<DrugEditProps> = ({ id }) => {
           </Card>
         </Col>
         <Col xs={24} md={8}>
-          <Card title={<Title level={5}>Drug Image</Title>}>
+          <Card title={<Title level={5}>Item Image</Title>}>
             {imageUrl && !fileList.length ? (
               <div className="mb-4">
                 <Text className="block mb-2">Current Image:</Text>
                 <div className="flex justify-center">
                   <img
                     src={imageUrl}
-                    alt={drug.name}
+                    alt={canteenItem.itemName}
                     style={{
                       maxWidth: "100%",
                       maxHeight: "300px",
@@ -481,4 +410,4 @@ export const DrugEdit: React.FC<DrugEditProps> = ({ id }) => {
   );
 };
 
-export default DrugEdit; 
+export default CanteenItemEdit; 

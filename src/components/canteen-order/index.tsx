@@ -1,12 +1,47 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { toast } from "react-toastify";
 import {
-  PlusIcon,
-  VerticalDotsIcon,
-  SearchIcon,
-  ChevronDownIcon,
-  CanteenOrderIcon,
-} from "./Icons";
+  message,
+  Table,
+  Input,
+  Button,
+  Dropdown,
+  Menu,
+  Tag,
+  Pagination,
+  Modal,
+  Card,
+  Select,
+  Checkbox,
+  Tooltip,
+  Space,
+  Typography,
+  TableProps,
+  TablePaginationConfig,
+  Row,
+  InputNumber,
+  Col,
+  Spin,
+  TagProps,
+} from "antd";
+import {
+  PlusOutlined,
+  SearchOutlined,
+  DownOutlined,
+  UndoOutlined,
+  FilterOutlined,
+  SettingOutlined,
+  AppstoreOutlined,
+  TagOutlined,
+  ExclamationCircleOutlined,
+  EditOutlined,
+  EyeOutlined,
+  ArrowLeftOutlined,
+  FileExcelOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
+import type { CheckboxChangeEvent } from "antd/es/checkbox";
+import dayjs from "dayjs";
 import {
   getCanteenOrders,
   deleteCanteenOrder,
@@ -15,234 +50,510 @@ import {
   approveCanteenOrders,
   rejectCanteenOrders,
   completeCanteenOrders,
+  exportCanteenOrdersToExcel,
+  CanteenOrderExportConfig,
 } from "@/api/canteenorder";
-import {
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-  Input,
-  Button,
-  DropdownTrigger,
-  Dropdown,
-  DropdownMenu,
-  DropdownItem,
-  Chip,
-  Pagination,
-  Selection,
-  ChipProps,
-  SortDescriptor,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-} from "@heroui/react";
+import api from "@/api/customize-axios";
 import { CreateCanteenOrderForm } from "./CreateCanteenOrderForm";
 import { EditCanteenOrderForm } from "./EditCanteenOrderForm";
 import ConfirmDeleteCanteenOrderModal from "./ConfirmDelete";
-import router from "next/router";
+import CanteenOrderFilterModal from "./CanteenOrderFilterModal";
+import ExportConfigModal from "./ExportConfigModal";
+import { useRouter } from "next/router";
+import type { FilterValue, SorterResult } from "antd/es/table/interface";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import { CanteenOrderIcon } from "./Icons";
+
+// Extend dayjs with the plugins
+dayjs.extend(isSameOrBefore);
+dayjs.extend(isSameOrAfter);
+
+const { Option } = Select;
+const { confirm } = Modal;
+const { Text, Title } = Typography;
+
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 }
-// Define columns
-const columns = [
-  { name: "LICENSE PLATE", uid: "licensePlate", sortable: true },
-  { name: "ORDER DATE", uid: "orderDate", sortable: true },
-  { name: "CREATED BY", uid: "createdBy" },
-  { name: "Updated At", uid: "updatedAt", sortable: true },
-  { name: "STATUS", uid: "status" },
-  { name: "ACTIONS", uid: "actions" },
+
+const staticColumns = [
+  {
+    title: (
+      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        License Plate
+      </span>
+    ),
+    dataIndex: "licensePlate",
+    key: "licensePlate",
+    sorter: (a: CanteenOrderResponse, b: CanteenOrderResponse) =>
+      a.truck.licensePlate.localeCompare(b.truck.licensePlate),
+    sortDirections: ["ascend", "descend"] as ("ascend" | "descend")[],
+  },
+  {
+    title: (
+      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        Driver
+      </span>
+    ),
+    dataIndex: "driverName",
+    key: "driverName",
+    sorter: (a: CanteenOrderResponse, b: CanteenOrderResponse) =>
+      a.truck.driverName.localeCompare(b.truck.driverName),
+    sortDirections: ["ascend", "descend"] as ("ascend" | "descend")[],
+  },
+  {
+    title: (
+      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        Order Date
+      </span>
+    ),
+    dataIndex: "orderDate",
+    key: "orderDate",
+    sorter: (a: CanteenOrderResponse, b: CanteenOrderResponse) =>
+      dayjs(a.orderDate).unix() - dayjs(b.orderDate).unix(),
+    render: (date: string) => (date ? dayjs(date).format("DD/MM/YYYY") : "-"),
+    sortDirections: ["ascend", "descend"] as ("ascend" | "descend")[],
+  },
+  {
+    title: (
+      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        Created By
+      </span>
+    ),
+    dataIndex: "createdBy",
+    key: "createdBy",
+  },
+  {
+    title: (
+      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        Status
+      </span>
+    ),
+    dataIndex: "status",
+    key: "status",
+  },
+  {
+    title: (
+      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        Actions
+      </span>
+    ),
+    key: "actions",
+    align: "center" as const,
+  },
 ];
 
 const statusOptions = [
-  { name: "Pending", uid: "Pending" },
-  { name: "Approved", uid: "Approved" },
-  { name: "Rejected", uid: "Rejected" },
-  { name: "Completed", uid: "Completed" },
+  { label: "Pending", value: "Pending" },
+  { label: "Approved", value: "Approved" },
+  { label: "Rejected", value: "Rejected" },
+  { label: "Completed", value: "Completed" },
 ];
 
-const statusColorMap: Record<string, ChipProps["color"]> = {
+const statusColorMap = {
   Pending: "warning",
-  Approved: "primary",
-  Rejected: "danger",
+  Approved: "processing",
+  Rejected: "error",
   Completed: "success",
 };
-const roleColorMap: Record<string, ChipProps["color"]> = {
-  Admin: "danger",
-  Manager: "warning",
-  Staff: "primary",
-  User: "success",
+
+const roleColorMap: Record<string, string> = {
+  Admin: "red",
+  Manager: "orange",
+  Staff: "blue",
+  User: "green",
   Unknown: "default",
 };
 
-const INITIAL_VISIBLE_COLUMNS = [
-  "licensePlate",
-  "orderDate",
-  "createdBy",
-  "updatedAt",
-  "status",
-  "actions",
-];
+const INITIAL_COLUMN_VISIBILITY: Record<string, boolean> = {
+  licensePlate: true,
+  driverName: true,
+  orderDate: true,
+  createdBy: true,
+  status: true,
+  actions: true,
+};
+
+function formatPrice(price: number) {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price);
+}
 
 export function CanteenOrders() {
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deletingOrder, setDeletingOrder] =
-    useState<CanteenOrderResponse | null>(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingOrderId, setEditingOrderId] = useState<string>("");
-  const [selectedOrder, setSelectedOrder] =
-    useState<CanteenOrderResponse | null>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [filterValue, setFilterValue] = React.useState("");
-  const [selectedOrders, setSelectedOrders] = useState<CanteenOrderResponse[]>(
-    []
+  const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState(
+    "Loading canteen orders..."
   );
-  const [showApprove, setShowApprove] = useState(false);
-  const [showReject, setShowReject] = useState(false);
-  const [showComplete, setShowComplete] = useState(false);
+
+  const [canteenOrders, setCanteenOrders] = useState<CanteenOrderResponse[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [filterValue, setFilterValue] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [sorter, setSorter] = useState<
+    SorterResult<CanteenOrderResponse> | SorterResult<CanteenOrderResponse>[]
+  >();
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [showApproveButton, setShowApproveButton] = useState(false);
+  const [showRejectButton, setShowRejectButton] = useState(false);
+  const [showCompleteButton, setShowCompleteButton] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<
-    "approve" | "reject" | "complete" | null
+    "approve" | "reject" | "complete" | "delete" | null
   >(null);
 
-  const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
-    new Set([])
-  );
-  const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
-    new Set(INITIAL_VISIBLE_COLUMNS)
-  );
-  const [statusFilter, setStatusFilter] = React.useState<Selection>("all");
-
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: "orderDate",
-    direction: "descending",
+  // Filter modal states
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    licensePlate: "",
+    driverName: "",
+    status: [] as string[],
+    orderDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+    createdDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+    updatedDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+    sortBy: "OrderDate",
+    ascending: false,
   });
+  const [licensePlateOptions, setLicensePlateOptions] = useState<string[]>([]);
+  const [driverNameOptions, setDriverNameOptions] = useState<string[]>([]);
 
-  const [isReady, setIsReady] = useState(false);
-  const [page, setPage] = useState(1);
-  const [orders, setOrders] = useState<CanteenOrderResponse[]>([]);
-  // Modify the fetchOrders function to sort by date
-  const fetchOrders = async () => {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<string>("");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingOrderId, setDeletingOrderId] = useState<string>("");
+
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >(INITIAL_COLUMN_VISIBILITY);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // State for order details modal
+  const [selectedOrder, setSelectedOrder] = useState<CanteenOrderResponse | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+  // Selection helper variables
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isLoadingAllItems, setIsLoadingAllItems] = useState<boolean>(false);
+  
+  // Export to Excel states
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportConfig, setExportConfig] = useState<CanteenOrderExportConfig>({
+    includeId: true,
+    includeTruckInfo: true,
+    includeOrderDate: true,
+    includeCreatedInfo: true,
+    includeUpdatedInfo: true,
+    includeStatus: true,
+    includeOrderDetails: true,
+  });
+  
+  const fetchCanteenOrders = useCallback(async () => {
+    if (initialLoading) {
+      setLoadingMessage("Loading canteen orders...");
+    }
+    setLoading(true);
     try {
+      // En un caso real, aquí pasaríamos los parámetros de paginación, filtros, etc.
+      // Pero el API actual solo devuelve todos los elementos
       const data = await getCanteenOrders();
       if (Array.isArray(data)) {
-        // Sort the data by orderDate in descending order (newest first)
-        const sortedData = data.sort((a, b) => {
-          return (
-            new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
-          );
-        });
-        setOrders(sortedData);
-        setIsReady(true);
-        setPage(1);
+        setCanteenOrders(data);
+        setTotalItems(data.length);
       }
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      messageApi.error("Failed to fetch canteen orders", 5);
+      console.error("Fetch error:", error);
+    } finally {
+      setLoading(false);
+      setInitialLoading(false);
     }
+  }, [messageApi, initialLoading]);
+
+  useEffect(() => {
+    fetchCanteenOrders();
+  }, [fetchCanteenOrders]);
+
+  useEffect(() => {
+    if (selectedRowKeys.length > 0) {
+      const selectedOrdersData = canteenOrders.filter((order) =>
+        selectedRowKeys.includes(order.id)
+      );
+      const hasPending = selectedOrdersData.some(
+        (order) => order.status === "Pending"
+      );
+      const hasApproved = selectedOrdersData.some(
+        (order) => order.status === "Approved"
+      );
+
+      setShowApproveButton(hasPending);
+      setShowRejectButton(hasPending || hasApproved);
+      setShowCompleteButton(hasApproved);
+    } else {
+      setShowApproveButton(false);
+      setShowRejectButton(false);
+      setShowCompleteButton(false);
+    }
+  }, [selectedRowKeys, canteenOrders]);
+
+  const hasSearchFilter = Boolean(filterValue);
+
+  const areAllColumnsVisible = () => {
+    return staticColumns.every(
+      (col) => !col.key || col.key === "actions" || columnVisibility[col.key]
+    );
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  useEffect(() => {
-    let selected: CanteenOrderResponse[] = [];
-
-    if (selectedKeys === "all") {
-      selected = orders;
-    } else {
-      selected = orders.filter((order) =>
-        (selectedKeys as Set<string>).has(order.id)
-      );
-    }
-
-    setSelectedOrders(selected);
-    const hasPendingOrRejected = selected.some(
-      (canteenOrder) =>
-        canteenOrder.status === "Pending" || canteenOrder.status === "Rejected"
-    );
-    const hasPendingOrApproved = selected.some(
-      (canteenOrder) =>
-        canteenOrder.status === "Pending" || canteenOrder.status === "Approved"
-    );
-    const hasApproved = selected.some(
-      (canteenOrder) => canteenOrder.status === "Approved"
-    );
-
-    setShowApprove(hasPendingOrRejected);
-    setShowReject(hasPendingOrApproved);
-    setShowComplete(hasApproved);
-  }, [selectedKeys, orders]);
-
   const headerColumns = React.useMemo(() => {
-    if (visibleColumns === "all") return columns;
+    if (areAllColumnsVisible()) return staticColumns;
 
-    return columns.filter((column) =>
-      Array.from(visibleColumns).includes(column.uid)
+    return staticColumns.filter((column) =>
+      columnVisibility[column.key as string]
     );
-  }, [visibleColumns]);
+  }, [columnVisibility]);
 
-  const filteredItems = React.useMemo(() => {
-    let filteredOrders = [...orders];
-
+  const filteredAndSortedOrders = useMemo(() => {
+    let filtered = [...canteenOrders];
+    
+    // Basic search filter
     if (filterValue) {
-      filteredOrders = filteredOrders.filter((order) =>
-        order.truck?.licensePlate
-          .toLowerCase()
-          .includes(filterValue.toLowerCase())
+      filtered = filtered.filter((order) =>
+        order.truck.licensePlate.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
-
-    if (
-      statusFilter !== "all" &&
-      statusFilter instanceof Set &&
-      statusFilter.size > 0
-    ) {
-      filteredOrders = filteredOrders.filter(
-        (order) => order.status !== undefined && statusFilter.has(order.status)
+    
+    // Basic status filter
+    if (statusFilter.length > 0) {
+      filtered = filtered.filter((order) => 
+        order.status && statusFilter.includes(order.status)
       );
     }
-
-    return filteredOrders;
-  }, [orders, filterValue, statusFilter]);
-
-  const pages = Math.ceil(filteredItems.length / rowsPerPage);
-
-  const items = React.useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
-
-    return filteredItems.slice(start, end);
-  }, [page, filteredItems, rowsPerPage]);
-
-  const sortedItems = React.useMemo(() => {
-    return [...items].sort(
-      (a: CanteenOrderResponse, b: CanteenOrderResponse) => {
-        const getValue = (item: CanteenOrderResponse, column: string) => {
-          if (column === "licensePlate") return item.truck?.licensePlate || "";
-          return item[column as keyof CanteenOrderResponse];
-        };
-
-        const first = a[sortDescriptor.column as keyof CanteenOrderResponse];
-        const second = b[sortDescriptor.column as keyof CanteenOrderResponse];
-
-        let cmp = 0;
-        if (typeof first === "string" && typeof second === "string") {
-          cmp = first.localeCompare(second);
+    
+    // Apply advanced filters
+    if (advancedFilters.licensePlate) {
+      filtered = filtered.filter((order) =>
+        order.truck.licensePlate === advancedFilters.licensePlate
+      );
+    }
+    
+    if (advancedFilters.driverName) {
+      filtered = filtered.filter((order) =>
+        order.truck.driverName === advancedFilters.driverName
+      );
+    }
+    
+    if (advancedFilters.status && advancedFilters.status.length > 0) {
+      filtered = filtered.filter((order) =>
+        order.status && advancedFilters.status.includes(order.status)
+      );
+    }
+    
+    // Date range filters
+    const [orderStartDate, orderEndDate] = advancedFilters.orderDateRange;
+    if (orderStartDate && orderEndDate) {
+      filtered = filtered.filter((order) => {
+        const orderDate = dayjs(order.orderDate);
+        return orderDate.isAfter(orderStartDate, 'day') || orderDate.isSame(orderStartDate, 'day') &&
+               (orderDate.isBefore(orderEndDate, 'day') || orderDate.isSame(orderEndDate, 'day'));
+      });
+    }
+    
+    const [createdStartDate, createdEndDate] = advancedFilters.createdDateRange;
+    if (createdStartDate && createdEndDate) {
+      filtered = filtered.filter((order) => {
+        const createdDate = dayjs(order.createdAt);
+        return createdDate.isAfter(createdStartDate, 'day') || createdDate.isSame(createdStartDate, 'day') &&
+               (createdDate.isBefore(createdEndDate, 'day') || createdDate.isSame(createdEndDate, 'day'));
+      });
+    }
+    
+    const [updatedStartDate, updatedEndDate] = advancedFilters.updatedDateRange;
+    if (updatedStartDate && updatedEndDate) {
+      filtered = filtered.filter((order) => {
+        if (!order.updatedAt) return false;
+        const updatedDate = dayjs(order.updatedAt);
+        return updatedDate.isAfter(updatedStartDate, 'day') || updatedDate.isSame(updatedStartDate, 'day') &&
+               (updatedDate.isBefore(updatedEndDate, 'day') || updatedDate.isSame(updatedEndDate, 'day'));
+      });
+    }
+    
+    // Advanced sorting
+    if (advancedFilters.sortBy) {
+      filtered.sort((a, b) => {
+        let comparison = 0;
+        
+        if (advancedFilters.sortBy === 'OrderDate') {
+          comparison = dayjs(a.orderDate).unix() - dayjs(b.orderDate).unix();
+        } else if (advancedFilters.sortBy === 'LicensePlate') {
+          comparison = a.truck.licensePlate.localeCompare(b.truck.licensePlate);
+        } else if (advancedFilters.sortBy === 'DriverName') {
+          comparison = a.truck.driverName.localeCompare(b.truck.driverName);
+        } else if (advancedFilters.sortBy === 'Status') {
+          comparison = (a.status || '').localeCompare(b.status || '');
+        } else if (advancedFilters.sortBy === 'CreatedAt') {
+          comparison = dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix();
+        } else if (advancedFilters.sortBy === 'UpdatedAt') {
+          const aTime = a.updatedAt ? dayjs(a.updatedAt).unix() : 0;
+          const bTime = b.updatedAt ? dayjs(b.updatedAt).unix() : 0;
+          comparison = aTime - bTime;
         }
+        
+        return advancedFilters.ascending ? comparison : -comparison;
+      });
+      
+      return filtered;
+    }
+    
+    // Basic sorting if advanced sorting is not applied
+    if (sorter && !Array.isArray(sorter) && sorter.field) {
+      const { field, order } = sorter;
+      filtered.sort((a, b) => {
+        let comparison = 0;
+        
+        if (field === 'licensePlate') {
+          comparison = a.truck.licensePlate.localeCompare(b.truck.licensePlate);
+        } else if (field === 'driverName') {
+          comparison = a.truck.driverName.localeCompare(b.truck.driverName);
+        } else if (field === 'orderDate') {
+          comparison = dayjs(a.orderDate).unix() - dayjs(b.orderDate).unix();
+        } else if (field === 'updatedAt') {
+          const aTime = a.updatedAt ? dayjs(a.updatedAt).unix() : 0;
+          const bTime = b.updatedAt ? dayjs(b.updatedAt).unix() : 0;
+          comparison = aTime - bTime;
+        }
+        
+        return order === 'ascend' ? comparison : -comparison;
+      });
+    }
+    
+    return filtered;
+  }, [canteenOrders, filterValue, statusFilter, sorter, advancedFilters]);
 
-        return sortDescriptor.direction === "descending" ? -cmp : cmp;
-      }
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredAndSortedOrders.slice(startIndex, startIndex + pageSize);
+  }, [filteredAndSortedOrders, currentPage, pageSize]);
+
+  const handleTableChange: TableProps<CanteenOrderResponse>["onChange"] = (
+    pagination: TablePaginationConfig,
+    filters: Record<string, FilterValue | null>,
+    newSorter:
+      | SorterResult<CanteenOrderResponse>
+      | SorterResult<CanteenOrderResponse>[]
+  ) => {
+    const statusFilters = (filters.status as FilterValue) || [];
+    setStatusFilter(statusFilters.map(String));
+
+    // Update sorter state from table changes
+    setSorter(newSorter);
+
+    // Reset page to 1 when filters or sorter change
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setFilterValue(value);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setFilterValue("");
+    setStatusFilter([]);
+    setSorter(undefined);
+    setAdvancedFilters({
+      licensePlate: "",
+      driverName: "",
+      status: [],
+      orderDateRange: [null, null],
+      createdDateRange: [null, null],
+      updatedDateRange: [null, null],
+      sortBy: "OrderDate",
+      ascending: false,
+    });
+    setCurrentPage(1);
+  };
+
+  const handleStatusFilterChange = (value: string[]) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  // Advanced filter modal functions
+  const handleOpenFilterModal = () => {
+    // Extract unique license plates and driver names for filter options
+    const uniqueLicensePlates = Array.from(
+      new Set(canteenOrders.map((order) => order.truck.licensePlate))
     );
-  }, [sortDescriptor, items]);
+    setLicensePlateOptions(uniqueLicensePlates);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN");
+    const uniqueDriverNames = Array.from(
+      new Set(canteenOrders.map((order) => order.truck.driverName))
+    );
+    setDriverNameOptions(uniqueDriverNames);
+
+    setIsFilterModalVisible(true);
+  };
+
+  const handleApplyFilters = (filters: any) => {
+    console.log("Applying filters:", filters);
+    setAdvancedFilters(filters);
+    setCurrentPage(1);
+    setIsFilterModalVisible(false);
+  };
+
+  const handleResetAdvancedFilters = () => {
+    setAdvancedFilters({
+      licensePlate: "",
+      driverName: "",
+      status: [],
+      orderDateRange: [null, null],
+      createdDateRange: [null, null],
+      updatedDateRange: [null, null],
+      sortBy: "OrderDate",
+      ascending: false,
+    });
+    setCurrentPage(1);
+    setIsFilterModalVisible(false);
+  };
+
+  const onPageChange = (page: number, newPageSize?: number) => {
+    setCurrentPage(page);
+    if (newPageSize && newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+    }
+    updatePageInUrl(page);
+  };
+
+  const handleOpenEditModal = (id: string) => {
+    setEditingOrderId(id);
+    setIsEditModalOpen(true);
+  };
+  
+  const handleOpenDeleteModal = (id: string) => {
+    setDeletingOrderId(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCreateSuccess = () => {
+    setIsCreateModalOpen(false);
+    fetchCanteenOrders();
+    messageApi.success("Canteen order added successfully", 5);
+  };
+
+  const handleUpdateSuccess = () => {
+    setIsEditModalOpen(false);
+    setEditingOrderId("");
+    fetchCanteenOrders();
+    messageApi.success("Canteen order updated successfully", 5);
   };
 
   const handleOpenDetails = async (id: string) => {
@@ -251,569 +562,1076 @@ export function CanteenOrders() {
       setSelectedOrder(order);
       setIsDetailsModalOpen(true);
     } catch (error) {
-      toast.error("Failed to load order details");
+      messageApi.error("Failed to load order details", 5);
     }
   };
 
-  const handleOpenEditModal = (id: string) => {
-    setEditingOrderId(id);
-    setIsEditModalOpen(true);
-  };
-
-  const handleUpdateSuccess = () => {
-    fetchOrders();
-    setIsEditModalOpen(false);
-    setEditingOrderId("");
-  };
-
-  const handleOpenDeleteModal = async (id: string) => {
-    try {
-      const order = await getCanteenOrderById(id);
-      setDeletingOrder(order);
-      setIsDeleteModalOpen(true);
-    } catch (error) {
-      toast.error("Failed to load order details for deletion");
+  const showConfirm = (action: "approve" | "reject" | "complete" | "delete", onOk: () => void) => {
+    const selectedOrdersData = canteenOrders.filter((o) =>
+      selectedRowKeys.includes(o.id)
+    );
+    
+    let targetStatus = "";
+    let count = 0;
+    
+    if (action === "approve") {
+      targetStatus = "Pending";
+      count = selectedOrdersData.filter(o => o.status === targetStatus).length;
+    } else if (action === "reject") {
+      count = selectedOrdersData.filter(o => 
+        o.status === "Pending" || o.status === "Approved"
+      ).length;
+    } else if (action === "complete") {
+      targetStatus = "Approved";
+      count = selectedOrdersData.filter(o => o.status === targetStatus).length;
+    } else if (action === "delete") {
+      // Para eliminar, contamos todos los seleccionados
+      count = selectedOrdersData.length;
     }
-  };
 
-  const handleConfirmDelete = async () => {
-    if (!deletingOrder) return;
-    try {
-      await deleteCanteenOrder(deletingOrder.id);
-      toast.success("Order deleted successfully");
-
-      // Cập nhật danh sách trên FE
-      setOrders((prevOrders) =>
-        prevOrders.filter((order) => order.id !== deletingOrder.id)
+    if (count === 0) {
+      messageApi.warning(
+        `No orders with valid status selected.`,
+        5
       );
-
-      setSelectedKeys(new Set());
-      setIsDeleteModalOpen(false);
-      setDeletingOrder(null);
-    } catch (error) {
-      toast.error("Failed to delete order");
-    }
-  };
-
-  const handleApprove = async () => {
-    const ids = selectedOrders
-      .filter((d) => d.status === "Pending" || d.status === "Rejected")
-      .map((d) => d.id);
-    if (ids.length === 0) {
-      toast.error("No valid drug orders found for approval.");
       return;
     }
 
-    try {
-      await approveCanteenOrders(ids);
-      toast.success("Drug Orders approved successfully");
-      fetchOrders();
-      setSelectedKeys(new Set());
-    } catch (error) {
-      toast.error("Failed to approve drug orders");
-    }
-  };
-  const handleReject = async () => {
-    const ids = selectedOrders
-      .filter((d) => d.status === "Pending" || d.status === "Approved")
-      .map((d) => d.id);
-    if (ids.length === 0) {
-      toast.error("No valid drug orders found for rejection.");
-      return;
-    }
-
-    try {
-      await rejectCanteenOrders(ids);
-      toast.success("Drug orders rejected successfully");
-      fetchOrders();
-      setSelectedKeys(new Set());
-    } catch (error) {
-      toast.error("Failed to reject drug orders");
-    }
-  };
-  const handleComplete = async () => {
-    const ids = selectedOrders
-      .filter((d) => d.status === "Approved")
-      .map((d) => d.id);
-    if (ids.length === 0) {
-      toast.error("No valid drug orders found for completion.");
-      return;
-    }
-
-    try {
-      await completeCanteenOrders(ids);
-      toast.success("Drug orders completed successfully");
-      fetchOrders();
-      setSelectedKeys(new Set());
-    } catch (error) {
-      toast.error("Failed to complete drug orders");
-    }
+    setConfirmAction(action);
+    setIsConfirmModalOpen(true);
   };
 
-  const handleConfirmAction = async () => {
+  const handleConfirmAction = () => {
     if (confirmAction === "approve") {
-      await handleApprove();
+      handleApprove();
     } else if (confirmAction === "reject") {
-      await handleReject();
+      handleReject();
     } else if (confirmAction === "complete") {
-      await handleComplete();
+      handleComplete();
+    } else if (confirmAction === "delete") {
+      handleDelete();
     }
+
     setIsConfirmModalOpen(false);
     setConfirmAction(null);
   };
 
-  const renderCell = React.useCallback(
-    (order: CanteenOrderResponse, columnKey: React.Key) => {
-      const cellValue = order[columnKey as keyof CanteenOrderResponse];
+  const handleApprove = async () => {
+    const idsToApprove = canteenOrders
+      .filter((o) => selectedRowKeys.includes(o.id) && o.status === "Pending")
+      .map((o) => o.id);
 
-      switch (columnKey) {
-        case "licensePlate":
-          return (
-            <p
-              className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
-              onClick={() =>
-                router.push(`/canteen-order/details?id=${order.id}`)
-              }
-            >
-              {order.truck?.licensePlate || "Not Available"}
-            </p>
-          );
-        case "status":
-          return (
-            <Chip
-              className="capitalize"
-              color={
-                statusColorMap[order.status as keyof typeof statusColorMap]
-              }
-              size="sm"
-              variant="flat"
-            >
-              {cellValue as string}
-            </Chip>
-          );
-        case "totalQuantity":
-          return (
-            <div className="flex justify-start gap-2">
-              <p className="text-bold text-small">
-                {order.canteenOrderDetails.reduce(
-                  (sum, detail) => sum + detail.quantity,
-                  0
-                )}
-              </p>
-            </div>
-          );
+    if (idsToApprove.length === 0) return;
 
-        case "createdBy":
-          return cellValue && typeof cellValue === "object" ? (
-            <div className="flex flex-col gap-1">
-              {/* <span className="text-bold text-small text-primary cursor-pointer hover:underline"> */}
-              <span className="text-bold text-small">
-                {(cellValue as { userName: string }).userName}
-              </span>
-              <Chip
-                className="capitalize"
-                color={
-                  roleColorMap[
-                    (cellValue as { role: string })
-                      .role as keyof typeof roleColorMap
-                  ]
-                }
-                size="sm"
-                variant="flat"
+    setLoadingMessage("Approving orders...");
+    setLoading(true);
+    try {
+      await approveCanteenOrders(idsToApprove);
+      messageApi.success("Canteen orders approved successfully", 5);
+
+      // Update local state instead of refetching
+      setCanteenOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          idsToApprove.includes(order.id)
+            ? {
+                ...order,
+                status: "Approved",
+                updatedAt: new Date().toISOString(),
+              }
+            : order
+        )
+      );
+
+      setSelectedRowKeys([]); // Clear selection
+    } catch (error) {
+      messageApi.error("Failed to approve canteen orders", 5);
+      console.error("Error approving canteen orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    const idsToReject = canteenOrders
+      .filter((o) => 
+        selectedRowKeys.includes(o.id) && 
+        (o.status === "Pending" || o.status === "Approved")
+      )
+      .map((o) => o.id);
+
+    if (idsToReject.length === 0) return;
+
+    setLoadingMessage("Rejecting orders...");
+    setLoading(true);
+    try {
+      await rejectCanteenOrders(idsToReject);
+      messageApi.success("Canteen orders rejected successfully", 5);
+
+      // Update local state instead of refetching
+      setCanteenOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          idsToReject.includes(order.id)
+            ? {
+                ...order,
+                status: "Rejected",
+                updatedAt: new Date().toISOString(),
+              }
+            : order
+        )
+      );
+
+      setSelectedRowKeys([]); // Clear selection
+    } catch (error) {
+      messageApi.error("Failed to reject canteen orders", 5);
+      console.error("Error rejecting canteen orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    const idsToComplete = canteenOrders
+      .filter((o) => selectedRowKeys.includes(o.id) && o.status === "Approved")
+      .map((o) => o.id);
+
+    if (idsToComplete.length === 0) return;
+
+    setLoadingMessage("Completing orders...");
+    setLoading(true);
+    try {
+      await completeCanteenOrders(idsToComplete);
+      messageApi.success("Canteen orders completed successfully", 5);
+
+      // Update local state instead of refetching
+      setCanteenOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          idsToComplete.includes(order.id)
+            ? {
+                ...order,
+                status: "Completed",
+                updatedAt: new Date().toISOString(),
+              }
+            : order
+        )
+      );
+
+      setSelectedRowKeys([]); // Clear selection
+    } catch (error) {
+      messageApi.error("Failed to complete canteen orders", 5);
+      console.error("Error completing canteen orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleDelete = async () => {
+    if (!deletingOrderId && selectedRowKeys.length === 0) return;
+    
+    setLoadingMessage("Deleting orders...");
+    setLoading(true);
+    
+    try {
+      // Si tenemos un ID de orden específico para eliminar
+      if (deletingOrderId) {
+        await deleteCanteenOrder(deletingOrderId);
+        messageApi.success("Canteen order deleted successfully", 5);
+        setCanteenOrders((prevOrders) => 
+          prevOrders.filter(order => order.id !== deletingOrderId)
+        );
+        setDeletingOrderId("");
+      } 
+      // Si tenemos múltiples órdenes seleccionadas
+      else if (selectedRowKeys.length > 0) {
+        // Nota: Asumimos que el API soporta eliminación por lotes
+        // Si no, deberíamos usar Promise.all con múltiples llamadas
+        for (const id of selectedRowKeys) {
+          await deleteCanteenOrder(id as string);
+        }
+        messageApi.success("Selected canteen orders deleted successfully", 5);
+        setCanteenOrders((prevOrders) => 
+          prevOrders.filter(order => !selectedRowKeys.includes(order.id))
+        );
+        setSelectedRowKeys([]);
+      }
+      
+      setIsDeleteModalOpen(false);
+    } catch (error) {
+      messageApi.error("Failed to delete canteen order(s)", 5);
+      console.error("Error deleting canteen orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const queryPage = Number(router.query.page) || 1;
+    if (queryPage !== currentPage) {
+      setCurrentPage(queryPage);
+    }
+  }, [router.query.page, currentPage]);
+
+  const updatePageInUrl = (newPage: number) => {
+    const query = { ...router.query };
+    
+    if (newPage === 1) {
+      // Remove page parameter if it's the default page
+      delete query.page;
+    } else {
+      query.page = newPage.toString();
+    }
+    
+    router.push(
+      {
+        pathname: router.pathname,
+        query: query,
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
+      date.getMinutes()
+    ).padStart(2, "0")}`;
+  };
+
+  const columns: TableProps<CanteenOrderResponse>["columns"] = useMemo(() => {
+    const actionColumn = {
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          ACTIONS
+        </span>
+      ),
+      key: "actions",
+      align: "center" as const,
+      render: (_: any, record: CanteenOrderResponse) => (
+        <Space
+          size="small"
+          style={{ display: "flex", justifyContent: "center" }}
+        >
+          <Tooltip title="Edit">
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenEditModal(record.id);
+              }}
+              disabled={record.status !== "Pending"}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenDeleteModal(record.id);
+              }}
+              disabled={record.status === "Completed"}
+            />
+          </Tooltip>
+        </Space>
+      ),
+    };
+
+    const visibleCols = staticColumns
+      .filter(
+        (col) => col.key && col.key !== "actions" && columnVisibility[col.key]
+      )
+      .map((col) => {
+        if (col.key === "licensePlate") {
+          return {
+            ...col,
+            render: (_: string, record: CanteenOrderResponse) => (
+              <span 
+                className="text-primary cursor-pointer hover:underline" 
+                onClick={() => router.push(`/canteen-order/details?id=${record.id}`)}
               >
-                {(cellValue as { role: string }).role}
-              </Chip>
-            </div>
-          ) : (
-            "-"
-          );
-        case "updatedAt":
-          return cellValue ? formatDate(cellValue as string) : "-";
-        case "actions":
-          return (
-            <div className="relative flex justify-center">
-              <Dropdown>
-                <DropdownTrigger>
-                  <Button isIconOnly size="sm" variant="light">
-                    <VerticalDotsIcon className="text-default-300" />
-                  </Button>
-                </DropdownTrigger>
-                <DropdownMenu>
-                  <DropdownItem
-                    key="edit"
-                    onClick={() => handleOpenEditModal(order.id)}
-                  >
-                    Edit
-                  </DropdownItem>
-                  <DropdownItem
-                    key="delete"
-                    className="text-danger"
-                    onClick={() => handleOpenDeleteModal(order.id)}
-                  >
-                    Delete
-                  </DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
-            </div>
-          );
-        default:
-          return typeof cellValue === "object"
-            ? JSON.stringify(cellValue)
-            : cellValue;
+                {record.truck.licensePlate}
+              </span>
+            ),
+          };
+        }
+        if (col.key === "driverName") {
+          return {
+            ...col,
+            render: (_: string, record: CanteenOrderResponse) => (
+              <span>
+                {record.truck.driverName}
+              </span>
+            ),
+          };
+        }
+        if (col.key === "status") {
+          return {
+            ...col,
+            render: (status: string) => (
+              <Tag color={statusColorMap[status as keyof typeof statusColorMap]}>
+                {status ? status.toUpperCase() : ""}
+              </Tag>
+            ),
+          };
+        }
+        if (col.key === "createdBy") {
+          return {
+            ...col,
+            render: (createdBy: any) => (
+              <div>
+                <div>{createdBy.userName}</div>
+                <Tag color={roleColorMap[createdBy.role] || "default"}>{createdBy.role}</Tag>
+              </div>
+            ),
+          };
+        }
+        if (col.key === "orderDate" || col.key === "createdAt" || col.key === "updatedAt") {
+          return {
+            ...col,
+            render: (date: string) =>
+              date ? dayjs(date).format("DD/MM/YYYY") : "-",
+          };
+        }
+        return col;
+      });
+
+    if (columnVisibility.actions) {
+      return [...visibleCols, actionColumn];
+    }
+    return visibleCols;
+  }, [columnVisibility, handleOpenEditModal, handleOpenDeleteModal, router]);
+
+  const renderSelectAll = () => {
+    // Count orders by status
+    const pendingCount = paginatedOrders.filter(order => order.status === "Pending").length;
+    const approvedCount = paginatedOrders.filter(order => order.status === "Approved").length;
+    const rejectedCount = paginatedOrders.filter(order => order.status === "Rejected").length;
+    const completedCount = paginatedOrders.filter(order => order.status === "Completed").length;
+
+    // Count selectable orders
+    const selectableOrders = paginatedOrders;
+
+    const isSelectAll =
+      selectableOrders.length > 0 &&
+      selectableOrders.every((order) =>
+        selectedRowKeys.includes(order.id)
+      );
+
+    const isIndeterminate =
+      selectedRowKeys.length > 0 &&
+      !isSelectAll &&
+      selectableOrders.some((order) =>
+        selectedRowKeys.includes(order.id)
+      );
+
+    // Create dropdown items for status selection
+    const dropdownItems = [
+      {
+        key: 'page-pending',
+        label: `Select all Pending on this page (${pendingCount})`
+      },
+      {
+        key: 'all-pending',
+        label: isLoadingAllItems && selectedOption === "all-pending" ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Spin size="small" />
+            <span>Loading all Pending...</span>
+          </div>
+        ) : "Select all Pending (all pages)"
+      },
+      {
+        key: 'page-approved',
+        label: `Select all Approved on this page (${approvedCount})`
+      },
+      {
+        key: 'all-approved',
+        label: isLoadingAllItems && selectedOption === "all-approved" ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Spin size="small" />
+            <span>Loading all Approved...</span>
+          </div>
+        ) : "Select all Approved (all pages)"
+      },
+      {
+        key: 'page-rejected',
+        label: `Select all Rejected on this page (${rejectedCount})`
+      },
+      {
+        key: 'all-rejected',
+        label: isLoadingAllItems && selectedOption === "all-rejected" ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Spin size="small" />
+            <span>Loading all Rejected...</span>
+          </div>
+        ) : "Select all Rejected (all pages)"
+      },
+      {
+        key: 'page-completed',
+        label: `Select all Completed on this page (${completedCount})`
+      },
+      {
+        key: 'all-completed',
+        label: isLoadingAllItems && selectedOption === "all-completed" ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Spin size="small" />
+            <span>Loading all Completed...</span>
+          </div>
+        ) : "Select all Completed (all pages)"
+      }
+    ];
+
+    return (
+      <>
+        <Checkbox
+          checked={false}
+          indeterminate={false}
+          disabled={true}
+        />
+        
+        {dropdownItems.length > 0 && (
+          <Dropdown
+            menu={{
+              items: dropdownItems,
+              onClick: ({ key }) => handleSelectByStatus(key),
+              selectedKeys: selectedOption ? [selectedOption] : []
+            }}
+            placement="bottomLeft"
+            trigger={["click"]}
+          >
+            <Button
+              type="text"
+              size="small"
+              style={{
+                marginLeft: 0,
+                padding: "0 4px",
+                position: "absolute",
+                top: "50%",
+                transform: "translateY(-50%)",
+                left: "30px",
+                right: "auto",
+                zIndex: 10,
+              }}
+            >
+              <DownOutlined />
+            </Button>
+          </Dropdown>
+        )}
+      </>
+    );
+  };
+
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (keys: React.Key[], selectedRows: CanteenOrderResponse[]) => {
+      // Checkbox selections are disabled, only dropdown selections are allowed
+      // But if the user is deselecting (keys.length < selectedRowKeys.length), allow it
+      if (keys.length > selectedRowKeys.length && !selectedOption) {
+        messageApi.info("Please use the status dropdown to select orders", 5);
+        return;
+      }
+      
+      // If no keys selected, just clear selection
+      if (keys.length === 0) {
+        setSelectedRowKeys([]);
+        setSelectedOption(null);
+        return;
+      }
+      
+      // Check if trying to select orders with different statuses
+      if (keys.length > 0) {
+        // Get the selected orders data
+        const selectedOrderList = canteenOrders.filter(order => keys.includes(order.id));
+        
+        // Get unique statuses in the selection
+        const uniqueStatuses = [...new Set(selectedOrderList.map(order => order.status))];
+        
+        // If more than one status is selected, prevent selection
+        if (uniqueStatuses.length > 1) {
+          messageApi.warning("You cannot select orders with different statuses at the same time.", 5);
+          return;
+        }
+      }
+      
+      // If all validations pass, update selection
+      setSelectedRowKeys(keys);
+      // Reset selected option when manually deselecting
+      if (keys.length < selectedRowKeys.length) {
+        setSelectedOption(null);
       }
     },
-    []
-  );
+    columnTitle: renderSelectAll,
+    // Disable all individual checkboxes
+    getCheckboxProps: (record: CanteenOrderResponse) => ({
+      disabled: true, // Disable all individual checkboxes
+    }),
+  };
 
-  const onNextPage = React.useCallback(() => {
-    if (page < pages) {
-      setPage(page + 1);
-    }
-  }, [page, pages]);
+  const renderSelectedInfo = () => {
+    if (selectedRowKeys.length === 0) return null;
+    
+    return (
+      <Space>
+        <Text>{selectedRowKeys.length} items selected</Text>
+        <Button
+          icon={<UndoOutlined />}
+          onClick={() => setSelectedRowKeys([])}
+        >
+          Clear
+        </Button>
+        
+        {showApproveButton && (
+          <Button
+            className="bg-success-100 text-primary border-primary"
+            onClick={() => showConfirm("approve", handleApprove)}
+            disabled={loading}
+          >
+            Approve Selected
+          </Button>
+        )}
+        
+        {showRejectButton && (
+          <Button
+            className="bg-danger-100 text-danger border-danger"
+            onClick={() => showConfirm("reject", handleReject)}
+            disabled={loading}
+          >
+            Reject Selected
+          </Button>
+        )}
+        
+        {showCompleteButton && (
+          <Button
+            className="bg-success-100 text-success border-success"
+            onClick={() => showConfirm("complete", handleComplete)}
+            disabled={loading}
+          >
+            Complete Selected
+          </Button>
+        )}
+        
+        <Button
+          danger
+          onClick={() => showConfirm("delete", handleDelete)}
+          disabled={loading}
+        >
+          Delete Selected
+        </Button>
+      </Space>
+    );
+  };
 
-  const onPreviousPage = React.useCallback(() => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  }, [page]);
+  // Function to render rows per page
+  const renderRowsPerPage = () => {
+    return (
+      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <Text type="secondary">Rows per page:</Text>
+        <Select
+          value={pageSize}
+          onChange={(value) => onPageChange(1, value)}
+          style={{ width: "80px" }}
+        >
+          <Option value={5}>5</Option>
+          <Option value={10}>10</Option>
+          <Option value={15}>15</Option>
+          <Option value={20}>20</Option>
+        </Select>
+      </div>
+    );
+  };
 
-  const onRowsPerPageChange = React.useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      setRowsPerPage(Number(e.target.value));
-      setPage(1);
-    },
-    []
-  );
+  const handleColumnVisibilityChange = (key: string) => {
+    setColumnVisibility((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
 
-  const onSearchChange = React.useCallback((value?: string) => {
-    if (value) {
-      setFilterValue(value);
-      setPage(1);
+  const toggleAllColumns = (checked: boolean) => {
+    const newVisibility = { ...columnVisibility };
+    staticColumns.forEach((col) => {
+      if (col.key && col.key !== "actions") {
+        newVisibility[col.key] = checked;
+      }
+    });
+    newVisibility["actions"] = checked;
+    setColumnVisibility(newVisibility);
+  };
+
+  const handleDropdownVisibleChange = (visible: boolean) => {
+    setDropdownOpen(visible);
+  };
+
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  // Function to handle selection by status
+  const handleSelectByStatus = async (key: string) => {
+    // Check if this option is already selected
+    if (selectedOption === key) {
+      // If already selected, deselect it and clear all selections
+      setSelectedOption(null);
+      setSelectedRowKeys([]);
     } else {
-      setFilterValue("");
+      setSelectedOption(key);
+
+      let statusToSelect = "";
+      let selectCurrentPage = key.startsWith("page-");
+      
+      if (key.includes("pending")) {
+        statusToSelect = "Pending";
+      } else if (key.includes("approved")) {
+        statusToSelect = "Approved";
+      } else if (key.includes("rejected")) {
+        statusToSelect = "Rejected";
+      } else if (key.includes("completed")) {
+        statusToSelect = "Completed";
+      }
+      
+      // Get order IDs with the specified status
+      if (statusToSelect) {
+        const selectedOrderIds = await getOrderIdsByStatus(statusToSelect, selectCurrentPage);
+        setSelectedRowKeys(selectedOrderIds);
+      }
     }
-  }, []);
+  };
+  
+  // Function to get order IDs by status
+  const getOrderIdsByStatus = async (
+    status: string,
+    currentPageOnly: boolean
+  ): Promise<React.Key[]> => {
+    try {
+      if (currentPageOnly) {
+        // Only get IDs from the current page
+        return paginatedOrders
+          .filter((order) => order.status === status)
+          .map((order) => order.id);
+      } else {
+        // Get IDs from all pages with a specified status
+        setIsLoadingAllItems(true);
+        const result = filteredAndSortedOrders
+          .filter((order) => order.status === status)
+          .map((order) => order.id);
 
-  const onClear = React.useCallback(() => {
-    setFilterValue("");
-    setPage(1);
-  }, []);
+        setIsLoadingAllItems(false);
+        return result;
+      }
+    } catch (error) {
+      console.error("Error getting order IDs by status:", error);
+      messageApi.error("Failed to get orders by status", 5);
+      setIsLoadingAllItems(false);
+      return [];
+    }
+  };
 
-  const topContent = React.useMemo(() => {
-    return (
-      <div className="flex flex-col gap-4">
-        <div className="flex justify-between gap-3 items-end ml-4">
-          <Input
-            isClearable
-            className="w-full sm:max-w-[44%]"
-            placeholder="Search by license plate..."
-            startContent={<SearchIcon />}
-            value={filterValue}
-            onClear={() => onClear()}
-            onValueChange={onSearchChange}
-          />
-          <div className="flex gap-3">
-            <div className="flex gap-2">
-              {showApprove && (
-                <Button
-                  color="primary"
-                  onClick={() => {
-                    setConfirmAction("approve");
-                    setIsConfirmModalOpen(true);
-                  }}
-                >
-                  Approve Selected
-                </Button>
-              )}
-              {showReject && (
-                <Button
-                  color="danger"
-                  onClick={() => {
-                    setConfirmAction("reject");
-                    setIsConfirmModalOpen(true);
-                  }}
-                >
-                  Reject Selected
-                </Button>
-              )}
-              {showComplete && (
-                <Button
-                  color="success"
-                  onClick={() => {
-                    setConfirmAction("complete");
-                    setIsConfirmModalOpen(true);
-                  }}
-                >
-                  Complete Selected
-                </Button>
-              )}
-            </div>
+  // Export to Excel handlers
+  const handleOpenExportModal = () => {
+    setExportModalVisible(true);
+  };
 
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  radius="sm"
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  variant="bordered"
-                >
-                  Status
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={statusFilter}
-                selectionMode="multiple"
-                onSelectionChange={setStatusFilter}
-              >
-                {statusOptions.map((status) => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {capitalize(status.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
+  const handleExportConfigChange = (newConfig: Partial<CanteenOrderExportConfig>) => {
+    setExportConfig(prev => ({ ...prev, ...newConfig }));
+  };
 
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  radius="sm"
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  variant="bordered"
-                >
-                  Columns
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={visibleColumns}
-                selectionMode="multiple"
-                onSelectionChange={setVisibleColumns}
-              >
-                {columns.map((column) => (
-                  <DropdownItem key={column.uid} className="capitalize">
-                    {capitalize(column.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-            <Button
-              radius="sm"
-              color="primary"
-              endContent={<PlusIcon />}
-              onClick={() => setIsModalOpen(true)}
-            >
-              Add New
-            </Button>
-          </div>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-default-400 text-small ml-4">
-            Total {orders.length} orders
-          </span>
-          <label className="flex items-center text-default-400 text-small">
-            Rows per page:
-            <select
-              className="bg-transparent outline-none text-default-400 text-small"
-              onChange={onRowsPerPageChange}
-            >
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="15">15</option>
-            </select>
-          </label>
-        </div>
-      </div>
-    );
-  }, [
-    selectedOrders,
-    filterValue,
-    statusFilter,
-    visibleColumns,
-    selectedKeys,
-    onSearchChange,
-    onRowsPerPageChange,
-    orders.length,
-  ]);
-
-  const bottomContent = React.useMemo(() => {
-    return (
-      <div className="py-2 px-2 flex justify-between items-center">
-        <span className="w-[30%] text-small text-default-400 ml-4">
-          {selectedKeys === "all"
-            ? "All items selected"
-            : `${(selectedKeys as Set<string>).size} of ${
-                filteredItems.length
-              } selected`}
-        </span>
-        {isReady && (
-                  <Pagination
-                    key={page}
-                    showControls
-                    page={page}
-                    total={pages}
-                    onChange={(newPage) => setPage(newPage)}
-                    color="primary"
-                  />
-                )}
-        <div className="hidden sm:flex w-[30%] justify-end gap-2">
-          <Button
-            isDisabled={pages === 1}
-            size="sm"
-            variant="flat"
-            onPress={onPreviousPage}
-          >
-            Previous
-          </Button>
-          <Button
-            isDisabled={pages === 1}
-            size="sm"
-            variant="flat"
-            onPress={onNextPage}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-    );
-  }, [selectedKeys, items.length, page, pages]);
+  const handleExportToExcel = async (config: CanteenOrderExportConfig) => {
+    try {
+      setLoading(true);
+      setLoadingMessage("Exporting to Excel...");
+      console.log("Attempting to export with config:", config);
+      await exportCanteenOrdersToExcel(config);
+      messageApi.success("Exported to Excel successfully", 5);
+    } catch (error: any) {
+      console.error("Error exporting to Excel:", error);
+      
+      // Handle specific error cases
+      if (error?.response?.status === 405) {
+        messageApi.error(
+          "The API endpoint doesn't support this request method. Check if the endpoint URL is correct (Method Not Allowed).", 
+          8
+        );
+        console.error("405 Method Not Allowed error. Current endpoint:", 
+          "/canteenorder-management/export-to-excel");
+      } else {
+        // Display a more descriptive error message if available
+        const errorMessage = error?.message || "Failed to export to Excel";
+        messageApi.error(errorMessage, 5);
+      }
+    } finally {
+      setLoading(false);
+      setExportModalVisible(false);
+    }
+  };
 
   return (
-    <>
-      <div className="flex items-center gap-2 mb-4 ml-4">
-        <CanteenOrderIcon />
-        <h3 className="text-2xl font-bold">Canteen Order Management</h3>
+    <div style={{ padding: "20px" }}>
+      {contextHolder}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.back()}
+            style={{ marginRight: "8px" }}
+          >
+            Back
+          </Button>
+          <span style={{ fontSize: "24px" }}><CanteenOrderIcon /></span>
+          <h3 className="text-xl font-bold">Canteen Order Management</h3>
+        </div>
       </div>
 
-      {isModalOpen && (
-        <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
-          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
-            <ModalBody>
-              <CreateCanteenOrderForm
-                isOpen={isModalOpen}
-                onClose={() => {
-                  setIsModalOpen(false);
-                }}
-                onCreate={fetchOrders}
-              />
-            </ModalBody>
-          </ModalContent>
-        </Modal>
+      {initialLoading ? (
+        <div style={{ textAlign: "center", padding: "50px" }}>
+          <Spin size="large" tip="Loading orders..." />
+        </div>
+      ) : (
+        <div>
+          <Spin spinning={loading} tip={loadingMessage}>
+            <Card
+              className="shadow mb-4"
+              bodyStyle={{ padding: "16px" }}
+              title={
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "16px 0 0 0",
+                  }}
+                >
+                  <AppstoreOutlined />
+                  <span>Toolbar</span>
+                </div>
+              }
+            >
+              <div className="flex flex-col gap-4">
+                <div className="flex justify-between items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Input
+                      placeholder="Search by license plate..."
+                      prefix={<SearchOutlined />}
+                      value={filterValue}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      style={{ width: "300px" }}
+                      allowClear
+                    />
+                    
+                    <Select
+                      mode="multiple"
+                      allowClear
+                      style={{ width: "120px" }}
+                      placeholder={
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          <TagOutlined style={{ marginRight: 8 }} />
+                          <span>Status</span>
+                        </div>
+                      }
+                      value={statusFilter}
+                      onChange={handleStatusFilterChange}
+                      options={statusOptions}
+                      maxTagCount="responsive"
+                    />
+
+                    <Tooltip title="Advanced Filters">
+                      <Button
+                        icon={<FilterOutlined />}
+                        onClick={handleOpenFilterModal}
+                      >
+                        Filter
+                      </Button>
+                    </Tooltip>
+
+                    <Tooltip title="Reset All Filters">
+                      <Button
+                        icon={<UndoOutlined />}
+                        onClick={handleResetFilters}
+                        disabled={
+                          !filterValue &&
+                          statusFilter.length === 0 &&
+                          !sorter &&
+                          !advancedFilters.licensePlate &&
+                          !advancedFilters.driverName &&
+                          advancedFilters.status.length === 0 &&
+                          !advancedFilters.orderDateRange[0] &&
+                          !advancedFilters.createdDateRange[0] &&
+                          !advancedFilters.updatedDateRange[0]
+                        }
+                      >
+                        Reset
+                      </Button>
+                    </Tooltip>
+
+                    <Dropdown
+                      overlay={
+                        <Menu>
+                          <Menu.Item key="selectAll">
+                            <Checkbox
+                              checked={areAllColumnsVisible()}
+                              onChange={(e) =>
+                                toggleAllColumns(e.target.checked)
+                              }
+                            >
+                              <strong>Show All Columns</strong>
+                            </Checkbox>
+                          </Menu.Item>
+                          <Menu.Divider />
+                          {staticColumns
+                            .filter((col) => col.key !== "actions")
+                            .map((column) => (
+                              <Menu.Item key={column.key}>
+                                <Checkbox
+                                  checked={
+                                    !!columnVisibility[column.key as string]
+                                  }
+                                  onChange={() =>
+                                    handleColumnVisibilityChange(
+                                      column.key as string
+                                    )
+                                  }
+                                >
+                                  <span
+                                    style={{
+                                      color: "dimgray",
+                                      fontWeight: "normal",
+                                    }}
+                                  >
+                                    {React.isValidElement(column.title)
+                                      ? (
+                                          column.title as React.ReactElement<{
+                                            children: React.ReactNode;
+                                          }>
+                                        ).props.children
+                                      : column.title}
+                                  </span>
+                                </Checkbox>
+                              </Menu.Item>
+                            ))}
+                          <Menu.Item key="actions">
+                            <Checkbox
+                              checked={!!columnVisibility.actions}
+                              onChange={() =>
+                                handleColumnVisibilityChange("actions")
+                              }
+                            >
+                              <span
+                                style={{
+                                  color: "dimgray",
+                                  fontWeight: "normal",
+                                }}
+                              >
+                                Actions
+                              </span>
+                            </Checkbox>
+                          </Menu.Item>
+                        </Menu>
+                      }
+                      trigger={["click"]}
+                      open={dropdownOpen}
+                      onOpenChange={handleDropdownVisibleChange}
+                    >
+                      <Tooltip title="Column Settings">
+                        <Button icon={<SettingOutlined />}>Columns</Button>
+                      </Tooltip>
+                    </Dropdown>
+                    
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => setIsCreateModalOpen(true)}
+                      disabled={loading}
+                    >
+                      Create
+                    </Button>
+                  </div>
+
+                  <div>
+                    <Button
+                      type="primary"
+                      icon={<FileExcelOutlined />}
+                      onClick={handleOpenExportModal}
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      Export to Excel
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Container for selected info and rows per page */}
+            <div className="mb-4 py-2 flex justify-between items-center">
+              <div>
+                {renderSelectedInfo()}
+              </div>
+              <div>
+                {renderRowsPerPage()}
+              </div>
+            </div>
+
+            <Card
+              className="mt-4 shadow-sm"
+              bodyStyle={{ padding: "8px 16px" }}
+            >
+              <div style={{ overflowX: "auto" }}>
+                <Table<CanteenOrderResponse>
+                  rowKey="id"
+                  columns={columns}
+                  dataSource={paginatedOrders}
+                  loading={loading}
+                  rowSelection={rowSelection}
+                  pagination={false}
+                  onChange={handleTableChange}
+                  scroll={{ x: "max-content" }}
+                  bordered
+                />
+              </div>
+              <Card className="mt-4 shadow-sm">
+                <Row justify="center" align="middle">
+                  <Space size="large" align="center">
+                    <Text type="secondary">
+                      Total {filteredAndSortedOrders.length} items
+                    </Text>
+                    <Space align="center" size="large">
+                      <Pagination
+                        current={currentPage}
+                        pageSize={pageSize}
+                        total={filteredAndSortedOrders.length}
+                        onChange={(page) => onPageChange(page, pageSize)}
+                        showSizeChanger={false}
+                        showTotal={() => ""}
+                      />
+                      <Space align="center">
+                        <Text type="secondary">Go to page:</Text>
+                        <InputNumber
+                          min={1}
+                          max={Math.max(
+                            1,
+                            Math.ceil(
+                              filteredAndSortedOrders.length / pageSize
+                            )
+                          )}
+                          value={currentPage}
+                          onPressEnter={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                            const value = Number((e.target as HTMLInputElement).value);
+                            if (
+                              value > 0 &&
+                              value <=
+                                Math.ceil(
+                                  filteredAndSortedOrders.length / pageSize
+                                )
+                            ) {
+                              onPageChange(value, pageSize);
+                            }
+                          }}
+                          onChange={(value) => {
+                            if (
+                              value &&
+                              Number(value) > 0 &&
+                              Number(value) <=
+                                Math.ceil(
+                                  filteredAndSortedOrders.length / pageSize
+                                )
+                            ) {
+                              onPageChange(Number(value), pageSize);
+                            }
+                          }}
+                          style={{ width: "60px" }}
+                        />
+                      </Space>
+                    </Space>
+                  </Space>
+                </Row>
+              </Card>
+            </Card>
+          </Spin>
+        </div>
       )}
 
-      {isEditModalOpen && (
-        <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
-            <ModalBody>
-              <EditCanteenOrderForm
-                isOpen={isEditModalOpen}
-                orderId={editingOrderId}
-                onClose={() => setIsEditModalOpen(false)}
-                onUpdate={handleUpdateSuccess}
-              />
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )}
+      <CreateCanteenOrderForm
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreate={handleCreateSuccess}
+      />
+
+      <EditCanteenOrderForm
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onUpdate={handleUpdateSuccess}
+        orderId={editingOrderId}
+      />
 
       <ConfirmDeleteCanteenOrderModal
-        order={deletingOrder}
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirmDelete={handleConfirmDelete}
+        onConfirmDelete={handleDelete}
+        order={canteenOrders.find(order => order.id === deletingOrderId) || null}
       />
 
       <Modal
-        isOpen={isConfirmModalOpen}
-        onClose={() => setIsConfirmModalOpen(false)}
+        title={`Confirm ${
+          confirmAction === "approve" ? "Approval" : 
+          confirmAction === "reject" ? "Rejection" : 
+          confirmAction === "complete" ? "Completion" : "Deletion"
+        }`}
+        open={isConfirmModalOpen}
+        onCancel={() => setIsConfirmModalOpen(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsConfirmModalOpen(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="confirm"
+            type={confirmAction === "approve" ? "primary" : "primary"}
+            danger={confirmAction === "reject" || confirmAction === "delete"}
+            onClick={handleConfirmAction}
+          >
+            Confirm
+          </Button>,
+        ]}
       >
-        <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
-          <ModalHeader className="border-b pb-3">Confirm Action</ModalHeader>
-          <ModalBody>
-            <p className="text-gray-700 mb-2">
-              Please review your action carefully before proceeding.
-            </p>
-            <p className="text-gray-600 text-sm">
-              Are you sure you want to{" "}
-              {confirmAction === "approve"
-                ? "approve"
-                : confirmAction === "reject"
-                ? "reject"
-                : confirmAction === "complete"
-                ? "complete"
-                : "perform this action on"}{" "}
-              the selected drug orders?
-            </p>
-          </ModalBody>
-          <ModalFooter className="border-t pt-4">
-            <div className="flex justify-end gap-3">
-              <Button
-                type="button"
-                variant="flat"
-                onClick={() => setIsConfirmModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                color={
-                  confirmAction === "approve"
-                    ? "primary"
-                    : confirmAction === "reject"
-                    ? "danger"
-                    : confirmAction === "complete"
-                    ? "success"
-                    : "default"
-                }
-                onClick={handleConfirmAction}
-              >
-                Confirm
-              </Button>
-            </div>
-          </ModalFooter>
-        </ModalContent>
+        {confirmAction === "approve" ? (
+          <p>
+            Are you sure you want to approve the selected canteen orders? Once approved, 
+            you can no longer edit the order, but you can reject or complete it.
+          </p>
+        ) : confirmAction === "reject" ? (
+          <p>
+            Are you sure you want to reject the selected canteen orders? Once rejected, 
+            the order and its details will be marked inactive and no further actions can be performed.
+          </p>
+        ) : confirmAction === "complete" ? (
+          <p>
+            Are you sure you want to complete the selected canteen orders? Once completed, 
+            the order will be finalized.
+          </p>
+        ) : (
+          <p>
+            Are you sure you want to delete the selected canteen orders? This action cannot be undone.
+          </p>
+        )}
       </Modal>
 
-      <Table
-        isHeaderSticky
-        aria-label="Orders table"
-        bottomContent={bottomContent}
-        bottomContentPlacement="outside"
-        classNames={{
-          wrapper: "max-h-[382px] ml-2",
-        }}
-        selectedKeys={selectedKeys}
-        selectionMode="multiple"
-        sortDescriptor={sortDescriptor}
-        topContent={topContent}
-        topContentPlacement="outside"
-        onSelectionChange={setSelectedKeys}
-        onSortChange={setSortDescriptor}
-      >
-        <TableHeader columns={headerColumns}>
-          {(column) => (
-            <TableColumn
-              key={column.uid}
-              align={column.uid === "actions" ? "center" : "start"}
-              allowsSorting={column.sortable}
-            >
-              {column.name}
-            </TableColumn>
-          )}
-        </TableHeader>
-        <TableBody emptyContent={"No orders found"} items={sortedItems}>
-          {(item) => (
-            <TableRow key={item.id}>
-              {(columnKey) => (
-                <TableCell>{renderCell(item, columnKey)}</TableCell>
-              )}
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </>
+      {/* Advanced Filter Modal */}
+      <CanteenOrderFilterModal
+        visible={isFilterModalVisible}
+        onCancel={() => setIsFilterModalVisible(false)}
+        onApply={handleApplyFilters}
+        onReset={handleResetAdvancedFilters}
+        filters={advancedFilters}
+        licensePlates={licensePlateOptions}
+        driverNames={driverNameOptions}
+        statuses={statusOptions}
+      />
+
+      <ExportConfigModal
+        visible={exportModalVisible}
+        onClose={() => setExportModalVisible(false)}
+        onExport={handleExportToExcel}
+        exportConfig={exportConfig}
+        onChange={handleExportConfigChange}
+      />
+    </div>
   );
 }

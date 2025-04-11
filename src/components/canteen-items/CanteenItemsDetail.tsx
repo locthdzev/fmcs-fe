@@ -14,47 +14,48 @@ import {
   Divider
 } from "antd";
 import dayjs from "dayjs";
-import { getDrugById, DrugResponse } from "@/api/drug";
+import { CanteenItemResponse } from "@/api/canteenitems";
+import api from "@/api/customize-axios";
 import {
   ArrowLeftOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
-import { DrugIcon } from "./Icons";
+import { CanteenItemIcon } from "./Icons";
 
 const { Title, Text } = Typography;
 
-interface DrugDetailProps {
+interface CanteenItemDetailProps {
   id: string;
 }
 
-export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
+export const CanteenItemDetail: React.FC<CanteenItemDetailProps> = ({ id }) => {
   const router = useRouter();
-  const [drug, setDrug] = useState<DrugResponse | null>(null);
+  const [canteenItem, setCanteenItem] = useState<CanteenItemResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [messageApi, contextHolder] = message.useMessage();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
-      fetchDrugDetails();
+      fetchCanteenItemDetails();
     }
   }, [id]);
 
-  const fetchDrugDetails = async () => {
+  const fetchCanteenItemDetails = async () => {
     setLoading(true);
     try {
-      const response = await getDrugById(id);
-      if (response && typeof response === 'object') {
-         setDrug(response);
+      const response = await api.get(`/canteen-items-management/canteen-items/${id}`);
+      if (response && response.data && response.data.data) {
+         setCanteenItem(response.data.data);
       } else {
          console.error("Invalid response structure:", response);
-         messageApi.error("Failed to fetch drug details: Invalid data format");
-         setDrug(null);
+         messageApi.error("Failed to fetch canteen item details: Invalid data format");
+         setCanteenItem(null);
       }
     } catch (error) {
-      console.error("Error fetching drug details:", error);
-      messageApi.error("Failed to fetch drug details");
-      setDrug(null);
+      console.error("Error fetching canteen item details:", error);
+      messageApi.error("Failed to fetch canteen item details");
+      setCanteenItem(null);
     } finally {
       setLoading(false);
     }
@@ -89,13 +90,13 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
   };
 
   const renderActionButtons = () => {
-    if (!drug) return null;
+    if (!canteenItem) return null;
     return (
       <Button 
         type="primary"
-        onClick={() => router.push(`/drug/edit/${id}`)}
+        onClick={() => router.push(`/canteen-item/edit/${id}`)}
       >
-        Edit Drug
+        Edit Item
       </Button>
     );
   };
@@ -104,28 +105,28 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
     return (
       <div className="flex justify-center items-center h-screen">
         {contextHolder}
-        <Spin size="large" tip="Loading drug details..." />
+        <Spin size="large" tip="Loading canteen item details..." />
       </div>
     );
   }
 
-  if (!drug) {
+  if (!canteenItem) {
     return (
       <div className="p-4">
         {contextHolder}
         <div className="flex items-center gap-2 mb-4">
             <Button
                 icon={<ArrowLeftOutlined />}
-                onClick={() => router.push("/drug")}
+                onClick={() => router.push("/canteen-item")}
                 style={{ marginRight: "8px" }}
             >
                 Back
             </Button>
-            <DrugIcon />
-            <h3 className="text-xl font-bold">Drug Not Found</h3>
+            <CanteenItemIcon />
+            <h3 className="text-xl font-bold">Canteen Item Not Found</h3>
         </div>
         <Card>
-           <Text>The requested drug could not be found or loaded.</Text>
+           <Text>The requested canteen item could not be found or loaded.</Text>
         </Card>
       </div>
     );
@@ -134,31 +135,17 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
   return (
     <div className="p-4">
       {contextHolder}
-      <Modal 
-        open={!!previewImage} 
-        footer={null} 
-        onCancel={() => setPreviewImage(null)}
-        width={800}
-        centered
-      >
-        <img 
-          alt="Drug Preview" 
-          style={{ width: '100%' }} 
-          src={previewImage || ''} 
-        />
-      </Modal>
-
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/drug")}
+            onClick={() => router.push("/canteen-item")}
             style={{ marginRight: "8px" }}
           >
             Back
           </Button>
-          <DrugIcon />
-          <h3 className="text-xl font-bold">Drug Details</h3>
+          <CanteenItemIcon />
+          <h3 className="text-xl font-bold">Canteen Item Details</h3>
         </div>
         <div>{renderActionButtons()}</div>
       </div>
@@ -166,54 +153,35 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
       <Row gutter={[16, 16]}>
         <Col xs={24} md={16}>
           <Card
-            title={<Title level={5}>Drug Information</Title>}
+            title={<Title level={5}>Item Information</Title>}
             extra={
-              <Tag color={getStatusColor(drug.status)}>
-                {drug.status ? drug.status.toUpperCase() : ""}
-              </Tag>
+              <Space>
+                <Tag color={getStatusColor(canteenItem.status)}>
+                  {canteenItem.status ? canteenItem.status.toUpperCase() : ""}
+                </Tag>
+                <Tag color={canteenItem.available ? "success" : "error"}>
+                  {canteenItem.available ? "AVAILABLE" : "OUT OF STOCK"}
+                </Tag>
+              </Space>
             }
           >
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Drug Code</Text>
-                  <Text className="block">{drug.drugCode || "-"}</Text>
-                </div>
-              </Col>
-              <Col xs={24} sm={12}>
-                <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Name</Text>
-                  <Text className="block">{drug.name || "-"}</Text>
-                </div>
-              </Col>
-              <Col xs={24} sm={12}>
-                <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Unit</Text>
-                  <Text className="block">{drug.unit || "-"}</Text>
+                  <Text strong className="block text-sm text-gray-500">Item Name</Text>
+                  <Text className="block">{canteenItem.itemName || "-"}</Text>
                 </div>
               </Col>
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
                   <Text strong className="block text-sm text-gray-500">Price</Text>
-                  <Text className="block">{formatPrice(drug.price)}</Text>
-                </div>
-              </Col>
-              <Col xs={24} sm={12}>
-                <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Drug Group</Text>
-                  <Text className="block">{drug.drugGroup?.groupName || "-"}</Text>
-                </div>
-              </Col>
-              <Col xs={24} sm={12}>
-                <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Manufacturer</Text>
-                  <Text className="block">{drug.manufacturer || "-"}</Text>
+                  <Text className="block">{formatPrice(canteenItem.unitPrice)}</Text>
                 </div>
               </Col>
               <Col xs={24}>
                 <div className="border rounded-md p-3">
                   <Text strong className="block text-sm text-gray-500">Description</Text>
-                  <Text className="block">{drug.description || "No description available."}</Text>
+                  <Text className="block">{canteenItem.description || "No description available."}</Text>
                 </div>
               </Col>
               
@@ -224,35 +192,39 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
                   <Text strong className="block text-sm text-gray-500">Created At</Text>
-                  <Text className="block">{formatDate(drug.createdAt)}</Text>
+                  <Text className="block">{formatDate(canteenItem.createdAt)}</Text>
                 </div>
               </Col>
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
                   <Text strong className="block text-sm text-gray-500">Updated At</Text>
-                  <Text className="block">{formatDate(drug.updatedAt)}</Text>
+                  <Text className="block">{formatDate(canteenItem.updatedAt)}</Text>
                 </div>
               </Col>
             </Row>
           </Card>
         </Col>
         <Col xs={24} md={8}>
-          <Card title={<Title level={5}>Drug Image</Title>}>
-            {drug.imageUrl ? (
+          <Card title={<Title level={5}>Item Image</Title>}>
+            {canteenItem.imageUrl ? (
               <div 
+                style={{ cursor: 'pointer' }} 
                 className="flex justify-center"
               >
                 <Image
-                  src={drug.imageUrl}
-                  alt={drug.name}
+                  src={canteenItem.imageUrl}
+                  alt={canteenItem.itemName}
                   style={{ 
-                    maxHeight: '300px', 
+                    maxHeight: '300px',
                     objectFit: 'contain',
                   }}
-                  className="hover:scale-105"
                   preview={{
-                    src: drug.imageUrl,
+                    mask: <div className="flex items-center justify-center">Xem</div>,
+                    maskClassName: "bg-black bg-opacity-50 hover:bg-opacity-70",
+                    rootClassName: "custom-image-preview",
                   }}
+                  width="auto"
+                  className="hover:scale-105"
                 />
               </div>
             ) : (
@@ -267,4 +239,4 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
   );
 };
 
-export default DrugDetail; 
+export default CanteenItemDetail;

@@ -215,18 +215,66 @@ export const getDrugsByDrugGroupId = async (drugGroupId: string) => {
 
 export const createDrug = async (drugData: FormData) => {
   try {
-    const response = await api.post("/drug-management/drugs", drugData);
+    console.log("API createDrug called");
+    
+    // Log thông tin về FormData
+    for (let pair of drugData.entries()) {
+      const value = pair[1];
+      console.log(`${pair[0]}: ${value instanceof File ? 
+        `File (${value.name}, ${value.type}, ${value.size} bytes)` : 
+        value}`);
+    }
+    
+    // Kiểm tra xem FormData có chứa file không
+    const hasImageFile = Array.from(drugData.entries()).some(
+      entry => entry[0] === 'imageFile' && entry[1] instanceof File
+    );
+    
+    console.log("FormData contains image file:", hasImageFile);
+    
+    const response = await api.post("/drug-management/drugs", drugData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    console.log("createDrug response:", response.data);
     return response.data;
   } catch (error) {
+    console.error("Error in createDrug:", error);
     throw error;
   }
 };
 
 export const updateDrug = async (id: string, drugData: FormData) => {
   try {
-    const response = await api.put(`/drug-management/drugs/${id}`, drugData);
+    console.log("API updateDrug called with id:", id);
+    
+    // Log thông tin về FormData
+    for (let pair of drugData.entries()) {
+      const value = pair[1];
+      console.log(`${pair[0]}: ${value instanceof File ? 
+        `File (${value.name}, ${value.type}, ${value.size} bytes)` : 
+        value}`);
+    }
+    
+    // Kiểm tra xem FormData có chứa file không
+    const hasImageFile = Array.from(drugData.entries()).some(
+      entry => entry[0] === 'imageFile' && entry[1] instanceof File
+    );
+    
+    console.log("FormData contains image file:", hasImageFile);
+    
+    const response = await api.put(`/drug-management/drugs/${id}`, drugData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    console.log("updateDrug response:", response.data);
     return response.data;
   } catch (error) {
+    console.error("Error in updateDrug:", error);
     throw error;
   }
 };
@@ -282,46 +330,133 @@ export const exportDrugsToExcel = async (
   updatedEndDate?: string
 ) => {
   try {
-    // Xây dựng query params
-    const params = new URLSearchParams();
+    console.log("Export config:", config);
+    console.log("Export params:", {
+      exportAllPages,
+      page,
+      pageSize,
+      drugCodeSearch,
+      nameSearch,
+      manufacturerSearch,
+      descriptionSearch,
+      drugGroupId,
+      minPrice,
+      maxPrice,
+      sortBy,
+      ascending,
+      status,
+      createdStartDate,
+      createdEndDate,
+      updatedStartDate,
+      updatedEndDate
+    });
     
-    // Chỉ gửi tham số phân trang nếu không xuất toàn bộ dữ liệu
-    if (!exportAllPages) {
-      params.append("page", page.toString());
-      params.append("pageSize", pageSize.toString());
-    } else {
-      // Nếu xuất tất cả, đặt pageSize lớn để lấy tất cả dữ liệu
-      params.append("page", "1");
-      params.append("pageSize", "1000000"); // Một số lớn để lấy tất cả dữ liệu
+    // Thử trực tiếp theo Swagger, không sử dụng query params
+    try {
+      const response = await api.post("/drug-management/drugs/export-excel", {
+        ...config,
+        exportOptions: {
+          // Map các tham số query vào body request
+          page: exportAllPages ? 1 : page,
+          pageSize: exportAllPages ? 1000000 : pageSize,
+          drugCodeSearch,
+          nameSearch,
+          manufacturerSearch,
+          descriptionSearch,
+          drugGroupId,
+          minPrice,
+          maxPrice,
+          sortBy,
+          ascending,
+          status: status ? status.replace(/,/g, ",") : undefined, // Đảm bảo status đúng định dạng
+          createdStartDate,
+          createdEndDate,
+          updatedStartDate,
+          updatedEndDate,
+          exportAllPages
+        }
+      });
+      
+      console.log("Export response (body params):", response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error("Export failed with body params:", error.message);
+      
+      // Nếu cách trên thất bại, thử cách khác: gửi config trong body và params trong query
+      // Xây dựng query params
+      const params = new URLSearchParams();
+      
+      params.append("page", exportAllPages ? "1" : page.toString());
+      params.append("pageSize", exportAllPages ? "1000000" : pageSize.toString());
+      
+      if (drugCodeSearch) params.append("drugCodeSearch", drugCodeSearch);
+      if (nameSearch) params.append("nameSearch", nameSearch);
+      if (manufacturerSearch) params.append("manufacturerSearch", manufacturerSearch);
+      if (descriptionSearch) params.append("descriptionSearch", descriptionSearch);
+      if (drugGroupId) params.append("drugGroupId", drugGroupId);
+      if (minPrice !== undefined && minPrice !== null) params.append("minPrice", minPrice.toString());
+      if (maxPrice !== undefined && maxPrice !== null) params.append("maxPrice", maxPrice.toString());
+      if (sortBy) params.append("sortBy", sortBy);
+      params.append("ascending", ascending !== undefined ? ascending.toString() : "true");
+      
+      // Xử lý status đặc biệt, đảm bảo nó không bị mã hóa sai
+      if (status) {
+        // Nếu status là chuỗi với các giá trị phân tách bằng dấu phẩy, không thêm dấu phẩy mới
+        const cleanStatus = status.replace(/,/g, ",");
+        params.append("status", cleanStatus);
+      }
+      
+      if (createdStartDate) params.append("createdStartDate", createdStartDate);
+      if (createdEndDate) params.append("createdEndDate", createdEndDate);
+      if (updatedStartDate) params.append("updatedStartDate", updatedStartDate);
+      if (updatedEndDate) params.append("updatedEndDate", updatedEndDate);
+      params.append("exportAllPages", exportAllPages.toString());
+      
+      console.log(`Retry with query params: ${params.toString()}`);
+      
+      try {
+        // Phương án 1: đúng theo cấu trúc API tiêu chuẩn
+        const response = await api.post(`/drug-management/drugs/export-excel?${params.toString()}`, config);
+        console.log("Export response (standard):", response.data);
+        return response.data;
+      } catch (queryError: any) {
+        console.error("Export failed with standard url:", queryError.message);
+        
+        try {
+          // Phương án 2: thử không có tiền tố api vì baseURL có thể đã bao gồm
+          const response = await api.post(`drug-management/drugs/export-excel?${params.toString()}`, config);
+          console.log("Export response (no leading slash):", response.data);
+          return response.data;
+        } catch (noSlashError: any) {
+          console.error("Export failed with no leading slash:", noSlashError.message);
+          
+          try {
+            // Phương án 3: thử với axios trực tiếp, không qua instance
+            const fullUrl = `http://localhost:5104/api/drug-management/drugs/export-excel?${params.toString()}`;
+            console.log("Trying direct URL:", fullUrl);
+            
+            // Import axios trực tiếp
+            const axios = require('axios');
+            const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+            
+            const directResponse = await axios.post(fullUrl, config, {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : undefined
+              }
+            });
+            
+            console.log("Export response (direct axios):", directResponse.data);
+            return directResponse.data;
+          } catch (directError: any) {
+            console.error("Export failed with direct axios:", directError.message);
+            throw new Error(`All export methods failed. Last error: ${directError.message}`);
+          }
+        }
+      }
     }
-    
-    if (drugCodeSearch) params.append("drugCodeSearch", drugCodeSearch);
-    if (nameSearch) params.append("nameSearch", nameSearch);
-    if (manufacturerSearch) params.append("manufacturerSearch", manufacturerSearch);
-    if (descriptionSearch) params.append("descriptionSearch", descriptionSearch);
-    if (drugGroupId) params.append("drugGroupId", drugGroupId);
-    if (minPrice !== undefined && minPrice !== null) params.append("minPrice", minPrice.toString());
-    if (maxPrice !== undefined && maxPrice !== null) params.append("maxPrice", maxPrice.toString());
-    
-    // Đảm bảo sortBy không phải là null hoặc undefined
-    if (sortBy) params.append("sortBy", sortBy);
-    // Đảm bảo ascending tồn tại
-    params.append("ascending", ascending !== undefined ? ascending.toString() : "true");
-    
-    if (status) params.append("status", status);
-    if (createdStartDate) params.append("createdStartDate", createdStartDate);
-    if (createdEndDate) params.append("createdEndDate", createdEndDate);
-    if (updatedStartDate) params.append("updatedStartDate", updatedStartDate);
-    if (updatedEndDate) params.append("updatedEndDate", updatedEndDate);
-    
-    // Thêm tham số exportAllPages vào query params để backend biết có cần xuất tất cả hay không
-    params.append("exportAllPages", exportAllPages.toString());
-    
-    // Sử dụng phương thức POST với config là body và các tham số khác là query
-    const response = await api.post(`/drug-management/drugs/export-excel?${params.toString()}`, config);
-    return response.data;
   } catch (error) {
-    console.error("Error exporting drugs to Excel:", error);
+    console.error("Error preparing export request:", error);
     throw error;
   }
 };

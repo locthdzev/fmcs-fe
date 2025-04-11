@@ -212,20 +212,18 @@ export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
           <Card title={<Title level={5}>Truck Image</Title>}>
             {truck.truckImage ? (
               <div 
-                style={{ cursor: 'pointer' }} 
-                onClick={() => setPreviewImage(truck.truckImage || null)}
                 className="flex justify-center"
               >
-                <img
+                <Image
                   src={truck.truckImage}
                   alt={truck.licensePlate}
                   style={{ 
-                    maxWidth: '100%', 
                     maxHeight: '300px', 
                     objectFit: 'contain',
-                    transition: 'transform 0.3s ease',
                   }}
-                  className="hover:scale-105"
+                  preview={{
+                    src: truck.truckImage,
+                  }}
                 />
               </div>
             ) : (
