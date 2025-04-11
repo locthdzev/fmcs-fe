@@ -40,6 +40,7 @@ import UserTable from "./UserTable";
 import CreateModal from "./CreateModal";
 import ExportConfigModal from "./ExportConfigModal";
 import UserFilterModal from "./UserFilterModal";
+import ImportUserModal from "./ImportUserModal";
 
 import {
   getAllUsers,
@@ -73,6 +74,7 @@ export function UserManagement() {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedUserDetail, setSelectedUserDetail] =
     useState<UserResponseDTO | null>(null);
+  const [importModalVisible, setImportModalVisible] = useState(false);
 
   // Column visibility state
   const [columnVisibility, setColumnVisibility] = useState<
@@ -315,21 +317,21 @@ export function UserManagement() {
       const response = await getAllUsers(
         1,
         1000, // Số lượng lớn để lấy tất cả người dùng
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        "CreatedAt", // Sắp xếp theo ngày tạo
-        false // Giảm dần (mới nhất trước)
+        undefined, // fullNameSearch
+        undefined, // userNameSearch
+        undefined, // emailSearch
+        undefined, // phoneSearch
+        undefined, // roleFilter
+        undefined, // genderFilter
+        undefined, // dobStartDate
+        undefined, // dobEndDate
+        undefined, // createdStartDate
+        undefined, // createdEndDate
+        undefined, // updatedStartDate
+        undefined, // updatedEndDate
+        undefined, // status
+        "CreatedAt", // sortBy
+        false // ascending - Giảm dần (mới nhất trước)
       );
 
       if (response.isSuccess) {
@@ -355,21 +357,21 @@ export function UserManagement() {
       const response = await getAllUsers(
         1,
         1000, // Số lượng lớn để lấy tất cả người dùng
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        "CreatedAt", // Sắp xếp theo ngày tạo
-        false // Giảm dần (mới nhất trước)
+        undefined, // fullNameSearch
+        undefined, // userNameSearch
+        undefined, // emailSearch
+        undefined, // phoneSearch
+        undefined, // roleFilter
+        undefined, // genderFilter
+        undefined, // dobStartDate
+        undefined, // dobEndDate
+        undefined, // createdStartDate
+        undefined, // createdEndDate
+        undefined, // updatedStartDate
+        undefined, // updatedEndDate
+        undefined, // status
+        "CreatedAt", // sortBy
+        false // ascending - Giảm dần (mới nhất trước)
       );
 
       if (response.isSuccess) {
@@ -722,6 +724,12 @@ export function UserManagement() {
     }
   };
 
+  const handleImportSuccess = () => {
+    setImportModalVisible(false);
+    fetchUsers();
+    messageApi.success("Users imported successfully");
+  };
+
   const handleImportUsers = async (file: File) => {
     try {
       setLoading(true);
@@ -825,11 +833,9 @@ export function UserManagement() {
   const getAllUserIdsByStatus = async (statuses: string[]): Promise<string[]> => {
     try {
       // Get all users with the given statuses
-      // Note: This is a simplified version. In a real app, you might want to fetch this from the API
-      // to avoid fetching all users if there are many.
       const response = await getAllUsers(
         1, // pageNumber
-        1000, // pageSize - A large number to get all - in a real app you might need pagination
+        1000, // pageSize - A large number to get all
         "", // fullNameSearch
         "", // userNameSearch
         "", // emailSearch
@@ -844,7 +850,7 @@ export function UserManagement() {
         undefined, // updatedEndDate
         statuses.join(","), // status
         "CreatedAt", // sortBy
-        false // isAscending
+        false // ascending
       );
       
       // Extract IDs from the response
@@ -1100,18 +1106,7 @@ export function UserManagement() {
             {/* Import Button */}
             <Button
               icon={<UploadOutlined />}
-              onClick={() => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = ".xlsx, .xls";
-                input.onchange = (e) => {
-                  const target = e.target as HTMLInputElement;
-                  if (target.files && target.files.length > 0) {
-                    handleImportUsers(target.files[0]);
-                  }
-                };
-                input.click();
-              }}
+              onClick={() => setImportModalVisible(true)}
               style={{ marginLeft: "8px" }}
               disabled={loading}
             >
@@ -1164,6 +1159,13 @@ export function UserManagement() {
         filters={filterState}
         roleOptions={roleOptions}
         users={allUsers}
+      />
+
+      {/* Import User Modal */}
+      <ImportUserModal
+        visible={importModalVisible}
+        onCancel={() => setImportModalVisible(false)}
+        onSuccess={handleImportSuccess}
       />
     </div>
   );

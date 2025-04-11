@@ -275,10 +275,30 @@ export const exportUserTemplate = async () => {
   }
 };
 
-export const importUsers = async (file: File) => {
+export const importUsers = async (file: File, config?: {
+  skipDuplicates?: boolean;
+  stopOnError?: boolean;
+  defaultPassword?: string;
+  useDefaultPassword?: boolean;
+}) => {
   try {
     const formData = new FormData();
     formData.append("file", file);
+    
+    if (config) {
+      if (config.skipDuplicates !== undefined) {
+        formData.append("skipDuplicates", config.skipDuplicates.toString());
+      }
+      if (config.stopOnError !== undefined) {
+        formData.append("stopOnError", config.stopOnError.toString());
+      }
+      if (config.defaultPassword) {
+        formData.append("defaultPassword", config.defaultPassword);
+      }
+      if (config.useDefaultPassword !== undefined) {
+        formData.append("useDefaultPassword", config.useDefaultPassword.toString());
+      }
+    }
     
     const response = await api.post("/user-management/users/import", formData, {
       headers: {
