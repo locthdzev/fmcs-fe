@@ -648,45 +648,62 @@ export function UserManagement() {
     try {
       setLoading(true);
 
+      // Process additional filters from the modal
+      const filterFullName = fullNameSearch;
+      const filterUserName = userNameSearch;
+      const filterEmail = emailSearch;
+      const filterPhone = phoneSearch;
+      const filterRole = roleFilter;
+      const filterGender = genderFilter;
+      const filterStatus = statusFilter;
+      
+      // Use values from the modal if they exist, otherwise use the current state values
+      const filterDobRange = dobDateRange;
+      const filterCreatedRange = createdDateRange;
+      const filterUpdatedRange = updatedDateRange;
+      
+      // Apply sort direction from filter if available
+      const filterAscending = ascending;
+      
       // Convert date ranges to Date objects
-      const formattedDobStart = dobDateRange[0]
-        ? dobDateRange[0].toDate()
+      const formattedDobStart = filterDobRange?.[0]
+        ? filterDobRange[0].toDate()
         : undefined;
-      const formattedDobEnd = dobDateRange[1]
-        ? dobDateRange[1].toDate()
+      const formattedDobEnd = filterDobRange?.[1]
+        ? filterDobRange[1].toDate()
         : undefined;
-      const formattedCreatedStart = createdDateRange[0]
-        ? createdDateRange[0].toDate()
+      const formattedCreatedStart = filterCreatedRange?.[0]
+        ? filterCreatedRange[0].toDate()
         : undefined;
-      const formattedCreatedEnd = createdDateRange[1]
-        ? createdDateRange[1].toDate()
+      const formattedCreatedEnd = filterCreatedRange?.[1]
+        ? filterCreatedRange[1].toDate()
         : undefined;
-      const formattedUpdatedStart = updatedDateRange[0]
-        ? updatedDateRange[0].toDate()
+      const formattedUpdatedStart = filterUpdatedRange?.[0]
+        ? filterUpdatedRange[0].toDate()
         : undefined;
-      const formattedUpdatedEnd = updatedDateRange[1]
-        ? updatedDateRange[1].toDate()
+      const formattedUpdatedEnd = filterUpdatedRange?.[1]
+        ? filterUpdatedRange[1].toDate()
         : undefined;
 
       const response = await exportUsersToExcelWithConfig(
         exportConfig,
         currentPage,
         pageSize,
-        fullNameSearch || undefined,
-        userNameSearch || undefined,
-        emailSearch || undefined,
-        phoneSearch || undefined,
-        roleFilter || undefined,
-        genderFilter || undefined,
+        filterFullName || undefined,
+        filterUserName || undefined,
+        filterEmail || undefined,
+        filterPhone || undefined,
+        filterRole || undefined,
+        filterGender || undefined,
         formattedDobStart,
         formattedDobEnd,
         formattedCreatedStart,
         formattedCreatedEnd,
         formattedUpdatedStart,
         formattedUpdatedEnd,
-        statusFilter || undefined,
+        filterStatus || undefined,
         sortBy,
-        ascending
+        filterAscending
       );
 
       if (response.isSuccess) {
@@ -1084,33 +1101,14 @@ export function UserManagement() {
 
           <div>
             {/* Export Button */}
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: "1",
-                    label: "Export Users",
-                    icon: <FileExcelOutlined />,
-                    onClick: handleOpenExportConfig,
-                  },
-                  {
-                    key: "2",
-                    label: "Download Template",
-                    icon: <DownloadOutlined />,
-                    onClick: handleExportTemplate,
-                  },
-                ],
-              }}
-              trigger={["click"]}
+            <Button
+              type="primary"
+              icon={<FileExcelOutlined />}
+              onClick={handleOpenExportConfig}
+              disabled={loading}
             >
-              <Button
-                type="primary"
-                icon={<FileExcelOutlined />}
-                disabled={loading}
-              >
-                Export
-              </Button>
-            </Dropdown>
+              Export
+            </Button>
           </div>
         </div>
       </Card>
@@ -1147,6 +1145,22 @@ export function UserManagement() {
         config={exportConfig}
         onChange={handleExportConfigChange}
         onExport={handleExportToExcel}
+        filters={{
+          fullNameSearch,
+          userNameSearch,
+          emailSearch,
+          phoneSearch,
+          roleFilter,
+          genderFilter,
+          statusFilter,
+          dobDateRange,
+          createdDateRange,
+          updatedDateRange,
+          sortBy,
+          ascending,
+        }}
+        roleOptions={roleOptions}
+        userOptions={userOptions}
       />
 
       {/* Filter Modal */}

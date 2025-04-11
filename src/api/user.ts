@@ -120,7 +120,7 @@ export const getAllUsers = async (
     const params = new URLSearchParams();
     params.append("page", page.toString());
     params.append("pageSize", pageSize.toString());
-    
+
     if (fullNameSearch) params.append("fullNameSearch", fullNameSearch);
     if (userNameSearch) params.append("userNameSearch", userNameSearch);
     if (emailSearch) params.append("emailSearch", emailSearch);
@@ -129,15 +129,21 @@ export const getAllUsers = async (
     if (genderFilter) params.append("genderFilter", genderFilter);
     if (dobStartDate) params.append("dobStartDate", dobStartDate.toISOString());
     if (dobEndDate) params.append("dobEndDate", dobEndDate.toISOString());
-    if (createdStartDate) params.append("createdStartDate", createdStartDate.toISOString());
-    if (createdEndDate) params.append("createdEndDate", createdEndDate.toISOString());
-    if (updatedStartDate) params.append("updatedStartDate", updatedStartDate.toISOString());
-    if (updatedEndDate) params.append("updatedEndDate", updatedEndDate.toISOString());
+    if (createdStartDate)
+      params.append("createdStartDate", createdStartDate.toISOString());
+    if (createdEndDate)
+      params.append("createdEndDate", createdEndDate.toISOString());
+    if (updatedStartDate)
+      params.append("updatedStartDate", updatedStartDate.toISOString());
+    if (updatedEndDate)
+      params.append("updatedEndDate", updatedEndDate.toISOString());
     if (status) params.append("status", status);
     params.append("sortBy", sortBy);
     params.append("ascending", ascending.toString());
 
-    const response = await api.get<UserApiResponse>(`/user-management/users?${params.toString()}`);
+    const response = await api.get<UserApiResponse>(
+      `/user-management/users?${params.toString()}`
+    );
 
     return response.data;
   } catch (error) {
@@ -163,7 +169,7 @@ export const createUser = async (userCreateData: UserCreateRequest) => {
       isSuccess: false,
       code: error.response?.status || 400,
       message: error.response?.data?.message || "Failed to create user",
-      responseError: error.message
+      responseError: error.message,
     };
   }
 };
@@ -275,16 +281,19 @@ export const exportUserTemplate = async () => {
   }
 };
 
-export const importUsers = async (file: File, config?: {
-  skipDuplicates?: boolean;
-  stopOnError?: boolean;
-  defaultPassword?: string;
-  useDefaultPassword?: boolean;
-}) => {
+export const importUsers = async (
+  file: File,
+  config?: {
+    skipDuplicates?: boolean;
+    stopOnError?: boolean;
+    defaultPassword?: string;
+    useDefaultPassword?: boolean;
+  }
+) => {
   try {
     const formData = new FormData();
     formData.append("file", file);
-    
+
     if (config) {
       if (config.skipDuplicates !== undefined) {
         formData.append("skipDuplicates", config.skipDuplicates.toString());
@@ -293,20 +302,23 @@ export const importUsers = async (file: File, config?: {
         formData.append("stopOnError", config.stopOnError.toString());
       }
       if (config.useDefaultPassword !== undefined) {
-        formData.append("useDefaultPassword", config.useDefaultPassword.toString());
-        
+        formData.append(
+          "useDefaultPassword",
+          config.useDefaultPassword.toString()
+        );
+
         if (config.useDefaultPassword === true && config.defaultPassword) {
           formData.append("defaultPassword", config.defaultPassword);
         }
       }
     }
-    
+
     const response = await api.post("/user-management/users/import", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     });
-    
+
     return response.data;
   } catch (error) {
     throw error;
@@ -355,7 +367,7 @@ export const exportUsersToExcelWithConfig = async (
     params.append("ascending", ascending.toString());
 
     const response = await api.post(
-      `/user-management/users/export-with-config?${params.toString()}`,
+      `/user-management/users/export-excel-config?${params.toString()}`,
       config
     );
     
@@ -377,7 +389,7 @@ export const getUserStatistics = async (startDate?: Date, endDate?: Date) => {
       code: number;
       message?: string;
     }>(`/user-management/users/statistics?${params.toString()}`);
-    
+
     return response.data;
   } catch (error) {
     throw error;
