@@ -18,7 +18,7 @@ function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
   const getHighestRole = (roles: string[]) => {
-    const roleHierarchy = ["Admin", "Manager", "Staff", "User"];
+    const roleHierarchy = ["Admin", "Manager", "Healthcare Staff", "Canteen Staff", "User"];
     for (const role of roleHierarchy) {
       if (roles.includes(role)) {
         return role;

@@ -476,14 +476,10 @@ export function TopBar() {
             </div>
           </div>
           <div className="relative ml-5 flex w-full items-center justify-end p-1 sm:right-auto sm:mr-0">
-            <a href="#" className="block pr-5">
-              <IoShareSocialOutline className="h-6 w-6 text-black" />
-            </a>
-            <a href="#" className="block pr-5">
-              <IoAddCircleOutline className="h-6 w-6 text-black" />
-            </a>
-            <NotificationDropdown />
-            <DropdownUser />
+            <div className="flex items-center gap-5">
+              <NotificationDropdown />
+              <DropdownUser />
+            </div>
           </div>
         </div>
       </div>

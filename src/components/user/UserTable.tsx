@@ -18,6 +18,7 @@ import {
   message,
   TableProps,
 } from "antd";
+import type { ColumnsType, ColumnType } from "antd/es/table";
 import {
   EditOutlined,
   DeleteOutlined,
@@ -129,7 +130,7 @@ const UserTable: React.FC<UserTableProps> = ({
   };
 
   // Define table columns
-  const columns = [
+  const columns: ColumnsType<UserResponseDTO> = [
     {
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
@@ -139,6 +140,8 @@ const UserTable: React.FC<UserTableProps> = ({
       dataIndex: "fullName",
       key: "fullName",
       ellipsis: true,
+      fixed: "left" as const,
+      width: 180,
       render: (text: string, record: UserResponseDTO) => (
         <Button
           type="link"
@@ -153,7 +156,6 @@ const UserTable: React.FC<UserTableProps> = ({
           {text}
         </Button>
       ),
-      hidden: !columnVisibility.fullName,
     },
     {
       title: (
@@ -164,7 +166,7 @@ const UserTable: React.FC<UserTableProps> = ({
       dataIndex: "userName",
       key: "userName",
       ellipsis: true,
-      hidden: !columnVisibility.userName,
+      width: 150,
     },
     {
       title: (
@@ -175,7 +177,7 @@ const UserTable: React.FC<UserTableProps> = ({
       dataIndex: "email",
       key: "email",
       ellipsis: true,
-      hidden: !columnVisibility.email,
+      width: 250,
     },
     {
       title: (
@@ -186,7 +188,8 @@ const UserTable: React.FC<UserTableProps> = ({
       dataIndex: "phone",
       key: "phone",
       ellipsis: true,
-      hidden: !columnVisibility.phone,
+      width: 100,
+      align: "center" as const,
     },
     {
       title: (
@@ -196,7 +199,8 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "gender",
       key: "gender",
-      hidden: !columnVisibility.gender,
+      width: 90,
+      align: "center" as const,
     },
     {
       title: (
@@ -206,8 +210,8 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "dob",
       key: "dob",
+      width: 120,
       render: (date: string) => formatDate(date).split(" ")[0],
-      hidden: !columnVisibility.dob,
     },
     {
       title: (
@@ -218,7 +222,7 @@ const UserTable: React.FC<UserTableProps> = ({
       dataIndex: "address",
       key: "address",
       ellipsis: true,
-      hidden: !columnVisibility.address,
+      width: 200,
     },
     {
       title: (
@@ -228,21 +232,39 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "roles",
       key: "roles",
+      width: 100,
+      align: "center" as const,
       render: (roles: string[]) => {
         // Nếu người dùng không có role nào
         if (!roles || roles.length === 0) {
           return <Tag>No roles</Tag>;
         }
 
+        // Hàm viết hoa role
+        const renderRole = (role: string) => {
+          switch (role) {
+            case "Admin":
+              return "Admin";
+            case "Manager":
+              return "Manager";
+            case "Healthcare Staff":
+              return "HealthcareStaff";
+            case "Canteen Staff":
+              return "CanteenStaff";
+            case "User":
+              return "User";
+            default:
+              return role;
+          }
+        };
+
         // Sắp xếp roles theo thứ tự ưu tiên
         const priority: Record<string, number> = {
-          "Admin": 1,
-          "Manager": 2,
+          Admin: 1,
+          Manager: 2,
           "Healthcare Staff": 3,
           "Canteen Staff": 4,
-          "Staff": 5,
-          "User": 6,
-          "Student": 7
+          User: 5,
         };
 
         // Lấy role có mức ưu tiên cao nhất (số nhỏ nhất)
@@ -263,7 +285,6 @@ const UserTable: React.FC<UserTableProps> = ({
           case "Manager":
             color = "orange";
             break;
-          case "Staff":
           case "Healthcare Staff":
             color = "blue";
             break;
@@ -273,25 +294,28 @@ const UserTable: React.FC<UserTableProps> = ({
           case "User":
             color = "green";
             break;
-          case "Student":
-            color = "geekblue";
-            break;
         }
 
         // Hiển thị một tag role duy nhất (quan trọng nhất)
         // Nếu có nhiều role, thêm badge với tooltip
         return (
-          <Tooltip 
-            title={otherRolesCount > 0 ? `+ ${sortedRoles.slice(1).join(', ')}` : undefined}
-            placement="topLeft"
-          >
-            <Tag color={color}>
-              {primaryRole}{otherRolesCount > 0 ? ` +${otherRolesCount}` : ''}
-            </Tag>
-          </Tooltip>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <Tooltip
+              title={
+                otherRolesCount > 0
+                  ? `+ ${sortedRoles.slice(1).map(renderRole).join(", ")}`
+                  : undefined
+              }
+              placement="topLeft"
+            >
+              <Tag color={color}>
+                {renderRole(primaryRole)}
+                {otherRolesCount > 0 ? ` +${otherRolesCount}` : ""}
+              </Tag>
+            </Tooltip>
+          </div>
         );
       },
-      hidden: !columnVisibility.roles,
     },
     {
       title: (
@@ -301,13 +325,13 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "status",
       key: "status",
+      width: 120,
       align: "center" as const,
       render: (status: string) => (
         <div style={{ display: "flex", justifyContent: "center" }}>
           {renderStatusTag(status)}
         </div>
       ),
-      hidden: !columnVisibility.status,
     },
     {
       title: (
@@ -317,8 +341,8 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "createdAt",
       key: "createdAt",
+      width: 180,
       render: (date: string) => formatDate(date),
-      hidden: !columnVisibility.createdAt,
     },
     {
       title: (
@@ -328,16 +352,25 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "updatedAt",
       key: "updatedAt",
+      width: 180,
       render: (date: string) => (date ? formatDate(date) : "N/A"),
-      hidden: !columnVisibility.updatedAt,
     },
     {
       title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold", display: "flex", justifyContent: "center" }}>
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
           ACTIONS
         </span>
       ),
       key: "actions",
+      fixed: "right" as const,
+      width: 120,
       render: (text: string, record: UserResponseDTO) => (
         <Space style={{ display: "flex", justifyContent: "center" }}>
           <Tooltip title="Edit">
@@ -378,20 +411,24 @@ const UserTable: React.FC<UserTableProps> = ({
               placement="topLeft"
             >
               <Tooltip title="Activate">
-                <Button type="text" icon={<CheckCircleOutlined />} style={{ color: "#52c41a" }} />
+                <Button
+                  type="text"
+                  icon={<CheckCircleOutlined />}
+                  style={{ color: "#52c41a" }}
+                />
               </Tooltip>
             </Popconfirm>
           )}
         </Space>
       ),
       align: "center" as const,
-      hidden: !columnVisibility.actions,
     },
   ];
 
   // Filter columns based on visibility settings
   const visibleColumns = columns.filter((column) => {
-    return columnVisibility[column.key as keyof typeof columnVisibility];
+    const key = column.key as string;
+    return key in columnVisibility ? columnVisibility[key] : true;
   });
 
   if (loading) {

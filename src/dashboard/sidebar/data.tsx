@@ -59,7 +59,7 @@ export const data = [
   {
     groupTitle: "Management",
     items: [
-      { title: "Users", icon: <UsersIcon />, link: "/user/management" },
+      { title: "Users", icon: <UsersIcon />, link: "/user" },
       {
         title: "Drugs",
         icon: <DrugIcon />,
@@ -120,14 +120,36 @@ export const data = [
         icon: <AppointmentIcon />,
         submenu: [
           {
-            title: "Manage Appointments",
+            title: "Appointments",
             icon: <AppointmentIcon />,
             link: "/appointment/management",
           },
           {
-            title: "Appointment",
+            title: "Schedule Appointment",
             icon: <AppointmentIcon />,
             link: "/appointment",
+          },
+          {
+            title: "Healthcare Officer Appointment Management",
+            icon: <AppointmentIcon />,
+            link: "/appointment/manageforstaff",
+          },
+        ],
+      },
+
+      {
+        title: "Manage Periodic health checkup",
+        icon: <PeriodicHealthCheckupsIcon />,
+        submenu: [
+          {
+            title: "Periodic Health Checkups",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/periodic-health-checkup/periodichealthcheckups",
+          },
+          {
+            title: "Healthcare Officer Checkups Management",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/periodic-health-checkup/management",
           },
         ],
       },
