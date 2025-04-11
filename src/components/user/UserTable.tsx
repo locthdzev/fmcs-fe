@@ -175,6 +175,7 @@ const UserTable: React.FC<UserTableProps> = ({
       dataIndex: "email",
       key: "email",
       ellipsis: true,
+      width: 250,
       hidden: !columnVisibility.email,
     },
     {
@@ -228,11 +229,30 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
       dataIndex: "roles",
       key: "roles",
+      align: "center" as const,
       render: (roles: string[]) => {
         // Nếu người dùng không có role nào
         if (!roles || roles.length === 0) {
           return <Tag>No roles</Tag>;
         }
+
+        // Hàm viết hoa role
+        const capitalizeRole = (role: string): string => {
+          switch (role) {
+            case "Admin":
+              return "Admin";
+            case "Manager":
+              return "Manager";
+            case "Healthcare Staff":
+              return "HealthcareStaff";
+            case "Canteen Staff":
+              return "CanteenStaff";
+            case "User":
+              return "User";
+            default:
+              return role;
+          }
+        };
 
         // Sắp xếp roles theo thứ tự ưu tiên
         const priority: Record<string, number> = {
@@ -261,7 +281,6 @@ const UserTable: React.FC<UserTableProps> = ({
           case "Manager":
             color = "orange";
             break;
-          case "Staff":
           case "Healthcare Staff":
             color = "blue";
             break;
@@ -271,27 +290,26 @@ const UserTable: React.FC<UserTableProps> = ({
           case "User":
             color = "green";
             break;
-          case "Student":
-            color = "geekblue";
-            break;
         }
 
         // Hiển thị một tag role duy nhất (quan trọng nhất)
         // Nếu có nhiều role, thêm badge với tooltip
         return (
-          <Tooltip
-            title={
-              otherRolesCount > 0
-                ? `+ ${sortedRoles.slice(1).join(", ")}`
-                : undefined
-            }
-            placement="topLeft"
-          >
-            <Tag color={color}>
-              {primaryRole}
-              {otherRolesCount > 0 ? ` +${otherRolesCount}` : ""}
-            </Tag>
-          </Tooltip>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <Tooltip
+              title={
+                otherRolesCount > 0
+                  ? `+ ${sortedRoles.slice(1).map(capitalizeRole).join(", ")}`
+                  : undefined
+              }
+              placement="topLeft"
+            >
+              <Tag color={color}>
+                {capitalizeRole(primaryRole)}
+                {otherRolesCount > 0 ? ` +${otherRolesCount}` : ""}
+              </Tag>
+            </Tooltip>
+          </div>
         );
       },
       hidden: !columnVisibility.roles,
