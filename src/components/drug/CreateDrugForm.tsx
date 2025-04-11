@@ -89,10 +89,39 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
 
       formDataToSend.append("status", "Active");
       formDataToSend.append("createdAt", new Date().toISOString());
+      
+      // Thêm ImageUrl vào FormData - trường không thể thiếu khi gửi lên server
+      formDataToSend.append("ImageUrl", "");
 
-      // Append the image file if it exists
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        formDataToSend.append("imageFile", fileList[0].originFileObj);
+      // Kiểm tra và thêm file nếu có
+      if (fileList.length > 0) {
+        console.log("FileList details:", {
+          file: fileList[0],
+          hasOriginFileObj: !!fileList[0].originFileObj,
+          fileType: fileList[0].type,
+          fileSize: fileList[0].size,
+          fileKeys: Object.keys(fileList[0])
+        });
+        
+        // Kiểm tra xem file có originFileObj không
+        if (fileList[0].originFileObj) {
+          console.log("Adding file from originFileObj");
+          formDataToSend.append("imageFile", fileList[0].originFileObj);
+        } else {
+          console.warn("File selected but no originFileObj found");
+          messageApi.warning("Could not process the selected file");
+        }
+      } else {
+        console.log("No image file to upload");
+      }
+
+      // Debug formData
+      console.log("FormData entries to be sent:");
+      for (let pair of formDataToSend.entries()) {
+        const value = pair[1];
+        console.log(`${pair[0]}: ${value instanceof File ? 
+          `File (${(value as File).name}, ${(value as File).type}, ${(value as File).size} bytes)` : 
+          value}`);
       }
 
       try {
@@ -129,11 +158,32 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
         messageApi.error('Image must be smaller than 2MB!');
         return Upload.LIST_IGNORE;
       }
-      setFileList([file]);
+      
+      // Tạo một file mới từ file ban đầu để đảm bảo nó có thể được sử dụng
+      const newFile = new File([file], file.name, { type: file.type });
+      
+      // Tạo đối tượng upload file
+      const uploadFile = {
+        uid: Date.now().toString(),
+        name: newFile.name,
+        size: newFile.size,
+        type: newFile.type,
+        originFileObj: newFile  // Thêm trường originFileObj
+      } as UploadFile;
+      
+      console.log("File selected for upload:", {
+        name: uploadFile.name,
+        type: uploadFile.type,
+        size: uploadFile.size,
+        hasOriginFileObj: !!uploadFile.originFileObj
+      });
+      
+      setFileList([uploadFile]);
       return false; // Prevent auto upload
     },
     fileList,
     onRemove: () => {
+      console.log("File removed from list");
       setFileList([]);
     },
     maxCount: 1,
@@ -221,7 +271,11 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           </Form.Item>
 
           <Form.Item label="Drug Image">
-            <Dragger {...uploadProps}>
+            <Dragger 
+              {...uploadProps} 
+              name="imageFile" 
+              accept="image/png,image/jpeg"
+            >
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>

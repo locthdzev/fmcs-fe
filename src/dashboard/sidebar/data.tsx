@@ -95,7 +95,7 @@ export const data = [
           {
             title: "CanteenItems",
             icon: <CanteenItemIcon />,
-            link: "/canteen/canteen-item",
+            link: "/canteen-item",
           },
           {
             title: "CanteenInspections",
@@ -105,7 +105,7 @@ export const data = [
           {
             title: "CanteenOrders",
             icon: <CanteenOrder />,
-            link: "/canteen-order/management",
+            link: "/canteen-order",
           },
           {
             title: "Trucks",

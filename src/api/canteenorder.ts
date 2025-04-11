@@ -153,3 +153,73 @@ export const completeCanteenOrders = async (orderIds: string[]) => {
     throw error;
   }
 };
+
+export interface CanteenOrderExportConfig {
+  includeId: boolean;
+  includeTruckInfo: boolean;
+  includeOrderDate: boolean;
+  includeCreatedInfo: boolean;
+  includeUpdatedInfo: boolean;
+  includeStatus: boolean;
+  includeOrderDetails: boolean;
+}
+
+export const exportCanteenOrdersToExcel = async (config: CanteenOrderExportConfig) => {
+  try {
+    console.log("Exporting canteen orders with config:", config);
+    const response = await api.post(
+      "/canteenorder-management/export-to-excel",
+      config,
+      { 
+        responseType: 'blob',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+      }
+    );
+    
+    // Check if the response is a blob
+    const contentType = response.headers['content-type'];
+    
+    // If the response is not a blob or is an error message in JSON format
+    if (contentType && contentType.includes('application/json')) {
+      // Convert blob to text to read the error
+      const reader = new FileReader();
+      const errorTextPromise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+      });
+      reader.readAsText(response.data);
+      
+      const errorText = await errorTextPromise;
+      const errorData = JSON.parse(errorText);
+      console.error("Export error:", errorData);
+      throw new Error(errorData.message || "Failed to export to Excel");
+    }
+    
+    // If we got here, we have a valid Excel file blob
+    // Create a URL for the blob
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    
+    // Create a link element
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `CanteenOrders_${new Date().toISOString().slice(0,19).replace(/:/g, '')}.xlsx`);
+    
+    // Append the link to body
+    document.body.appendChild(link);
+    
+    // Trigger the download
+    link.click();
+    
+    // Clean up
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+    
+    return true;
+  } catch (error) {
+    console.error("Error exporting canteen orders to Excel:", error);
+    throw error;
+  }
+};

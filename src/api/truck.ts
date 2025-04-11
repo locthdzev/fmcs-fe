@@ -80,12 +80,22 @@ export const createTruck = async (truckData: FormData) => {
   }
 };
 
-export const updateTruck = async (id: string, truckData: FormData) => {
+export const updateTruck = async (id: string, truckData: FormData): Promise<any> => {
   try {
+    // Log FormData contents for debugging
+    console.log(`Sending update request for truck ID: ${id}`);
+    let formDataContent = "";
+    for (const [key, value] of truckData.entries()) {
+      formDataContent += `${key}: ${value instanceof File ? `File (${value.name}, ${value.size} bytes)` : value}\n`;
+    }
+    console.log("FormData contents being sent to server:\n", formDataContent);
+    console.log("FormData contains imageFile:", truckData.has("imageFile"));
+
     const response = await api.put(`/truck-management/trucks/${id}`, truckData);
     return response.data;
-  } catch (error) {
-    throw error;
+  } catch (error: any) {
+    console.error(`Error updating truck ${id}:`, error.response || error);
+    throw new Error(error.response?.data?.message || 'Failed to update truck');
   }
 };
 

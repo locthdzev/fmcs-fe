@@ -1,14 +1,14 @@
 import React from "react";
 import {
   Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Button,
-  Chip,
-} from "@heroui/react";
+  Space,
+  Typography,
+  Tag
+} from "antd";
 import { CanteenOrderResponse } from "@/api/canteenorder";
+
+const { Text, Title } = Typography;
 
 interface ConfirmDeleteCanteenOrderModalProps {
   order: CanteenOrderResponse | null;
@@ -17,9 +17,9 @@ interface ConfirmDeleteCanteenOrderModalProps {
   onConfirmDelete: () => void;
 }
 
-const statusColorMap: Record<string, any> = {
+const statusColorMap: Record<string, string> = {
   Active: "success",
-  Inactive: "danger",
+  Inactive: "error",
   Cancelled: "warning",
 };
 
@@ -32,25 +32,23 @@ const ConfirmDeleteCanteenOrderModal: React.FC<ConfirmDeleteCanteenOrderModalPro
   if (!order) return null;
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-2xl">
-      <ModalContent className="rounded-lg shadow-lg border border-gray-200 bg-white">
-        <ModalHeader className="border-b pb-3">
-          <span className="text-red-500">Confirm Delete</span>
-        </ModalHeader>
-        <ModalBody className="p-6">
-          <p className="text-gray-700 mb-4">
-            Are you sure you want to delete the following canteen order?
-          </p>
-        </ModalBody>
-        <ModalFooter className="border-t pt-3">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button color="danger" onClick={onConfirmDelete}>
-            Delete
-          </Button>
-        </ModalFooter>
-      </ModalContent>
+    <Modal
+      title={<Text type="danger">Confirm Delete</Text>}
+      open={isOpen}
+      onCancel={onClose}
+      footer={[
+        <Button key="cancel" onClick={onClose}>
+          Cancel
+        </Button>,
+        <Button key="delete" danger onClick={onConfirmDelete}>
+          Delete
+        </Button>
+      ]}
+      width={600}
+    >
+      <p className="text-gray-700 mb-4">
+        Are you sure you want to delete the following canteen order?
+      </p>
     </Modal>
   );
 };

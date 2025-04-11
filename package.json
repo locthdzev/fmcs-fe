@@ -27,6 +27,8 @@
   "dependencies": {
     "@ant-design/charts": "^2.2.7",
     "@ant-design/icons": "^5.6.1",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@heroicons/react": "^2.2.0",
     "@heroui/react": "^2.7.4",
     "@microsoft/signalr": "^8.0.7",
