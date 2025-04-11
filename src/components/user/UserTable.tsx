@@ -18,10 +18,9 @@ import {
   message,
   TableProps,
 } from "antd";
-import type { ColumnsType, ColumnType } from "antd/es/table";
+import type { ColumnsType } from "antd/es/table";
 import {
   EditOutlined,
-  DeleteOutlined,
   EyeOutlined,
   CheckCircleOutlined,
   StopOutlined,
@@ -33,6 +32,7 @@ import { UserResponseDTO } from "@/api/user";
 const { Text } = Typography;
 const { Option } = Select;
 
+// ======== TYPES & INTERFACES ========
 interface UserTableProps {
   users: UserResponseDTO[];
   loading: boolean;
@@ -50,6 +50,7 @@ interface UserTableProps {
   getAllUserIdsByStatus?: (statuses: string[]) => Promise<string[]>;
 }
 
+// ======== MAIN COMPONENT ========
 const UserTable: React.FC<UserTableProps> = ({
   users,
   loading,
@@ -68,13 +69,10 @@ const UserTable: React.FC<UserTableProps> = ({
 }) => {
   const [messageApi, contextHolder] = message.useMessage();
 
-  // For tracking selected option in dropdown
+  // ======== STATE MANAGEMENT ========
+  // Selection states
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-
-  // Add loading state for when fetching all items
   const [isLoadingAllItems, setIsLoadingAllItems] = useState<boolean>(false);
-
-  // State to track what type of items are selected (for bulk actions)
   const [selectedItemTypes, setSelectedItemTypes] = useState<{
     hasActive: boolean;
     hasInactive: boolean;
@@ -83,6 +81,7 @@ const UserTable: React.FC<UserTableProps> = ({
     hasInactive: false,
   });
 
+  // ======== EFFECTS ========
   // Update selected item types when selectedUsers changes
   useEffect(() => {
     if (selectedUsers.length === 0) {
@@ -111,8 +110,7 @@ const UserTable: React.FC<UserTableProps> = ({
       }
     }
 
-    // For "select all" checkbox or individual selections:
-    // First check current page data to determine visible selected users
+    // For "select all" checkbox or individual selections
     const visibleSelectedUsers = users.filter((user) => 
       selectedUsers.includes(user.id)
     );
@@ -127,14 +125,13 @@ const UserTable: React.FC<UserTableProps> = ({
 
     // For select all or selection that includes users from other pages
     if (visibleSelectedUsers.length < selectedUsers.length) {
-      // When select all is used, we need to show both buttons
-      // since we assume there could be both active and inactive users
+      // Show both buttons when select all is used (assuming mixed statuses)
       setSelectedItemTypes({
         hasActive: true, 
         hasInactive: true,
       });
     } else {
-      // For selections only on current page
+      // For selections only on current page, use actual statuses
       setSelectedItemTypes({
         hasActive: hasActiveInCurrentPage,
         hasInactive: hasInactiveInCurrentPage,
@@ -142,6 +139,7 @@ const UserTable: React.FC<UserTableProps> = ({
     }
   }, [selectedUsers, users, selectedOption]);
 
+  // ======== UTILITY FUNCTIONS ========
   // Format date strings for display
   const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return "-";
@@ -151,24 +149,19 @@ const UserTable: React.FC<UserTableProps> = ({
   // Get status tag color
   const getStatusColor = (status: string) => {
     switch (status.toUpperCase()) {
-      case "ACTIVE":
-        return "success";
-      case "INACTIVE":
-        return "error";
-      default:
-        return "default";
+      case "ACTIVE": return "success";
+      case "INACTIVE": return "error";
+      default: return "default";
     }
   };
 
   // Render status tag
   const renderStatusTag = (status: string) => {
     const color = getStatusColor(status);
-    const icon =
-      status.toUpperCase() === "ACTIVE" ? (
-        <CheckCircleOutlined />
-      ) : (
-        <StopOutlined />
-      );
+    const icon = status.toUpperCase() === "ACTIVE" 
+      ? <CheckCircleOutlined /> 
+      : <StopOutlined />;
+      
     return (
       <Tag color={color} icon={icon}>
         {status}
@@ -176,6 +169,19 @@ const UserTable: React.FC<UserTableProps> = ({
     );
   };
 
+  // Helper to render role with proper formatting
+  const renderRole = (role: string) => {
+    switch (role) {
+      case "Admin": return "Admin";
+      case "Manager": return "Manager";
+      case "Healthcare Staff": return "HealthcareStaff";
+      case "Canteen Staff": return "CanteenStaff";
+      case "User": return "User";
+      default: return role;
+    }
+  };
+
+  // ======== SELECTION HANDLERS ========
   // Get all user IDs with specific statuses
   const getItemIdsByStatus = async (
     statuses: string[],
@@ -218,133 +224,16 @@ const UserTable: React.FC<UserTableProps> = ({
     }
   };
 
-  // Hàm tiện ích để xóa hoàn toàn mọi selection và reset dropdown
+  // Clear selection helper
   const clearAllSelections = () => {
     onUserSelect([]);
     setSelectedOption(null);
   };
 
-  // Function to render the custom select all dropdown
-  const renderSelectAll = () => {
-    // Count users by status to determine which options to show
-    const activeCount = users.filter((user) => user.status === "Active").length;
-    const inactiveCount = users.filter(
-      (user) => user.status === "Inactive"
-    ).length;
-
-    const isSelectAll =
-      selectedUsers.length > 0 && selectedUsers.length === users.length;
-    const isIndeterminate =
-      selectedUsers.length > 0 && selectedUsers.length < users.length;
-
-    // Create dropdown menu items
-    const items = [];
-
-    // Only add "select this page" option if we have active users on current page
-    if (activeCount > 0) {
-      items.push({
-        key: "page-active",
-        label: (
-          <div>
-            Select all Active users on this page
-          </div>
-        ),
-      });
-    }
-
-    // Only add "select all pages" option for Active users if there are active users
-    if (activeCount > 0 || (getAllUserIdsByStatus && totalItems > 0)) {
-      items.push({
-        key: "all-active",
-        label: (
-          <div>
-            {isLoadingAllItems && selectedOption === "all-active" ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Spin size="small" />
-                <span>Loading all Active users...</span>
-              </div>
-            ) : (
-              <span>Select all Active users (all pages)</span>
-            )}
-          </div>
-        ),
-      });
-    }
-
-    // Only add "select this page" option if we have inactive users on current page
-    if (inactiveCount > 0) {
-      items.push({
-        key: "page-inactive",
-        label: (
-          <div>
-            Select all Inactive users on this page
-          </div>
-        ),
-      });
-    }
-
-    // Only add "select all pages" option for Inactive users if there are inactive users
-    if (inactiveCount > 0) {
-      items.push({
-        key: "all-inactive",
-        label: (
-          <div>
-            {isLoadingAllItems && selectedOption === "all-inactive" ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Spin size="small" />
-                <span>Loading all Inactive users...</span>
-              </div>
-            ) : (
-              <span>Select all Inactive users (all pages)</span>
-            )}
-          </div>
-        ),
-      });
-    }
-
-    return (
-      <>
-        <Checkbox
-          checked={isSelectAll}
-          indeterminate={isIndeterminate}
-          onChange={handleSelectAllToggle}
-          disabled={false} // Không vô hiệu hóa checkbox select all
-        />
-        <Dropdown
-          menu={{
-            items,
-            onClick: ({ key }) => handleSelectByStatus(key),
-            // Không sử dụng selectable và selectedKeys để tránh tô màu xám
-            selectable: false,
-          }}
-          placement="bottomLeft"
-          trigger={["click"]}
-          open={items.length > 0 ? undefined : false}
-        >
-          <Button
-            type="text"
-            size="small"
-            className="select-all-dropdown"
-            style={{
-              marginLeft: 0,
-              padding: "0 4px",
-              position: "absolute",
-              top: "50%",
-              transform: "translateY(-50%)",
-              left: "22px",
-            }}
-          >
-            <DownOutlined />
-          </Button>
-        </Dropdown>
-      </>
-    );
-  };
-
-  // Improved select all toggle - selects all users across all pages
+  // Select all toggle handler
   const handleSelectAllToggle = async (e: any) => {
     if (e.target.checked) {
-      // When checked, select all users from all pages (including both Active and Inactive)
+      // When checked, select all users from all pages
       try {
         setIsLoadingAllItems(true);
         // Get all user IDs (both Active and Inactive) from all pages
@@ -384,9 +273,9 @@ const UserTable: React.FC<UserTableProps> = ({
     }
   };
 
-  // Handle select by status
+  // Handle select by status from dropdown
   const handleSelectByStatus = async (key: string) => {
-    // First check if this option is already selected
+    // Check if this option is already selected
     if (selectedOption === key) {
       // If it is, deselect it and clear selections
       clearAllSelections();
@@ -399,7 +288,6 @@ const UserTable: React.FC<UserTableProps> = ({
           // Select all Active users from all pages
           const activeIds = await getItemIdsByStatus(["Active"], false);
           onUserSelect(activeIds);
-          // Set proper button visibility
           setSelectedItemTypes({
             hasActive: true,
             hasInactive: false,
@@ -409,7 +297,6 @@ const UserTable: React.FC<UserTableProps> = ({
           // Select all Inactive users from all pages
           const inactiveIds = await getItemIdsByStatus(["Inactive"], false);
           onUserSelect(inactiveIds);
-          // Set proper button visibility
           setSelectedItemTypes({
             hasActive: false,
             hasInactive: true,
@@ -419,7 +306,6 @@ const UserTable: React.FC<UserTableProps> = ({
           // Select Active users on current page
           const pageActiveIds = await getItemIdsByStatus(["Active"], true);
           onUserSelect(pageActiveIds);
-          // Set proper button visibility
           setSelectedItemTypes({
             hasActive: true,
             hasInactive: false,
@@ -429,19 +315,121 @@ const UserTable: React.FC<UserTableProps> = ({
           // Select Inactive users on current page
           const pageInactiveIds = await getItemIdsByStatus(["Inactive"], true);
           onUserSelect(pageInactiveIds);
-          // Set proper button visibility
           setSelectedItemTypes({
             hasActive: false,
             hasInactive: true,
           });
           break;
-        default:
-          break;
       }
     }
   };
 
-  // Function to determine which action buttons to show
+  // ======== UI COMPONENTS ========
+  // Render Select All checkbox with dropdown
+  const renderSelectAll = () => {
+    // Count users by status to determine which options to show
+    const activeCount = users.filter((user) => user.status === "Active").length;
+    const inactiveCount = users.filter((user) => user.status === "Inactive").length;
+
+    const isSelectAll = selectedUsers.length > 0 && selectedUsers.length === users.length;
+    const isIndeterminate = selectedUsers.length > 0 && selectedUsers.length < users.length;
+
+    // Create dropdown menu items
+    const items = [];
+
+    // Only add "select active on this page" if we have active users
+    if (activeCount > 0) {
+      items.push({
+        key: "page-active",
+        label: <div>Select all Active users on this page</div>,
+      });
+    }
+
+    // Only add "select all active" if there are active users
+    if (activeCount > 0 || (getAllUserIdsByStatus && totalItems > 0)) {
+      items.push({
+        key: "all-active",
+        label: (
+          <div>
+            {isLoadingAllItems && selectedOption === "all-active" ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Spin size="small" />
+                <span>Loading all Active users...</span>
+              </div>
+            ) : (
+              <span>Select all Active users (all pages)</span>
+            )}
+          </div>
+        ),
+      });
+    }
+
+    // Only add "select inactive on this page" if we have inactive users
+    if (inactiveCount > 0) {
+      items.push({
+        key: "page-inactive",
+        label: <div>Select all Inactive users on this page</div>,
+      });
+    }
+
+    // Only add "select all inactive" if there are inactive users
+    if (inactiveCount > 0) {
+      items.push({
+        key: "all-inactive",
+        label: (
+          <div>
+            {isLoadingAllItems && selectedOption === "all-inactive" ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Spin size="small" />
+                <span>Loading all Inactive users...</span>
+              </div>
+            ) : (
+              <span>Select all Inactive users (all pages)</span>
+            )}
+          </div>
+        ),
+      });
+    }
+
+    return (
+      <>
+        <Checkbox
+          checked={isSelectAll}
+          indeterminate={isIndeterminate}
+          onChange={handleSelectAllToggle}
+          disabled={false}
+        />
+        <Dropdown
+          menu={{
+            items,
+            onClick: ({ key }) => handleSelectByStatus(key),
+            selectable: false,
+          }}
+          placement="bottomLeft"
+          trigger={["click"]}
+          open={items.length > 0 ? undefined : false}
+        >
+          <Button
+            type="text"
+            size="small"
+            className="select-all-dropdown"
+            style={{
+              marginLeft: 0,
+              padding: "0 4px",
+              position: "absolute",
+              top: "50%",
+              transform: "translateY(-50%)",
+              left: "22px",
+            }}
+          >
+            <DownOutlined />
+          </Button>
+        </Dropdown>
+      </>
+    );
+  };
+
+  // Render action buttons based on selection
   const renderActionButtons = () => {
     if (selectedUsers.length === 0) return null;
 
@@ -466,11 +454,9 @@ const UserTable: React.FC<UserTableProps> = ({
               }
               onConfirm={async () => {
                 try {
-                  // Get list of selected inactive user IDs
                   const inactiveUserIds = selectedUsers;
                   
                   if (inactiveUserIds.length > 0) {
-                    // Activate all selected inactive users
                     await Promise.all(inactiveUserIds.map((id) => onActivate(id)));
                     messageApi.success("Users activated successfully");
                     clearAllSelections();
@@ -509,11 +495,9 @@ const UserTable: React.FC<UserTableProps> = ({
               }
               onConfirm={async () => {
                 try {
-                  // Get list of selected active user IDs
                   const activeUserIds = selectedUsers;
                   
                   if (activeUserIds.length > 0) {
-                    // Deactivate all selected active users
                     await Promise.all(activeUserIds.map((id) => onDeactivate(id)));
                     messageApi.success("Users deactivated successfully");
                     clearAllSelections();
@@ -543,14 +527,11 @@ const UserTable: React.FC<UserTableProps> = ({
     );
   };
 
+  // ======== TABLE CONFIGURATION ========
   // Define table columns
   const columns: ColumnsType<UserResponseDTO> = [
     {
-      title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          FULL NAME
-        </span>
-      ),
+      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>FULL NAME</span>,
       dataIndex: "fullName",
       key: "fullName",
       ellipsis: true,
@@ -572,33 +553,21 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
     },
     {
-      title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          USERNAME
-        </span>
-      ),
+      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>USERNAME</span>,
       dataIndex: "userName",
       key: "userName",
       ellipsis: true,
       width: 150,
     },
     {
-      title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          EMAIL
-        </span>
-      ),
+      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>EMAIL</span>,
       dataIndex: "email",
       key: "email",
       ellipsis: true,
       width: 250,
     },
     {
-      title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          PHONE
-        </span>
-      ),
+      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>PHONE</span>,
       dataIndex: "phone",
       key: "phone",
       ellipsis: true,
@@ -606,73 +575,39 @@ const UserTable: React.FC<UserTableProps> = ({
       align: "center" as const,
     },
     {
-      title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          GENDER
-        </span>
-      ),
+      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>GENDER</span>,
       dataIndex: "gender",
       key: "gender",
       width: 90,
       align: "center" as const,
     },
     {
-      title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          DOB
-        </span>
-      ),
+      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>DOB</span>,
       dataIndex: "dob",
       key: "dob",
       width: 120,
       render: (date: string) => formatDate(date).split(" ")[0],
     },
     {
-      title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          ADDRESS
-        </span>
-      ),
+      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>ADDRESS</span>,
       dataIndex: "address",
       key: "address",
       ellipsis: true,
       width: 200,
     },
     {
-      title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          ROLES
-        </span>
-      ),
+      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>ROLES</span>,
       dataIndex: "roles",
       key: "roles",
       width: 100,
       align: "center" as const,
       render: (roles: string[]) => {
-        // Nếu người dùng không có role nào
+        // If user has no roles
         if (!roles || roles.length === 0) {
           return <Tag>No roles</Tag>;
         }
 
-        // Hàm viết hoa role
-        const renderRole = (role: string) => {
-          switch (role) {
-            case "Admin":
-              return "Admin";
-            case "Manager":
-              return "Manager";
-            case "Healthcare Staff":
-              return "HealthcareStaff";
-            case "Canteen Staff":
-              return "CanteenStaff";
-            case "User":
-              return "User";
-            default:
-              return role;
-          }
-        };
-
-        // Sắp xếp roles theo thứ tự ưu tiên
+        // Priority order for roles
         const priority: Record<string, number> = {
           Admin: 1,
           Manager: 2,
@@ -681,37 +616,26 @@ const UserTable: React.FC<UserTableProps> = ({
           User: 5,
         };
 
-        // Lấy role có mức ưu tiên cao nhất (số nhỏ nhất)
+        // Sort roles by priority
         const sortedRoles = [...roles].sort((a, b) => {
           return (priority[a] || 999) - (priority[b] || 999);
         });
 
-        // Lấy role quan trọng nhất
+        // Get primary role and count of other roles
         const primaryRole = sortedRoles[0];
         const otherRolesCount = sortedRoles.length - 1;
 
-        // Chọn màu sắc cho role
+        // Select color for role tag
         let color = "default";
         switch (primaryRole) {
-          case "Admin":
-            color = "red";
-            break;
-          case "Manager":
-            color = "orange";
-            break;
-          case "Healthcare Staff":
-            color = "blue";
-            break;
-          case "Canteen Staff":
-            color = "purple";
-            break;
-          case "User":
-            color = "green";
-            break;
+          case "Admin": color = "red"; break;
+          case "Manager": color = "orange"; break;
+          case "Healthcare Staff": color = "blue"; break;
+          case "Canteen Staff": color = "purple"; break;
+          case "User": color = "green"; break;
         }
 
-        // Hiển thị một tag role duy nhất (quan trọng nhất)
-        // Nếu có nhiều role, thêm badge với tooltip
+        // Display primary role with count of additional roles
         return (
           <div style={{ display: "flex", justifyContent: "center" }}>
             <Tooltip
@@ -732,11 +656,7 @@ const UserTable: React.FC<UserTableProps> = ({
       },
     },
     {
-      title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          STATUS
-        </span>
-      ),
+      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>STATUS</span>,
       dataIndex: "status",
       key: "status",
       width: 120,
@@ -748,22 +668,14 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
     },
     {
-      title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          CREATED AT
-        </span>
-      ),
+      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>CREATED AT</span>,
       dataIndex: "createdAt",
       key: "createdAt",
       width: 180,
       render: (date: string) => formatDate(date),
     },
     {
-      title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          UPDATED AT
-        </span>
-      ),
+      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>UPDATED AT</span>,
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 180,
@@ -771,14 +683,12 @@ const UserTable: React.FC<UserTableProps> = ({
     },
     {
       title: (
-        <span
-          style={{
-            textTransform: "uppercase",
-            fontWeight: "bold",
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
+        <span style={{
+          textTransform: "uppercase",
+          fontWeight: "bold",
+          display: "flex",
+          justifyContent: "center",
+        }}>
           ACTIONS
         </span>
       ),
@@ -845,39 +755,39 @@ const UserTable: React.FC<UserTableProps> = ({
     return key in columnVisibility ? columnVisibility[key] : true;
   });
 
-  if (loading) {
-    return (
-      <Card className="shadow-sm">
-        <div
-          style={{ display: "flex", justifyContent: "center", padding: "40px" }}
-        >
-          <Spin tip="Loading..." />
-        </div>
-      </Card>
-    );
-  }
-
+  // Configure row selection
   const rowSelection: TableProps<UserResponseDTO>["rowSelection"] = {
     selectedRowKeys: selectedUsers,
     onChange: (selectedRowKeys: React.Key[]) => {
-      // Nếu số lượng thay đổi, hoặc bỏ chọn tất cả, reset selectedOption
+      // Reset selectedOption if selection count changes or all are deselected
       if (selectedRowKeys.length === 0 || selectedRowKeys.length !== selectedUsers.length) {
         setSelectedOption(null);
       }
       onUserSelect(selectedRowKeys);
     },
     fixed: true,
-    getCheckboxProps: (record: UserResponseDTO) => ({
-      // Chỉ vô hiệu hóa ô select all, không vô hiệu hóa các ô checkbox riêng lẻ
-      disabled: false, 
+    getCheckboxProps: () => ({
+      disabled: false,
     }),
     columnTitle: renderSelectAll(),
   };
 
+  // ======== RENDER LOADING STATE ========
+  if (loading) {
+    return (
+      <Card className="shadow-sm">
+        <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
+          <Spin tip="Loading..." />
+        </div>
+      </Card>
+    );
+  }
+
+  // ======== MAIN RENDER ========
   return (
     <>
       {contextHolder}
-      {/* Row that shows selected items count (left) and rows per page (right) */}
+      {/* Control bar: selected items count (left) and rows per page (right) */}
       <div
         style={{
           display: "flex",
@@ -892,13 +802,7 @@ const UserTable: React.FC<UserTableProps> = ({
         </div>
 
         {/* Rows per page - right side */}
-        <div
-          style={{
-            display: "flex",
-            gap: "8px",
-            alignItems: "center",
-          }}
-        >
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <Text type="secondary">Rows per page:</Text>
           <Select
             value={pageSize}
@@ -913,6 +817,7 @@ const UserTable: React.FC<UserTableProps> = ({
         </div>
       </div>
 
+      {/* Main data table */}
       <Card className="shadow-sm" bodyStyle={{ padding: "16px" }}>
         <div style={{ overflowX: "auto" }}>
           <Table
@@ -932,7 +837,7 @@ const UserTable: React.FC<UserTableProps> = ({
           />
         </div>
 
-        {/* Enhanced pagination with "Go to page" input */}
+        {/* Pagination with "Go to page" input */}
         <Card className="mt-4 shadow-sm">
           <Row justify="center" align="middle">
             <Space size="large" align="center">
