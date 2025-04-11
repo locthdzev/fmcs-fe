@@ -249,177 +249,191 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
             Import
           </Button>,
         ]}
-        width={700}
+        width={900}
         maskClosable={!uploading}
         closable={!uploading}
       >
-        <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-          {/* Template Download Button */}
-          <div style={{ textAlign: "center", marginBottom: "16px" }}>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={handleDownloadTemplate}
-              type="primary"
-              ghost
-            >
-              Download Import Template
-            </Button>
-            <Text
-              type="secondary"
-              style={{ display: "block", marginTop: "8px" }}
-            >
-              Download the template first to see the required format
-            </Text>
-          </div>
-
-          <Divider />
-
-          {/* Instructions Alert */}
-          <Alert
-            message="How to use the template"
-            description={
-              <ul style={{ paddingLeft: "20px" }}>
-                <li>
-                  Open the downloaded Excel file and go to the{" "}
-                  <Text strong>Users</Text> sheet
-                </li>
-                <li>
-                  <Text type="danger">
-                    IMPORTANT: Your data must start from row 6 (right below the
-                    orange header row)
-                  </Text>
-                </li>
-                <li>
-                  Do NOT modify the header row (row 5 with orange background)
-                </li>
-                <li>
-                  Make sure to fill all required fields (Full Name, Username,
-                  Email, Gender, DOB, Address, Phone)
-                </li>
-                <li>
-                  <Text type="warning">
-                    Date format should be DD/MM/YYYY (day/month/year)
-                  </Text>
-                </li>
-                <li>Each phone number, email and username must be unique</li>
-                <li>Save the file and upload it using the area below</li>
-                <li>
-                  If you see "No users were imported" but no errors, check that
-                  your data starts at row 6
-                </li>
-              </ul>
-            }
-            type="info"
-            showIcon
-          />
-
-          <Divider />
-
-          {/* Import Settings */}
-          <Form
-            form={form}
-            layout="vertical"
-            initialValues={{
-              skipDuplicates: true,
-              stopOnError: false,
-              useDefaultPassword: true,
-              defaultPassword: "Password@123",
-            }}
-          >
-            <Form.Item
-              name="skipDuplicates"
-              valuePropName="checked"
-              style={{ marginBottom: "8px" }}
-            >
-              <Checkbox>
-                Skip duplicates (users with existing email/username/phone)
-              </Checkbox>
-            </Form.Item>
-
-            <Form.Item
-              name="stopOnError"
-              valuePropName="checked"
-              style={{ marginBottom: "8px" }}
-            >
-              <Checkbox>Stop import on first error</Checkbox>
-            </Form.Item>
-
-            <Form.Item
-              name="useDefaultPassword"
-              valuePropName="checked"
-              style={{ marginBottom: "8px" }}
-            >
-              <Checkbox
-                onChange={(e) => setUseDefaultPassword(e.target.checked)}
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <div style={{ width: '40%' }}>
+            {/* Template Download Button */}
+            <div style={{ textAlign: "center", marginBottom: "16px" }}>
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={handleDownloadTemplate}
+                type="primary"
+                ghost
               >
-                Use default password for all users
-              </Checkbox>
-            </Form.Item>
-
-            {useDefaultPassword && (
-              <Form.Item
-                name="defaultPassword"
-                label="Default Password"
-                rules={[
-                  {
-                    required: true,
-                    message: "Please enter the default password",
-                  },
-                ]}
-                style={{ marginBottom: "16px" }}
+                Download Import Template
+              </Button>
+              <Text
+                type="secondary"
+                style={{ display: "block", marginTop: "8px" }}
               >
-                <Input.Password placeholder="Enter default password" />
-              </Form.Item>
-            )}
-
-            {/* File Upload */}
-            <div
-              style={{
-                marginTop: "16px",
-                border: "1px dashed #d9d9d9",
-                borderRadius: "4px",
-                padding: "16px",
-              }}
-            >
-              <Dragger {...uploadProps} style={{ padding: "10px 0" }}>
-                <p className="ant-upload-drag-icon">
-                  <InboxOutlined />
-                </p>
-                <p className="ant-upload-text">
-                  Click or drag file to this area to upload
-                </p>
-                <p className="ant-upload-hint">
-                  Support for a single Excel file (.xlsx, .xls)
-                </p>
-              </Dragger>
+                Download the template first to see the required format
+              </Text>
             </div>
 
-            {error && (
-              <Alert
-                message="Error"
-                description={error}
-                type="error"
-                showIcon
-                style={{ marginTop: "16px" }}
-              />
-            )}
+            <Divider />
 
-            {uploading && (
-              <div style={{ marginTop: "16px" }}>
-                <Progress percent={uploadProgress} status="active" />
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    marginTop: "16px",
-                  }}
+            {/* Import Settings */}
+            <Form
+              form={form}
+              layout="vertical"
+              initialValues={{
+                skipDuplicates: true,
+                stopOnError: false,
+                useDefaultPassword: true,
+                defaultPassword: "Password@123",
+              }}
+            >
+              <Form.Item
+                name="skipDuplicates"
+                valuePropName="checked"
+                style={{ marginBottom: "8px" }}
+              >
+                <Checkbox>
+                  Skip duplicates (users with existing email/username/phone)
+                </Checkbox>
+              </Form.Item>
+
+              <Form.Item
+                name="stopOnError"
+                valuePropName="checked"
+                style={{ marginBottom: "8px" }}
+              >
+                <Checkbox>Stop import on first error</Checkbox>
+              </Form.Item>
+
+              <Form.Item
+                name="useDefaultPassword"
+                valuePropName="checked"
+                style={{ marginBottom: "8px" }}
+              >
+                <Checkbox
+                  onChange={(e) => setUseDefaultPassword(e.target.checked)}
                 >
-                  <Spin tip="Processing import..." />
-                </div>
+                  Use default password for all users
+                </Checkbox>
+              </Form.Item>
+
+              {useDefaultPassword && (
+                <Form.Item
+                  name="defaultPassword"
+                  label="Default Password"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please enter the default password",
+                    },
+                  ]}
+                  style={{ marginBottom: "16px" }}
+                >
+                  <Input.Password placeholder="Enter default password" />
+                </Form.Item>
+              )}
+
+              {/* File Upload */}
+              <div
+                style={{
+                  marginTop: "16px",
+                  border: "1px dashed #d9d9d9",
+                  borderRadius: "4px",
+                  padding: "16px",
+                }}
+              >
+                <Dragger {...uploadProps} style={{ padding: "10px 0" }}>
+                  <p className="ant-upload-drag-icon">
+                    <InboxOutlined />
+                  </p>
+                  <p className="ant-upload-text">
+                    Click or drag file to this area to upload
+                  </p>
+                  <p className="ant-upload-hint">
+                    Support for a single Excel file (.xlsx, .xls)
+                  </p>
+                </Dragger>
               </div>
-            )}
-          </Form>
-        </Space>
+
+              {error && (
+                <Alert
+                  message="Error"
+                  description={error}
+                  type="error"
+                  showIcon
+                  style={{ marginTop: "16px" }}
+                />
+              )}
+
+              {uploading && (
+                <div style={{ marginTop: "16px" }}>
+                  <Progress percent={uploadProgress} status="active" />
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      marginTop: "16px",
+                    }}
+                  >
+                    <Spin tip="Processing import..." />
+                  </div>
+                </div>
+              )}
+            </Form>
+          </div>
+
+          <div style={{ width: '60%' }}>
+            {/* Instructions Alert */}
+            <Alert
+              message="How to use the template"
+              description={
+                <div>
+                  <h4>Step 1: Download and prepare the template</h4>
+                  <ul style={{ paddingLeft: "20px", marginBottom: "10px" }}>
+                    <li>
+                      Open the downloaded Excel file and go to the{" "}
+                      <Text strong>Users</Text> sheet
+                    </li>
+                    <li>
+                      <Text type="danger">
+                        IMPORTANT: Your data must start from row 6 (right below the
+                        orange header row)
+                      </Text>
+                    </li>
+                    <li>
+                      Do NOT modify the header row (row 5 with orange background)
+                    </li>
+                  </ul>
+
+                  <h4>Step 2: Fill in user data correctly</h4>
+                  <ul style={{ paddingLeft: "20px", marginBottom: "10px" }}>
+                    <li>
+                      Make sure to fill all required fields (Full Name, Username,
+                      Email, Gender, DOB, Address, Phone)
+                    </li>
+                    <li>
+                      <Text type="warning">
+                        Date format should be DD/MM/YYYY (day/month/year)
+                      </Text>
+                    </li>
+                    <li>Each phone number, email and username must be unique</li>
+                  </ul>
+                  
+                  <h4>Step 3: Import your data</h4>
+                  <ul style={{ paddingLeft: "20px" }}>
+                    <li>Save the Excel file once you've entered all user data</li>
+                    <li>Use the upload area to select and import your file</li>
+                    <li>
+                      If you see "No users were imported" but no errors, check that
+                      your data starts at row 6
+                    </li>
+                  </ul>
+                </div>
+              }
+              type="info"
+              showIcon
+            />
+          </div>
+        </div>
       </Modal>
 
       {/* User Result Modal */}

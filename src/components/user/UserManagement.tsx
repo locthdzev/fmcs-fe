@@ -1062,6 +1062,15 @@ export function UserManagement() {
               </Tooltip>
             </Dropdown>
 
+            {/* Import Button */}
+            <Button
+              icon={<UploadOutlined />}
+              onClick={() => setImportModalVisible(true)}
+              disabled={loading}
+            >
+              Import
+            </Button>
+
             {/* Create Button */}
             <Button
               type="primary"
@@ -1102,16 +1111,6 @@ export function UserManagement() {
                 Export
               </Button>
             </Dropdown>
-
-            {/* Import Button */}
-            <Button
-              icon={<UploadOutlined />}
-              onClick={() => setImportModalVisible(true)}
-              style={{ marginLeft: "8px" }}
-              disabled={loading}
-            >
-              Import
-            </Button>
           </div>
         </div>
       </Card>
