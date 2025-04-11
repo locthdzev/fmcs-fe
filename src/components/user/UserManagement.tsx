@@ -656,15 +656,15 @@ export function UserManagement() {
       const filterRole = roleFilter;
       const filterGender = genderFilter;
       const filterStatus = statusFilter;
-      
+
       // Use values from the modal if they exist, otherwise use the current state values
       const filterDobRange = dobDateRange;
       const filterCreatedRange = createdDateRange;
       const filterUpdatedRange = updatedDateRange;
-      
+
       // Apply sort direction from filter if available
       const filterAscending = ascending;
-      
+
       // Convert date ranges to Date objects
       const formattedDobStart = filterDobRange?.[0]
         ? filterDobRange[0].toDate()
@@ -847,7 +847,9 @@ export function UserManagement() {
   };
 
   // Function to get all user IDs with specific statuses
-  const getAllUserIdsByStatus = async (statuses: string[]): Promise<string[]> => {
+  const getAllUserIdsByStatus = async (
+    statuses: string[]
+  ): Promise<string[]> => {
     try {
       // Get all users with the given statuses
       const response = await getAllUsers(
@@ -869,7 +871,7 @@ export function UserManagement() {
         "CreatedAt", // sortBy
         false // ascending
       );
-      
+
       // Extract IDs from the response
       return response.data.map((user: UserResponseDTO) => user.id);
     } catch (error) {
@@ -1107,7 +1109,7 @@ export function UserManagement() {
               onClick={handleOpenExportConfig}
               disabled={loading}
             >
-              Export
+              Export to Excel
             </Button>
           </div>
         </div>
