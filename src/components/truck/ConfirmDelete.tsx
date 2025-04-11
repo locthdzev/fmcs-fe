@@ -1,14 +1,14 @@
 import React from "react";
 import {
   Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Button,
-  Chip,
-} from "@heroui/react";
+  Typography,
+  Space
+} from "antd";
 import { TruckResponse } from "@/api/truck";
+import { ExclamationCircleOutlined } from "@ant-design/icons";
+
+const { Text } = Typography;
 
 interface ConfirmDeleteTruckModalProps {
   truck: TruckResponse | null;
@@ -16,11 +16,6 @@ interface ConfirmDeleteTruckModalProps {
   onClose: () => void;
   onConfirmDelete: () => void;
 }
-
-const statusColorMap: Record<string, any> = {
-  Active: "success",
-  Inactive: "danger",
-};
 
 const ConfirmDeleteTruckModal: React.FC<ConfirmDeleteTruckModalProps> = ({
   truck,
@@ -31,78 +26,30 @@ const ConfirmDeleteTruckModal: React.FC<ConfirmDeleteTruckModalProps> = ({
   if (!truck) return null;
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onClose} className="max-w-3xl">
-      <ModalContent>
-        <ModalHeader className="text-xl font-semibold text-gray-800">
-          Confirm Delete
-        </ModalHeader>
-        <ModalBody>
-          <p className="text-gray-700">
-            Are you sure you want to delete the following truck?
-          </p>
-          <div className="grid grid-cols-12 gap-6 p-4">
-            {/* Image */}
-            <div className="col-span-5">
-              <div className="rounded-lg overflow-hidden shadow-md w-full">
-                <img
-                  src={truck.truckImage}
-                  alt={truck.licensePlate}
-                  className="w-full h-64 transition-transform duration-300 hover:scale-105"
-                />
-              </div>
-            </div>
-
-            {/* Truck Information */}
-            <div className="col-span-7 space-y-3 text-gray-700">
-              <p>
-                <span className="font-semibold text-gray-900">License Plate:</span>{" "}
-                {truck.licensePlate}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Driver Name:</span>{" "}
-                {truck.driverName || "-"}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Driver Contact:</span>{" "}
-                {truck.driverContact || "-"}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Description:</span>{" "}
-                {truck.description || "-"}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Created At:</span>{" "}
-                {truck.createdAt
-                  ? new Date(truck.createdAt).toLocaleDateString("vi-VN")
-                  : "-"}
-              </p>
-              <p>
-                <span className="font-semibold text-gray-900">Status:</span>{" "}
-                <Chip
-                  className="capitalize"
-                  color={
-                    truck.status && statusColorMap[truck.status]
-                      ? statusColorMap[truck.status]
-                      : "default"
-                  }
-                  size="sm"
-                  variant="flat"
-                >
-                  {truck.status}
-                </Chip>
-              </p>
-            </div>
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="flat" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button color="danger" onClick={onConfirmDelete}>
-            Delete
-          </Button>
-        </ModalFooter>
-      </ModalContent>
+    <Modal
+      title="Confirm Delete"
+      open={isOpen}
+      onCancel={onClose}
+      footer={[
+        <Button key="cancel" onClick={onClose}>
+          Cancel
+        </Button>,
+        <Button key="delete" danger type="primary" onClick={onConfirmDelete}>
+          Delete
+        </Button>,
+      ]}
+    >
+      <Space direction="vertical" style={{ width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <ExclamationCircleOutlined style={{ color: '#ff4d4f', fontSize: '22px' }} />
+          <Text strong>Are you sure you want to delete this truck?</Text>
+        </div>
+        <Text>License Plate: <Text strong>{truck.licensePlate}</Text></Text>
+        {truck.driverName && <Text>Driver: <Text strong>{truck.driverName}</Text></Text>}
+        <Text type="warning" style={{ marginTop: '12px' }}>
+          This action cannot be undone.
+        </Text>
+      </Space>
     </Modal>
   );
 };

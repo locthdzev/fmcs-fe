@@ -423,12 +423,21 @@ export const exportTreatmentPlanToPDF = async (id: string) => {
   try {
     const response = await api.get(`/treatment-plan-management/treatment-plans/${id}/export-pdf`);
 
-    // Không hiển thị toast ở đây nữa, để component xử lý
-    return response.data;
-  } catch (error) {
+    // Chuẩn hóa response để trả về cho component xử lý
+    const data = response.data;
+    if (data && data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+
+    // Không mở file hay hiển thị thông báo trong API
+    return data;
+  } catch (error: any) {
     console.error("Error exporting treatment plan to PDF:", error);
-    // Không hiển thị toast ở đây nữa, để component xử lý
-    throw error;
+    return { 
+      success: false, 
+      isSuccess: false,
+      message: error.response?.data?.message || "Cannot export PDF file" 
+    };
   }
 };
 
@@ -553,5 +562,41 @@ export const exportTreatmentPlanHistoriesToExcelWithConfig = async (
       isSuccess: false,
       message: error.response?.data?.message || "Cannot export Excel file" 
     };
+  }
+};
+
+// Thêm API function để lấy tất cả treatment plan IDs theo status
+export const getTreatmentPlanIdsByStatus = async (statuses: string[]) => {
+  try {
+    // Lấy tất cả treatment plans với pageSize lớn (chúng ta có thể điều chỉnh logic này sau)
+    // Để đơn giản, lấy với pageSize=1000 để có thể lấy được nhiều dữ liệu
+    const response = await api.get("/treatment-plan-management/treatment-plans", {
+      params: {
+        page: 1,
+        pageSize: 1000, // Số lượng lớn để lấy nhiều dữ liệu
+        status: statuses.length === 1 ? statuses[0] : undefined,
+        // Không cần các bộ lọc khác
+      },
+    });
+    
+    const data = response.data;
+    if (data.isSuccess || data.success) {
+      // Nếu chỉ filter theo 1 status, chúng ta đã làm ở phía server
+      if (statuses.length === 1) {
+        return data.data.map((item: TreatmentPlanResponseDTO) => item.id);
+      } 
+      // Nếu cần filter nhiều status, chúng ta làm ở phía client
+      else {
+        return data.data
+          .filter((item: TreatmentPlanResponseDTO) => 
+            statuses.includes(item.status || '')
+          )
+          .map((item: TreatmentPlanResponseDTO) => item.id);
+      }
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching treatment plan IDs by status:", error);
+    throw error;
   }
 }; 

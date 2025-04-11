@@ -608,7 +608,14 @@ export function TreatmentPlanHistoryListNew() {
         className="shadow mb-4"
         bodyStyle={{ padding: "16px" }}
         title={
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "16px",
+            }}
+          >
             <AppstoreOutlined style={{ fontSize: "16px" }} />
             <Title level={5} style={{ margin: 0 }}>
               Toolbar
@@ -627,10 +634,10 @@ export function TreatmentPlanHistoryListNew() {
                 setCurrentPage(1);
                 setLoading(true);
               }}
-              style={{ width: "300px" }}
+              style={{ width: "320px" }}
               allowClear
               filterOption={(input, option) =>
-                (option?.label?.toString().toLowerCase() || "").includes(
+                (option?.value?.toString().toLowerCase() || "").includes(
                   input.toLowerCase()
                 )
               }
@@ -638,7 +645,7 @@ export function TreatmentPlanHistoryListNew() {
                 value: code,
                 label: code,
               }))}
-              prefix={<SearchOutlined />}
+              dropdownStyle={{ minWidth: "320px" }}
             />
 
             <Tooltip title="Advanced Filters">
@@ -661,12 +668,20 @@ export function TreatmentPlanHistoryListNew() {
                 Filters
               </Button>
             </Tooltip>
-            
+
             <Tooltip title="Reset All Filters">
               <Button
                 icon={<UndoOutlined />}
                 onClick={handleReset}
-                disabled={!(treatmentPlanCode || healthCheckResultCode || performedBySearch || actionDateRange[0] || actionDateRange[1])}
+                disabled={
+                  !(
+                    treatmentPlanCode ||
+                    healthCheckResultCode ||
+                    performedBySearch ||
+                    actionDateRange[0] ||
+                    actionDateRange[1]
+                  )
+                }
               >
                 Reset
               </Button>

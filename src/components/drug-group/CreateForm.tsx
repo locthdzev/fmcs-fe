@@ -1,104 +1,100 @@
 import React, { useState } from "react";
-import { Button, Input, Textarea } from "@heroui/react";
-import { createDrugGroup } from "@/api/druggroup";
-import { toast } from "react-toastify";
+import {
+  Form,
+  Input,
+  Button,
+  message,
+  Spin,
+} from "antd";
+import { createDrugGroup, DrugGroupCreateRequest } from "@/api/druggroup";
 
 interface CreateDrugGroupFormProps {
   onClose: () => void;
   onCreate: () => void;
 }
 
-const initialFormState = {
-  groupName: "",
-  description: "",
-  createdAt: new Date().toISOString(),
-  status: "Active",
-};
-
 export const CreateDrugGroupForm: React.FC<CreateDrugGroupFormProps> = ({
   onClose,
   onCreate,
 }) => {
-  const [formData, setFormData] = useState(initialFormState);
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData) return;
-
+  const handleSubmit = async () => {
     try {
+      const values = await form.validateFields();
       setLoading(true);
-      const response = await createDrugGroup(formData);
+
+      const requestData: DrugGroupCreateRequest = {
+        groupName: values.groupName,
+        description: values.description || null,
+        createdAt: new Date().toISOString(),
+        status: "Active",
+      };
+
+      const response = await createDrugGroup(requestData);
+
       if (response.isSuccess) {
-        toast.success(response.message || "Drug group created successfully");
+        messageApi.success(response.message || "Drug group created successfully", 5);
         onCreate();
         onClose();
       } else {
         if (response.code === 409) {
-          toast.error("Drug Group name already exists");
+          messageApi.error(response.message || "Group name already exists", 5);
+          form.setFields([{
+            name: 'groupName',
+            errors: ['Group name already exists']
+          }]);
         } else {
-          toast.error(response.message || "Failed to create drug group");
+          messageApi.error(response.message || "Failed to create drug group", 5);
+          console.error("Error creating drug group:", response);
         }
       }
-    } catch (error) {
-      toast.error("Failed to create drug group");
+    } catch (errorInfo) {
+      console.error("Form validation failed:", errorInfo);
+      messageApi.error("Failed to validate form. Please check your input and try again.", 5);
     } finally {
       setLoading(false);
     }
   };
 
   const handleReset = () => {
-    setFormData(initialFormState);
+    form.resetFields();
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="grid grid-cols-1 gap-4">
-        <Input
-          isClearable
-          radius="sm"
-          variant="bordered"
-          label="Group Name"
-          name="groupName"
-          value={formData.groupName}
-          onChange={handleInputChange}
-          onClear={() => setFormData({ ...formData, groupName: "" })}
-          required
-        />
+    <>
+      {contextHolder}
+      <Spin spinning={loading} tip="Creating drug group...">
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <Form.Item
+            name="groupName"
+            label="Group Name"
+            rules={[{ required: true, message: "Please enter group name" }]}
+          >
+            <Input placeholder="Enter group name" />
+          </Form.Item>
 
-        <div className="col-span-1">
-          <Textarea
-            isClearable
-            radius="sm"
-            variant="bordered"
-            label="Description"
+          <Form.Item
             name="description"
-            value={formData.description || ""}
-            onChange={handleInputChange}
-            onClear={() => setFormData({ ...formData, description: "" })}
+            label="Description"
+          >
+            <Input.TextArea rows={3} placeholder="Enter description" />
+          </Form.Item>
 
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-2 mt-6">
-        <Button type="button" variant="flat" onClick={handleReset}>
-          Reset
-        </Button>
-        <Button type="submit" color="primary" isLoading={loading}>
-          Create Drug Group
-        </Button>
-      </div>
-    </form>
+          <Form.Item>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button key="reset" htmlType="button" onClick={handleReset}>
+                Reset
+              </Button>
+              <Button key="submit" type="primary" htmlType="submit" loading={loading}>
+                Create
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+      </Spin>
+    </>
   );
 };

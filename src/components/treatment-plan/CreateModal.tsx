@@ -10,9 +10,11 @@ import {
   Typography,
   Space,
   Spin,
+  message,
+  Row,
+  Col,
 } from "antd";
-import { toast } from "react-toastify";
-import moment from "moment";
+import dayjs from "dayjs";
 import {
   createTreatmentPlan,
   TreatmentPlanCreateRequestDTO,
@@ -76,6 +78,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
   const [prescriptionDrugs, setPrescriptionDrugs] = useState<DrugResponse[]>(
     []
   );
+  const [messageApi, contextHolder] = message.useMessage();
 
   // Reset form when modal is closed
   useEffect(() => {
@@ -155,8 +158,9 @@ const CreateModal: React.FC<CreateModalProps> = ({
         ]);
 
         if (filteredResults.length === 0) {
-          toast.info(
-            `No health check results found with required statuses (${HEALTH_CHECK_STATUSES.FOLLOW_UP_REQUIRED} or ${HEALTH_CHECK_STATUSES.NO_FOLLOW_UP_REQUIRED})`
+          messageApi.info(
+            `No health check results found with required statuses (${HEALTH_CHECK_STATUSES.FOLLOW_UP_REQUIRED} or ${HEALTH_CHECK_STATUSES.NO_FOLLOW_UP_REQUIRED})`,
+            5
           );
         }
 
@@ -174,12 +178,15 @@ const CreateModal: React.FC<CreateModalProps> = ({
         setHealthCheckResultOptions(options);
       } else {
         console.error("API returned error:", response);
-        toast.error(response.message || "Failed to fetch health check results");
+        messageApi.error(
+          response.message || "Failed to fetch health check results",
+          5
+        );
         setHealthCheckResultOptions([]);
       }
     } catch (error) {
       console.error("Error fetching health check results:", error);
-      toast.error("Failed to fetch health check results");
+      messageApi.error("Failed to fetch health check results", 5);
       setHealthCheckResultOptions([]);
     } finally {
       setLoadingHealthCheckResults(false);
@@ -196,18 +203,22 @@ const CreateModal: React.FC<CreateModalProps> = ({
         setPrescriptionDrugs(response.data || []);
 
         if (!response.data || response.data.length === 0) {
-          toast.info(
-            "No drugs found in prescriptions for this Health Check Result"
+          messageApi.info(
+            "No drugs found in prescriptions for this Health Check Result",
+            5
           );
         }
       } else {
         console.error("API returned error:", response);
-        toast.error(response.message || "Failed to fetch prescription drugs");
+        messageApi.error(
+          response.message || "Failed to fetch prescription drugs",
+          5
+        );
         setPrescriptionDrugs([]);
       }
     } catch (error) {
       console.error("Error fetching prescription drugs:", error);
-      toast.error("Failed to fetch prescription drugs");
+      messageApi.error("Failed to fetch prescription drugs", 5);
       setPrescriptionDrugs([]);
     } finally {
       setLoadingPrescriptionDrugs(false);
@@ -234,16 +245,19 @@ const CreateModal: React.FC<CreateModalProps> = ({
       console.log("Create treatment plan response:", response);
 
       if (response.success || response.isSuccess) {
-        toast.success("Treatment plan created successfully");
+        messageApi.success("Treatment plan created successfully", 5);
         form.resetFields();
         onClose();
         onSuccess();
       } else {
-        toast.error(response.message || "Failed to create treatment plan");
+        messageApi.error(
+          response.message || "Failed to create treatment plan",
+          5
+        );
       }
     } catch (error) {
       console.error("Form validation error:", error);
-      toast.error("Please check the form for errors");
+      messageApi.error("Please check the form for errors", 5);
     } finally {
       setLoading(false);
     }
@@ -256,7 +270,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
 
   const formatDate = (date: string | undefined) => {
     if (!date) return "";
-    return moment(date).format("DD/MM/YYYY");
+    return dayjs(date).format("DD/MM/YYYY");
   };
 
   const formatUserInfo = (user?: {
@@ -288,126 +302,145 @@ const CreateModal: React.FC<CreateModalProps> = ({
         </Button>,
       ]}
     >
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"
         initialValues={{
-          startDate: moment(),
-          endDate: moment().add(7, "days"),
+          startDate: dayjs(),
+          endDate: dayjs().add(7, "day"),
         }}
       >
-        <Title level={5}>Basic Information</Title>
+        <Space direction="vertical" style={{ width: "100%" }}>
+          <Divider orientation="left">Basic Information</Divider>
 
-        <Form.Item
-          name="healthCheckResultId"
-          label="Health Check Result"
-          rules={[
-            { required: true, message: "Please select a health check result" },
-          ]}
-        >
-          <Select
-            showSearch
-            placeholder="Select a health check result"
-            optionFilterProp="children"
-            onChange={(value) => setSelectedHealthCheckResultId(value)}
-            loading={loadingHealthCheckResults}
-            filterOption={(input, option) =>
-              (option?.label as string)
-                .toLowerCase()
-                .indexOf(input.toLowerCase()) >= 0
-            }
-            options={healthCheckResultOptions.map((hcr) => ({
-              value: hcr.id,
-              label: `${hcr.healthCheckResultCode} (${formatDate(
-                hcr.checkupDate
-              )}) - ${formatUserInfo(hcr.user)} - ${hcr.status}`,
-            }))}
-            notFoundContent={
-              loadingHealthCheckResults ? (
-                <Spin size="small" />
-              ) : (
-                "No health check results with status 'FollowUpRequired' or 'NoFollowUpRequired' found"
-              )
-            }
-          />
-        </Form.Item>
+          <Form.Item
+            name="healthCheckResultId"
+            label="Health Check Result"
+            rules={[
+              {
+                required: true,
+                message: "Please select a health check result",
+              },
+            ]}
+          >
+            <Select
+              showSearch
+              placeholder="Select a health check result"
+              optionFilterProp="children"
+              onChange={(value) => setSelectedHealthCheckResultId(value)}
+              loading={loadingHealthCheckResults}
+              filterOption={(input, option) =>
+                (option?.label as string)
+                  .toLowerCase()
+                  .indexOf(input.toLowerCase()) >= 0
+              }
+              options={healthCheckResultOptions.map((hcr) => ({
+                value: hcr.id,
+                label: `${hcr.healthCheckResultCode} (${formatDate(
+                  hcr.checkupDate
+                )}) - ${formatUserInfo(hcr.user)} - ${hcr.status}`,
+              }))}
+              notFoundContent={
+                loadingHealthCheckResults ? (
+                  <Spin size="small" />
+                ) : (
+                  "No health check results with status 'FollowUpRequired' or 'NoFollowUpRequired' found"
+                )
+              }
+            />
+          </Form.Item>
 
-        <Form.Item
-          name="drugId"
-          label="Medicine"
-          rules={[{ required: true, message: "Please select a medicine" }]}
-        >
-          <Select
-            showSearch
-            placeholder="Select medicine"
-            optionFilterProp="children"
-            loading={loadingPrescriptionDrugs}
-            disabled={!selectedHealthCheckResultId || loadingPrescriptionDrugs}
-            filterOption={(input, option) =>
-              (option?.label as string)
-                .toLowerCase()
-                .indexOf(input.toLowerCase()) >= 0
-            }
-            options={prescriptionDrugs.map((drug) => ({
-              value: drug.id,
-              label: `${drug.name} (${drug.drugCode})`,
-            }))}
-            notFoundContent={
-              loadingPrescriptionDrugs ? (
-                <Spin size="small" />
-              ) : selectedHealthCheckResultId ? (
-                "No drugs found in prescriptions for this Health Check Result"
-              ) : (
-                "Please select a Health Check Result first"
-              )
-            }
-          />
-        </Form.Item>
+          <Form.Item
+            name="drugId"
+            label="Medicine"
+            rules={[{ required: true, message: "Please select a medicine" }]}
+          >
+            <Select
+              showSearch
+              placeholder="Select medicine"
+              optionFilterProp="children"
+              loading={loadingPrescriptionDrugs}
+              disabled={
+                !selectedHealthCheckResultId || loadingPrescriptionDrugs
+              }
+              filterOption={(input, option) =>
+                (option?.label as string)
+                  .toLowerCase()
+                  .indexOf(input.toLowerCase()) >= 0
+              }
+              options={prescriptionDrugs.map((drug) => ({
+                value: drug.id,
+                label: `${drug.name} (${drug.drugCode})`,
+              }))}
+              notFoundContent={
+                loadingPrescriptionDrugs ? (
+                  <Spin size="small" />
+                ) : selectedHealthCheckResultId ? (
+                  "No drugs found in prescriptions for this Health Check Result"
+                ) : (
+                  "Please select a Health Check Result first"
+                )
+              }
+            />
+          </Form.Item>
 
-        <Form.Item
-          name="treatmentDescription"
-          label="Treatment Description"
-          rules={[
-            { required: true, message: "Please enter treatment description" },
-          ]}
-        >
-          <TextArea rows={4} placeholder="Enter treatment description" />
-        </Form.Item>
+          <Divider orientation="left">Treatment Details</Divider>
 
-        <Form.Item
-          name="instructions"
-          label="Instructions"
-          rules={[{ required: true, message: "Please enter instructions" }]}
-        >
-          <TextArea
-            rows={4}
-            placeholder="Enter instructions for the treatment"
-          />
-        </Form.Item>
+          <Form.Item
+            name="treatmentDescription"
+            label="Treatment Description"
+            rules={[
+              { required: true, message: "Please enter treatment description" },
+            ]}
+          >
+            <TextArea rows={4} placeholder="Enter treatment description" />
+          </Form.Item>
 
-        <Form.Item
-          name="startDate"
-          label="Start Date"
-          rules={[{ required: true, message: "Please select start date" }]}
-        >
-          <DatePicker
-            format="DD/MM/YYYY"
-            style={{ width: "100%" }}
-            placeholder="Select start date"
-          />
-        </Form.Item>
+          <Form.Item
+            name="instructions"
+            label="Instructions"
+            rules={[{ required: true, message: "Please enter instructions" }]}
+          >
+            <TextArea
+              rows={4}
+              placeholder="Enter instructions for the treatment"
+            />
+          </Form.Item>
 
-        <Form.Item
-          name="endDate"
-          label="End Date"
-          rules={[{ required: true, message: "Please select end date" }]}
-        >
-          <DatePicker
-            format="DD/MM/YYYY"
-            style={{ width: "100%" }}
-            placeholder="Select end date"
-          />
-        </Form.Item>
+          <Divider orientation="left">Date & Time</Divider>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="startDate"
+                label="Start Date"
+                rules={[
+                  { required: true, message: "Please select start date" },
+                ]}
+              >
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  style={{ width: "100%" }}
+                  placeholder="Select start date"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="endDate"
+                label="End Date"
+                rules={[{ required: true, message: "Please select end date" }]}
+              >
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  style={{ width: "100%" }}
+                  placeholder="Select end date"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Space>
       </Form>
     </Modal>
   );

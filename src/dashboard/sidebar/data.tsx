@@ -25,7 +25,9 @@ import { InventoriesIcon } from "./icons/InventoriesIcon";
 import { NotificationIcon } from "./icons/NotificationIcon";
 import { AppointmentIcon } from "./icons/AppointmentIcon";
 import { HealthIcon } from "./icons/HealthIcon";
-
+import { SurveyManagementIcon } from "./icons/SurveyManagementIcon";
+import { SurveyForUserIcon } from "./icons/SurveyForUserIcon";
+import { SurveyIcon } from "./icons/SurveyIcon";
 export const data = [
   {
     groupTitle: "Main",
@@ -35,6 +37,11 @@ export const data = [
         title: "Statitics",
         icon: <StatusIcon />,
         submenu: [
+          {
+            title: "Users",
+            icon: <StatusIcon />,
+            link: "/statitics/user-statitics",
+          },
           {
             title: "Treatment Plans",
             icon: <StatusIcon />,
@@ -52,7 +59,7 @@ export const data = [
   {
     groupTitle: "Management",
     items: [
-      { title: "Users", icon: <UsersIcon />, link: "/user/management" },
+      { title: "Users", icon: <UsersIcon />, link: "/user" },
       {
         title: "Drugs",
         icon: <DrugIcon />,
@@ -61,22 +68,22 @@ export const data = [
           {
             title: "Drugs",
             icon: <DrugIcon />,
-            link: "/drug/management",
+            link: "/drug",
           },
           {
             title: "DrugGroups",
             icon: <DrugGroupIcon />,
-            link: "/drug-group/management",
+            link: "/drug-group",
           },
           {
             title: "DrugOrders",
             icon: <DrugOrderIcon />,
-            link: "/drug-order/management",
+            link: "/drug-order",
           },
           {
             title: "DrugSuppliers",
             icon: <DrugSupplierIcon />,
-            link: "/drug-supplier/management",
+            link: "/drug-supplier",
           },
         ],
       },
@@ -103,7 +110,7 @@ export const data = [
           {
             title: "Trucks",
             icon: <TrucksIcon />,
-            link: "/truck/management",
+            link: "/truck",
           },
         ],
       },
@@ -113,14 +120,36 @@ export const data = [
         icon: <AppointmentIcon />,
         submenu: [
           {
-            title: "Manage Appointments",
+            title: "Appointments",
             icon: <AppointmentIcon />,
             link: "/appointment/management",
           },
           {
-            title: "Appointment",
+            title: "Schedule Appointment",
             icon: <AppointmentIcon />,
             link: "/appointment",
+          },
+          {
+            title: "Healthcare Officer Appointment Management",
+            icon: <AppointmentIcon />,
+            link: "/appointment/manageforstaff",
+          },
+        ],
+      },
+
+      {
+        title: "Manage Periodic health checkup",
+        icon: <PeriodicHealthCheckupsIcon />,
+        submenu: [
+          {
+            title: "Periodic Health Checkups",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/periodic-health-checkup/periodichealthcheckups",
+          },
+          {
+            title: "Healthcare Officer Checkups Management",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/periodic-health-checkup/management",
           },
         ],
       },
@@ -167,6 +196,22 @@ export const data = [
         title: "Notifications",
         icon: <NotificationIcon />,
         link: "/notification/management",
+      },
+      {
+        title: "Surveys",
+        icon: <SurveyIcon />,
+        submenu: [
+          {
+            title: "Survey Management",
+            icon: <SurveyManagementIcon />,
+            link: "/survey/management",
+          },
+          {
+            title: "Survey For User",
+            icon: <SurveyForUserIcon />,
+            link: "/survey/surveyUser",
+          },
+        ],
       },
       {
         title: "HealthInsurances",
