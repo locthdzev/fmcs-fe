@@ -158,8 +158,13 @@ export const createUser = async (userCreateData: UserCreateRequest) => {
   try {
     const response = await api.post("/user-management/users", userCreateData);
     return response.data;
-  } catch (error) {
-    throw error;
+  } catch (error: any) {
+    return {
+      isSuccess: false,
+      code: error.response?.status || 400,
+      message: error.response?.data?.message || "Failed to create user",
+      responseError: error.message
+    };
   }
 };
 
