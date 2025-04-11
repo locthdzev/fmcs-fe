@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   Button,
@@ -47,6 +47,7 @@ interface UserTableProps {
   onDeactivate: (id: string) => void;
   onViewDetails: (user: UserResponseDTO) => void;
   onEdit?: (user: UserResponseDTO) => void;
+  getAllUserIdsByStatus?: (statuses: string[]) => Promise<string[]>;
 }
 
 const UserTable: React.FC<UserTableProps> = ({
@@ -63,8 +64,82 @@ const UserTable: React.FC<UserTableProps> = ({
   onDeactivate,
   onViewDetails,
   onEdit,
+  getAllUserIdsByStatus,
 }) => {
   const [messageApi, contextHolder] = message.useMessage();
+
+  // For tracking selected option in dropdown
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+
+  // Add loading state for when fetching all items
+  const [isLoadingAllItems, setIsLoadingAllItems] = useState<boolean>(false);
+
+  // State to track what type of items are selected (for bulk actions)
+  const [selectedItemTypes, setSelectedItemTypes] = useState<{
+    hasActive: boolean;
+    hasInactive: boolean;
+  }>({
+    hasActive: false,
+    hasInactive: false,
+  });
+
+  // Update selected item types when selectedUsers changes
+  useEffect(() => {
+    if (selectedUsers.length === 0) {
+      setSelectedItemTypes({
+        hasActive: false,
+        hasInactive: false,
+      });
+      return;
+    }
+
+    // Determine status from selected option
+    if (selectedOption) {
+      if (selectedOption.includes('active')) {
+        setSelectedItemTypes({
+          hasActive: true,
+          hasInactive: false,
+        });
+        return;
+      } 
+      if (selectedOption.includes('inactive')) {
+        setSelectedItemTypes({
+          hasActive: false,
+          hasInactive: true,
+        });
+        return;
+      }
+    }
+
+    // If using select all or individual selection
+    // First check current page data
+    const visibleSelectedUsers = users.filter((user) => 
+      selectedUsers.includes(user.id)
+    );
+    
+    const hasActiveInCurrentPage = visibleSelectedUsers.some(
+      (user) => user.status === "Active"
+    );
+    
+    const hasInactiveInCurrentPage = visibleSelectedUsers.some(
+      (user) => user.status === "Inactive"
+    );
+
+    // If we can't determine all statuses from current page data
+    if (visibleSelectedUsers.length < selectedUsers.length) {
+      // Show both buttons if select all checkbox was used
+      setSelectedItemTypes({
+        hasActive: true,
+        hasInactive: true,
+      });
+    } else {
+      // Use what we found on current page
+      setSelectedItemTypes({
+        hasActive: hasActiveInCurrentPage,
+        hasInactive: hasInactiveInCurrentPage,
+      });
+    }
+  }, [selectedUsers, users, selectedOption]);
 
   // Format date strings for display
   const formatDate = (dateStr: string | null | undefined) => {
@@ -100,23 +175,128 @@ const UserTable: React.FC<UserTableProps> = ({
     );
   };
 
+  // Get all user IDs with specific statuses
+  const getItemIdsByStatus = async (
+    statuses: string[],
+    currentPageOnly: boolean = false
+  ) => {
+    if (currentPageOnly) {
+      // If only current page, filter from current page data
+      const filteredUsers = users.filter((user) =>
+        statuses.includes(user.status || "")
+      );
+      return filteredUsers.map((user) => user.id);
+    } else {
+      // For all pages, use the API if available
+      if (getAllUserIdsByStatus) {
+        try {
+          setIsLoadingAllItems(true);
+          const allIds = await getAllUserIdsByStatus(statuses);
+          setIsLoadingAllItems(false);
+          return allIds;
+        } catch (error) {
+          console.error("Error fetching all items by status:", error);
+          setIsLoadingAllItems(false);
+
+          // Fallback to current page if API fails
+          const filteredUsers = users.filter((user) =>
+            statuses.includes(user.status || "")
+          );
+          return filteredUsers.map((user) => user.id);
+        }
+      } else {
+        // Fallback if API is not provided
+        console.warn(
+          "getAllUserIdsByStatus not provided, falling back to current page"
+        );
+        const filteredUsers = users.filter((user) =>
+          statuses.includes(user.status || "")
+        );
+        return filteredUsers.map((user) => user.id);
+      }
+    }
+  };
+
+  // Hàm tiện ích để xóa hoàn toàn mọi selection và reset dropdown
+  const clearAllSelections = () => {
+    onUserSelect([]);
+    setSelectedOption(null);
+  };
+
   // Function to render the custom select all dropdown
   const renderSelectAll = () => {
+    // Count users by status to determine which options to show
+    const activeCount = users.filter((user) => user.status === "Active").length;
+
+    const inactiveCount = users.filter(
+      (user) => user.status === "Inactive"
+    ).length;
+
     const isSelectAll =
       selectedUsers.length > 0 && selectedUsers.length === users.length;
     const isIndeterminate =
       selectedUsers.length > 0 && selectedUsers.length < users.length;
 
-    // Simplified select all toggle
-    const handleSelectAllToggle = () => {
-      // If anything is selected, clear the selection
-      if (selectedUsers.length > 0) {
-        onUserSelect([]);
-      } else {
-        // Otherwise, select all users
-        onUserSelect(users.map((user) => user.id));
-      }
-    };
+    // Create dropdown menu items
+    const items = [];
+
+    // Only add "select this page" option if we have active users on current page
+    if (activeCount > 0) {
+      items.push({
+        key: "page-active",
+        label: (
+          <div>
+            Select all Active users on this page
+          </div>
+        ),
+      });
+    }
+
+    // Always add "select all pages" option for Active users
+    items.push({
+      key: "all-active",
+      label: (
+        <div>
+          {isLoadingAllItems && selectedOption === "all-active" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Spin size="small" />
+              <span>Loading all Active users...</span>
+            </div>
+          ) : (
+            <span>Select all Active users (all pages)</span>
+          )}
+        </div>
+      ),
+    });
+
+    // Only add "select this page" option if we have inactive users on current page
+    if (inactiveCount > 0) {
+      items.push({
+        key: "page-inactive",
+        label: (
+          <div>
+            Select all Inactive users on this page
+          </div>
+        ),
+      });
+    }
+
+    // Always add "select all pages" option for Inactive users
+    items.push({
+      key: "all-inactive",
+      label: (
+        <div>
+          {isLoadingAllItems && selectedOption === "all-inactive" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Spin size="small" />
+              <span>Loading all Inactive users...</span>
+            </div>
+          ) : (
+            <span>Select all Inactive users (all pages)</span>
+          )}
+        </div>
+      ),
+    });
 
     return (
       <>
@@ -124,7 +304,202 @@ const UserTable: React.FC<UserTableProps> = ({
           checked={isSelectAll}
           indeterminate={isIndeterminate}
           onChange={handleSelectAllToggle}
+          disabled={false} // Không vô hiệu hóa checkbox select all
         />
+        <Dropdown
+          menu={{
+            items,
+            onClick: ({ key }) => handleSelectByStatus(key),
+            // Không sử dụng selectable và selectedKeys để tránh tô màu xám
+            selectable: false,
+          }}
+          placement="bottomLeft"
+          trigger={["click"]}
+          open={items.length > 0 ? undefined : false}
+        >
+          <Button
+            type="text"
+            size="small"
+            className="select-all-dropdown"
+            style={{
+              marginLeft: 0,
+              padding: "0 4px",
+              position: "absolute",
+              top: "50%",
+              transform: "translateY(-50%)",
+              left: "22px",
+            }}
+          >
+            <DownOutlined />
+          </Button>
+        </Dropdown>
+      </>
+    );
+  };
+
+  // Improved select all toggle - selects all users on page when unchecked, clears selection when checked
+  const handleSelectAllToggle = async (e: any) => {
+    if (e.target.checked) {
+      // Nếu được chọn, chọn tất cả users từ tất cả các trang (cả Active và Inactive)
+      try {
+        setIsLoadingAllItems(true);
+        // Lấy tất cả user IDs từ cả Active và Inactive
+        let allIds: string[] = [];
+        if (getAllUserIdsByStatus) {
+          allIds = await getAllUserIdsByStatus(["Active", "Inactive"]);
+        } else {
+          allIds = users.map(user => user.id);
+        }
+        
+        onUserSelect(allIds);
+        setIsLoadingAllItems(false);
+      } catch (error) {
+        console.error("Error selecting all users:", error);
+        messageApi.error("Failed to select all users");
+        setIsLoadingAllItems(false);
+      }
+    } else {
+      // Nếu bỏ chọn, xóa tất cả selection
+      clearAllSelections();
+    }
+  };
+
+  // Handle select by status
+  const handleSelectByStatus = async (key: string) => {
+    // First check if this option is already selected
+    if (selectedOption === key) {
+      // If it is, deselect it and clear selections
+      clearAllSelections();
+    } else {
+      // Otherwise, select it and apply the selection
+      setSelectedOption(key);
+
+      switch (key) {
+        case "all-active":
+          // Select all Active users
+          const activeIds = await getItemIdsByStatus(["Active"], false);
+          onUserSelect(activeIds);
+          break;
+        case "all-inactive":
+          // Select all Inactive users
+          const inactiveIds = await getItemIdsByStatus(["Inactive"], false);
+          onUserSelect(inactiveIds);
+          break;
+        case "page-active":
+          // Select Active users on current page
+          const pageActiveIds = await getItemIdsByStatus(["Active"], true);
+          onUserSelect(pageActiveIds);
+          break;
+        case "page-inactive":
+          // Select Inactive users on current page
+          const pageInactiveIds = await getItemIdsByStatus(["Inactive"], true);
+          onUserSelect(pageInactiveIds);
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
+  // Function to determine which action buttons to show
+  const renderActionButtons = () => {
+    if (selectedUsers.length === 0) return null;
+
+    // Sử dụng trạng thái được theo dõi từ state chứ không phụ thuộc vào dữ liệu trang hiện tại
+    const hasActiveUsers = selectedItemTypes.hasActive;
+    const hasInactiveUsers = selectedItemTypes.hasInactive;
+
+    return (
+      <>
+        <Text type="secondary">
+          {selectedUsers.length} items selected
+        </Text>
+
+        {/* Show Activate button only if there are inactive users in selection */}
+        {hasInactiveUsers && (
+          <Tooltip title="Activate selected inactive users">
+            <Popconfirm
+              title={<div style={{ padding: "0 10px" }}>Activate selected users</div>}
+              description={
+                <p style={{ padding: "10px 40px 10px 18px" }}>
+                  Are you sure you want to activate selected inactive users?
+                </p>
+              }
+              onConfirm={async () => {
+                try {
+                  // Nếu có getAllUserIdsByStatus, sử dụng để xác nhận đúng danh sách users inactive đã chọn
+                  const inactiveUserIds = selectedUsers;
+                  
+                  if (inactiveUserIds.length > 0) {
+                    // Activate all selected inactive users
+                    await Promise.all(inactiveUserIds.map((id) => onActivate(id)));
+                    messageApi.success("Users activated successfully");
+                    clearAllSelections();
+                  } else {
+                    messageApi.info("No inactive users selected to activate");
+                  }
+                } catch (error) {
+                  console.error("Error activating users:", error);
+                  messageApi.error("Failed to activate some users");
+                }
+              }}
+              onCancel={clearAllSelections}
+              okText="Activate"
+              cancelText="Cancel"
+              placement="rightBottom"
+            >
+              <Button 
+                icon={<CheckCircleOutlined />}
+                style={{ color: "#52c41a" }}
+              >
+                Activate
+              </Button>
+            </Popconfirm>
+          </Tooltip>
+        )}
+        
+        {/* Show Deactivate button only if there are active users in selection */}
+        {hasActiveUsers && (
+          <Tooltip title="Deactivate selected active users">
+            <Popconfirm
+              title={<div style={{ padding: "0 10px" }}>Deactivate selected users</div>}
+              description={
+                <p style={{ padding: "10px 40px 10px 18px" }}>
+                  Are you sure you want to deactivate selected active users?
+                </p>
+              }
+              onConfirm={async () => {
+                try {
+                  // Nếu có getAllUserIdsByStatus, sử dụng để xác nhận đúng danh sách users active đã chọn
+                  const activeUserIds = selectedUsers;
+                  
+                  if (activeUserIds.length > 0) {
+                    // Deactivate all selected active users
+                    await Promise.all(activeUserIds.map((id) => onDeactivate(id)));
+                    messageApi.success("Users deactivated successfully");
+                    clearAllSelections();
+                  } else {
+                    messageApi.info("No active users selected to deactivate");
+                  }
+                } catch (error) {
+                  console.error("Error deactivating users:", error);
+                  messageApi.error("Failed to deactivate some users");
+                }
+              }}
+              onCancel={clearAllSelections}
+              okText="Deactivate"
+              cancelText="Cancel"
+              placement="rightBottom"
+            >
+              <Button
+                danger
+                icon={<StopOutlined />}
+              >
+                Deactivate
+              </Button>
+            </Popconfirm>
+          </Tooltip>
+        )}
       </>
     );
   };
@@ -446,9 +821,17 @@ const UserTable: React.FC<UserTableProps> = ({
   const rowSelection: TableProps<UserResponseDTO>["rowSelection"] = {
     selectedRowKeys: selectedUsers,
     onChange: (selectedRowKeys: React.Key[]) => {
+      // Nếu số lượng thay đổi, hoặc bỏ chọn tất cả, reset selectedOption
+      if (selectedRowKeys.length === 0 || selectedRowKeys.length !== selectedUsers.length) {
+        setSelectedOption(null);
+      }
       onUserSelect(selectedRowKeys);
     },
     fixed: true,
+    getCheckboxProps: (record: UserResponseDTO) => ({
+      // Chỉ vô hiệu hóa ô select all, không vô hiệu hóa các ô checkbox riêng lẻ
+      disabled: false, 
+    }),
     columnTitle: renderSelectAll(),
   };
 
@@ -466,13 +849,7 @@ const UserTable: React.FC<UserTableProps> = ({
       >
         {/* Selected items count and bulk actions - left side */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          {selectedUsers.length > 0 && (
-            <>
-              <Text type="secondary">
-                {selectedUsers.length} items selected
-              </Text>
-            </>
-          )}
+          {renderActionButtons()}
         </div>
 
         {/* Rows per page - right side */}

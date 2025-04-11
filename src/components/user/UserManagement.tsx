@@ -821,6 +821,41 @@ export function UserManagement() {
     setCurrentPage(1);
   };
 
+  // Function to get all user IDs with specific statuses
+  const getAllUserIdsByStatus = async (statuses: string[]): Promise<string[]> => {
+    try {
+      // Get all users with the given statuses
+      // Note: This is a simplified version. In a real app, you might want to fetch this from the API
+      // to avoid fetching all users if there are many.
+      const response = await getAllUsers(
+        1, // pageNumber
+        1000, // pageSize - A large number to get all - in a real app you might need pagination
+        "", // fullNameSearch
+        "", // userNameSearch
+        "", // emailSearch
+        "", // phoneSearch
+        "", // roleFilter
+        "", // genderFilter
+        undefined, // dobStartDate
+        undefined, // dobEndDate
+        undefined, // createdStartDate
+        undefined, // createdEndDate
+        undefined, // updatedStartDate
+        undefined, // updatedEndDate
+        statuses.join(","), // status
+        "CreatedAt", // sortBy
+        false // isAscending
+      );
+      
+      // Extract IDs from the response
+      return response.data.map((user: UserResponseDTO) => user.id);
+    } catch (error) {
+      console.error("Error fetching users by status:", error);
+      messageApi.error("Failed to fetch users by status");
+      return [];
+    }
+  };
+
   return (
     <div className="history-container" style={{ padding: "20px" }}>
       {contextHolder}
@@ -1086,30 +1121,6 @@ export function UserManagement() {
         </div>
       </Card>
 
-      {/* Bulk Actions */}
-      {selectedUsers.length > 0 && (
-        <div className="mb-3 flex items-center gap-2 p-2 bg-gray-50 rounded">
-          <Text>{selectedUsers.length} users selected</Text>
-          <Button
-            onClick={() => handleBulkActivate(selectedUsers)}
-            type="primary"
-            size="small"
-          >
-            Activate
-          </Button>
-          <Button
-            onClick={() => handleBulkDeactivate(selectedUsers)}
-            danger
-            size="small"
-          >
-            Deactivate
-          </Button>
-          <Button onClick={() => setSelectedUsers([])} size="small">
-            Cancel
-          </Button>
-        </div>
-      )}
-
       {/* User Table */}
       <UserTable
         users={users}
@@ -1125,6 +1136,7 @@ export function UserManagement() {
         onDeactivate={handleDeactivate}
         onViewDetails={handleViewDetails}
         onEdit={handleEdit}
+        getAllUserIdsByStatus={getAllUserIdsByStatus}
       />
 
       {/* Create User Modal */}
