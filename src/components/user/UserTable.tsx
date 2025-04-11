@@ -241,7 +241,7 @@ const UserTable: React.FC<UserTableProps> = ({
         }
 
         // Hàm viết hoa role
-        const capitalizeRole = (role: string): string => {
+        const renderRole = (role: string) => {
           switch (role) {
             case "Admin":
               return "Admin";
@@ -303,13 +303,13 @@ const UserTable: React.FC<UserTableProps> = ({
             <Tooltip
               title={
                 otherRolesCount > 0
-                  ? `+ ${sortedRoles.slice(1).map(capitalizeRole).join(", ")}`
+                  ? `+ ${sortedRoles.slice(1).map(renderRole).join(", ")}`
                   : undefined
               }
               placement="topLeft"
             >
               <Tag color={color}>
-                {capitalizeRole(primaryRole)}
+                {renderRole(primaryRole)}
                 {otherRolesCount > 0 ? ` +${otherRolesCount}` : ""}
               </Tag>
             </Tooltip>
