@@ -1,10 +1,21 @@
 import React from "react";
-import { Modal, Button, Alert, Typography, Statistic, Space, Card, Tabs, Descriptions } from "antd";
+import {
+  Modal,
+  Button,
+  Alert,
+  Typography,
+  Statistic,
+  Space,
+  Card,
+  Tabs,
+  Descriptions,
+} from "antd";
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   SearchOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import ErrorTable from "./ErrorTable";
 import { UserImportResultDTO } from "./ExportErrorUtils";
@@ -48,21 +59,17 @@ const UserResultModal: React.FC<UserResultModalProps> = ({
       description={
         <div>
           <p>The following data was imported successfully:</p>
-          {importResult.errors.length > 0 ? (
+          {importResult.errors?.length > 0 ? (
             <p>
-              All rows except for the error rows shown below were
-              successfully imported.
-            </p>
-          ) : (
-            <p>
-              All {importResult.totalRows} rows were successfully
+              All rows except for the error rows shown below were successfully
               imported.
             </p>
+          ) : (
+            <p>All {importResult.totalRows} rows were successfully imported.</p>
           )}
           <p>
             <Text type="success">
-              Successfully imported users will now appear in your user
-              list.
+              Successfully imported users will now appear in your user list.
             </Text>
           </p>
         </div>
@@ -97,9 +104,9 @@ const UserResultModal: React.FC<UserResultModalProps> = ({
           View Detailed Errors
         </Button>
       </div>
-      
+
       <ErrorTable
-        errors={importResult.errors}
+        errors={importResult.errors || []}
         skipDuplicates={skipDuplicates}
       />
 
@@ -109,17 +116,16 @@ const UserResultModal: React.FC<UserResultModalProps> = ({
           description={
             <div>
               <p>
-                When "Skip Duplicates" is enabled, records with
-                duplicate email, username, or phone number are
-                skipped.
+                When "Skip Duplicates" is enabled, records with duplicate email,
+                username, or phone number are skipped.
               </p>
               <p>
-                These records are marked as SKIPPED in the table above
-                but are not counted as actual errors.
+                These records are marked as SKIPPED in the table above but are
+                not counted as actual errors.
               </p>
               <p>
-                To import these records, you need to change the
-                duplicate values to be unique.
+                To import these records, you need to change the duplicate values
+                to be unique.
               </p>
             </div>
           }
@@ -144,71 +150,133 @@ const UserResultModal: React.FC<UserResultModalProps> = ({
     />
   );
 
+  // Hiển thị thông báo tất cả dữ liệu đều lỗi
+  const renderAllFailedContent = () => (
+    <Alert
+      message="No users were imported successfully"
+      description={
+        <div>
+          <p>
+            <strong>All {importResult.totalRows} row(s) have errors or were skipped.</strong>
+          </p>
+          <p>No users were imported successfully. Please check the errors below and try again.</p>
+          <p>Common reasons for failure:</p>
+          <ul>
+            <li>Missing required fields (Full Name, Username, Email, etc.)</li>
+            <li>Invalid data format (especially for dates or email addresses)</li>
+            <li>Duplicate data (username, email, or phone already exists)</li>
+            <li>Data entered in wrong rows (e.g., in the instruction area)</li>
+          </ul>
+        </div>
+      }
+      type="error"
+      showIcon
+      icon={<WarningOutlined />}
+      style={{ marginBottom: "16px" }}
+    />
+  );
+
   return (
     <Modal
       title="Import Results"
       open={visible}
       onCancel={onCancel}
-      width={900}
+      width={1200}
       footer={[
+        <Button key="reset" onClick={onReset} type="primary" ghost>
+          Try Again
+        </Button>,
         <Button key="close" onClick={onCancel}>
           Close
         </Button>,
       ]}
     >
-      <div style={{ display: 'flex', marginBottom: '20px' }}>
-        <div style={{ textAlign: 'center', padding: '20px', width: '30%' }}>
+      <div style={{ display: "flex", marginBottom: "20px" }}>
+        <div style={{ textAlign: "center", padding: "10px", width: "20%" }}>
           {getStatusIcon()}
-          <Descriptions layout="vertical" column={1} style={{ marginTop: '20px' }}>
+          <Descriptions
+            layout="vertical"
+            column={1}
+            style={{ marginTop: "20px" }}
+          >
             <Descriptions.Item label="Total Processed">
               <Statistic value={importResult.totalRows} />
             </Descriptions.Item>
             <Descriptions.Item label="Successfully Imported">
-              <Statistic 
-                value={importResult.successCount} 
-                valueStyle={{ color: '#3f8600' }}
+              <Statistic
+                value={importResult.successCount}
+                valueStyle={{ color: "#3f8600" }}
                 prefix={<CheckCircleOutlined />}
               />
             </Descriptions.Item>
             <Descriptions.Item label="Errors/Skipped">
-              <Statistic 
-                value={importResult.errorCount} 
-                valueStyle={{ color: '#cf1322' }}
+              <Statistic
+                value={importResult.errorCount}
+                valueStyle={{ color: "#cf1322" }}
                 prefix={<CloseCircleOutlined />}
               />
             </Descriptions.Item>
           </Descriptions>
         </div>
-        
-        <div style={{ width: '70%', borderLeft: '1px solid #f0f0f0', paddingLeft: '20px' }}>
-          {importResult.successCount === 0 && importResult.errorCount === 0 
-            ? renderNoDataContent()
-            : (
-              <Tabs defaultActiveKey="summary">
-                <TabPane tab="Summary" key="summary">
-                  {importResult.successCount > 0 && renderSuccessContent()}
-                  {importResult.errorCount > 0 && (
-                    <Alert
-                      message={`${importResult.errorCount} Records with Issues`}
-                      description={
-                        <div>
-                          <p>Some records couldn't be imported due to errors or duplicate data.</p>
-                          <p>Click the "Errors" tab to view details, or use the "View Detailed Errors" button for a full-screen view.</p>
-                        </div>
-                      }
-                      type="warning"
-                      showIcon
-                    />
-                  )}
-                </TabPane>
+
+        <div
+          style={{
+            width: "80%",
+            borderLeft: "1px solid #f0f0f0",
+            paddingLeft: "20px",
+          }}
+        >
+          {importResult.totalRows === 0 ? (
+            // Không có dữ liệu được xử lý
+            renderNoDataContent()
+          ) : importResult.successCount === 0 && importResult.errorCount > 0 ? (
+            // Tất cả các dòng đều lỗi
+            <Tabs defaultActiveKey="summary">
+              <TabPane tab="Summary" key="summary">
+                {renderAllFailedContent()}
+              </TabPane>
+              <TabPane
+                tab={`Errors (${importResult.errorCount})`}
+                key="errors"
+              >
+                {renderErrorContent()}
+              </TabPane>
+            </Tabs>
+          ) : (
+            // Có ít nhất một dòng thành công
+            <Tabs defaultActiveKey="summary">
+              <TabPane tab="Summary" key="summary">
+                {importResult.successCount > 0 && renderSuccessContent()}
                 {importResult.errorCount > 0 && (
-                  <TabPane tab={`Errors (${importResult.errorCount})`} key="errors">
-                    {renderErrorContent()}
-                  </TabPane>
+                  <Alert
+                    message={`${importResult.errorCount} Records with Issues`}
+                    description={
+                      <div>
+                        <p>
+                          Some records couldn't be imported due to errors or
+                          duplicate data.
+                        </p>
+                        <p>
+                          Click the "Errors" tab to view details, or use the
+                          "View Detailed Errors" button for a full-screen view.
+                        </p>
+                      </div>
+                    }
+                    type="warning"
+                    showIcon
+                  />
                 )}
-              </Tabs>
-            )
-          }
+              </TabPane>
+              {importResult.errorCount > 0 && (
+                <TabPane
+                  tab={`Errors (${importResult.errorCount})`}
+                  key="errors"
+                >
+                  {renderErrorContent()}
+                </TabPane>
+              )}
+            </Tabs>
+          )}
         </div>
       </div>
     </Modal>

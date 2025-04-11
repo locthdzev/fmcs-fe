@@ -292,11 +292,12 @@ export const importUsers = async (file: File, config?: {
       if (config.stopOnError !== undefined) {
         formData.append("stopOnError", config.stopOnError.toString());
       }
-      if (config.defaultPassword) {
-        formData.append("defaultPassword", config.defaultPassword);
-      }
       if (config.useDefaultPassword !== undefined) {
         formData.append("useDefaultPassword", config.useDefaultPassword.toString());
+        
+        if (config.useDefaultPassword === true && config.defaultPassword) {
+          formData.append("defaultPassword", config.defaultPassword);
+        }
       }
     }
     

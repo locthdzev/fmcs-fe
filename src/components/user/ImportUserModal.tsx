@@ -175,7 +175,7 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
           skipDuplicates: values.skipDuplicates,
           stopOnError: values.stopOnError,
           useDefaultPassword: values.useDefaultPassword,
-          defaultPassword: values.defaultPassword,
+          defaultPassword: values.useDefaultPassword ? values.defaultPassword : undefined,
         });
 
         // Clear progress timer
@@ -186,7 +186,9 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
           setUploadProgress(100);
           setTimeout(() => {
             setResultModalVisible(true);
-            onSuccess(); // Notify parent component of success
+            if (response.data.successCount > 0) {
+              onSuccess(); // Notify parent component of success
+            }
           }, 500);
         } else {
           setError(response.message || "Import failed");
@@ -322,7 +324,7 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
                   label="Default Password"
                   rules={[
                     {
-                      required: true,
+                      required: useDefaultPassword,
                       message: "Please enter the default password",
                     },
                   ]}
@@ -416,6 +418,18 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
                       </Text>
                     </li>
                     <li>Each phone number, email and username must be unique</li>
+                    <li>
+                      <Text strong>For phone numbers with leading zeros (0xxx...):</Text> To prevent Excel from removing the leading zero, use one of these methods:
+                      <ul style={{ paddingLeft: "20px", marginTop: "5px" }}>
+                        <li>Type a single quote before the number (e.g., <Text code>'0123456789</Text>)</li>
+                        <li>Format the cell as Text before entering the number (Right-click → Format Cells → Text)</li>
+                        <li>Add a plus sign: <Text code>+84123456789</Text> (for Vietnam numbers)</li>
+                        <li>Add hyphens: <Text code>0123-456-789</Text></li>
+                      </ul>
+                      <Text type="warning">
+                        If Excel removes your leading zeros, our system will try to add them back, but it's safer to enter them correctly.
+                      </Text>
+                    </li>
                   </ul>
                   
                   <h4>Step 3: Import your data</h4>

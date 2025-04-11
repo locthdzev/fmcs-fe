@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Modal, Button, Typography, Card, Tabs, Badge, Statistic, Divider, Row, Col, Tooltip, Space } from "antd";
-import { DownloadOutlined, FilterOutlined, FileExcelOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import { Modal, Button, Typography, Card, Tabs, Badge, Statistic, Divider, Row, Col, Tooltip, Space, Alert } from "antd";
+import { DownloadOutlined, FilterOutlined, FileExcelOutlined, InfoCircleOutlined, WarningOutlined } from "@ant-design/icons";
 import ErrorTable from "./ErrorTable";
 import { UserImportResultDTO, exportErrorList } from "./ExportErrorUtils";
 
@@ -39,6 +39,9 @@ const DetailedErrorModal: React.FC<DetailedErrorModalProps> = ({
   const validationErrors = importResult.errors.filter(e => 
     !e.errorMessage.includes("already exists")
   );
+  
+  // Xác định xem tất cả dòng có lỗi không
+  const allRowsFailed = importResult.successCount === 0 && importResult.errorCount > 0;
 
   // Render thông tin thống kê
   const renderStatistics = () => {
@@ -85,7 +88,9 @@ const DetailedErrorModal: React.FC<DetailedErrorModalProps> = ({
       title={
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Title level={4} style={{ margin: 0 }}>
-            Detailed Error Analysis
+            {allRowsFailed 
+              ? "Error Analysis - No Users Imported" 
+              : "Detailed Error Analysis"}
           </Title>
           <Space>
             <Button
@@ -108,6 +113,22 @@ const DetailedErrorModal: React.FC<DetailedErrorModalProps> = ({
         </Button>
       ]}
     >
+      {allRowsFailed && (
+        <Alert
+          message="Import Failed - All Records Have Errors"
+          description={
+            <div>
+              <p>All {importResult.totalRows} record(s) have errors or were skipped.</p>
+              <p>No users were imported successfully. Review the detailed error information below to fix your data.</p>
+            </div>
+          }
+          type="error"
+          showIcon
+          icon={<WarningOutlined />}
+          style={{ marginBottom: "16px" }}
+        />
+      )}
+      
       <div style={{ marginBottom: "20px" }}>
         <Text>
           This detailed view helps you analyze all errors and skipped records. 

@@ -24,15 +24,18 @@ const ErrorTable: React.FC<ErrorTableProps> = ({
   fullHeight = false,
 }) => {
   const [searchText, setSearchText] = useState<string>("");
+  
+  // Đảm bảo errors không bao giờ là null hoặc undefined
+  const safeErrors = errors || [];
 
   // Lọc dữ liệu dựa trên text tìm kiếm
   const filteredErrors = searchText
-    ? errors.filter(
+    ? safeErrors.filter(
         (error) =>
           error.data.toLowerCase().includes(searchText.toLowerCase()) ||
           error.errorMessage.toLowerCase().includes(searchText.toLowerCase())
       )
-    : errors;
+    : safeErrors;
 
   // Phân loại loại lỗi và trả về loại Tag phù hợp
   const getErrorTypeTag = (errorMessage: string) => {
@@ -165,7 +168,7 @@ const ErrorTable: React.FC<ErrorTableProps> = ({
         </Space>
         
         <Text type="secondary">
-          {filteredErrors.length} of {errors.length} records
+          {filteredErrors.length} of {safeErrors.length} records
         </Text>
       </div>
 
