@@ -81,9 +81,15 @@ const getStatusColor = (status: string | undefined) => {
       return 'success';
     case 'Pending':
       return 'processing';
+    case 'Submitted':
+      return 'warning';
     case 'Expired':
       return 'error';
+    case 'DeadlineExpired':
+      return 'orange';
     case 'SoftDeleted':
+      return 'default';
+    case 'NotApplicable':
       return 'default';
     default:
       return 'default';
@@ -146,49 +152,25 @@ export function HealthInsuranceManagement() {
   const fetchInsurances = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch both Completed+Verified and Expired insurances
-      const [completedResult, expiredResult] = await Promise.all([
-        getAllHealthInsurances(
-          currentPage,
-          pageSize,
-          searchText,
-          sortBy,
-          ascending,
-          "Completed",
-          userFilter
-        ),
-        getAllHealthInsurances(
-          currentPage,
-          pageSize,
-          searchText,
-          sortBy,
-          ascending,
-          "Expired",
-          userFilter
-        ),
-      ]);
-
-      // Filter completed insurances to only include verified ones
-      const verifiedInsurances = completedResult.data.filter(
-        (insurance: HealthInsuranceResponseDTO) => insurance.verificationStatus === "Verified"
+      // Fetch all insurances based on status filter
+      const result = await getAllHealthInsurances(
+        currentPage,
+        pageSize,
+        searchText,
+        sortBy,
+        ascending,
+        statusFilter,
+        userFilter
       );
 
-      // Combine and sort the results
-      const combinedInsurances = [...verifiedInsurances, ...expiredResult.data];
-      const sortedInsurances = combinedInsurances.sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        return ascending ? dateA - dateB : dateB - dateA;
-      });
-
-      setInsurances(sortedInsurances);
-      setTotal(verifiedInsurances.length + expiredResult.totalRecords);
+      setInsurances(result.data);
+      setTotal(result.totalRecords);
     } catch (error) {
       toast.error("Unable to load health insurances.");
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, searchText, sortBy, ascending, userFilter]);
+  }, [currentPage, pageSize, searchText, sortBy, ascending, statusFilter, userFilter]);
 
   useEffect(() => {
     fetchInsurances();
@@ -439,12 +421,15 @@ export function HealthInsuranceManagement() {
             <Select
               placeholder="Filter by status"
               onChange={(value) => setStatusFilter(value)}
-              style={{ width: 150 }}
+              style={{ width: 170 }}
               allowClear
               suffixIcon={<FilterOutlined />}
             >
               <Option value="Pending">
                 <Badge status="processing" text="Pending" />
+              </Option>
+              <Option value="Submitted">
+                <Badge status="warning" text="Submitted" />
               </Option>
               <Option value="Completed">
                 <Badge status="success" text="Completed" />
@@ -452,8 +437,14 @@ export function HealthInsuranceManagement() {
               <Option value="Expired">
                 <Badge status="error" text="Expired" />
               </Option>
+              <Option value="DeadlineExpired">
+                <Badge status="error" text={<span style={{ color: '#ff7a45' }}>Deadline Expired</span>} />
+              </Option>
               <Option value="SoftDeleted">
                 <Badge status="default" text="Soft Deleted" />
+              </Option>
+              <Option value="NotApplicable">
+                <Badge status="default" text="Not Applicable" />
               </Option>
             </Select>
             <Dropdown
@@ -558,7 +549,7 @@ export function HealthInsuranceManagement() {
       <Row justify="space-between" align="middle">
         <Col>
           <Typography.Text type="secondary">
-            Total {total} insurances | Showing only Completed+Verified and Expired insurances
+            Total {total} insurances
           </Typography.Text>
         </Col>
         <Col>

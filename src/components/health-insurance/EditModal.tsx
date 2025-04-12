@@ -67,14 +67,35 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
       const values = await form.validateFields();
       setLoading(true);
 
+      // Ensure all fields are included and properly formatted
       const formattedValues = {
         hasInsurance: true,
-        ...values,
-        dateOfBirth: values.dateOfBirth?.format('YYYY-MM-DD'),
-        validFrom: values.validFrom?.format('YYYY-MM-DD'),
-        validTo: values.validTo?.format('YYYY-MM-DD'),
-        issueDate: values.issueDate?.format('YYYY-MM-DD'),
+        healthInsuranceNumber: values.healthInsuranceNumber || "",
+        fullName: values.fullName || "",
+        dateOfBirth: values.dateOfBirth?.format('YYYY-MM-DD') || null,
+        gender: values.gender || "",
+        address: values.address || "",
+        healthcareProviderName: values.healthcareProviderName || "",
+        healthcareProviderCode: values.healthcareProviderCode || "",
+        validFrom: values.validFrom?.format('YYYY-MM-DD') || null,
+        validTo: values.validTo?.format('YYYY-MM-DD') || null,
+        issueDate: values.issueDate?.format('YYYY-MM-DD') || null,
       };
+
+      console.log("Form values:", values);
+      console.log("Formatted values for API:", formattedValues);
+      console.log("Image file:", imageFile);
+      
+      // Log FormData details to debug
+      const formData = new FormData();
+      Object.entries(formattedValues).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          const pascalCaseKey = key.charAt(0).toUpperCase() + key.slice(1);
+          formData.append(pascalCaseKey, value.toString());
+          console.log(`FormData entry: ${pascalCaseKey} = ${value.toString()}`);
+        }
+      });
+      if (imageFile) formData.append("imageFile", imageFile);
 
       const submitFunc = isAdmin ? updateHealthInsuranceByAdmin : requestHealthInsuranceUpdate;
       const response = await submitFunc(insurance!.id, formattedValues, imageFile);
