@@ -8,11 +8,10 @@ import {
   ModalHeader,
   ModalFooter,
 } from "@heroui/react";
-import { Select } from "antd";
+import { Select, message } from "antd";
 import { updateDrugOrder, getDrugOrderById } from "@/api/drugorder";
 import { getDrugs, DrugResponse } from "@/api/drug";
 import { getDrugSuppliers, DrugSupplierResponse } from "@/api/drugsupplier";
-import { toast } from "react-toastify";
 import { BinIcon } from "./Icons";
 import { ConfirmModal } from "./Confirm";
 
@@ -46,6 +45,7 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
   onEdit,
   orderId,
 }) => {
+  const [messageApi, contextHolder] = message.useMessage();
   const [formData, setFormData] = useState(initialFormState);
   const [loading, setLoading] = useState(false);
   const [drugs, setDrugs] = useState<DrugResponse[]>([]);
@@ -61,11 +61,11 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
         const drugsData = await getDrugs();
         setDrugs(drugsData);
       } catch (error) {
-        toast.error("Failed to fetch drugs");
+        messageApi.error("Failed to fetch drugs");
       }
     };
     fetchDrugs();
-  }, []);
+  }, [messageApi]);
 
   useEffect(() => {
     const fetchSuppliers = async () => {
@@ -73,11 +73,11 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
         const data = await getDrugSuppliers();
         setSuppliers(data);
       } catch (error) {
-        toast.error("Failed to load suppliers");
+        messageApi.error("Failed to load suppliers");
       }
     };
     fetchSuppliers();
-  }, []);
+  }, [messageApi]);
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
@@ -100,12 +100,12 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
             totalPrice: orderData.totalPrice,
           });
         } catch (error) {
-          toast.error("Failed to fetch order details");
+          messageApi.error("Failed to fetch order details");
         }
       }
     };
     fetchOrderDetails();
-  }, [orderId, isOpen]);
+  }, [orderId, isOpen, messageApi]);
 
   useEffect(() => {
     calculateTotals();
@@ -202,17 +202,17 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.supplierId || formData.drugOrderDetails.length === 0) {
-      toast.error("Please fill in all required fields");
+      messageApi.error("Please fill in all required fields");
       return;
     }
 
     for (const detail of formData.drugOrderDetails) {
       if (!detail.drugId) {
-        toast.error("Please select a drug for each order detail");
+        messageApi.error("Please select a drug for each order detail");
         return;
       }
       if (!detail.quantity || detail.quantity <= 0) {
-        toast.error("Quantity must be greater than 0");
+        messageApi.error("Quantity must be greater than 0");
         return;
       }
     }
@@ -235,14 +235,14 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
       });
 
       if (response.isSuccess) {
-        toast.success(response.message || "Drug order updated successfully");
+        messageApi.success(response.message || "Drug order updated successfully");
         onEdit();
         onClose();
       } else {
-        toast.error(response.message || "Failed to update drug order");
+        messageApi.error(response.message || "Failed to update drug order");
       }
     } catch (error) {
-      toast.error("Failed to update drug order");
+      messageApi.error("Failed to update drug order");
     } finally {
       setLoading(false);
       setIsConfirmationModalOpen(false);
@@ -274,7 +274,8 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
 
   return (
     <>
-      <Modal isOpen={isOpen} onOpenChange={(open) => !open && onClose()}>
+      {contextHolder}
+      <Modal isOpen={isOpen} onClose={onClose} size="2xl">
         <ModalContent className="max-w-[1000px] min-h-[700px] max-h-[90vh]">
           <ModalHeader className="border-b pb-3">Edit Drug Order</ModalHeader>
           <ModalBody className="max-h-[80vh] overflow-y-auto">
@@ -447,8 +448,8 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
         isOpen={isConfirmationModalOpen}
         onClose={() => setIsConfirmationModalOpen(false)}
         onConfirm={handleConfirmUpdate}
-        title="Confirm Update"
-        message="Please review your order details carefully before proceeding. Are you sure you want to update this order?"
+        title="Update Drug Order"
+        message="Are you sure you want to update this drug order? This action cannot be undone."
         confirmText="Update Order"
         cancelText="Cancel"
       />

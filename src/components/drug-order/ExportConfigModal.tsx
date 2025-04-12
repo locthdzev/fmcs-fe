@@ -24,6 +24,7 @@ import {
   InfoCircleOutlined,
   UndoOutlined,
 } from "@ant-design/icons";
+import { DrugOrderCodeOption } from "./index";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -50,7 +51,7 @@ interface ExportConfigModalProps {
     createdDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
     updatedDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
   };
-  drugOrderCodes?: string[];
+  drugOrderCodes?: DrugOrderCodeOption[];
   supplierOptions?: { id: string; supplierName: string }[];
 }
 
@@ -254,8 +255,8 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                           ).includes(input.toLowerCase())
                         }
                         options={drugOrderCodes.map((code) => ({
-                          value: code,
-                          label: code,
+                          value: code.value,
+                          label: code.label,
                         }))}
                       />
                     </Form.Item>

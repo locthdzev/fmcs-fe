@@ -213,35 +213,28 @@ export const getDrugsByDrugGroupId = async (drugGroupId: string) => {
   }
 };
 
-export const createDrug = async (drugData: FormData) => {
+export const createDrug = async (data: FormData) => {
+  // Log the form data entries for debugging
+  console.log("FormData to be sent:");
+  for (let pair of data.entries()) {
+    const value = pair[1];
+    console.log(`${pair[0]}: ${value instanceof File ? 
+      `File (${(value as File).name}, ${(value as File).type}, ${(value as File).size} bytes)` : 
+      value}`);
+  }
+  
   try {
-    console.log("API createDrug called");
-    
-    // Log thông tin về FormData
-    for (let pair of drugData.entries()) {
-      const value = pair[1];
-      console.log(`${pair[0]}: ${value instanceof File ? 
-        `File (${value.name}, ${value.type}, ${value.size} bytes)` : 
-        value}`);
-    }
-    
-    // Kiểm tra xem FormData có chứa file không
-    const hasImageFile = Array.from(drugData.entries()).some(
-      entry => entry[0] === 'imageFile' && entry[1] instanceof File
-    );
-    
-    console.log("FormData contains image file:", hasImageFile);
-    
-    const response = await api.post("/drug-management/drugs", drugData, {
+    const response = await api.post("/drug-management/drugs", data, {
       headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+        "Content-Type": "multipart/form-data",
+      },
     });
-    
-    console.log("createDrug response:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Error in createDrug:", error);
+    // The error is already sanitized by the axios interceptor
+    console.error("Error in createDrug API:", error);
+    
+    // Just rethrow the already sanitized error
     throw error;
   }
 };
@@ -330,6 +323,22 @@ export const exportDrugsToExcel = async (
   updatedEndDate?: string
 ) => {
   try {
+    // For "Export All", we ignore all filters except sorting
+    if (exportAllPages) {
+      drugCodeSearch = undefined;
+      nameSearch = undefined;
+      manufacturerSearch = undefined;
+      descriptionSearch = undefined;
+      drugGroupId = undefined;
+      minPrice = undefined;
+      maxPrice = undefined;
+      status = undefined;
+      createdStartDate = undefined;
+      createdEndDate = undefined;
+      updatedStartDate = undefined;
+      updatedEndDate = undefined;
+    }
+
     console.log("Export config:", config);
     console.log("Export params:", {
       exportAllPages,
@@ -351,112 +360,72 @@ export const exportDrugsToExcel = async (
       updatedEndDate
     });
     
-    // Thử trực tiếp theo Swagger, không sử dụng query params
+    // Set an extremely large pageSize to ensure all records are returned
+    const exportPageSize = 1000000; // One million should cover any reasonable number of records
+    
+    // Use a simplified approach with direct body parameters
+    const exportRequest = {
+      ...config,
+      exportOptions: {
+        page: 1,
+        pageSize: exportPageSize,
+        drugCodeSearch,
+        nameSearch,
+        manufacturerSearch,
+        descriptionSearch,
+        drugGroupId,
+        minPrice,
+        maxPrice,
+        sortBy: sortBy || "CreatedAt", // Default to CreatedAt for consistency
+        ascending,
+        status: status ? status.replace(/,/g, ",") : undefined,
+        createdStartDate,
+        createdEndDate,
+        updatedStartDate,
+        updatedEndDate,
+        exportAllPages: true
+      }
+    };
+      
+    console.log("Export request:", JSON.stringify(exportRequest, null, 2));
+    
+    const response = await api.post("/drug-management/drugs/export-excel", exportRequest);
+    console.log("Export response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Export error:", error);
+    
+    // Try direct axios as fallback
     try {
-      const response = await api.post("/drug-management/drugs/export-excel", {
+      const axios = require('axios');
+      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+      
+      const exportRequest = {
         ...config,
         exportOptions: {
-          // Map các tham số query vào body request
-          page: exportAllPages ? 1 : page,
-          pageSize: exportAllPages ? 1000000 : pageSize,
-          drugCodeSearch,
-          nameSearch,
-          manufacturerSearch,
-          descriptionSearch,
-          drugGroupId,
-          minPrice,
-          maxPrice,
-          sortBy,
+          page: 1,
+          pageSize: 1000000,
+          sortBy: sortBy || "CreatedAt",
           ascending,
-          status: status ? status.replace(/,/g, ",") : undefined, // Đảm bảo status đúng định dạng
-          createdStartDate,
-          createdEndDate,
-          updatedStartDate,
-          updatedEndDate,
-          exportAllPages
+          exportAllPages: true
+        }
+      };
+      
+      const fullUrl = `http://localhost:5104/api/drug-management/drugs/export-excel`;
+      console.log("Trying direct URL:", fullUrl);
+      
+      const directResponse = await axios.post(fullUrl, exportRequest, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : undefined
         }
       });
       
-      console.log("Export response (body params):", response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error("Export failed with body params:", error.message);
-      
-      // Nếu cách trên thất bại, thử cách khác: gửi config trong body và params trong query
-      // Xây dựng query params
-      const params = new URLSearchParams();
-      
-      params.append("page", exportAllPages ? "1" : page.toString());
-      params.append("pageSize", exportAllPages ? "1000000" : pageSize.toString());
-      
-      if (drugCodeSearch) params.append("drugCodeSearch", drugCodeSearch);
-      if (nameSearch) params.append("nameSearch", nameSearch);
-      if (manufacturerSearch) params.append("manufacturerSearch", manufacturerSearch);
-      if (descriptionSearch) params.append("descriptionSearch", descriptionSearch);
-      if (drugGroupId) params.append("drugGroupId", drugGroupId);
-      if (minPrice !== undefined && minPrice !== null) params.append("minPrice", minPrice.toString());
-      if (maxPrice !== undefined && maxPrice !== null) params.append("maxPrice", maxPrice.toString());
-      if (sortBy) params.append("sortBy", sortBy);
-      params.append("ascending", ascending !== undefined ? ascending.toString() : "true");
-      
-      // Xử lý status đặc biệt, đảm bảo nó không bị mã hóa sai
-      if (status) {
-        // Nếu status là chuỗi với các giá trị phân tách bằng dấu phẩy, không thêm dấu phẩy mới
-        const cleanStatus = status.replace(/,/g, ",");
-        params.append("status", cleanStatus);
-      }
-      
-      if (createdStartDate) params.append("createdStartDate", createdStartDate);
-      if (createdEndDate) params.append("createdEndDate", createdEndDate);
-      if (updatedStartDate) params.append("updatedStartDate", updatedStartDate);
-      if (updatedEndDate) params.append("updatedEndDate", updatedEndDate);
-      params.append("exportAllPages", exportAllPages.toString());
-      
-      console.log(`Retry with query params: ${params.toString()}`);
-      
-      try {
-        // Phương án 1: đúng theo cấu trúc API tiêu chuẩn
-        const response = await api.post(`/drug-management/drugs/export-excel?${params.toString()}`, config);
-        console.log("Export response (standard):", response.data);
-        return response.data;
-      } catch (queryError: any) {
-        console.error("Export failed with standard url:", queryError.message);
-        
-        try {
-          // Phương án 2: thử không có tiền tố api vì baseURL có thể đã bao gồm
-          const response = await api.post(`drug-management/drugs/export-excel?${params.toString()}`, config);
-          console.log("Export response (no leading slash):", response.data);
-          return response.data;
-        } catch (noSlashError: any) {
-          console.error("Export failed with no leading slash:", noSlashError.message);
-          
-          try {
-            // Phương án 3: thử với axios trực tiếp, không qua instance
-            const fullUrl = `http://localhost:5104/api/drug-management/drugs/export-excel?${params.toString()}`;
-            console.log("Trying direct URL:", fullUrl);
-            
-            // Import axios trực tiếp
-            const axios = require('axios');
-            const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-            
-            const directResponse = await axios.post(fullUrl, config, {
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': token ? `Bearer ${token}` : undefined
-              }
-            });
-            
-            console.log("Export response (direct axios):", directResponse.data);
-            return directResponse.data;
-          } catch (directError: any) {
-            console.error("Export failed with direct axios:", directError.message);
-            throw new Error(`All export methods failed. Last error: ${directError.message}`);
-          }
-        }
-      }
+      console.log("Export response (direct axios):", directResponse.data);
+      return directResponse.data;
+    } catch (directError) {
+      console.error("Export failed with direct axios:", directError);
+      throw directError;
     }
-  } catch (error) {
-    console.error("Error preparing export request:", error);
-    throw error;
   }
 };

@@ -75,13 +75,17 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
   useEffect(() => {
     if (visible) {
       form.resetFields();
+      // Reset loading state when modal is opened
+      setLoading(false);
     }
   }, [visible, form]);
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      setLoading(true);
+      
+      // Không cần set loading ở đây vì đã được xử lý bởi component cha
+      // setLoading(true);
 
       // Construct the export config DTO
       const exportConfig: CanteenOrderExportConfig = {
@@ -106,11 +110,12 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         content: "An unexpected error occurred",
         duration: 10,
       });
-      setLoading(false);
     }
   };
 
   const handleCancel = () => {
+    // Reset loading state when modal is closed
+    setLoading(false);
     onClose();
   };
 
