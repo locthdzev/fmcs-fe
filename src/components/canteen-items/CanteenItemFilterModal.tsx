@@ -16,8 +16,6 @@ import {
 import {
   UndoOutlined,
   CheckCircleOutlined,
-  SortAscendingOutlined,
-  SortDescendingOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -97,7 +95,7 @@ const CanteenItemFilterModal: React.FC<CanteenItemFilterModalProps> = ({
         ? localFilters.updatedDateRange
         : [null, null],
       sortBy: localFilters.sortBy || "CreatedAt",
-      ascending: Boolean(localFilters.ascending),
+      ascending: false, // Always use false (newest first) as we've removed the control
     };
     
     // Log processed filters trước khi gửi đi
@@ -327,30 +325,6 @@ const CanteenItemFilterModal: React.FC<CanteenItemFilterModalProps> = ({
                   { value: "ItemName", label: "Item Name" },
                 ]}
               />
-            </div>
-          </Col>
-          <Col span={12}>
-            <div className="filter-item" style={filterItemStyle}>
-              <div className="filter-label" style={filterLabelStyle}>
-                Sort Direction
-              </div>
-              <Radio.Group
-                onChange={(e) => updateFilter("ascending", e.target.value)}
-                value={localFilters.ascending}
-              >
-                <Radio value={false} style={{ marginRight: "20px" }}>
-                  <Space>
-                    <SortDescendingOutlined />
-                    Descending (newest first)
-                  </Space>
-                </Radio>
-                <Radio value={true}>
-                  <Space>
-                    <SortAscendingOutlined />
-                    Ascending (oldest first)
-                  </Space>
-                </Radio>
-              </Radio.Group>
             </div>
           </Col>
         </Row>

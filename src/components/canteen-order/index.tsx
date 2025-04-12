@@ -288,6 +288,8 @@ export function CanteenOrders() {
       const selectedOrdersData = canteenOrders.filter((order) =>
         selectedRowKeys.includes(order.id)
       );
+      
+      // Check if any selected order has a status we can act on
       const hasPending = selectedOrdersData.some(
         (order) => order.status === "Pending"
       );
@@ -295,6 +297,7 @@ export function CanteenOrders() {
         (order) => order.status === "Approved"
       );
 
+      // Show buttons based on if there's at least one item with the required status
       setShowApproveButton(hasPending);
       setShowRejectButton(hasPending || hasApproved);
       setShowCompleteButton(hasApproved);
@@ -585,13 +588,13 @@ export function CanteenOrders() {
       targetStatus = "Approved";
       count = selectedOrdersData.filter(o => o.status === targetStatus).length;
     } else if (action === "delete") {
-      // Para eliminar, contamos todos los seleccionados
+      // Đối với xóa, đếm tất cả các item được chọn
       count = selectedOrdersData.length;
     }
 
     if (count === 0) {
       messageApi.warning(
-        `No orders with valid status selected.`,
+        `No orders with valid status selected for this action.`,
         5
       );
       return;
@@ -764,6 +767,22 @@ export function CanteenOrders() {
   };
 
   useEffect(() => {
+    if (canteenOrders.length > 0) {
+      // Extract unique license plates for filter options
+      const uniqueLicensePlates = Array.from(
+        new Set(canteenOrders.map((order) => order.truck.licensePlate))
+      );
+      setLicensePlateOptions(uniqueLicensePlates);
+      
+      // Extract unique driver names for filter options
+      const uniqueDriverNames = Array.from(
+        new Set(canteenOrders.map((order) => order.truck.driverName))
+      );
+      setDriverNameOptions(uniqueDriverNames);
+    }
+  }, [canteenOrders]);
+
+  useEffect(() => {
     const queryPage = Number(router.query.page) || 1;
     if (queryPage !== currentPage) {
       setCurrentPage(queryPage);
@@ -926,6 +945,19 @@ export function CanteenOrders() {
         selectedRowKeys.includes(order.id)
       );
 
+    // Handle select all checkbox
+    const handleSelectAllChange = (e: CheckboxChangeEvent) => {
+      if (e.target.checked) {
+        // Select all items on the current page without status validation
+        const currentPageIds = selectableOrders.map(order => order.id);
+        setSelectedRowKeys(currentPageIds);
+      } else {
+        // Deselect all
+        setSelectedRowKeys([]);
+        setSelectedOption(null);
+      }
+    };
+
     // Create dropdown items for status selection
     const dropdownItems = [
       {
@@ -985,9 +1017,10 @@ export function CanteenOrders() {
     return (
       <>
         <Checkbox
-          checked={false}
-          indeterminate={false}
-          disabled={true}
+          checked={isSelectAll}
+          indeterminate={isIndeterminate}
+          disabled={selectableOrders.length === 0}
+          onChange={handleSelectAllChange}
         />
         
         {dropdownItems.length > 0 && (
@@ -1025,46 +1058,17 @@ export function CanteenOrders() {
   const rowSelection = {
     selectedRowKeys,
     onChange: (keys: React.Key[], selectedRows: CanteenOrderResponse[]) => {
-      // Checkbox selections are disabled, only dropdown selections are allowed
-      // But if the user is deselecting (keys.length < selectedRowKeys.length), allow it
-      if (keys.length > selectedRowKeys.length && !selectedOption) {
-        messageApi.info("Please use the status dropdown to select orders", 5);
-        return;
-      }
-      
-      // If no keys selected, just clear selection
-      if (keys.length === 0) {
-        setSelectedRowKeys([]);
-        setSelectedOption(null);
-        return;
-      }
-      
-      // Check if trying to select orders with different statuses
-      if (keys.length > 0) {
-        // Get the selected orders data
-        const selectedOrderList = canteenOrders.filter(order => keys.includes(order.id));
-        
-        // Get unique statuses in the selection
-        const uniqueStatuses = [...new Set(selectedOrderList.map(order => order.status))];
-        
-        // If more than one status is selected, prevent selection
-        if (uniqueStatuses.length > 1) {
-          messageApi.warning("You cannot select orders with different statuses at the same time.", 5);
-          return;
-        }
-      }
-      
-      // If all validations pass, update selection
+      // Simply update the selection without any validation
       setSelectedRowKeys(keys);
-      // Reset selected option when manually deselecting
+      
+      // Clear selected option if manually deselecting
       if (keys.length < selectedRowKeys.length) {
         setSelectedOption(null);
       }
     },
     columnTitle: renderSelectAll,
-    // Disable all individual checkboxes
     getCheckboxProps: (record: CanteenOrderResponse) => ({
-      disabled: true, // Disable all individual checkboxes
+      disabled: false, // Allow individual checkbox selection
     }),
   };
 
@@ -1229,6 +1233,9 @@ export function CanteenOrders() {
 
   // Export to Excel handlers
   const handleOpenExportModal = () => {
+    // Reset loading state khi mở modal
+    setLoading(false);
+    setLoadingMessage("Loading canteen orders...");
     setExportModalVisible(true);
   };
 
@@ -1241,27 +1248,36 @@ export function CanteenOrders() {
       setLoading(true);
       setLoadingMessage("Exporting to Excel...");
       console.log("Attempting to export with config:", config);
-      await exportCanteenOrdersToExcel(config);
-      messageApi.success("Exported to Excel successfully", 5);
+      
+      // Đóng modal ngay khi bắt đầu export
+      setExportModalVisible(false);
+      
+      const result = await exportCanteenOrdersToExcel(config);
+      if (result === true) {
+        messageApi.success("Exported to Excel successfully - check your downloads", 5);
+      }
     } catch (error: any) {
       console.error("Error exporting to Excel:", error);
       
-      // Handle specific error cases
-      if (error?.response?.status === 405) {
-        messageApi.error(
-          "The API endpoint doesn't support this request method. Check if the endpoint URL is correct (Method Not Allowed).", 
-          8
-        );
-        console.error("405 Method Not Allowed error. Current endpoint:", 
-          "/canteenorder-management/export-to-excel");
-      } else {
-        // Display a more descriptive error message if available
-        const errorMessage = error?.message || "Failed to export to Excel";
-        messageApi.error(errorMessage, 5);
-      }
+      // Hiển thị thông báo lỗi chi tiết hơn
+      const errorMessage = error?.message || "Failed to export to Excel";
+      
+      // Hiển thị modal lỗi với thông tin chi tiết
+      Modal.error({
+        title: 'Export Failed',
+        content: (
+          <div>
+            <p>{errorMessage}</p>
+            <p>Please try again or contact support if the issue persists.</p>
+            <p style={{ fontSize: '12px', marginTop: '10px' }}>Error details: {error?.toString()}</p>
+          </div>
+        ),
+      });
+      
+      messageApi.error(errorMessage, 5);
     } finally {
+      // Đảm bảo loading state được reset
       setLoading(false);
-      setExportModalVisible(false);
     }
   };
 
@@ -1309,13 +1325,21 @@ export function CanteenOrders() {
               <div className="flex flex-col gap-4">
                 <div className="flex justify-between items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Input
-                      placeholder="Search by license plate..."
-                      prefix={<SearchOutlined />}
-                      value={filterValue}
-                      onChange={(e) => handleSearchChange(e.target.value)}
-                      style={{ width: "300px" }}
+                    <Select
+                      showSearch
                       allowClear
+                      placeholder="Search by license plate..."
+                      value={filterValue || undefined}
+                      onChange={handleSearchChange}
+                      style={{ width: "300px" }}
+                      options={licensePlateOptions.map(plate => ({ 
+                        label: plate, 
+                        value: plate 
+                      }))}
+                      filterOption={(input, option) =>
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                      notFoundContent="No license plates found"
                     />
                     
                     <Select
@@ -1593,17 +1617,17 @@ export function CanteenOrders() {
       >
         {confirmAction === "approve" ? (
           <p>
-            Are you sure you want to approve the selected canteen orders? Once approved, 
+            Are you sure you want to approve the selected canteen orders? <strong>Only orders with "Pending" status will be approved.</strong> Once approved, 
             you can no longer edit the order, but you can reject or complete it.
           </p>
         ) : confirmAction === "reject" ? (
           <p>
-            Are you sure you want to reject the selected canteen orders? Once rejected, 
+            Are you sure you want to reject the selected canteen orders? <strong>Only orders with "Pending" or "Approved" status will be rejected.</strong> Once rejected, 
             the order and its details will be marked inactive and no further actions can be performed.
           </p>
         ) : confirmAction === "complete" ? (
           <p>
-            Are you sure you want to complete the selected canteen orders? Once completed, 
+            Are you sure you want to complete the selected canteen orders? <strong>Only orders with "Approved" status will be completed.</strong> Once completed, 
             the order will be finalized.
           </p>
         ) : (

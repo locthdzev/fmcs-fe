@@ -183,6 +183,17 @@ export function Trucks() {
     includeStatus: true,
   });
 
+  // Extract unique license plates for dropdown
+  const uniqueLicensePlates = useMemo(() => {
+    return Array.from(new Set(trucks.map(truck => truck.licensePlate)))
+      .map(plate => ({ value: plate, label: plate }));
+  }, [trucks]);
+
+  // Filter function for license plate search
+  const filterOption = (input: string, option?: { label: string; value: string }) => {
+    return (option?.label ?? '').toLowerCase().includes(input.toLowerCase());
+  };
+
   const fetchTrucks = useCallback(async () => {
     setLoading(true);
     setLoadingMessage("Loading trucks...");
@@ -215,10 +226,19 @@ export function Trucks() {
   }, [router.query.page]);
 
   const updatePageInUrl = (newPage: number) => {
+    const query = { ...router.query };
+    
+    // Nếu là trang 1, xóa tham số page khỏi URL
+    if (newPage === 1) {
+      delete query.page;
+    } else {
+      query.page = String(newPage);
+    }
+    
     router.push(
       {
         pathname: router.pathname,
-        query: { ...router.query, page: newPage },
+        query: query,
       },
       undefined,
       { shallow: true }
@@ -227,11 +247,13 @@ export function Trucks() {
 
   const onPageChange = (newPage: number) => {
     setPage(newPage);
+    updatePageInUrl(newPage);
   };
 
   const onRowsPerPageChange = useCallback((value: number) => {
     setRowsPerPage(value);
     setPage(1);
+    updatePageInUrl(1);
   }, []);
 
   const filteredItems = useMemo(() => {
@@ -240,7 +262,7 @@ export function Trucks() {
     // Apply search filter
     if (filterValue) {
       filteredTrucks = filteredTrucks.filter((truck) =>
-        truck.licensePlate.toLowerCase().includes(filterValue.toLowerCase())
+        truck.licensePlate.toLowerCase() === filterValue.toLowerCase()
       );
     }
 
@@ -285,18 +307,26 @@ export function Trucks() {
     return filteredTrucks;
   }, [trucks, filterValue, statusFilter, advancedFilters]);
 
-  const pages = Math.ceil(totalItems / rowsPerPage);
+  const pages = Math.ceil(filteredItems.length / rowsPerPage);
 
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
+    
+    // Đảm bảo rằng page không vượt quá số trang thực tế
+    if (page > 1 && start >= filteredItems.length) {
+      // Nếu page hiện tại vượt quá số trang thực tế, quay về trang 1
+      setTimeout(() => setPage(1), 0);
+      return filteredItems.slice(0, rowsPerPage);
+    }
+    
     return filteredItems.slice(start, end);
   }, [page, rowsPerPage, filteredItems]);
 
   const sortedItems = useMemo(() => {
     let sorted = [...items];
 
-    // Apply sorting based on advancedFilters.ascending for createdAt
+    // Luôn áp dụng sắp xếp theo createdAt (mặc định giảm dần - ngày mới nhất)
     if (sortDescriptor.column === "createdAt") {
       // Override direction from sortDescriptor with the one from advancedFilters
       const direction = advancedFilters.ascending ? 1 : -1;
@@ -676,6 +706,7 @@ export function Trucks() {
     setSortDescriptor({ column: "createdAt", direction: "descending" });
     setAdvancedFilters(initialAdvancedFilters);
     setPage(1);
+    updatePageInUrl(1);
     setIsFilterModalOpen(false);
   }, [initialAdvancedFilters]);
 
@@ -691,6 +722,7 @@ export function Trucks() {
     }
     
     setPage(1);
+    updatePageInUrl(1);
     setIsFilterModalOpen(false);
   };
 
@@ -727,11 +759,14 @@ export function Trucks() {
 
   const toggleAllColumns = useCallback((checked: boolean) => {
     if (checked) {
+      // Show all columns
       setVisibleColumns(new Set(allColumnKeys));
     } else {
-      setVisibleColumns(new Set(INITIAL_VISIBLE_COLUMNS));
+      // Hide all columns except essential ones required for table to function
+      messageApi.success("All columns have been hidden", 3);
+      setVisibleColumns(new Set([]));
     }
-  }, []);
+  }, [messageApi]);
 
   const areAllColumnsVisible = useMemo(() => {
     const currentVisible = visibleColumns as Set<string>;
@@ -820,7 +855,10 @@ export function Trucks() {
 
   // Define Ant Design table columns
   const antColumns = useMemo(() => {
-    return [
+    // If no columns are visible, return empty array
+    const hasVisibleColumns = visibleColumns instanceof Set && (visibleColumns as Set<string>).size > 0;
+    
+    const columns = [
       {
         title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>LICENSE PLATE</span>,
         dataIndex: "licensePlate",
@@ -862,7 +900,14 @@ export function Trucks() {
         align: "center" as const,
         render: (_: any, record: TruckResponse) => renderCell(record, "actions"),
       },
-    ].filter(col => {
+    ];
+    
+    if (!hasVisibleColumns) {
+      // Return empty array when no columns are selected
+      return [];
+    }
+    
+    return columns.filter(col => {
       const key = col.key as string;
       return visibleColumns instanceof Set && visibleColumns.has(key);
     });
@@ -986,13 +1031,20 @@ export function Trucks() {
                 <div className="flex flex-col gap-4">
                   <div className="flex justify-between items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <AntInput
+                      <Select
+                        showSearch
                         allowClear
-                        style={{ width: "300px", height: "32px" }}
-                        placeholder="Search License Plate..."
-                        prefix={<SearchOutlined />}
-                        value={filterValue}
-                        onChange={(e) => setFilterValue(e.target.value)}
+                        style={{ width: "300px" }}
+                        placeholder={
+                          <div style={{ display: "flex", alignItems: "center" }}>
+                            <SearchOutlined style={{ marginRight: 8 }} />
+                            <span>Search License Plate...</span>
+                          </div>
+                        }
+                        filterOption={filterOption}
+                        options={uniqueLicensePlates}
+                        value={filterValue || undefined}
+                        onChange={(value) => setFilterValue(value || "")}
                       />
 
                       <AntTooltip title="Advanced Filters">
@@ -1163,13 +1215,13 @@ export function Trucks() {
                   <Row justify="center" align="middle">
                     <Space size="large" align="center">
                       <Typography.Text type="secondary">
-                        Total {totalItems} items
+                        Total {filteredItems.length} items
                       </Typography.Text>
                       <Space align="center" size="large">
                         <AntPagination
                           current={page}
                           pageSize={rowsPerPage}
-                          total={totalItems}
+                          total={filteredItems.length}
                           onChange={onPageChange}
                           showSizeChanger={false}
                           showTotal={() => ""}
