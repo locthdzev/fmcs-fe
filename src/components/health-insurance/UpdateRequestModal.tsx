@@ -102,18 +102,50 @@ const UpdateRequestModal: React.FC<UpdateRequestModalProps> = ({
       await form.validateFields();
       setSubmitting(true);
 
+      // Xác định có bảo hiểm dựa trên thông tin form, không phụ thuộc vào currentStep
+      const hasInsurance = form.getFieldValue('hasInsurance') !== false;
+      
       const values = form.getFieldsValue();
+      console.log("Form values:", values);
+      
+      // Create data object, ensuring we have all required fields
       const data = {
-        ...values,
-        dateOfBirth: values.dateOfBirth?.format("YYYY-MM-DD"),
-        validFrom: values.validFrom?.format("YYYY-MM-DD"),
-        validTo: values.validTo?.format("YYYY-MM-DD"),
-        issueDate: values.issueDate?.format("YYYY-MM-DD"),
+        hasInsurance: hasInsurance,
+        healthInsuranceNumber: values.healthInsuranceNumber || "",
+        fullName: values.fullName || "",
+        dateOfBirth: values.dateOfBirth?.format("YYYY-MM-DD") || null,
+        gender: values.gender || "",
+        address: values.address || "",
+        healthcareProviderName: values.healthcareProviderName || "",
+        healthcareProviderCode: values.healthcareProviderCode || "",
+        validFrom: values.validFrom?.format("YYYY-MM-DD") || null,
+        validTo: values.validTo?.format("YYYY-MM-DD") || null,
+        issueDate: values.issueDate?.format("YYYY-MM-DD") || null,
       };
+
+      console.log("Sending data:", data);
+      console.log("Image file:", imageFile);
+      
+      // Log FormData details to debug
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          const pascalCaseKey = key.charAt(0).toUpperCase() + key.slice(1);
+          formData.append(pascalCaseKey, value.toString());
+          console.log(`FormData entry: ${pascalCaseKey} = ${value.toString()}`);
+        }
+      });
+      if (imageFile) formData.append("imageFile", imageFile);
+
+      // Điều chỉnh fileImage nếu không có bảo hiểm
+      const fileToSend = hasInsurance ? imageFile : undefined;
 
       let response;
       if (insurance.verificationStatus === "Verified") {
-        response = await requestHealthInsuranceUpdate(insurance.id, data, imageFile);
+        // Using the FormData object directly would provide more control,
+        // but we'll keep using the API functions for consistency
+        response = await requestHealthInsuranceUpdate(insurance.id, data, fileToSend);
+        console.log("Request response:", response);
         if (response.isSuccess) {
           message.success("Update request submitted successfully");
           onSuccess();
@@ -122,7 +154,8 @@ const UpdateRequestModal: React.FC<UpdateRequestModalProps> = ({
           message.error(response.message || "Failed to submit update request");
         }
       } else {
-        response = await updateHealthInsurance(insurance.id, data, imageFile);
+        response = await updateHealthInsurance(insurance.id, data, fileToSend);
+        console.log("Update response:", response);
         if (response.isSuccess) {
           message.success("Insurance updated successfully");
           onSuccess();
@@ -132,6 +165,7 @@ const UpdateRequestModal: React.FC<UpdateRequestModalProps> = ({
         }
       }
     } catch (error) {
+      console.error("Submit error:", error);
       message.error("Please check your form inputs");
     } finally {
       setSubmitting(false);
