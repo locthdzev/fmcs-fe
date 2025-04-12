@@ -119,7 +119,12 @@ export const createHealthInsuranceManual = async (
 ) => {
   const formData = new FormData();
   Object.entries(data).forEach(
-    ([key, value]) => value && formData.append(key, value)
+    ([key, value]) => {
+      if (value !== undefined && value !== null) {
+        const pascalCaseKey = key.charAt(0).toUpperCase() + key.slice(1);
+        formData.append(pascalCaseKey, value.toString());
+      }
+    }
   );
   if (imageFile) formData.append("imageFile", imageFile);
   const response = await api.post(
@@ -138,10 +143,33 @@ export const updateHealthInsurance = async (
   imageFile?: File
 ) => {
   const formData = new FormData();
-  Object.entries(data).forEach(
-    ([key, value]) => value && formData.append(key, value.toString())
-  );
-  if (imageFile) formData.append("imageFile", imageFile);
+  console.log("updateHealthInsurance - Data being processed:", data);
+  
+  // Thêm tất cả các trường vào FormData, đảm bảo xử lý chuỗi chính xác
+  formData.append("HasInsurance", data.hasInsurance ? "true" : "false");
+  formData.append("HealthInsuranceNumber", data.healthInsuranceNumber || "");
+  formData.append("FullName", data.fullName || "");
+  formData.append("Gender", data.gender || "");
+  formData.append("Address", data.address || "");
+  formData.append("HealthcareProviderName", data.healthcareProviderName || "");
+  formData.append("HealthcareProviderCode", data.healthcareProviderCode || "");
+  
+  // Xử lý các trường ngày tháng đặc biệt - PHẢI chuyển sang chuỗi
+  if (data.dateOfBirth) formData.append("DateOfBirth", data.dateOfBirth.toString());
+  if (data.validFrom) formData.append("ValidFrom", data.validFrom.toString());
+  if (data.validTo) formData.append("ValidTo", data.validTo.toString());
+  if (data.issueDate) formData.append("IssueDate", data.issueDate.toString());
+  
+  if (imageFile) {
+    formData.append("imageFile", imageFile);
+    console.log("updateHealthInsurance - Added image file to FormData");
+  }
+  
+  // Debug: Log all form data entries
+  for (const pair of formData.entries()) {
+    console.log(`updateHealthInsurance - FormData contains: ${pair[0]}: ${pair[1]}`);
+  }
+  
   const response = await api.put(
     `/health-insurance-management/insurances/${id}`,
     formData,
@@ -158,10 +186,33 @@ export const updateHealthInsuranceByAdmin = async (
   imageFile?: File
 ) => {
   const formData = new FormData();
-  Object.entries(data).forEach(
-    ([key, value]) => value && formData.append(key, value.toString())
-  );
-  if (imageFile) formData.append("imageFile", imageFile);
+  console.log("updateHealthInsuranceByAdmin - Data being processed:", data);
+  
+  // Thêm tất cả các trường vào FormData, đảm bảo xử lý chuỗi chính xác
+  formData.append("HasInsurance", data.hasInsurance ? "true" : "false");
+  formData.append("HealthInsuranceNumber", data.healthInsuranceNumber || "");
+  formData.append("FullName", data.fullName || "");
+  formData.append("Gender", data.gender || "");
+  formData.append("Address", data.address || "");
+  formData.append("HealthcareProviderName", data.healthcareProviderName || "");
+  formData.append("HealthcareProviderCode", data.healthcareProviderCode || "");
+  
+  // Xử lý các trường ngày tháng đặc biệt - PHẢI chuyển sang chuỗi
+  if (data.dateOfBirth) formData.append("DateOfBirth", data.dateOfBirth.toString());
+  if (data.validFrom) formData.append("ValidFrom", data.validFrom.toString());
+  if (data.validTo) formData.append("ValidTo", data.validTo.toString());
+  if (data.issueDate) formData.append("IssueDate", data.issueDate.toString());
+  
+  if (imageFile) {
+    formData.append("imageFile", imageFile);
+    console.log("updateHealthInsuranceByAdmin - Added image file to FormData");
+  }
+  
+  // Debug: Log all form data entries
+  for (const pair of formData.entries()) {
+    console.log(`updateHealthInsuranceByAdmin - FormData contains: ${pair[0]}: ${pair[1]}`);
+  }
+  
   const response = await api.put(
     `/health-insurance-management/insurances/${id}/admin-update`,
     formData,
@@ -178,10 +229,33 @@ export const requestHealthInsuranceUpdate = async (
   imageFile?: File
 ) => {
   const formData = new FormData();
-  Object.entries(data).forEach(
-    ([key, value]) => value && formData.append(key, value.toString())
-  );
-  if (imageFile) formData.append("imageFile", imageFile);
+  console.log("requestHealthInsuranceUpdate - Data being processed:", data);
+  
+  // Thêm tất cả các trường vào FormData, đảm bảo xử lý chuỗi chính xác
+  formData.append("HasInsurance", data.hasInsurance ? "true" : "false");
+  formData.append("HealthInsuranceNumber", data.healthInsuranceNumber || "");
+  formData.append("FullName", data.fullName || "");
+  formData.append("Gender", data.gender || "");
+  formData.append("Address", data.address || "");
+  formData.append("HealthcareProviderName", data.healthcareProviderName || "");
+  formData.append("HealthcareProviderCode", data.healthcareProviderCode || "");
+  
+  // Xử lý các trường ngày tháng đặc biệt - PHẢI chuyển sang chuỗi
+  if (data.dateOfBirth) formData.append("DateOfBirth", data.dateOfBirth.toString());
+  if (data.validFrom) formData.append("ValidFrom", data.validFrom.toString());
+  if (data.validTo) formData.append("ValidTo", data.validTo.toString());
+  if (data.issueDate) formData.append("IssueDate", data.issueDate.toString());
+  
+  if (imageFile) {
+    formData.append("imageFile", imageFile);
+    console.log("requestHealthInsuranceUpdate - Added image file to FormData");
+  }
+  
+  // Debug: Log all form data entries
+  for (const pair of formData.entries()) {
+    console.log(`requestHealthInsuranceUpdate - FormData contains: ${pair[0]}: ${pair[1]}`);
+  }
+  
   const response = await api.post(
     `/health-insurance-management/insurances/${id}/request-update`,
     formData,
@@ -336,6 +410,16 @@ export const setupHealthInsuranceRealTime = (
 export const getCurrentUserHealthInsurance = async () => {
   const response = await api.get(
     "/health-insurance-management/insurances/current"
+  );
+  return response.data;
+};
+
+export const getCurrentUserPendingUpdateRequests = async () => {
+  const response = await api.get(
+    "/health-insurance-management/insurances/update-requests/current",
+    {
+      params: { status: "Pending" },
+    }
   );
   return response.data;
 };

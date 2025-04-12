@@ -30,6 +30,7 @@ import {
 import dayjs from "dayjs";
 import {
   getCurrentUserHealthInsurance,
+  getCurrentUserPendingUpdateRequests,
 } from "@/api/healthinsurance";
 import { formatDate } from "@/utils/dateUtils";
 import UpdateRequestModal from "./UpdateRequestModal";
@@ -40,16 +41,30 @@ export function UserHealthInsurance() {
   const [loading, setLoading] = useState(true);
   const [insurance, setInsurance] = useState<any>(null);
   const [updateModalVisible, setUpdateModalVisible] = useState(false);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
 
   useEffect(() => {
-    fetchInsurance();
+    fetchData();
   }, []);
 
-  const fetchInsurance = async () => {
+  const fetchData = async () => {
     try {
-      const response = await getCurrentUserHealthInsurance();
-      if (response.isSuccess) {
-        setInsurance(response.data);
+      setLoading(true);
+      const [insuranceResponse, pendingRequestsResponse] = await Promise.all([
+        getCurrentUserHealthInsurance(),
+        getCurrentUserPendingUpdateRequests()
+      ]);
+      
+      if (insuranceResponse.isSuccess) {
+        setInsurance(insuranceResponse.data);
+      }
+      
+      if (pendingRequestsResponse.isSuccess && 
+          pendingRequestsResponse.data && 
+          pendingRequestsResponse.data.length > 0) {
+        setHasPendingRequest(true);
+      } else {
+        setHasPendingRequest(false);
       }
     } catch (error) {
       Modal.error({
@@ -91,7 +106,7 @@ export function UserHealthInsurance() {
 
   const handleUpdateSuccess = () => {
     setUpdateModalVisible(false);
-    fetchInsurance();
+    fetchData();
   };
 
   if (loading) {
@@ -135,6 +150,7 @@ export function UserHealthInsurance() {
             type="primary" 
             icon={<EditOutlined />} 
             onClick={() => setUpdateModalVisible(true)}
+            disabled={hasPendingRequest}
           >
             {insurance.verificationStatus === "Verified" 
               ? "Request Update" 
@@ -164,10 +180,32 @@ export function UserHealthInsurance() {
           />
         )}
 
+        {insurance.status === "Submitted" && (
+          <Alert
+            message="Verification Pending"
+            description="Your insurance information has been submitted and is pending verification."
+            type="warning"
+            showIcon
+            icon={<InfoCircleOutlined />}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
         {insurance.status === "Pending" && (
           <Alert
             message="Action Required"
             description="Your insurance information is pending. Please complete your submission."
+            type="info"
+            showIcon
+            icon={<InfoCircleOutlined />}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        {hasPendingRequest && (
+          <Alert
+            message="Update Request Pending"
+            description="Your request to update insurance information has been submitted and is awaiting approval from an administrator. Your information will be updated once approved."
             type="info"
             showIcon
             icon={<InfoCircleOutlined />}
