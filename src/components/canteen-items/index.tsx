@@ -305,27 +305,122 @@ export function CanteenItems() {
   const filteredAndSortedItems = useMemo(() => {
     let processedItems = [...canteenItems];
 
-    // Apply search filter
+    // Apply basic search filter
     if (filterValue) {
       processedItems = processedItems.filter((item) =>
         item.itemName?.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
 
-    // Apply status filter
+    // Apply status filter from toolbar
     if (statusFilter.length > 0) {
       processedItems = processedItems.filter(
         (item) => item.status && statusFilter.includes(item.status)
       );
     }
 
-    // Apply sorting
-    const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-    const sortField =
-      (currentSorter?.field as keyof CanteenItemResponse) || "createdAt";
-    const sortOrder = currentSorter?.order || "descend";
+    // Apply advanced filters
+    if (filters) {
+      // Apply item name filter from advanced filters
+      if (filters.itemName) {
+        processedItems = processedItems.filter((item) =>
+          item.itemName?.toLowerCase().includes(filters.itemName.toLowerCase())
+        );
+      }
 
-    if (sortField && sortOrder) {
+      // Apply price range filter
+      if (filters.priceRange && (filters.priceRange[0] !== null || filters.priceRange[1] !== null)) {
+        const [minPrice, maxPrice] = filters.priceRange;
+        processedItems = processedItems.filter((item) => {
+          const price = parseFloat(item.unitPrice.toString());
+          if (minPrice !== null && maxPrice !== null) {
+            return price >= minPrice && price <= maxPrice;
+          } else if (minPrice !== null) {
+            return price >= minPrice;
+          } else if (maxPrice !== null) {
+            return price <= maxPrice;
+          }
+          return true;
+        });
+      }
+
+      // Apply availability filter
+      if (filters.availability !== null) {
+        const isAvailable = filters.availability === "true";
+        processedItems = processedItems.filter((item) => item.available === isAvailable);
+      }
+
+      // Apply status filter from advanced filters
+      if (filters.status !== null) {
+        processedItems = processedItems.filter((item) => item.status === filters.status);
+      }
+
+      // Apply created date range filter
+      if (filters.createdDateRange && (filters.createdDateRange[0] !== null || filters.createdDateRange[1] !== null)) {
+        processedItems = processedItems.filter((item) => {
+          const itemDate = dayjs(item.createdAt);
+          const startDate = filters.createdDateRange[0];
+          const endDate = filters.createdDateRange[1];
+          
+          if (startDate && endDate) {
+            return itemDate.isAfter(startDate.startOf('day')) && itemDate.isBefore(endDate.endOf('day'));
+          } else if (startDate) {
+            return itemDate.isAfter(startDate.startOf('day'));
+          } else if (endDate) {
+            return itemDate.isBefore(endDate.endOf('day'));
+          }
+          return true;
+        });
+      }
+
+      // Apply updated date range filter
+      if (filters.updatedDateRange && (filters.updatedDateRange[0] !== null || filters.updatedDateRange[1] !== null)) {
+        processedItems = processedItems.filter((item) => {
+          if (!item.updatedAt) return false;
+          
+          const itemDate = dayjs(item.updatedAt);
+          const startDate = filters.updatedDateRange[0];
+          const endDate = filters.updatedDateRange[1];
+          
+          if (startDate && endDate) {
+            return itemDate.isAfter(startDate.startOf('day')) && itemDate.isBefore(endDate.endOf('day'));
+          } else if (startDate) {
+            return itemDate.isAfter(startDate.startOf('day'));
+          } else if (endDate) {
+            return itemDate.isBefore(endDate.endOf('day'));
+          }
+          return true;
+        });
+      }
+    }
+
+    // Use advanced filter sorting if specified, otherwise use table sorter
+    let sortField: keyof CanteenItemResponse = "createdAt";
+    let sortOrder: "ascend" | "descend" = "descend";
+
+    // First check if we have filters.sortBy set
+    if (filters && filters.sortBy) {
+      // Map the filter sortBy values to actual field names
+      const fieldMapping: Record<string, keyof CanteenItemResponse> = {
+        "ItemName": "itemName",
+        "UnitPrice": "unitPrice",
+        "CreatedAt": "createdAt",
+        "UpdatedAt": "updatedAt"
+      };
+      
+      sortField = fieldMapping[filters.sortBy] || "createdAt";
+      sortOrder = filters.ascending ? "ascend" : "descend";
+    } else {
+      // Fall back to table sorter if no filter sorting specified
+      const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+      if (currentSorter?.field) {
+        sortField = currentSorter.field as keyof CanteenItemResponse;
+        sortOrder = currentSorter.order || "descend";
+      }
+    }
+
+    // Apply sorting
+    if (sortField) {
       processedItems.sort((a, b) => {
         const valA = a[sortField] ?? null;
         const valB = b[sortField] ?? null;
@@ -366,7 +461,7 @@ export function CanteenItems() {
     }
 
     return processedItems;
-  }, [canteenItems, filterValue, statusFilter, sorter]);
+  }, [canteenItems, filterValue, statusFilter, sorter, filters]);
 
   // Paginate items
   const paginatedItems = useMemo(() => {
@@ -995,139 +1090,163 @@ export function CanteenItems() {
     setExportConfig(prev => ({ ...prev, ...newConfig }));
   };
 
-  // Build top content for the table
-  const topContent = useMemo(() => {
-    const renderContent = () => (
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Input
-              allowClear
-              style={{ width: "240px" }}
-              placeholder="Search by name..."
-              prefix={<SearchOutlined />}
-              value={filterValue}
-              onChange={(e) => onSearchChange(e.target.value)}
-            />
+  // Hàm kiểm tra xem có áp dụng bộ lọc nâng cao nào không
+  const hasAdvancedFilters = useMemo(() => {
+    if (!filters) return false;
+    
+    // Kiểm tra từng loại bộ lọc
+    return (
+      !!filters.itemName || 
+      (filters.priceRange && (filters.priceRange[0] !== null || filters.priceRange[1] !== null)) ||
+      filters.availability !== null ||
+      filters.status !== null ||
+      (filters.createdDateRange && (filters.createdDateRange[0] !== null || filters.createdDateRange[1] !== null)) ||
+      (filters.updatedDateRange && (filters.updatedDateRange[0] !== null || filters.updatedDateRange[1] !== null))
+    );
+  }, [filters]);
 
+  // Đếm số bộ lọc đang áp dụng
+  const activeFilterCount = useMemo(() => {
+    if (!filters) return 0;
+    
+    let count = 0;
+    if (filters.itemName) count++;
+    if (filters.priceRange && (filters.priceRange[0] !== null || filters.priceRange[1] !== null)) count++;
+    if (filters.availability !== null) count++;
+    if (filters.status !== null) count++;
+    if (filters.createdDateRange && (filters.createdDateRange[0] !== null || filters.createdDateRange[1] !== null)) count++;
+    if (filters.updatedDateRange && (filters.updatedDateRange[0] !== null || filters.updatedDateRange[1] !== null)) count++;
+    
+    return count;
+  }, [filters]);
+  
+  // Cập nhật nội dung top toolbar để hiển thị số lượng bộ lọc đang áp dụng
+  const topContent = () => (
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-between items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Input
+            placeholder="Search by name..."
+            prefix={<SearchOutlined />}
+            value={filterValue}
+            onChange={(e) => handleSearchSelectChange(e.target.value)}
+            style={{ width: "300px" }}
+            allowClear
+          />
+          
+          <Select
+            mode="multiple"
+            allowClear
+            style={{ width: "120px" }}
+            placeholder={
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <TagOutlined style={{ marginRight: 8 }} />
+                <span>Status</span>
+              </div>
+            }
+            value={statusFilter}
+            onChange={handleStatusFilterChange}
+            options={statusOptions}
+            maxTagCount="responsive"
+          />
+
+          <Tooltip title="Advanced Filters">
             <Button
-              type="default"
-              icon={<FilterOutlined />}
+              icon={
+                <FilterOutlined
+                  style={{
+                    color: hasAdvancedFilters ? "#1890ff" : undefined,
+                  }}
+                />
+              }
               onClick={handleFilterModalOpen}
             >
-              Filter
+              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
             </Button>
+          </Tooltip>
 
-            <Select
-              mode="multiple"
-              allowClear
-              style={{ width: "120px" }}
-              placeholder="Status"
-              value={statusFilter}
-              onChange={handleStatusFilterChange}
-              options={statusOptions}
-            />
-
+          <Tooltip title="Reset All Filters">
             <Button
-              type="default"
               icon={<UndoOutlined />}
-              onClick={onClear}
-              disabled={!filterValue && statusFilter.length === 0}
+              onClick={handleResetFilters}
+              disabled={!filterValue && statusFilter.length === 0 && !hasAdvancedFilters}
             >
               Reset
             </Button>
-            
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: "selectAll",
+          </Tooltip>
+          
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "selectAll",
+                  label: (
+                    <Checkbox
+                      checked={areAllColumnsVisible()}
+                      onChange={(e) => toggleAllColumns(e.target.checked)}
+                    >
+                      <strong>Show All Columns</strong>
+                    </Checkbox>
+                  ),
+                },
+                {
+                  type: "divider",
+                },
+                ...staticColumns
+                  .filter((col) => col.key && col.key !== "actions")
+                  .map((column) => ({
+                    key: column.key as string,
                     label: (
                       <Checkbox
-                        checked={areAllColumnsVisible()}
-                        onChange={(e) => toggleAllColumns(e.target.checked)}
-                      >
-                        <strong>Show All Columns</strong>
-                      </Checkbox>
-                    ),
-                  },
-                  {
-                    type: "divider",
-                  },
-                  ...staticColumns
-                    .filter((col) => col.key && col.key !== "actions")
-                    .map((column) => ({
-                      key: column.key as string,
-                      label: (
-                        <Checkbox
-                          checked={!!columnVisibility[column.key as string]}
-                          onChange={() =>
-                            handleColumnVisibilityChange(column.key as string)
-                          }
-                        >
-                          <span
-                            style={{ color: "dimgray", fontWeight: "normal" }}
-                          >
-                            {capitalize((column.key as string).toString())}
-                          </span>
-                        </Checkbox>
-                      ),
-                    })),
-                  {
-                    key: "actions",
-                    label: (
-                      <Checkbox
-                        checked={!!columnVisibility["actions"]}
-                        onChange={() => handleColumnVisibilityChange("actions")}
+                        checked={!!columnVisibility[column.key as string]}
+                        onChange={() =>
+                          handleColumnVisibilityChange(column.key as string)
+                        }
                       >
                         <span
                           style={{ color: "dimgray", fontWeight: "normal" }}
                         >
-                          Actions
+                          {capitalize((column.key as string).toString())}
                         </span>
                       </Checkbox>
                     ),
-                  },
-                ],
-                onClick: (e) => e.domEvent.stopPropagation(),
-              }}
-              trigger={["click"]}
-            >
-              <Button icon={<SettingOutlined />}>
-                Columns
-              </Button>
-            </Dropdown>
-            
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setIsCreateModalOpen(true)}
-            >
-              Create
+                  })),
+                {
+                  key: "actions",
+                  label: (
+                    <Checkbox
+                      checked={!!columnVisibility["actions"]}
+                      onChange={() => handleColumnVisibilityChange("actions")}
+                    >
+                      <span
+                        style={{ color: "dimgray", fontWeight: "normal" }}
+                      >
+                        Actions
+                      </span>
+                    </Checkbox>
+                  ),
+                },
+              ],
+              onClick: (e) => e.domEvent.stopPropagation(),
+            }}
+            trigger={["click"]}
+          >
+            <Button icon={<SettingOutlined />}>
+              Columns
             </Button>
-          </div>
+          </Dropdown>
           
-          <div>
-            <Button
-              type="primary"
-              icon={<FileExcelOutlined />}
-              onClick={() => setExportModalVisible(true)}
-            >
-              Export to Excel
-            </Button>
-          </div>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setIsCreateModalOpen(true)}
+          >
+            Create
+          </Button>
         </div>
       </div>
-    );
-
-    return renderContent;
-  }, [
-    filterValue,
-    statusFilter,
-    columnVisibility,
-    onSearchChange,
-    onClear,
-  ]);
+    </div>
+  );
 
   // Input handlers
   const handleSearchSelectChange = (selectedValue: string | undefined) => {
@@ -1452,24 +1571,44 @@ export function CanteenItems() {
 
   const handleFilterModalApply = (appliedFilters: any) => {
     console.log("Applied filters:", appliedFilters);
+    
+    // Cập nhật state filters với giá trị mới từ modal
     setFilters(appliedFilters);
+    
+    // Đóng modal
     setIsFilterModalVisible(false);
-    fetchCanteenItems();
+    
+    // Hiển thị thông báo để người dùng biết bộ lọc đã được áp dụng
+    messageApi.success("Filters applied successfully");
+    
+    // Đặt lại trang hiện tại về 1 khi thay đổi bộ lọc
+    setCurrentPage(1);
   };
 
   const handleFilterModalReset = () => {
-    setFilters({
+    // Reset filters về giá trị mặc định
+    const defaultFilters = {
       itemName: "",
-      priceRange: [null, null],
-      availability: null,
-      status: null,
-      createdDateRange: [null, null],
-      updatedDateRange: [null, null],
+      priceRange: [null, null] as [number | null, number | null],
+      availability: null as string | null,
+      status: null as string | null,
+      createdDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+      updatedDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
       sortBy: "CreatedAt",
       ascending: false,
-    });
+    };
+    
+    // Cập nhật state
+    setFilters(defaultFilters);
+    
+    // Đóng modal
     setIsFilterModalVisible(false);
-    fetchCanteenItems();
+    
+    // Hiển thị thông báo
+    messageApi.success("All filters have been reset");
+    
+    // Đặt lại trang hiện tại về 1
+    setCurrentPage(1);
   };
 
   return (

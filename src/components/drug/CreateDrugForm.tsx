@@ -58,17 +58,26 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           }
           else {
             console.error("Unexpected response format:", response);
-            messageApi.error("Failed to load drug groups: Unexpected data format", 5);
+            messageApi.error({
+              content: "Failed to load drug groups: Unexpected data format",
+              duration: 10
+            });
             setDrugGroups([]);
           }
         } else {
           console.error("Invalid response:", response);
-          messageApi.error("Failed to load drug groups: Invalid response", 5);
+          messageApi.error({
+            content: "Failed to load drug groups: Invalid response",
+            duration: 10
+          });
           setDrugGroups([]);
         }
       } catch (error) {
         console.error("Error fetching drug groups:", error);
-        messageApi.error("Failed to load drug groups", 5);
+        messageApi.error({
+          content: "Failed to load drug groups",
+          duration: 10
+        });
         setDrugGroups([]);
       }
     };
@@ -109,7 +118,10 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           formDataToSend.append("imageFile", fileList[0].originFileObj);
         } else {
           console.warn("File selected but no originFileObj found");
-          messageApi.warning("Could not process the selected file");
+          messageApi.warning({
+            content: "Could not process the selected file",
+            duration: 10
+          });
         }
       } else {
         console.log("No image file to upload");
@@ -124,20 +136,34 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           value}`);
       }
 
-      try {
-        await createDrug(formDataToSend);
-        messageApi.success("Drug created successfully", 5);
-        onCreate();
-        onClose();
-      } catch (error: any) {
-        messageApi.error(error.message || "Failed to create drug", 5);
-        console.error("Error creating drug:", error);
-      }
+      // Use promise chaining for better error handling
+      createDrug(formDataToSend)
+        .then((result) => {
+          setLoading(false);
+          messageApi.success({
+            content: "Drug created successfully",
+            duration: 10
+          });
+          onCreate();
+          onClose();
+        })
+        .catch((error: any) => {
+          setLoading(false);
+          console.error("Drug creation error:", error);
+          
+          // Display the error message from the API
+          messageApi.error({
+            content: error.message || "Failed to create drug",
+            duration: 10
+          });
+        });
+
     } catch (errorInfo) {
       console.error("Form validation failed:", errorInfo);
-      messageApi.error("Failed to validate form. Please check your input and try again.", 5);
-    } finally {
-      setLoading(false);
+      messageApi.error({
+        content: "Please check the form for errors",
+        duration: 10
+      });
     }
   };
 
@@ -150,12 +176,18 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
     beforeUpload: (file) => {
       const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
       if (!isJpgOrPng) {
-        messageApi.error('You can only upload JPG/PNG file!');
+        messageApi.error({
+          content: 'You can only upload JPG/PNG file!',
+          duration: 10
+        });
         return Upload.LIST_IGNORE;
       }
       const isLt2M = file.size / 1024 / 1024 < 2;
       if (!isLt2M) {
-        messageApi.error('Image must be smaller than 2MB!');
+        messageApi.error({
+          content: 'Image must be smaller than 2MB!',
+          duration: 10
+        });
         return Upload.LIST_IGNORE;
       }
       

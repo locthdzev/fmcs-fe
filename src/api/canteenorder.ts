@@ -121,7 +121,7 @@ export const deleteCanteenOrder = async (id: string) => {
 export const approveCanteenOrders = async (orderIds: string[]) => {
   try {
     const response = await api.put(
-      "/canteenorder-management/canteenorders/appprove",
+      "/canteenorder-management/canteenorders/approve",
       orderIds
     );
     return response.data;
@@ -167,59 +167,123 @@ export interface CanteenOrderExportConfig {
 export const exportCanteenOrdersToExcel = async (config: CanteenOrderExportConfig) => {
   try {
     console.log("Exporting canteen orders with config:", config);
+    
+    // Đảm bảo Axios xử lý được cả JSON và Blob
     const response = await api.post(
       "/canteenorder-management/export-to-excel",
       config,
       { 
-        responseType: 'blob',
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        }
+          'Content-Type': 'application/json'
+        },
+        responseType: 'blob'  // Yêu cầu phản hồi kiểu blob để tải xuống trực tiếp
       }
     );
     
-    // Check if the response is a blob
-    const contentType = response.headers['content-type'];
+    // In ra thông tin phản hồi để debug
+    console.log("Export response type:", response.headers['content-type']);
     
-    // If the response is not a blob or is an error message in JSON format
-    if (contentType && contentType.includes('application/json')) {
-      // Convert blob to text to read the error
-      const reader = new FileReader();
-      const errorTextPromise = new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-      });
-      reader.readAsText(response.data);
+    // Kiểm tra xem phản hồi có phải là blob/file không
+    const contentType = response.headers['content-type'];
+    const isExcelFile = contentType && (
+      contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') ||
+      contentType.includes('application/octet-stream') ||
+      contentType.includes('application/binary')
+    );
+    
+    // Nếu phản hồi là file Excel (blob)
+    if (isExcelFile && response.data instanceof Blob) {
+      console.log("Received Excel file blob, initiating download...");
       
-      const errorText = await errorTextPromise;
-      const errorData = JSON.parse(errorText);
-      console.error("Export error:", errorData);
-      throw new Error(errorData.message || "Failed to export to Excel");
+      // Tạo URL và download
+      const blob = new Blob([response.data], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Lấy tên file từ header Content-Disposition nếu có
+      let filename = 'CanteenOrders.xlsx';
+      const disposition = response.headers['content-disposition'];
+      if (disposition && disposition.includes('filename=')) {
+        filename = disposition.split('filename=')[1].replace(/["']/g, '');
+      } else {
+        filename = `CanteenOrders_${new Date().toISOString().slice(0,10)}.xlsx`;
+      }
+      
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      
+      // Dọn dẹp
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+      return true;
+    } 
+    // Nếu phản hồi là JSON (URL hoặc thông tin lỗi)
+    else if (contentType && contentType.includes('application/json')) {
+      // Chuyển đổi Blob thành JSON nếu cần
+      let data = response.data;
+      if (data instanceof Blob) {
+        const text = await data.text();
+        data = JSON.parse(text);
+        console.log("Converted blob to JSON:", data);
+      }
+      
+      // Kiểm tra cấu trúc JSON
+      if (data) {
+        // Tìm URL trong JSON response
+        const fileUrl = data.data?.fileUrl || data.fileUrl || data.data?.url || data.url ||
+                       (data.data ? data.data.toString() : null);
+        
+        if (fileUrl && typeof fileUrl === 'string') {
+          console.log("Found file URL in JSON response:", fileUrl);
+          
+          // Tạo link download từ URL
+          const link = document.createElement('a');
+          link.href = fileUrl;
+          link.setAttribute('download', `CanteenOrders_${new Date().toISOString().slice(0,10)}.xlsx`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          return true;
+        } else {
+          console.error("URL not found in JSON response:", data);
+          throw new Error("File URL not found in server response");
+        }
+      }
+    } 
+    // Trường hợp khác (có thể là lỗi)
+    else {
+      console.error("Unexpected response format:", contentType, response);
+      throw new Error("Server returned unexpected response format");
+    }
+  } catch (error: any) {
+    console.error("Error exporting canteen orders to Excel:", error);
+    
+    // Log chi tiết lỗi
+    if (error.response) {
+      console.error("Server response error:", {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        headers: error.response.headers,
+        data: error.response.data instanceof Blob 
+          ? "Blob data" 
+          : error.response.data
+      });
+      
+      // Nếu lỗi được trả về dưới dạng blob, đọc thông tin lỗi
+      if (error.response.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const jsonError = JSON.parse(text);
+          console.error("Error details from blob:", jsonError);
+          throw new Error(jsonError.message || "Export failed");
+        } catch (e) {
+          console.error("Could not parse error blob:", e);
+        }
+      }
     }
     
-    // If we got here, we have a valid Excel file blob
-    // Create a URL for the blob
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    
-    // Create a link element
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `CanteenOrders_${new Date().toISOString().slice(0,19).replace(/:/g, '')}.xlsx`);
-    
-    // Append the link to body
-    document.body.appendChild(link);
-    
-    // Trigger the download
-    link.click();
-    
-    // Clean up
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(link);
-    
-    return true;
-  } catch (error) {
-    console.error("Error exporting canteen orders to Excel:", error);
-    throw error;
+    throw new Error(error.message || "Failed to export to Excel");
   }
 };

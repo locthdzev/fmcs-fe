@@ -22,6 +22,7 @@ import {
   DownOutlined,
 } from "@ant-design/icons";
 import { Card, Button as AntButton, Select, Tooltip, Dropdown as AntDropdown, Menu, Checkbox, Tag, Typography, InputNumber, Row, Space, Table as AntTable, Pagination, Spin, message, Modal } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   getDrugs,
   deleteDrug,
@@ -294,7 +295,15 @@ export function Drugs() {
     return filteredDrugs;
   }, [drugs, filterValue, statusFilter]);
 
-  // First apply filters, then sorting
+  // Add a function to handle sort direction change
+  const handleSortDirectionChange = (ascending: boolean) => {
+    setSortDescriptor(prev => ({
+      ...prev,
+      direction: ascending ? "ascending" : "descending"
+    }));
+  };
+
+  // Update the filteredAndSortedItems to use sortDescriptor
   const filteredAndSortedItems = React.useMemo(() => {
     let processedDrugs = [...drugs];
 
@@ -392,8 +401,8 @@ export function Drugs() {
     }
 
     // Apply sorting
-    const sortField = sortDescriptor.column as keyof DrugResponse || "createdAt";
-    const sortDirection = sortDescriptor.direction || "descending";
+    const sortField = sortDescriptor.column as keyof DrugResponse;
+    const sortDirection = sortDescriptor.direction;
 
     if (sortField) {
       processedDrugs.sort((a, b) => {
@@ -425,13 +434,6 @@ export function Drugs() {
         return sortDirection === "descending" 
           ? strB.localeCompare(strA) 
           : strA.localeCompare(strB);
-      });
-    } else {
-      // Default sort by CreatedAt
-      processedDrugs.sort((a, b) => {
-        const dateA = dayjs(a.createdAt).unix();
-        const dateB = dayjs(b.createdAt).unix();
-        return advancedFilters.ascending ? dateA - dateB : dateB - dateA;
       });
     }
 
@@ -761,10 +763,16 @@ export function Drugs() {
               filterOption={(input, option) =>
                 (option?.label?.toString().toLowerCase() ?? "").includes(input.toLowerCase())
               }
-              options={drugs.map((drug) => ({
-                value: drug.name,
-                label: drug.name,
-              }))}
+              options={[...drugs]
+                .sort((a, b) => {
+                  const dateA = dayjs(a.createdAt).unix();
+                  const dateB = dayjs(b.createdAt).unix();
+                  return dateB - dateA; // Sắp xếp giảm dần (mới nhất lên đầu)
+                })
+                .map((drug) => ({
+                  value: drug.drugCode,
+                  label: `${drug.drugCode} - ${drug.name}`,
+                }))}
             />
 
             <Tooltip title="Advanced Filters">
@@ -781,7 +789,6 @@ export function Drugs() {
             </Tooltip>
 
             <Select
-              mode="multiple"
               allowClear
               style={{ width: "120px" }}
               placeholder={
@@ -790,15 +797,14 @@ export function Drugs() {
                   <span>Status</span>
                 </div>
               }
-              value={Array.from(statusFilter !== "all" ? statusFilter as Set<string> : [])}
-              onChange={(values) => {
-                setStatusFilter(new Set(values.length > 0 ? values : "all"));
+              value={statusFilter !== "all" ? Array.from(statusFilter as Set<string>)[0] : undefined}
+              onChange={(value) => {
+                setStatusFilter(value ? new Set([value]) : "all");
               }}
               options={statusOptions.map(status => ({
                 value: status.uid,
                 label: status.name
               }))}
-              maxTagCount="responsive"
             />
 
             <Tooltip title="Reset All Filters">
@@ -823,7 +829,10 @@ export function Drugs() {
                           if (e.target.checked) {
                             setVisibleColumns(new Set(columns.map(col => col.uid)));
                           } else {
-                            setVisibleColumns(new Set(INITIAL_VISIBLE_COLUMNS));
+                            // Khi bỏ tích, chỉ giữ lại cột đầu tiên
+                            const firstColumn = columns[0].uid;
+                            setVisibleColumns(new Set([firstColumn]));
+                            messageApi.warning("At least one column must be visible.", 5);
                           }
                         }}
                       >
@@ -842,13 +851,14 @@ export function Drugs() {
                         onChange={() => {
                           const newVisibility = new Set(visibleColumns as Set<string>);
                           if (newVisibility.has(column.uid)) {
+                            // Kiểm tra nếu đây là cột cuối cùng
+                            if (newVisibility.size === 1) {
+                              messageApi.warning("Cannot hide the last visible column.", 5);
+                              return;
+                            }
                             newVisibility.delete(column.uid);
                           } else {
                             newVisibility.add(column.uid);
-                          }
-                          if (newVisibility.size === 0) {
-                            messageApi.warning("Cannot hide all columns.", 5);
-                            return;
                           }
                           setVisibleColumns(newVisibility);
                         }}
@@ -867,13 +877,14 @@ export function Drugs() {
                         onChange={() => {
                           const newVisibility = new Set(visibleColumns as Set<string>);
                           if (newVisibility.has("actions")) {
+                            // Kiểm tra nếu đây là cột cuối cùng
+                            if (newVisibility.size === 1) {
+                              messageApi.warning("Cannot hide the last visible column.", 5);
+                              return;
+                            }
                             newVisibility.delete("actions");
                           } else {
                             newVisibility.add("actions");
-                          }
-                          if (newVisibility.size === 0) {
-                            messageApi.warning("Cannot hide all columns.", 5);
-                            return;
                           }
                           setVisibleColumns(newVisibility);
                         }}
@@ -1172,11 +1183,15 @@ export function Drugs() {
     );
   };
 
+  // Update the handleApplyFilters function to handle sort direction
   const handleApplyFilters = (filters: any) => {
     console.log("Received filters in handleApplyFilters:", filters);
     
     // Cập nhật state advancedFilters
     setAdvancedFilters(filters);
+    
+    // Cập nhật sort direction
+    handleSortDirectionChange(filters.ascending);
     
     // Cập nhật các bộ lọc khác nếu cần
     if (filters.drugName) {
@@ -1196,6 +1211,7 @@ export function Drugs() {
     }, 100);
   };
 
+  // Update the handleResetFilters function to reset sort direction
   const handleResetFilters = () => {
     console.log("Resetting filters from modal and reloading data...");
     
@@ -1213,12 +1229,14 @@ export function Drugs() {
       ascending: false,
     });
     
-    setFilterValue("");
-    setStatusFilter("all");
+    // Reset sort direction
     setSortDescriptor({
       column: "createdAt",
       direction: "descending",
     });
+    
+    setFilterValue("");
+    setStatusFilter("all");
     
     setPage(1);
     setIsFilterModalOpen(false);
@@ -1421,10 +1439,16 @@ export function Drugs() {
                 filterOption={(input, option) =>
                   (option?.label?.toString().toLowerCase() ?? "").includes(input.toLowerCase())
                 }
-                options={drugs.map((drug) => ({
-                  value: drug.name,
-                  label: drug.name,
-                }))}
+                options={[...drugs]
+                  .sort((a, b) => {
+                    const dateA = dayjs(a.createdAt).unix();
+                    const dateB = dayjs(b.createdAt).unix();
+                    return dateB - dateA; // Sắp xếp giảm dần (mới nhất lên đầu)
+                  })
+                  .map((drug) => ({
+                    value: drug.drugCode,
+                    label: `${drug.drugCode} - ${drug.name}`,
+                  }))}
               />
 
               <Tooltip title="Advanced Filters">
@@ -1441,7 +1465,6 @@ export function Drugs() {
               </Tooltip>
 
               <Select
-                mode="multiple"
                 allowClear
                 style={{ width: "120px" }}
                 placeholder={
@@ -1450,15 +1473,14 @@ export function Drugs() {
                     <span>Status</span>
                   </div>
                 }
-                value={Array.from(statusFilter !== "all" ? statusFilter as Set<string> : [])}
-                onChange={(values) => {
-                  setStatusFilter(new Set(values.length > 0 ? values : "all"));
+                value={statusFilter !== "all" ? Array.from(statusFilter as Set<string>)[0] : undefined}
+                onChange={(value) => {
+                  setStatusFilter(value ? new Set([value]) : "all");
                 }}
                 options={statusOptions.map(status => ({
                   value: status.uid,
                   label: status.name
                 }))}
-                maxTagCount="responsive"
               />
 
               <Tooltip title="Reset All Filters">
@@ -1483,7 +1505,10 @@ export function Drugs() {
                                   if (e.target.checked) {
                                     setVisibleColumns(new Set(columns.map(col => col.uid)));
                                   } else {
-                                    setVisibleColumns(new Set(INITIAL_VISIBLE_COLUMNS));
+                                    // Khi bỏ tích, chỉ giữ lại cột đầu tiên
+                                    const firstColumn = columns[0].uid;
+                                    setVisibleColumns(new Set([firstColumn]));
+                                    messageApi.warning("At least one column must be visible.", 5);
                                   }
                                 }}
                               >
@@ -1502,13 +1527,14 @@ export function Drugs() {
                                 onChange={() => {
                                   const newVisibility = new Set(visibleColumns as Set<string>);
                                   if (newVisibility.has(column.uid)) {
+                                    // Kiểm tra nếu đây là cột cuối cùng
+                                    if (newVisibility.size === 1) {
+                                      messageApi.warning("Cannot hide the last visible column.", 5);
+                                      return;
+                                    }
                                     newVisibility.delete(column.uid);
                                   } else {
                                     newVisibility.add(column.uid);
-                                  }
-                                  if (newVisibility.size === 0) {
-                                    messageApi.warning("Cannot hide all columns.", 5);
-                                    return;
                                   }
                                   setVisibleColumns(newVisibility);
                                 }}
@@ -1527,13 +1553,14 @@ export function Drugs() {
                                 onChange={() => {
                                   const newVisibility = new Set(visibleColumns as Set<string>);
                                   if (newVisibility.has("actions")) {
+                                    // Kiểm tra nếu đây là cột cuối cùng
+                                    if (newVisibility.size === 1) {
+                                      messageApi.warning("Cannot hide the last visible column.", 5);
+                                      return;
+                                    }
                                     newVisibility.delete("actions");
                                   } else {
                                     newVisibility.add("actions");
-                                  }
-                                  if (newVisibility.size === 0) {
-                                    messageApi.warning("Cannot hide all columns.", 5);
-                                    return;
                                   }
                                   setVisibleColumns(newVisibility);
                                 }}
@@ -1788,11 +1815,13 @@ export function Drugs() {
                 }
               }}
               scroll={{ x: "max-content" }}
+              sticky
               columns={[
                 {
                   title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>DRUG CODE</span>,
                   dataIndex: "drugCode",
                   key: "drugCode",
+                  width: 180,
                   sorter: (a: DrugResponse, b: DrugResponse) => a.drugCode.localeCompare(b.drugCode),
                   render: (text: string, record: DrugResponse) => (
                     <div className="flex items-center gap-2">
@@ -1875,6 +1904,7 @@ export function Drugs() {
                 {
                   title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>ACTIONS</span>,
                   key: "actions",
+                  width: 100,
                   align: "center" as const,
                   render: (_: any, record: DrugResponse) => (
                     <Space size="small" style={{ display: "flex", justifyContent: "center" }}>

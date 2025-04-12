@@ -141,49 +141,40 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
       };
 
       // Get filter values either from form values (if not using all pages) or from current filters
-      const useFilters = values.exportAllPages
-        ? {
-            currentPage: filters.currentPage,
-            pageSize: filters.pageSize,
-            drugCodeSearch: filters.filterValue,
-            nameSearch: filters.filterValue,
-            manufacturerSearch: filters.filterValue,
-            descriptionSearch: filters.filterValue,
-            drugGroupId: filters.advancedFilters?.drugGroupId,
-            minPrice: filters.advancedFilters?.priceRange?.[0],
-            maxPrice: filters.advancedFilters?.priceRange?.[1],
-            sortBy: filters.advancedFilters?.sortBy || "Name",
-            ascending: values.filterSortDirection === "asc",
-            status: filters.statusFilter?.join(","),
-            createdStartDate: filters.advancedFilters?.createdDateRange?.[0]?.format("YYYY-MM-DD"),
-            createdEndDate: filters.advancedFilters?.createdDateRange?.[1]?.format("YYYY-MM-DD"),
-            updatedStartDate: filters.advancedFilters?.updatedDateRange?.[0]?.format("YYYY-MM-DD"),
-            updatedEndDate: filters.advancedFilters?.updatedDateRange?.[1]?.format("YYYY-MM-DD"),
-          }
-        : {
-            currentPage: filters.currentPage,
-            pageSize: filters.pageSize,
-            drugCodeSearch: values.filterDrugCode,
-            nameSearch: values.filterName,
-            manufacturerSearch: values.filterManufacturer,
-            descriptionSearch: values.filterDescription,
-            drugGroupId: values.filterDrugGroup,
-            minPrice: values.filterMinPrice,
-            maxPrice: values.filterMaxPrice,
-            sortBy: "Name",
-            ascending: values.filterSortDirection === "asc",
-            status: values.filterStatus?.join(","),
-            createdStartDate: values.filterCreatedDateRange?.[0]?.format("YYYY-MM-DD"),
-            createdEndDate: values.filterCreatedDateRange?.[1]?.format("YYYY-MM-DD"),
-            updatedStartDate: values.filterUpdatedDateRange?.[0]?.format("YYYY-MM-DD"),
-            updatedEndDate: values.filterUpdatedDateRange?.[1]?.format("YYYY-MM-DD"),
-          };
+      const useFilters = {
+        page: 1, // Always start from page 1
+        pageSize: 100000, // Use a much larger value to ensure all records are fetched
+        // When exporting all data, set all filters to undefined
+        drugCodeSearch: values.exportAllPages ? undefined : values.filterDrugCode,
+        nameSearch: values.exportAllPages ? undefined : values.filterName,
+        manufacturerSearch: values.exportAllPages ? undefined : values.filterManufacturer,
+        descriptionSearch: values.exportAllPages ? undefined : values.filterDescription,
+        drugGroupId: values.exportAllPages ? undefined : values.filterDrugGroup,
+        minPrice: values.exportAllPages ? undefined : values.filterMinPrice,
+        maxPrice: values.exportAllPages ? undefined : values.filterMaxPrice,
+        // Always use CreatedAt as sortBy for consistency
+        sortBy: "CreatedAt",
+        // Use the sort direction from the form
+        ascending: values.filterSortDirection === "asc",
+        // Don't apply status filter when exporting all data
+        status: values.exportAllPages ? undefined : 
+               (values.filterStatus?.length > 0 ? values.filterStatus?.join(",") : undefined),
+        // Don't apply date filters when exporting all data
+        createdStartDate: values.exportAllPages ? undefined : 
+                       (values.filterCreatedDateRange?.[0]?.format("YYYY-MM-DD") || undefined),
+        createdEndDate: values.exportAllPages ? undefined : 
+                     (values.filterCreatedDateRange?.[1]?.format("YYYY-MM-DD") || undefined),
+        updatedStartDate: values.exportAllPages ? undefined : 
+                       (values.filterUpdatedDateRange?.[0]?.format("YYYY-MM-DD") || undefined),
+        updatedEndDate: values.exportAllPages ? undefined : 
+                     (values.filterUpdatedDateRange?.[1]?.format("YYYY-MM-DD") || undefined),
+      };
 
       // Call the API to export
       const response = await exportDrugsToExcel(
         exportConfig,
         values.exportAllPages,
-        useFilters.currentPage,
+        useFilters.page,
         useFilters.pageSize,
         useFilters.drugCodeSearch,
         useFilters.nameSearch,

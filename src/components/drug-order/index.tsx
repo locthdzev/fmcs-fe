@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { toast } from "react-toastify";
 import {
   message,
   Table,
@@ -112,7 +111,8 @@ const staticColumns = [
     sorter: (a: DrugOrderResponse, b: DrugOrderResponse) =>
       dayjs(a.orderDate).unix() - dayjs(b.orderDate).unix(),
     render: (date: string) => (date ? dayjs(date).format("DD/MM/YYYY") : "-"),
-    sortDirections: ["ascend", "descend"] as ("ascend" | "descend")[],
+    sortDirections: ["descend", "ascend"] as ("ascend" | "descend")[],
+    defaultSortOrder: "descend" as "descend",
   },
   {
     title: (
@@ -210,6 +210,13 @@ function formatPrice(price: number) {
   }).format(price);
 }
 
+// Define type for drug order code options
+export interface DrugOrderCodeOption {
+  value: string;
+  label: string;
+  orderDate: string;
+}
+
 export function DrugOrders() {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
@@ -227,7 +234,10 @@ export function DrugOrders() {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [sorter, setSorter] = useState<
     SorterResult<DrugOrderResponse> | SorterResult<DrugOrderResponse>[]
-  >();
+  >({ 
+    field: "orderDate", 
+    order: "descend" 
+  } as SorterResult<DrugOrderResponse>);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [showApproveButton, setShowApproveButton] = useState(false);
   const [showRejectButton, setShowRejectButton] = useState(false);
@@ -271,7 +281,7 @@ export function DrugOrders() {
   });
   
   // State for filter data in export modal
-  const [drugOrderCodes, setDrugOrderCodes] = useState<string[]>([]);
+  const [drugOrderCodes, setDrugOrderCodes] = useState<DrugOrderCodeOption[]>([]);
   const [supplierOptions, setSupplierOptions] = useState<{ id: string; supplierName: string }[]>([]);
 
   // Add the advanced filter state
@@ -280,7 +290,7 @@ export function DrugOrders() {
     orderDateRange: [null, null],
     createdDateRange: [null, null],
     updatedDateRange: [null, null],
-    sortBy: "createdAt",
+    sortBy: "orderDate",
     ascending: false
   });
   
@@ -288,7 +298,7 @@ export function DrugOrders() {
     orderDateRange: [null, null],
     createdDateRange: [null, null],
     updatedDateRange: [null, null],
-    sortBy: "createdAt",
+    sortBy: "orderDate",
     ascending: false
   };
 
@@ -304,7 +314,7 @@ export function DrugOrders() {
         pageSize: pageSize,
         drugOrderCodeSearch: filterValue || undefined,
         status: statusFilter.length > 0 ? statusFilter[0] : undefined,
-        sortBy: advancedFilters.sortBy || (Array.isArray(sorter) ? 'createdAt' : (sorter?.field as string) || 'createdAt'),
+        sortBy: advancedFilters.sortBy || (Array.isArray(sorter) ? 'orderDate' : (sorter?.field as string) || 'orderDate'),
         ascending: advancedFilters.ascending !== undefined ? advancedFilters.ascending : 
                   (Array.isArray(sorter) ? false : sorter?.order === 'ascend'),
         supplierId: advancedFilters.supplierId,
@@ -323,6 +333,12 @@ export function DrugOrders() {
         updatedEndDate: advancedFilters.updatedDateRange[1] ? 
                         advancedFilters.updatedDateRange[1].format('YYYY-MM-DD') : undefined
       };
+      
+      // Ghi log để kiểm tra xem các tham số đã đúng chưa
+      console.log("API request params:", { 
+        sortBy: queryParams.sortBy, 
+        ascending: queryParams.ascending 
+      });
       
       const response = await getDrugOrders(queryParams);
       if (response.isSuccess) {
@@ -343,6 +359,15 @@ export function DrugOrders() {
   useEffect(() => {
     fetchDrugOrders();
   }, [fetchDrugOrders]);
+
+  // Thêm useEffect mới để đảm bảo thứ tự sắp xếp mặc định khi tải trang
+  useEffect(() => {
+    // Chỉ thực hiện khi lần đầu tiên tải trang
+    if (initialLoading) {
+      // Thiết lập sắp xếp mặc định là orderDate giảm dần
+      setSorter({ field: "orderDate", order: "descend" } as SorterResult<DrugOrderResponse>);
+    }
+  }, [initialLoading]);
 
   useEffect(() => {
     if (selectedRowKeys.length > 0) {
@@ -402,8 +427,20 @@ export function DrugOrders() {
     const statusFilters = (filters.status as FilterValue) || [];
     setStatusFilter(statusFilters.map(String));
 
-    // Update sorter state from table changes
-    setSorter(newSorter);
+    // Log the sorter info for debugging
+    console.log("Table sort changed:", newSorter);
+
+    // Xử lý trường hợp người dùng bỏ chọn sắp xếp (trở về mặc định)
+    if (Array.isArray(newSorter) || (!newSorter.order)) {
+      // Nếu không có sắp xếp, thiết lập về mặc định là orderDate giảm dần
+      setSorter({
+        field: "orderDate",
+        order: "descend"
+      } as SorterResult<DrugOrderResponse>);
+    } else {
+      // Nếu có sắp xếp, cập nhật sorter state
+      setSorter(newSorter);
+    }
 
     // Reset page to 1 when filters or sorter change
     setCurrentPage(1);
@@ -417,7 +454,7 @@ export function DrugOrders() {
   const handleResetFilters = () => {
     setFilterValue("");
     setStatusFilter([]);
-    setSorter(undefined);
+    setSorter({ field: "orderDate", order: "descend" } as SorterResult<DrugOrderResponse>);
     setAdvancedFilters(initialAdvancedFilters);
     setCurrentPage(1);
   };
@@ -1101,8 +1138,19 @@ export function DrugOrders() {
         });
         
         if (response.isSuccess) {
-          const codes = response.data.map(order => order.drugOrderCode);
-          setDrugOrderCodes([...new Set(codes)]); // Remove duplicates
+          // Create code options with the consistent format
+          const codeOptions = response.data.map(order => ({
+            value: order.drugOrderCode,
+            label: order.drugOrderCode,
+            orderDate: order.orderDate
+          }));
+          
+          // Sort by order date, newest first
+          codeOptions.sort((a, b) => 
+            new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
+          );
+          
+          setDrugOrderCodes(codeOptions);
         }
 
         // Get suppliers
@@ -1204,6 +1252,18 @@ export function DrugOrders() {
     );
   };
 
+  // Add an additional useEffect that runs only once when the component mounts
+  useEffect(() => {
+    // Apply default sorting when the component mounts
+    const orderDateColumn = staticColumns.find(col => col.key === "orderDate");
+    if (orderDateColumn) {
+      setSorter({
+        field: "orderDate",
+        order: "descend"
+      } as SorterResult<DrugOrderResponse>);
+    }
+  }, []); // Empty dependency array ensures this runs only once
+
   return (
     <div style={{ padding: "20px" }}>
       {contextHolder}
@@ -1248,13 +1308,22 @@ export function DrugOrders() {
               <div className="flex flex-col gap-4">
                 <div className="flex justify-between items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Input
-                      placeholder="Search by order code..."
-                      prefix={<SearchOutlined />}
-                      value={filterValue}
-                      onChange={(e) => handleSearchChange(e.target.value)}
-                      style={{ width: "300px" }}
+                    <Select
+                      showSearch
                       allowClear
+                      placeholder={
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          <SearchOutlined style={{ marginRight: 8 }} />
+                          <span>Search by order code...</span>
+                        </div>
+                      }
+                      style={{ width: "300px" }}
+                      value={filterValue || undefined}
+                      onChange={handleSearchChange}
+                      options={drugOrderCodes}
+                      filterOption={(input, option) =>
+                        (option?.label?.toString() || '').toLowerCase().includes(input.toLowerCase())
+                      }
                     />
                     
                     <Select
