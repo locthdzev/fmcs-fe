@@ -51,13 +51,30 @@ const DropdownUser = () => {
   };
 
   const getHighestRole = (roles: string[]) => {
-    const roleOrder = ["Admin", "Manager", "Staff"];
+    const roleOrder = ["Admin", "Manager", "Healthcare Staff", "Canteen Staff", "User"];
     for (const role of roleOrder) {
       if (roles.includes(role)) {
         return role;
       }
     }
     return "";
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case "Admin":
+        return "text-red-600";
+      case "Manager":
+        return "text-blue-600";
+      case "Healthcare Staff":
+        return "text-green-600";
+      case "Canteen Staff":
+        return "text-amber-600";
+      case "User":
+        return "text-purple-600";
+      default:
+        return "text-gray-600";
+    }
   };
 
   return (
@@ -70,8 +87,11 @@ const DropdownUser = () => {
           <span className="block text-base font-medium text-black">
             {userContext?.user.userName || "Guest"}
           </span>
-          {userContext?.user.role && getHighestRole(userContext.user.role) && (
-            <span className="block text-xs text-red-600 font-semibold">
+          <span className="block text-xs text-gray-600">
+            {userContext?.user.email}
+          </span>
+          {userContext?.user.role && getHighestRole(userContext.user.role) && getHighestRole(userContext.user.role) !== "User" && (
+            <span className={`block text-xs ${getRoleColor(getHighestRole(userContext.user.role))} font-semibold`}>
               {getHighestRole(userContext.user.role)}
             </span>
           )}
@@ -95,7 +115,7 @@ const DropdownUser = () => {
         <div className={style.dropdownOpen}>
           <ul className="flex flex-col">
             <li>
-              <Link href="/user/me" className={style.dropdownItem}>
+              <Link href="/my-profile" className={style.dropdownItem}>
                 <ProfileIcon />
                 <span className="ml-3">My Profile</span>
               </Link>

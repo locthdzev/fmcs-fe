@@ -1,10 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Button, Input, Textarea } from "@heroui/react";
-import { Select } from "antd";
+import {
+  Form,
+  Input,
+  Button,
+  message,
+  Spin,
+  Select,
+  Upload,
+  Space
+} from "antd";
+import { InboxOutlined } from "@ant-design/icons";
 import { createDrug } from "@/api/drug";
 import { getDrugGroups } from "@/api/druggroup";
-import { toast } from "react-toastify";
-import { FileUpload } from "../ui/file-upload";
+import type { UploadFile, UploadProps } from "antd/es/upload/interface";
+
+const { TextArea } = Input;
+const { Dragger } = Upload;
 
 interface DrugGroup {
   id: string;
@@ -17,81 +28,197 @@ interface CreateDrugFormProps {
   onCreate: () => void;
 }
 
-const initialFormState = {
-  drugCode: "",
-  name: "",
-  unit: "",
-  price: 0,
-  drugGroupId: "",
-  description: "",
-  manufacturer: "",
-  createdAt: new Date().toISOString(),
-  status: "Active",
-  imageUrl: "",
-};
-
 export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
   onClose,
   onCreate,
 }) => {
+  const [form] = Form.useForm();
   const [drugGroups, setDrugGroups] = useState<DrugGroup[]>([]);
-  const [formData, setFormData] = useState(initialFormState);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [messageApi, contextHolder] = message.useMessage();
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
 
   useEffect(() => {
     const fetchDrugGroups = async () => {
       try {
-        const data = await getDrugGroups();
-        setDrugGroups(data);
+        const response = await getDrugGroups();
+        // Check if the response is an object with data property
+        if (response && typeof response === 'object') {
+          // Check if response has a data property that is an array
+          if (response.data && Array.isArray(response.data)) {
+            setDrugGroups(response.data);
+          } 
+          // Check if response itself is an array
+          else if (Array.isArray(response)) {
+            setDrugGroups(response);
+          }
+          // Check if items property exists and is an array (common pagination structure)
+          else if (response.items && Array.isArray(response.items)) {
+            setDrugGroups(response.items);
+          }
+          else {
+            console.error("Unexpected response format:", response);
+            messageApi.error({
+              content: "Failed to load drug groups: Unexpected data format",
+              duration: 10
+            });
+            setDrugGroups([]);
+          }
+        } else {
+          console.error("Invalid response:", response);
+          messageApi.error({
+            content: "Failed to load drug groups: Invalid response",
+            duration: 10
+          });
+          setDrugGroups([]);
+        }
       } catch (error) {
-        toast.error("Failed to load drug groups");
+        console.error("Error fetching drug groups:", error);
+        messageApi.error({
+          content: "Failed to load drug groups",
+          duration: 10
+        });
+        setDrugGroups([]);
       }
     };
     fetchDrugGroups();
-  }, []);
+  }, [messageApi]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     try {
+      const values = await form.validateFields();
+      setLoading(true);
+
       const formDataToSend = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formDataToSend.append(key, value.toString());
+      Object.entries(values).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && key !== 'imageFile') {
+          formDataToSend.append(key, value as string);
         }
       });
 
-      if (imageFile) {
-        formDataToSend.append("imageFile", imageFile);
+      formDataToSend.append("status", "Active");
+      formDataToSend.append("createdAt", new Date().toISOString());
+      
+      // Thêm ImageUrl vào FormData - trường không thể thiếu khi gửi lên server
+      formDataToSend.append("ImageUrl", "");
+
+      // Kiểm tra và thêm file nếu có
+      if (fileList.length > 0) {
+        console.log("FileList details:", {
+          file: fileList[0],
+          hasOriginFileObj: !!fileList[0].originFileObj,
+          fileType: fileList[0].type,
+          fileSize: fileList[0].size,
+          fileKeys: Object.keys(fileList[0])
+        });
+        
+        // Kiểm tra xem file có originFileObj không
+        if (fileList[0].originFileObj) {
+          console.log("Adding file from originFileObj");
+          formDataToSend.append("imageFile", fileList[0].originFileObj);
+        } else {
+          console.warn("File selected but no originFileObj found");
+          messageApi.warning({
+            content: "Could not process the selected file",
+            duration: 10
+          });
+        }
+      } else {
+        console.log("No image file to upload");
       }
-      setLoading(true);
-      try {
-        await createDrug(formDataToSend);
-        toast.success("Drug created successfully");
-        onCreate();
-        onClose();
-      } catch (error) {
-        toast.error("Failed to create drug");
+
+      // Debug formData
+      console.log("FormData entries to be sent:");
+      for (let pair of formDataToSend.entries()) {
+        const value = pair[1];
+        console.log(`${pair[0]}: ${value instanceof File ? 
+          `File (${(value as File).name}, ${(value as File).type}, ${(value as File).size} bytes)` : 
+          value}`);
       }
-    } catch (error) {
-      toast.error("Failed to create drug");
-    } finally {
-      setLoading(false);
+
+      // Use promise chaining for better error handling
+      createDrug(formDataToSend)
+        .then((result) => {
+          setLoading(false);
+          messageApi.success({
+            content: "Drug created successfully",
+            duration: 10
+          });
+          onCreate();
+          onClose();
+        })
+        .catch((error: any) => {
+          setLoading(false);
+          console.error("Drug creation error:", error);
+          
+          // Display the error message from the API
+          messageApi.error({
+            content: error.message || "Failed to create drug",
+            duration: 10
+          });
+        });
+
+    } catch (errorInfo) {
+      console.error("Form validation failed:", errorInfo);
+      messageApi.error({
+        content: "Please check the form for errors",
+        duration: 10
+      });
     }
   };
 
   const handleReset = () => {
-    setFormData(initialFormState);
-    setImageFile(null);
+    form.resetFields();
+    setFileList([]);
+  };
+
+  const uploadProps: UploadProps = {
+    beforeUpload: (file) => {
+      const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+      if (!isJpgOrPng) {
+        messageApi.error({
+          content: 'You can only upload JPG/PNG file!',
+          duration: 10
+        });
+        return Upload.LIST_IGNORE;
+      }
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        messageApi.error({
+          content: 'Image must be smaller than 2MB!',
+          duration: 10
+        });
+        return Upload.LIST_IGNORE;
+      }
+      
+      // Tạo một file mới từ file ban đầu để đảm bảo nó có thể được sử dụng
+      const newFile = new File([file], file.name, { type: file.type });
+      
+      // Tạo đối tượng upload file
+      const uploadFile = {
+        uid: Date.now().toString(),
+        name: newFile.name,
+        size: newFile.size,
+        type: newFile.type,
+        originFileObj: newFile  // Thêm trường originFileObj
+      } as UploadFile;
+      
+      console.log("File selected for upload:", {
+        name: uploadFile.name,
+        type: uploadFile.type,
+        size: uploadFile.size,
+        hasOriginFileObj: !!uploadFile.originFileObj
+      });
+      
+      setFileList([uploadFile]);
+      return false; // Prevent auto upload
+    },
+    fileList,
+    onRemove: () => {
+      console.log("File removed from list");
+      setFileList([]);
+    },
+    maxCount: 1,
   };
 
   const drugGroupOptions = drugGroups
@@ -102,134 +229,107 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
     }));
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="grid grid-cols-2 gap-4">
-        <Select
-          showSearch
-          style={{ width: "100%", height: "56px" }}
-          placeholder="Search to Select Drug Group"
-          optionFilterProp="label"
-          value={formData.drugGroupId || undefined}
-          onChange={(value) =>
-            setFormData((prev) => ({ ...prev, drugGroupId: value }))
-          }
-          filterSort={(optionA, optionB) =>
-            (optionA?.label ?? "")
-              .toLowerCase()
-              .localeCompare((optionB?.label ?? "").toLowerCase())
-          }
-          options={drugGroupOptions}
-          dropdownStyle={{ zIndex: 9999 }}
-          getPopupContainer={(trigger) => trigger.parentElement!}
-        />
-        <Input
-          isClearable
-          variant="bordered"
-          radius="sm"
-          label="Drug Code"
-          name="drugCode"
-          value={formData.drugCode}
-          onChange={handleInputChange}
-          onClear={() => setFormData({ ...formData, drugCode: "" })}
-          required
-        />
-        <Input
-          isClearable
-          variant="bordered"
-          radius="sm"
-          label="Name"
-          name="name"
-          value={formData.name}
-          onChange={handleInputChange}
-          onClear={() => setFormData({ ...formData, name: "" })}
-          required
-        />
-        <Input
-          isClearable
-          variant="bordered"
-          radius="sm"
-          label="Unit"
-          name="unit"
-          value={formData.unit}
-          onChange={handleInputChange}
-          onClear={() => setFormData({ ...formData, unit: "" })}
-          required
-        />
-        <Input
-          variant="bordered"
-          radius="sm"
-          type="number"
-          label="Price"
-          name="price"
-          value={formData.price === 0 ? "" : formData.price.toString()}
-          onChange={handleInputChange}
-          isRequired
-          endContent={
-            <div className="pointer-events-none flex items-center">
-              <span className="text-default-400 text-small">VND</span>
-            </div>
-          }
-        />
-        <Input
-          isClearable
-          variant="bordered"
-          radius="sm"
-          label="Manufacturer"
-          name="manufacturer"
-          value={formData.manufacturer || ""}
-          onChange={handleInputChange}
-          onClear={() => setFormData({ ...formData, manufacturer: "" })}
-          required
-        />
+    <>
+      {contextHolder}
+      <Spin spinning={loading} tip="Creating drug...">
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <Form.Item
+            name="drugGroupId"
+            label="Drug Group"
+            rules={[{ required: true, message: "Please select a drug group" }]}
+          >
+            <Select
+              showSearch
+              placeholder="Search to Select Drug Group"
+              optionFilterProp="label"
+              filterSort={(optionA, optionB) =>
+                (optionA?.label ?? "")
+                  .toLowerCase()
+                  .localeCompare((optionB?.label ?? "").toLowerCase())
+              }
+              options={drugGroupOptions}
+            />
+          </Form.Item>
 
-        <div className="col-span-2 relative">
-          <Textarea
-            variant="bordered"
-            radius="sm"
-            label="Description"
+          <Form.Item
+            name="drugCode"
+            label="Drug Code"
+            rules={[{ required: true, message: "Please enter drug code" }]}
+          >
+            <Input placeholder="Enter drug code" />
+          </Form.Item>
+
+          <Form.Item
+            name="name"
+            label="Name"
+            rules={[{ required: true, message: "Please enter drug name" }]}
+          >
+            <Input placeholder="Enter drug name" />
+          </Form.Item>
+
+          <Form.Item
+            name="unit"
+            label="Unit"
+            rules={[{ required: true, message: "Please enter unit" }]}
+          >
+            <Input placeholder="Enter unit (e.g., pill, bottle)" />
+          </Form.Item>
+
+          <Form.Item
+            name="price"
+            label="Price"
+            rules={[{ required: true, message: "Please enter price" }]}
+          >
+            <Input 
+              type="number" 
+              placeholder="Enter price" 
+              suffix="VND"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="manufacturer"
+            label="Manufacturer"
+            rules={[{ required: true, message: "Please enter manufacturer" }]}
+          >
+            <Input placeholder="Enter manufacturer" />
+          </Form.Item>
+
+          <Form.Item
             name="description"
-            value={formData.description || ""}
-            onChange={handleInputChange}
-          />
-          {formData.description && (
-            <button
-              type="button"
-              className="absolute right-2 top-2 flex items-center justify-center text-default-500 hover:text-default-900"
-              onClick={() => setFormData({ ...formData, description: "" })}
+            label="Description"
+          >
+            <TextArea rows={3} placeholder="Enter description" />
+          </Form.Item>
+
+          <Form.Item label="Drug Image">
+            <Dragger 
+              {...uploadProps} 
+              name="imageFile" 
+              accept="image/png,image/jpeg"
             >
-              <svg
-                aria-hidden="true"
-                focusable="false"
-                height="1em"
-                role="presentation"
-                viewBox="0 0 24 24"
-                width="1em"
-                className="w-5 h-5"
-              >
-                <path
-                  d="M12 2a10 10 0 1010 10A10.016 10.016 0 0012 2zm3.36 12.3a.754.754 0 010 1.06.748.748 0 01-1.06 0l-2.3-2.3-2.3 2.3a.748.748 0 01-1.06 0 .754.754 0 010-1.06l2.3-2.3-2.3-2.3A.75.75 0 019.7 8.64l2.3 2.3 2.3-2.3a.75.75 0 011.06 1.06l-2.3 2.3z"
-                  fill="currentColor"
-                />
-              </svg>
-            </button>
-          )}{" "}
-        </div>
+              <p className="ant-upload-drag-icon">
+                <InboxOutlined />
+              </p>
+              <p className="ant-upload-text">Click or drag file to this area to upload</p>
+              <p className="ant-upload-hint">
+                Support for a single image upload. Please upload JPG/PNG file only.
+              </p>
+            </Dragger>
+          </Form.Item>
 
-        <div className="col-span-2">
-          <div>
-            <FileUpload onChange={(files) => setImageFile(files[0])} />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-2 mt-6">
-        <Button type="button" radius="sm" onClick={handleReset}>
-          Reset
-        </Button>
-        <Button type="submit" radius="sm" color="primary" isLoading={loading}>
-          Create
-        </Button>
-      </div>
-    </form>
+          <Form.Item>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button key="reset" htmlType="button" onClick={handleReset}>
+                Reset
+              </Button>
+              <Button key="submit" type="primary" htmlType="submit" loading={loading}>
+                Create
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+      </Spin>
+    </>
   );
 };

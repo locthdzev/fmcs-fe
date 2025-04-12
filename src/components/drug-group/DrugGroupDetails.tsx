@@ -1,338 +1,245 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import {
   Card,
-  CardHeader,
-  CardBody,
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-  Chip,
-  ChipProps,
-  Input,
+  Typography,
+  Tag,
   Button,
-  DropdownTrigger,
-  Dropdown,
-  DropdownMenu,
-  DropdownItem,
-  Selection,
-  SortDescriptor,
-} from "@heroui/react";
-import { getDrugGroupById, DrugGroupResponse } from "@/api/druggroup";
-import { getDrugsByDrugGroupId, DrugResponse, getDrugById } from "@/api/drug";
-import DrugDetailsModal from "../drug/DrugDetails";
-import { SearchIcon, ChevronDownIcon } from "./Icons";
+  Spin,
+  message,
+  Row,
+  Col,
+  Divider,
+} from "antd";
+import dayjs from "dayjs";
+import { getDrugGroupById, DrugGroupResponse, DrugGroupExportConfig } from "@/api/druggroup";
+import {
+  ArrowLeftOutlined,
+  EditOutlined,
+  FileExcelOutlined,
+} from "@ant-design/icons";
+import { DrugGroupIcon } from "./Icons";
+import ExportConfigModal, { DrugGroupExportConfigWithUI } from "./ExportConfigModal";
+import { DrugGroupAdvancedFilters } from "./DrugGroupFilterModal";
 
-const statusColorMap: Record<string, ChipProps["color"]> = {
-  Active: "success",
-  Inactive: "danger",
-};
+const { Text } = Typography;
 
-const columns = [
-  { name: "CODE", uid: "drugCode", sortable: true },
-  { name: "NAME", uid: "name", sortable: true },
-  { name: "UNIT", uid: "unit" },
-  { name: "PRICE", uid: "price", sortable: true },
-  { name: "MANUFACTURER", uid: "manufacturer" },
-  { name: "STATUS", uid: "status" },
-];
+interface DrugGroupDetailsProps {
+  id: string;
+  initialData?: DrugGroupResponse | null;
+}
 
-const statusOptions = [
-  { name: "Active", uid: "Active" },
-  { name: "Inactive", uid: "Inactive" },
-];
-
-export function DrugGroupDetails() {
+export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({ id, initialData }) => {
   const router = useRouter();
-  const { id } = router.query;
-  const [drugGroup, setDrugGroup] = useState<DrugGroupResponse | null>(null);
-  const [drugs, setDrugs] = useState<DrugResponse[]>([]);
-  const [selectedDrug, setSelectedDrug] = useState<DrugResponse | null>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [filterValue, setFilterValue] = useState("");
-  const [statusFilter, setStatusFilter] = useState<Selection>("all");
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: "drugCode",
-    direction: "ascending",
+  const [drugGroup, setDrugGroup] = useState<DrugGroupResponse | null>(initialData || null);
+  const [loading, setLoading] = useState(!initialData);
+  const [messageApi, contextHolder] = message.useMessage();
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportConfig, setExportConfig] = useState<DrugGroupExportConfigWithUI>({
+    exportAllPages: false,
+    includeGroupName: true,
+    includeDescription: true,
+    includeCreatedAt: true,
+    includeUpdatedAt: true,
+    includeStatus: true,
   });
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (id && typeof id === "string") {
-        try {
-          const groupData = await getDrugGroupById(id);
-          setDrugGroup(groupData);
-
-          const drugsData = await getDrugsByDrugGroupId(id);
-          setDrugs(drugsData ?? []);
-        } catch (error) {
-          console.error("Error fetching data:", error);
-          setDrugs([]);
-        }
+    console.log("DrugGroupDetails component mounted with id:", id);
+    console.log("Initial data provided:", initialData);
+    
+    if (!initialData) {
+      if (id) {
+        fetchData();
+      } else if (router.query.id && typeof router.query.id === 'string') {
+        // Fallback for older component usage without explicit id prop
+        fetchData(router.query.id);
       }
-    };
+    }
+  }, [id, router.query.id, initialData]);
 
-    fetchData();
-  }, [id]);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
-      date.getMinutes()
-    ).padStart(2, "0")}`;
-  };
-
-  const handleOpenDetails = async (id: string) => {
+  const fetchData = async (dataId?: string) => {
+    const idToUse = dataId || id;
+    if (!idToUse) return;
+    
+    setLoading(true);
     try {
-      const drug = await getDrugById(id);
-      setSelectedDrug(drug);
-      setIsDetailsModalOpen(true);
+      console.log("Fetching drug group with ID:", idToUse);
+      const response = await getDrugGroupById(idToUse);
+      console.log("API Response:", response);
+      
+      // Kiểm tra cấu trúc dữ liệu trả về từ API
+      let groupData;
+      if (response && response.data) {
+        groupData = response.data;
+      } else if (response && typeof response === 'object') {
+        groupData = response;
+      } else {
+        console.error("Unexpected API response structure:", response);
+        messageApi.error("Unexpected API response structure");
+        setDrugGroup(null);
+        return;
+      }
+      
+      console.log("Processed Drug Group Data:", groupData);
+      setDrugGroup(groupData);
     } catch (error) {
-      console.error("Failed to load drug details");
+      console.error("Error fetching data:", error);
+      messageApi.error("Failed to fetch drug group data");
+      setDrugGroup(null);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const filteredItems = React.useMemo(() => {
-    let filteredDrugs = [...drugs];
+  const handleExportConfigChange = (values: Partial<DrugGroupExportConfigWithUI>) => {
+    setExportConfig(prev => ({ ...prev, ...values }));
+  };
 
-    if (filterValue) {
-      filteredDrugs = filteredDrugs.filter((drug) =>
-        drug.name.toLowerCase().includes(filterValue.toLowerCase())
-      );
-    }
-    if (
-      statusFilter !== "all" &&
-      Array.from(statusFilter).length !== statusOptions.length
-    ) {
-      filteredDrugs = filteredDrugs.filter(
-        (drug) =>
-          drug.status !== undefined &&
-          Array.from(statusFilter).includes(drug.status)
-      );
-    }
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return "-";
+    return dayjs(dateString).format("DD/MM/YYYY HH:mm:ss");
+  };
 
-    return filteredDrugs;
-  }, [drugs, filterValue, statusFilter]);
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        {contextHolder}
+        <Spin size="large" tip="Loading drug group details..." />
+      </div>
+    );
+  }
 
-  const sortedItems = React.useMemo(() => {
-    return [...filteredItems].sort((a: DrugResponse, b: DrugResponse) => {
-      const first = a[sortDescriptor.column as keyof DrugResponse];
-      const second = b[sortDescriptor.column as keyof DrugResponse];
+  if (!drugGroup) {
+    return (
+      <div className="p-4">
+        {contextHolder}
+        <div className="flex items-center gap-2 mb-4">
+            <Button
+                icon={<ArrowLeftOutlined />}
+                onClick={() => router.push("/drug-group")}
+                style={{ marginRight: "8px" }}
+            >
+                Back
+            </Button>
+            <DrugGroupIcon />
+            <h3 className="text-xl font-bold">Drug Group Not Found</h3>
+        </div>
+        <Card>
+           <Text>The requested drug group could not be found or loaded.</Text>
+        </Card>
+      </div>
+    );
+  }
 
-      let cmp = 0;
-      if (typeof first === "string" && typeof second === "string") {
-        cmp = first.localeCompare(second);
-      }
-
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
-  }, [sortDescriptor, filteredItems]);
-
-  const onSearchChange = React.useCallback((value?: string) => {
-    if (value) {
-      setFilterValue(value);
-    } else {
-      setFilterValue("");
-    }
-  }, []);
-
-  const onClear = React.useCallback(() => {
-    setFilterValue("");
-  }, []);
+  // Display the raw data in development mode
+  if (drugGroup) {
+    console.log("Rendering with drug group:", drugGroup);
+  }
 
   return (
-    <div ref={{ current: null }} className="space-y-6 p-6">
-      <button
-        onClick={() => router.back()}
-        className="p-0.5 text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-100 w-6 h-6 flex items-center justify-center mb-0"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M19 12H5M12 19l-7-7 7-7" />
-        </svg>
-      </button>
-      <Card>
-        <CardHeader className="flex justify-between items-center">
-          <h4 className="text-xl font-bold">Drug Group Details</h4>
-          <Chip
-            className="capitalize"
-            color={statusColorMap[drugGroup?.status || "Inactive"]}
-            size="sm"
-            variant="flat"
-          >
-            {drugGroup?.status}
-          </Chip>
-        </CardHeader>
-        <CardBody>
-          <div className="grid grid-cols-4 gap-4">
-            {/* Group Name */}
-            <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center space-x-2">
-                <div>
-                  <p className="text-gray-600 text-sm mb-1">Group Name</p>
-                  <p className="font-semibold text-base text-gray-800">
-                    {drugGroup?.groupName}
-                  </p>
-                </div>
-              </div>
-            </div>
-            {/* Description */}
-            <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center space-x-2">
-                <div>
-                  <p className="text-gray-600 text-sm mb-1">Description</p>
-                  <p className="font-semibold text-base text-gray-800 italic">
-                    {drugGroup?.description || "No description available"}
-                  </p>
-                </div>
-              </div>
-            </div>
-            {/* Created At */}
-            <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center space-x-2">
-                <div>
-                  <p className="text-gray-600 text-sm mb-1">Created At</p>
-                  <p className="font-semibold text-base text-gray-800">
-                    {drugGroup?.createdAt
-                      ? formatDate(drugGroup.createdAt)
-                      : "-"}
-                  </p>
-                </div>
-              </div>
-            </div>
-            {/* Updated At */}
-            <div className="p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center space-x-2">
-                <div>
-                  <p className="text-gray-600 text-sm mb-1">Updated At</p>
-                  <p
-                    className={`font-semibold text-base ${
-                      !drugGroup?.updatedAt
-                        ? "italic text-gray-400"
-                        : "text-gray-800"
-                    }`}
-                  >
-                    {drugGroup?.updatedAt
-                      ? formatDate(drugGroup.updatedAt)
-                      : "Not updated yet"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardBody>
-      </Card>
-      <Card>
-        <CardHeader>
-          <h4 className="text-xl font-bold">Drugs in Group</h4>
-        </CardHeader>
-        <CardBody>
-          <div className="flex justify-between items-center mb-4">
-            <Input
-              isClearable
-              className="w-full sm:max-w-[44%]"
-              placeholder="Search by drug name..."
-              startContent={<SearchIcon />}
-              value={filterValue}
-              onClear={() => onClear()}
-              onValueChange={onSearchChange}
-            />
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
-                >
-                  Status
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={statusFilter}
-                selectionMode="multiple"
-                onSelectionChange={setStatusFilter}
-              >
-                {statusOptions.map((status) => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {status.name}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-          </div>
-          <Table
-            aria-label="Drugs table"
-            sortDescriptor={sortDescriptor}
-            onSortChange={setSortDescriptor}
-          >
-            <TableHeader>
-              {columns.map((column) => (
-                <TableColumn key={column.uid} allowsSorting={column.sortable}>
-                  {column.name}
-                </TableColumn>
-              ))}
-            </TableHeader>
-            <TableBody emptyContent={"No drug in drug group"}>
-              {sortedItems.map((drug) => (
-                <TableRow key={drug.id}>
-                  <TableCell>{drug.drugCode}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col items-start">
-                      <div className="flex items-center">
-                        <img
-                          src={drug.imageUrl}
-                          alt={drug.name}
-                          className="w-8 h-8 mr-2 rounded cursor-pointer"
-                          onClick={() => handleOpenDetails(drug.id)}
-                        />
-                        <p
-                          className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
-                          onClick={() => handleOpenDetails(drug.id)}
-                        >
-                          {drug.name}
-                        </p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{drug.unit}</TableCell>
-                  <TableCell>{drug.price.toLocaleString()} VND</TableCell>
-                  <TableCell>{drug.manufacturer || "-"}</TableCell>
-                  <TableCell>
-                    <Chip
-                      className="capitalize"
-                      color={statusColorMap[drug.status || "Inactive"]}
-                      size="sm"
-                      variant="flat"
-                    >
-                      {drug.status}
-                    </Chip>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardBody>
-      </Card>
+    <div>
+      {contextHolder}
 
-      <DrugDetailsModal
-        drug={selectedDrug}
-        isOpen={isDetailsModalOpen}
-        onClose={() => setIsDetailsModalOpen(false)}
+      <div className="flex justify-between items-center p-4 border-b">
+        <div className="flex items-center gap-2">
+          <Button 
+            icon={<ArrowLeftOutlined />} 
+            onClick={() => router.push("/drug-group")}
+          >
+            Back
+          </Button>
+          <DrugGroupIcon />
+          <span className="text-xl font-bold">Drug Group Details</span>
+        </div>
+        <div className="space-x-2">
+
+          <Button 
+            type="primary" 
+            icon={<EditOutlined />}
+            onClick={() => router.push(`/drug-group/edit/${id || router.query.id}`)}
+          >
+            Edit Group
+          </Button>
+        </div>
+      </div>
+
+      <div className="p-6">
+        <Card className="mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-lg font-bold m-0">Group Information</h4>
+            <Tag color={drugGroup.status === "Active" ? "success" : "error"}>
+              {drugGroup.status?.toUpperCase()}
+            </Tag>
+          </div>
+          
+          <Row gutter={[24, 24]}>
+            <Col xs={24} md={12}>
+              <div className="border rounded p-4">
+                <div className="text-gray-500 text-sm mb-1">Group Name</div>
+                <div className="font-medium">{drugGroup.groupName}</div>
+              </div>
+            </Col>
+            
+            <Col xs={24} md={12}>
+              <div className="border rounded p-4">
+                <div className="text-gray-500 text-sm mb-1">Description</div>
+                <div className="font-medium">{drugGroup.description || "-"}</div>
+              </div>
+            </Col>
+
+            <Col xs={24}>
+              <div className="border rounded p-4">
+                <div className="text-gray-500 text-sm mb-1">Address</div>
+                <div className="font-medium">{"-"}</div>
+              </div>
+            </Col>
+          </Row>
+
+          <Divider style={{ margin: "24px 0" }} />
+
+          <Row gutter={[24, 24]}>
+            <Col xs={24} md={12}>
+              <div className="border rounded p-4">
+                <div className="text-gray-500 text-sm mb-1">Created At</div>
+                <div className="font-medium">{formatDate(drugGroup.createdAt)}</div>
+              </div>
+            </Col>
+            
+            <Col xs={24} md={12}>
+              <div className="border rounded p-4">
+                <div className="text-gray-500 text-sm mb-1">Updated At</div>
+                <div className="font-medium">{formatDate(drugGroup.updatedAt)}</div>
+              </div>
+            </Col>
+          </Row>
+        </Card>
+      </div>
+
+      <ExportConfigModal
+        visible={exportModalVisible}
+        onClose={() => setExportModalVisible(false)}
+        config={exportConfig}
+        onChange={handleExportConfigChange}
+        filters={{
+          filterValue: drugGroup.groupName || "",
+          statusFilter: drugGroup.status ? [drugGroup.status] : [],
+          advancedFilters: {
+            createdDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+            updatedDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+            ascending: true
+          },
+          currentPage: 1,
+          pageSize: 10,
+        }}
+        drugGroups={drugGroup ? [drugGroup] : []}
+        statusOptions={[
+          { label: "Active", value: "Active" },
+          { label: "Inactive", value: "Inactive" },
+        ]}
       />
     </div>
   );
-}
+};
+
+export default DrugGroupDetails;

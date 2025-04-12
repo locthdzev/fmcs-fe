@@ -1,145 +1,229 @@
-import React, { useEffect, useState } from "react";
-import { Button, Input, Textarea } from "@heroui/react";
+import React, { useState } from "react";
+import {
+  Form,
+  Input,
+  Button,
+  message,
+  Spin,
+  Select,
+  Upload,
+  Space
+} from "antd";
+import { InboxOutlined } from "@ant-design/icons";
 import { createTruck } from "@/api/truck";
-import { toast } from "react-toastify";
-import { FileUpload } from "../ui/file-upload";
+import type { UploadFile, UploadProps } from "antd/es/upload/interface";
+
+const { TextArea } = Input;
+const { Dragger } = Upload;
 
 interface CreateTruckFormProps {
   onClose: () => void;
   onCreate: () => void;
 }
 
-const initialFormState = {
-  licensePlate: "",
-  driverName: "",
-  driverContact: "",
-  description: "",
-  status: "Active",
-  truckImage: "",
-  createdAt: new Date().toISOString(),
-};
-
 export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
   onClose,
   onCreate,
 }) => {
-  const [formData, setFormData] = useState(initialFormState);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleClear = (name: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: "",
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     try {
+      const values = await form.validateFields();
+      setLoading(true);
+      
+      // Log debugging information
+      console.log("File list:", fileList);
+      console.log("File list length:", fileList.length);
+      if (fileList.length > 0) {
+        console.log("File object:", fileList[0]);
+        console.log("originFileObj exists:", !!fileList[0].originFileObj);
+      }
+
+      // Create FormData for the request
       const formDataToSend = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formDataToSend.append(key, value.toString());
+      
+      // Add all form values except imageFile (handled separately)
+      Object.entries(values).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && key !== 'imageFile') {
+          formDataToSend.append(key, value as string);
         }
       });
 
-      if (imageFile) {
-        formDataToSend.append("imageFile", imageFile);
+      // Add standard fields
+      formDataToSend.append("createdAt", new Date().toISOString());
+      formDataToSend.append("status", "Active");
+      
+      // Important: Always append truckImage field with empty string
+      formDataToSend.append("truckImage", "");
+
+      // Append the image file if it exists
+      if (fileList.length > 0 && fileList[0].originFileObj) {
+        formDataToSend.append("imageFile", fileList[0].originFileObj);
+        console.log("Uploading file:", fileList[0].name);
+        console.log("File type:", fileList[0].type);
+        console.log("File size:", fileList[0].size, "bytes");
+      } else {
+        console.log("No file selected for upload or originFileObj is undefined");
+        console.log("fileList details:", JSON.stringify(fileList, null, 2));
       }
-      setLoading(true);
+
+      // Log the FormData content
+      let formDataContent = "";
+      for (const [key, value] of formDataToSend.entries()) {
+        formDataContent += `${key}: ${value instanceof File ? `File (${value.name}, ${value.size} bytes)` : value}\n`;
+      }
+      console.log("FormData contents:\n", formDataContent);
+      console.log("FormData contains imageFile:", formDataToSend.has("imageFile"));
+
+      // Create the truck with the FormData
       try {
-        await createTruck(formDataToSend);
-        toast.success("Truck created successfully");
-        onCreate();
-        onClose();
-      } catch (error) {
-        toast.error("Failed to create truck");
+        const response = await createTruck(formDataToSend);
+        messageApi.success("Truck created successfully", 5);
+        form.resetFields();
+        setFileList([]);
+        if (typeof onCreate === 'function') {
+          onCreate();
+        }
+        if (typeof onClose === 'function') {
+          onClose();
+        }
+      } catch (error: any) {
+        messageApi.error(error.message || "Failed to create truck", 5);
+        console.error("Error creating truck:", error);
       }
-    } catch (error) {
-      toast.error("Failed to create truck");
+    } catch (errorInfo) {
+      console.error("Form validation failed:", errorInfo);
+      messageApi.error("Failed to validate form. Please check your input and try again.", 5);
     } finally {
       setLoading(false);
     }
   };
 
   const handleReset = () => {
-    setFormData(initialFormState);
-    setImageFile(null);
+    form.resetFields();
+    setFileList([]);
+  };
+
+  const uploadProps: UploadProps = {
+    beforeUpload: (file) => {
+      const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+      if (!isJpgOrPng) {
+        messageApi.error('You can only upload JPG/PNG file!');
+        return Upload.LIST_IGNORE;
+      }
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        messageApi.error('Image must be smaller than 2MB!');
+        return Upload.LIST_IGNORE;
+      }
+      
+      // Create a new file list with the new file
+      const newFile = {
+        ...file,
+        uid: file.uid,
+        name: file.name,
+        status: 'done',
+        url: URL.createObjectURL(file),
+        originFileObj: file,
+      } as UploadFile;
+      
+      setFileList([newFile]);
+      return false; // Prevent auto upload
+    },
+    fileList,
+    onRemove: () => {
+      setFileList([]);
+    },
+    maxCount: 1,
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="grid grid-cols-2 gap-4">
-        <Input
-          radius="sm"
-          isClearable
-          variant="bordered"
-          label="License Plate"
-          name="licensePlate"
-          value={formData.licensePlate}
-          onChange={handleInputChange}
-          onClear={() => handleClear("licensePlate")}
-          required
-        />
-        <Input
-          radius="sm"
-          isClearable
-          variant="bordered"
-          label="Driver Name"
-          name="driverName"
-          value={formData.driverName}
-          onChange={handleInputChange}
-          onClear={() => handleClear("driverName")}
-        />
-        <Input
-          radius="sm"
-          isClearable
-          variant="bordered"
-          label="Driver Contact"
-          name="driverContact"
-          value={formData.driverContact}
-          onChange={handleInputChange}
-          onClear={() => handleClear("driverContact")}
-        />
-        <div className="col-span-2">
-          <Textarea
-            radius="sm"
-            isClearable
-            variant="bordered"
-            label="Description"
+    <>
+      {contextHolder}
+      <Spin spinning={loading} tip="Creating truck...">
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <Form.Item
+            name="licensePlate"
+            label="License Plate"
+            rules={[{ required: true, message: "Please enter license plate" }]}
+          >
+            <Input placeholder="Enter license plate" />
+          </Form.Item>
+
+          <Form.Item
+            name="driverName"
+            label="Driver Name"
+            rules={[{ required: true, message: "Please enter driver name" }]}
+          >
+            <Input placeholder="Enter driver name" />
+          </Form.Item>
+
+          <Form.Item
+            name="driverContact"
+            label="Driver Contact"
+            rules={[
+              { required: true, message: "Please enter driver contact" },
+              { pattern: /^[\d\s-]+$/, message: "Please enter a valid contact number" }
+            ]}
+          >
+            <Input placeholder="Enter driver contact" />
+          </Form.Item>
+
+          <Form.Item
             name="description"
-            value={formData.description}
-            onChange={handleInputChange}
-            onClear={() => handleClear("description")}
-          />
-        </div>
+            label="Description"
+          >
+            <TextArea rows={3} placeholder="Enter description" />
+          </Form.Item>
 
-        <div className="col-span-2 flex justify-center">
-          <div>
-            <FileUpload onChange={(files) => setImageFile(files[0])} />
-          </div>
-        </div>
-      </div>
+          <Form.Item label="Truck Image">
+            <Dragger {...uploadProps}>
+              <p className="ant-upload-drag-icon">
+                <InboxOutlined />
+              </p>
+              <p className="ant-upload-text">Click or drag file to this area to upload</p>
+              <p className="ant-upload-hint">
+                Support for a single image upload. Please upload JPG/PNG file only.
+              </p>
+            </Dragger>
+          </Form.Item>
 
-      <div className="flex justify-end gap-2 mt-6">
-        <Button type="button" variant="flat" onClick={handleReset}>
-          Reset
-        </Button>
-        <Button type="submit" color="primary" isLoading={loading}>
-          Create Truck
-        </Button>
-      </div>
-    </form>
+          <Form.Item>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button 
+                key="reset" 
+                htmlType="button" 
+                onClick={handleReset}
+              >
+                Reset
+              </Button>
+              <Button 
+                key="cancel" 
+                htmlType="button" 
+                onClick={() => {
+                  if (typeof onClose === 'function') {
+                    onClose();
+                  }
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                key="submit" 
+                type="primary" 
+                htmlType="submit" 
+                loading={loading}
+              >
+                Create
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+      </Spin>
+    </>
   );
 };
