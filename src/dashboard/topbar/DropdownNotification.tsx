@@ -1,13 +1,26 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Badge,
-} from "@heroui/react";
 import { IoNotificationsOutline } from "react-icons/io5";
-import { Modal } from "antd";
+import {
+  Modal,
+  Badge,
+  Drawer,
+  Button,
+  List,
+  Typography,
+  Space,
+  message,
+  Divider,
+  Empty,
+  Avatar,
+  Spin,
+} from "antd";
+import {
+  CheckOutlined,
+  BellOutlined,
+  ClockCircleOutlined,
+  FileTextOutlined,
+  MailOutlined,
+} from "@ant-design/icons";
 import {
   getNotificationsByUserId,
   getNotificationDetailForUser,
@@ -17,13 +30,18 @@ import {
   getUnreadNotificationCount,
 } from "@/api/notification";
 import Cookies from "js-cookie";
+import dayjs from "dayjs";
+
+const { Text, Title, Paragraph } = Typography;
 
 interface NotificationDropdownProps {
   maxItems?: number;
+  initialBatchSize?: number;
 }
 
 export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   maxItems = 10,
+  initialBatchSize = 20,
 }) => {
   const [notifications, setNotifications] = useState<NotificationResponseDTO[]>(
     []
@@ -31,69 +49,81 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedNotification, setSelectedNotification] =
     useState<NotificationResponseDTO | null>(null);
-
-  const formatBadgeCount = (count: number) =>
-    count > 99 ? "99+" : count.toString();
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "";
-    const now = new Date();
-    const diffInHours = Math.abs(now.getTime() - date.getTime()) / 36e5;
-    if (diffInHours < 24)
-      return date.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    if (diffInHours < 48) return "Yesterday";
-    return date.toLocaleDateString([], {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    if (!dateString) return "";
+    return dayjs(dateString).format("DD/MM/YYYY HH:mm:ss");
   };
 
-  const fetchNotifications = async () => {
-    const result = await getNotificationsByUserId(1, maxItems);
-    setNotifications(result.data);
-    const count = await getUnreadNotificationCount();
-    setUnreadCount(count);
+  const fetchNotifications = async (page = 1, pageSize = initialBatchSize) => {
+    try {
+      setLoading(true);
+      const result = await getNotificationsByUserId(page, pageSize);
+
+      if (page === 1) {
+        setNotifications(result.data);
+      } else {
+        setNotifications((prev) => [...prev, ...result.data]);
+      }
+
+      // Nếu không có dữ liệu hoặc dữ liệu ít hơn pageSize, không còn thêm dữ liệu
+      setHasMore(result.data.length >= pageSize);
+      setCurrentPage(page);
+
+      const count = await getUnreadNotificationCount();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      message.error("Không thể tải thông báo");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     const initialize = async () => {
-      await fetchNotifications();
+      await fetchNotifications(1);
 
       const connection = setupNotificationRealTime((data: any) => {
-        console.log("SignalR notification data received in DropdownNotification:", data);
-        
+        console.log(
+          "SignalR notification data received in DropdownNotification:",
+          data
+        );
+
         if (Array.isArray(data)) {
-          // Xử lý khi xóa thông báo
           console.log("Processing notification deletion:", data);
           setNotifications((prev) => prev.filter((n) => !data.includes(n.id)));
         } else if (data && typeof data === "object") {
-          // Xử lý khi có thông báo mới hoặc cập nhật thông báo
-          console.log("Processing notification update or new notification:", data);
-          
-          // Nếu là sự kiện NewNotification
+          console.log(
+            "Processing notification update or new notification:",
+            data
+          );
+
           if (data.id && data.title) {
             console.log("Adding/updating notification in list:", data.id);
             setNotifications((prev) => {
               const exists = prev.find((n) => n.id === data.id);
               if (exists) {
                 console.log("Updating existing notification:", data.id);
-                return prev.map((n) => n.id === data.id ? { ...n, ...data } : n);
+                return prev.map((n) =>
+                  n.id === data.id ? { ...n, ...data } : n
+                );
               } else {
                 console.log("Adding new notification:", data.id);
-                return [data, ...prev.filter((n) => n.id !== data.id)].slice(0, maxItems);
+                return [data, ...prev.filter((n) => n.id !== data.id)].slice(
+                  0,
+                  maxItems
+                );
               }
             });
-            
-            // Fetch lại danh sách thông báo để đảm bảo đồng bộ
+
             fetchNotifications();
           }
-          
-          // Cập nhật số lượng thông báo chưa đọc nếu có
+
           if (data.unreadCount !== undefined) {
             console.log("Updating unread count to:", data.unreadCount);
             setUnreadCount(data.unreadCount);
@@ -114,14 +144,40 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     initialize();
   }, [maxItems]);
 
+  useEffect(() => {
+    // Reset page when drawer is opened
+    if (drawerVisible) {
+      if (notifications.length === 0) {
+        fetchNotifications(1);
+      }
+    }
+  }, [drawerVisible]);
+
   const handleNotificationClick = async (id: string) => {
-    const notification = await getNotificationDetailForUser(id);
-    setSelectedNotification(notification);
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
-    const newCount = await getUnreadNotificationCount();
-    setUnreadCount(newCount);
+    try {
+      // Hiển thị trạng thái loading từ đầu
+      setLoading(true);
+
+      // Lấy chi tiết thông báo
+      const notification = await getNotificationDetailForUser(id);
+
+      // Cập nhật thông báo đã đọc trong danh sách
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+      );
+
+      // Hiển thị chi tiết thông báo có đầy đủ nội dung
+      setSelectedNotification(notification);
+
+      // Cập nhật số lượng thông báo chưa đọc
+      const newCount = await getUnreadNotificationCount();
+      setUnreadCount(newCount);
+    } catch (error) {
+      message.error("Could not load notification details");
+      console.error("Error loading notification details:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleMarkAllAsRead = async () => {
@@ -130,107 +186,247 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     setUnreadCount(0);
   };
 
+  const loadMoreNotifications = () => {
+    fetchNotifications(currentPage + 1);
+  };
+
   return (
     <div className="relative">
-      <Dropdown>
-        <DropdownTrigger>
-          <Badge
-            content={formatBadgeCount(unreadCount)}
-            color="danger"
-            size="sm"
-            placement="top-right"
-            isInvisible={unreadCount === 0}
-          >
-            <IoNotificationsOutline className="h-6 w-6 text-black cursor-pointer" />
-          </Badge>
-        </DropdownTrigger>
-        <DropdownMenu
-          className="w-96 max-h-[500px] overflow-y-auto"
-          aria-label="Notifications"
-        >
-          <DropdownItem key="header" className="sticky top-0 bg-white z-10">
-            <span className="flex justify-between items-center p-4 border-b w-full">
-              <span className="text-lg font-semibold">Notifications</span>
-              {notifications.length > 0 && (
-                <button
-                  onClick={handleMarkAllAsRead}
-                  className="text-blue-500 hover:text-blue-700 text-sm font-medium"
-                >
-                  Mark all as read
-                </button>
-              )}
-            </span>
-          </DropdownItem>
-          <>
-            {notifications.length === 0 ? (
-              <DropdownItem
-                key="empty"
-                className="text-center text-gray-500 p-4"
+      <Badge
+        count={unreadCount}
+        size="small"
+        offset={[0, 0]}
+        className="flex items-center"
+      >
+        <IoNotificationsOutline
+          className="h-6 w-6 text-black cursor-pointer"
+          onClick={() => setDrawerVisible(true)}
+        />
+      </Badge>
+
+      <Drawer
+        title={null}
+        placement="right"
+        onClose={() => setDrawerVisible(false)}
+        open={drawerVisible}
+        width={400}
+        headerStyle={{ padding: 0, margin: 0, border: "none" }}
+        bodyStyle={{ padding: 0, overflowY: "auto" }}
+        closable={false}
+      >
+        <div className="bg-gray-100 border-b p-4 flex justify-center items-center">
+          <Title level={5} style={{ margin: 0 }} className="flex items-center">
+            <IoNotificationsOutline className="mr-2" />
+            Notifications
+          </Title>
+        </div>
+        <div className="p-4">
+          {notifications.length > 0 && (
+            <div className="flex justify-between mb-3 items-center">
+              <Text type="secondary">
+                {notifications.length}{" "}
+                {notifications.length === 1 ? "notification" : "notifications"}
+              </Text>
+              <Button
+                type="text"
+                onClick={handleMarkAllAsRead}
+                icon={<CheckOutlined />}
+                size="small"
               >
-                No notifications available
-              </DropdownItem>
-            ) : (
-              notifications.map((n) => (
-                <DropdownItem
-                  key={n.id}
-                  onClick={() => handleNotificationClick(n.id)}
-                  className={`border-b hover:bg-gray-50 ${
-                    !n.isRead ? "bg-blue-50" : ""
+                Mark all as read
+              </Button>
+            </div>
+          )}
+
+          {notifications.length === 0 ? (
+            <Empty
+              description={
+                loading
+                  ? "Loading notifications..."
+                  : "No notifications available"
+              }
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              className="my-8"
+            />
+          ) : (
+            <List
+              dataSource={notifications}
+              loading={loading && currentPage > 1}
+              renderItem={(n) => (
+                <List.Item
+                  className={`cursor-pointer rounded-md transition-all duration-200 mb-2 ${
+                    !n.isRead
+                      ? "bg-blue-50 hover:bg-blue-100"
+                      : "hover:bg-gray-50"
                   }`}
+                  onClick={() => handleNotificationClick(n.id)}
+                  style={{
+                    padding: "12px",
+                    border: "1px solid #f0f0f0",
+                    marginBottom: "8px",
+                    borderRadius: "8px",
+                  }}
                 >
-                  <span className="block p-4 w-full">
-                    <span className="flex justify-between items-start mb-1">
-                      <span
-                        className={`text-sm ${
-                          !n.isRead ? "font-semibold" : ""
-                        }`}
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar
+                        icon={<MailOutlined />}
+                        style={{
+                          backgroundColor: !n.isRead ? "#1890ff" : "#d9d9d9",
+                          color: "white",
+                        }}
+                      />
+                    }
+                    title={
+                      <div className="flex justify-between items-start">
+                        <Text
+                          style={{
+                            fontSize: "14px",
+                            maxWidth: "220px",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            fontWeight: 500,
+                          }}
+                          title={n.title}
+                        >
+                          {n.title}
+                        </Text>
+                        <Text
+                          type="secondary"
+                          style={{
+                            fontSize: "12px",
+                            marginLeft: "8px",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {formatDate(n.createdAt)}
+                        </Text>
+                      </div>
+                    }
+                    description={
+                      <Space
+                        direction="vertical"
+                        style={{ width: "100%" }}
+                        size={2}
                       >
-                        {n.title}
-                      </span>
-                      <span className="text-xs text-gray-500 ml-2 whitespace-nowrap">
-                        {formatDate(n.createdAt)}
-                      </span>
-                    </span>
-                  </span>
-                </DropdownItem>
-              ))
-            )}
-          </>
-        </DropdownMenu>
-      </Dropdown>
+                        <Text
+                          style={{
+                            fontSize: "13px",
+                            lineHeight: "1.5",
+                            color: !n.isRead ? "#4a4a4a" : "#8c8c8c",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          ellipsis={{ tooltip: "Click to view full content" }}
+                        >
+                          {n.content || (
+                            <span style={{ fontStyle: "italic", opacity: 0.7 }}>
+                              Click to view details
+                            </span>
+                          )}
+                        </Text>
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          )}
+
+          {hasMore && (
+            <div className="text-center my-4">
+              <Button
+                onClick={loadMoreNotifications}
+                loading={loading && currentPage > 1}
+                type="default"
+                size="middle"
+              >
+                Load more
+              </Button>
+            </div>
+          )}
+        </div>
+      </Drawer>
 
       <Modal
-        title={selectedNotification?.title}
+        title={null}
         open={!!selectedNotification}
         onCancel={() => setSelectedNotification(null)}
         footer={null}
         width={600}
+        style={{ borderRadius: "8px", overflow: "hidden" }}
+        bodyStyle={{ padding: 0 }}
+        closeIcon={
+          <button className="absolute top-4 right-4 z-10 text-black w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200">
+            ✕
+          </button>
+        }
       >
-        <div className="flex flex-col h-[400px]">
-          <div className="flex-shrink-0">
-            <h2 className="text-xl font-bold">{selectedNotification?.title}</h2>
+        <div>
+          <div className="bg-gray-100 border-b p-6">
+            <Title level={4} style={{ margin: 0 }}>
+              {selectedNotification?.title}
+            </Title>
+            <div className="flex items-center mt-2">
+              <ClockCircleOutlined
+                style={{ color: "#8c8c8c", marginRight: "8px" }}
+              />
+              <Text type="secondary">
+                {selectedNotification?.createdAt &&
+                  formatDate(selectedNotification.createdAt)}
+              </Text>
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto mt-4">
-            <p>{selectedNotification?.content || "No content"}</p>
-            {selectedNotification?.attachment &&
-              (selectedNotification.attachment.match(
-                /\.(jpg|jpeg|png|gif)$/i
-              ) ? (
-                <img
-                  src={selectedNotification.attachment}
-                  alt="Attachment"
-                  className="max-w-full mt-4"
-                />
+
+          <Spin spinning={loading} tip="Loading details...">
+            <div className="p-6">
+              {selectedNotification?.content ? (
+                <Paragraph style={{ fontSize: "16px", lineHeight: "1.8" }}>
+                  {selectedNotification.content}
+                </Paragraph>
               ) : (
-                <a
-                  href={selectedNotification.attachment}
-                  download
-                  className="text-blue-500 mt-4 block"
-                >
-                  Download Attachment
-                </a>
-              ))}
-          </div>
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
+                  <Text type="secondary" style={{ fontSize: "14px" }}>
+                    This notification has no additional content.
+                  </Text>
+                </div>
+              )}
+
+              {selectedNotification?.attachment && (
+                <div className="mt-6 p-4 border border-gray-200 rounded-lg">
+                  <div className="flex items-center mb-3">
+                    <FileTextOutlined className="text-blue-600 mr-2" />
+                    <Text strong>Attachment</Text>
+                  </div>
+
+                  {selectedNotification.attachment.match(
+                    /\.(jpg|jpeg|png|gif)$/i
+                  ) ? (
+                    <img
+                      src={selectedNotification.attachment}
+                      alt="Attachment"
+                      className="max-w-full rounded-md border border-gray-200"
+                    />
+                  ) : (
+                    <Button
+                      type="primary"
+                      icon={<FileTextOutlined />}
+                      href={selectedNotification.attachment}
+                      download
+                      className="mt-2"
+                    >
+                      Download Attachment
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          </Spin>
         </div>
       </Modal>
     </div>

@@ -9,7 +9,7 @@ import {
   Button,
   Checkbox,
 } from "@heroui/react";
-import { Steps } from "antd"; // Nhập StepsProps để mở rộng kiểu
+import { Steps, message } from "antd"; // Nhập StepsProps để mở rộng kiểu
 import { LoadingOutlined, CheckOutlined } from "@ant-design/icons";
 import {
   getDrugOrderById,
@@ -17,7 +17,6 @@ import {
   completeDrugOrderDetails,
   rejectDrugOrderDetails,
 } from "@/api/drugorder";
-import { toast } from "react-toastify";
 import { ConfirmModal } from "./Confirm";
 
 const statusColorMap: Record<string, ChipProps["color"]> = {
@@ -61,6 +60,8 @@ export function DrugOrderDetails() {
   const [confirmAction, setConfirmAction] = useState<
     "complete" | "reject" | null
   >(null);
+  const [messageApi, contextHolder] = message.useMessage();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -120,49 +121,55 @@ export function DrugOrderDetails() {
 
   const handleCompleteDetails = async () => {
     if (selectedDetailIds.size === 0) {
-      toast.error("Please select at least one detail to complete.");
+      messageApi.error("Please select at least one detail to complete.");
       return;
     }
 
     try {
+      setLoading(true);
       const response = await completeDrugOrderDetails({
         drugOrderDetailIds: Array.from(selectedDetailIds),
       });
       if (response.isSuccess) {
-        toast.success("Selected drug order details completed successfully");
+        messageApi.success("Selected drug order details completed successfully");
         const updatedOrder = await getDrugOrderById(id as string);
         setDrugOrder(updatedOrder);
         setSelectedDetailIds(new Set());
       } else {
-        toast.error(
+        messageApi.error(
           response.message || "Failed to complete drug order details"
         );
       }
     } catch (error) {
-      toast.error("Failed to complete drug order details");
+      messageApi.error("Failed to complete drug order details");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleRejectDetails = async () => {
     if (selectedDetailIds.size === 0) {
-      toast.error("Please select at least one detail to reject.");
+      messageApi.error("Please select at least one detail to reject.");
       return;
     }
 
     try {
+      setLoading(true);
       const response = await rejectDrugOrderDetails({
         drugOrderDetailIds: Array.from(selectedDetailIds),
       });
       if (response.isSuccess) {
-        toast.success("Selected drug order details rejected successfully");
+        messageApi.success("Selected drug order details rejected successfully");
         const updatedOrder = await getDrugOrderById(id as string);
         setDrugOrder(updatedOrder);
         setSelectedDetailIds(new Set());
       } else {
-        toast.error(response.message || "Failed to reject drug order details");
+        messageApi.error(response.message || "Failed to reject drug order details");
       }
     } catch (error) {
-      toast.error("Failed to reject drug order details");
+      messageApi.error("Failed to reject drug order details");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -184,6 +191,7 @@ export function DrugOrderDetails() {
 
   return (
     <div className="space-y-6 p-6">
+      {contextHolder}
       <button
         onClick={() => router.back()}
         className="p-0.5 text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-100 w-6 h-6 flex items-center justify-center mb-0"

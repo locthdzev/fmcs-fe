@@ -8,11 +8,10 @@ import {
   ModalHeader,
   ModalFooter,
 } from "@heroui/react";
-import { Select } from "antd";
+import { Select, message } from "antd";
 import { createDrugOrder } from "@/api/drugorder";
 import { getDrugs, DrugResponse } from "@/api/drug";
 import { getDrugSuppliers, DrugSupplierResponse } from "@/api/drugsupplier";
-import { toast } from "react-toastify";
 import { BinIcon } from "./Icons";
 import { ConfirmModal } from "./Confirm";
 
@@ -41,6 +40,7 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
   onClose,
   onCreate,
 }) => {
+  const [messageApi, contextHolder] = message.useMessage();
   const [formData, setFormData] = useState(initialFormState);
   const [loading, setLoading] = useState(false);
   const [drugs, setDrugs] = useState<DrugResponse[]>([]);
@@ -56,24 +56,23 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
         const drugsData = await getDrugs();
         setDrugs(drugsData);
       } catch (error) {
-        toast.error("Failed to fetch drugs");
+        messageApi.error("Failed to fetch drugs");
       }
     };
     fetchDrugs();
-  }, []);
+  }, [messageApi]);
 
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
         const data = await getDrugSuppliers();
-        console.log("Fetched suppliers:", data);
         setSuppliers(data);
       } catch (error) {
-        toast.error("Failed to load suppliers");
+        messageApi.error("Failed to load suppliers");
       }
     };
     fetchSuppliers();
-  }, []);
+  }, [messageApi]);
 
   useEffect(() => {
     calculateTotals();
@@ -170,27 +169,25 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.supplierId || formData.drugOrderDetails.length === 0) {
-      toast.error("Please fill in all required fields");
+      messageApi.error("Please fill in all required fields");
       return;
     }
 
-    // Kiểm tra từng chi tiết đơn hàng
     for (const detail of formData.drugOrderDetails) {
       if (!detail.drugId) {
-        toast.error("Please select a drug for each order detail");
+        messageApi.error("Please select a drug for each order detail");
         return;
       }
       if (!detail.quantity || detail.quantity <= 0) {
-        toast.error("Quantity must be greater than 0");
+        messageApi.error("Quantity must be greater than 0");
         return;
       }
     }
 
-    // Hiển thị Modal xác nhận
     setIsConfirmationModalOpen(true);
   };
 
-  const handleConfirmOrder = async () => {
+  const handleConfirmCreate = async () => {
     try {
       setLoading(true);
       const response = await createDrugOrder({
@@ -202,21 +199,23 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
           })
         ),
       });
+
       if (response.isSuccess) {
-        toast.success(response.message || "Drug order created successfully");
-        onCreate();
+        messageApi.success(response.message || "Drug order created successfully");
         handleReset();
+        onCreate();
         onClose();
       } else {
-        toast.error(response.message || "Failed to create drug order");
+        messageApi.error(response.message || "Failed to create drug order");
       }
     } catch (error) {
-      toast.error("Failed to create drug order");
+      messageApi.error("Failed to create drug order");
     } finally {
       setLoading(false);
       setIsConfirmationModalOpen(false);
     }
   };
+
   const handleReset = () => {
     setFormData(initialFormState);
   };
@@ -242,7 +241,8 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
 
   return (
     <>
-      <Modal isOpen={isOpen} onOpenChange={(open) => !open && onClose()}>
+      {contextHolder}
+      <Modal isOpen={isOpen} onClose={onClose} size="2xl">
         <ModalContent className="max-w-[1000px] min-h-[700px] max-h-[90vh]">
           <ModalHeader className="border-b pb-3">
             Add New Drug Order
@@ -417,9 +417,9 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
       <ConfirmModal
         isOpen={isConfirmationModalOpen}
         onClose={() => setIsConfirmationModalOpen(false)}
-        onConfirm={handleConfirmOrder}
-        title="Confirm Order"
-        message="Please review your order details carefully before proceeding. Are you sure you want to create this order?"
+        onConfirm={handleConfirmCreate}
+        title="Create Drug Order"
+        message="Are you sure you want to create this drug order?"
         confirmText="Create Order"
         cancelText="Cancel"
       />
