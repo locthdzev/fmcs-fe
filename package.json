@@ -43,6 +43,7 @@
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "exceljs": "^4.4.0",
+    "file-saver": "^2.0.5",
     "fmcs-fe": "file:",
     "framer-motion": "^11.18.2",
     "js-cookie": "^3.0.5",
