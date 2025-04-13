@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { IoNotificationsOutline } from "react-icons/io5";
 import {
   Modal,
@@ -31,12 +31,25 @@ import {
 } from "@/api/notification";
 import Cookies from "js-cookie";
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/en";
+
+dayjs.extend(relativeTime);
+dayjs.locale("en");
 
 const { Text, Title, Paragraph } = Typography;
 
 interface NotificationDropdownProps {
   maxItems?: number;
   initialBatchSize?: number;
+}
+
+interface GroupedNotifications {
+  new: NotificationResponseDTO[];
+  today: NotificationResponseDTO[];
+  older: {
+    [key: string]: NotificationResponseDTO[];
+  };
 }
 
 export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
@@ -56,6 +69,31 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
+    const date = dayjs(dateString);
+    const now = dayjs();
+    const diffMinutes = now.diff(date, "minute");
+
+    // Display relative time format
+    if (diffMinutes < 60) {
+      // Less than 1 hour: show minutes
+      return diffMinutes <= 1 ? 'Just now' : `${diffMinutes} minutes ago`;
+    } else if (diffMinutes < 1440) {
+      // Less than 24 hours: show hours
+      const diffHours = Math.floor(diffMinutes / 60);
+      return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+    } else if (diffMinutes < 10080) {
+      // Less than 1 week: show days
+      const diffDays = Math.floor(diffMinutes / 1440);
+      return diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
+    } else {
+      // Older: show date and time
+      return date.format("DD/MM/YYYY HH:mm");
+    }
+  };
+
+  // Hiển thị định dạng đầy đủ cho chi tiết thông báo
+  const formatFullDate = (dateString: string) => {
+    if (!dateString) return "";
     return dayjs(dateString).format("DD/MM/YYYY HH:mm:ss");
   };
 
@@ -63,7 +101,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     try {
       setLoading(true);
       const result = await getNotificationsByUserId(page, pageSize);
-      
+
       // Backend đã lọc notifications theo status="Active"
       if (page === 1) {
         setNotifications(result.data);
@@ -129,7 +167,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                 );
               }
             });
-              
+
             // Refresh notifications when new notification comes in
             fetchNotifications();
           }
@@ -197,6 +235,42 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     fetchNotifications(nextPage);
   };
 
+  // Nhóm thông báo theo thời gian
+  const groupedNotifications = useMemo(() => {
+    const now = dayjs();
+    const threeHoursAgo = now.subtract(3, "hour");
+    const startOfToday = now.startOf("day");
+
+    const grouped: GroupedNotifications = {
+      new: [],
+      today: [],
+      older: {},
+    };
+
+    notifications.forEach((notification) => {
+      const notificationDate = dayjs(notification.createdAt);
+
+      // Thông báo trong 3 giờ qua
+      if (notificationDate.isAfter(threeHoursAgo)) {
+        grouped.new.push(notification);
+      }
+      // Thông báo trong ngày nhưng hơn 3 giờ
+      else if (notificationDate.isAfter(startOfToday)) {
+        grouped.today.push(notification);
+      }
+      // Thông báo cũ hơn, nhóm theo ngày
+      else {
+        const dateKey = notificationDate.format("YYYY-MM-DD");
+        if (!grouped.older[dateKey]) {
+          grouped.older[dateKey] = [];
+        }
+        grouped.older[dateKey].push(notification);
+      }
+    });
+
+    return grouped;
+  }, [notifications]);
+
   // Hiển thị thông tin về số lượng thông báo
   const renderNotificationInfo = () => {
     if (notifications.length > 0) {
@@ -218,6 +292,108 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       );
     }
     return null;
+  };
+
+  // Render một nhóm thông báo
+  const renderNotificationGroup = (
+    notifications: NotificationResponseDTO[],
+    title: string
+  ) => {
+    if (notifications.length === 0) return null;
+
+    return (
+      <div className="mb-4">
+        <div className="mb-2">
+          <Text strong className="text-gray-600">
+            {title}
+          </Text>
+        </div>
+        <List
+          dataSource={notifications}
+          renderItem={(n) => (
+            <List.Item
+              className={`cursor-pointer rounded-md transition-all duration-200 mb-2 ${
+                !n.isRead ? "bg-blue-50 hover:bg-blue-100" : "hover:bg-gray-50"
+              }`}
+              onClick={() => handleNotificationClick(n.id)}
+              style={{
+                padding: "12px",
+                border: "1px solid #f0f0f0",
+                marginBottom: "8px",
+                borderRadius: "8px",
+              }}
+            >
+              <List.Item.Meta
+                avatar={
+                  <Avatar
+                    icon={<MailOutlined />}
+                    style={{
+                      backgroundColor: !n.isRead ? "#1890ff" : "#d9d9d9",
+                      color: "white",
+                    }}
+                  />
+                }
+                title={
+                  <div className="flex justify-between items-start">
+                    <Text
+                      style={{
+                        fontSize: "14px",
+                        maxWidth: "220px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        fontWeight: 500,
+                      }}
+                      title={n.title}
+                    >
+                      {n.title}
+                    </Text>
+                    <Text
+                      type="secondary"
+                      style={{
+                        fontSize: "12px",
+                        marginLeft: "8px",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {formatDate(n.createdAt)}
+                    </Text>
+                  </div>
+                }
+                description={
+                  <Space
+                    direction="vertical"
+                    style={{ width: "100%" }}
+                    size={2}
+                  >
+                    <Text
+                      style={{
+                        fontSize: "13px",
+                        lineHeight: "1.5",
+                        color: !n.isRead ? "#4a4a4a" : "#8c8c8c",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                      ellipsis={{ tooltip: "Click to view full content" }}
+                    >
+                      {n.content || (
+                        <span style={{ fontStyle: "italic", opacity: 0.7 }}>
+                          Click to view details
+                        </span>
+                      )}
+                    </Text>
+                  </Space>
+                }
+              />
+            </List.Item>
+          )}
+        />
+      </div>
+    );
   };
 
   return (
@@ -264,93 +440,29 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               className="my-8"
             />
           ) : (
-            <List
-              dataSource={notifications}
-              loading={loading && currentPage > 1}
-              renderItem={(n) => (
-                <List.Item
-                  className={`cursor-pointer rounded-md transition-all duration-200 mb-2 ${
-                    !n.isRead
-                      ? "bg-blue-50 hover:bg-blue-100"
-                      : "hover:bg-gray-50"
-                  }`}
-                  onClick={() => handleNotificationClick(n.id)}
-                  style={{
-                    padding: "12px",
-                    border: "1px solid #f0f0f0",
-                    marginBottom: "8px",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <List.Item.Meta
-                    avatar={
-                      <Avatar
-                        icon={<MailOutlined />}
-                        style={{
-                          backgroundColor: !n.isRead ? "#1890ff" : "#d9d9d9",
-                          color: "white",
-                        }}
-                      />
-                    }
-                    title={
-                      <div className="flex justify-between items-start">
-                        <Text
-                          style={{
-                            fontSize: "14px",
-                            maxWidth: "220px",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            fontWeight: 500,
-                          }}
-                          title={n.title}
-                        >
-                          {n.title}
-                        </Text>
-                        <Text
-                          type="secondary"
-                          style={{
-                            fontSize: "12px",
-                            marginLeft: "8px",
-                            whiteSpace: "nowrap",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {formatDate(n.createdAt)}
-                        </Text>
-                      </div>
-                    }
-                    description={
-                      <Space
-                        direction="vertical"
-                        style={{ width: "100%" }}
-                        size={2}
-                      >
-                        <Text
-                          style={{
-                            fontSize: "13px",
-                            lineHeight: "1.5",
-                            color: !n.isRead ? "#4a4a4a" : "#8c8c8c",
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                          ellipsis={{ tooltip: "Click to view full content" }}
-                        >
-                          {n.content || (
-                            <span style={{ fontStyle: "italic", opacity: 0.7 }}>
-                              Click to view details
-                            </span>
-                          )}
-                        </Text>
-                      </Space>
-                    }
-                  />
-                </List.Item>
+            <div>
+              {/* Thông báo trong 3 giờ gần đây */}
+              {renderNotificationGroup(groupedNotifications.new, "New")}
+
+              {/* Thông báo trong ngày nhưng quá 3 giờ */}
+              {renderNotificationGroup(groupedNotifications.today, "Today")}
+
+              {/* Thông báo cũ hơn theo ngày */}
+              {Object.keys(groupedNotifications.older).length > 0 && (
+                <>
+                  {Object.entries(groupedNotifications.older).map(
+                    ([dateKey, dateNotifications]) => (
+                      <React.Fragment key={dateKey}>
+                        {renderNotificationGroup(
+                          dateNotifications,
+                          dayjs(dateKey).format("DD/MM/YYYY")
+                        )}
+                      </React.Fragment>
+                    )
+                  )}
+                </>
               )}
-            />
+            </div>
           )}
 
           {hasMore && (
@@ -393,7 +505,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               />
               <Text type="secondary">
                 {selectedNotification?.createdAt &&
-                  formatDate(selectedNotification.createdAt)}
+                  formatFullDate(selectedNotification.createdAt)}
               </Text>
             </div>
           </div>
