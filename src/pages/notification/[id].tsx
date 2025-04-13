@@ -1,13 +1,13 @@
 import React from "react";
-import { UserDetail } from "@/components/user/UserDetail";
+import { NotificationDetail } from "@/components/notification/NotificationDetail";
 import { useRouter } from "next/router";
 import { Spin } from "antd";
 
-export default function UserDetailPage() {
+export default function NotificationDetailPage() {
   const router = useRouter();
   const { id } = router.query;
 
-  // Đảm bảo id đã được nạp từ URL trước khi render component
+  // Ensure the id is loaded from URL before rendering component
   if (!id) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -16,5 +16,5 @@ export default function UserDetailPage() {
     );
   }
 
-  return <UserDetail id={id as string} />;
+  return <NotificationDetail id={id as string} />;
 }

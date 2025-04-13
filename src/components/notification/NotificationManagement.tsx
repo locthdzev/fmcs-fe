@@ -723,7 +723,6 @@ export function NotificationManagement() {
         handleDelete={handleDelete}
         handleToggleStatus={handleToggleStatus}
         handleReup={handleReup}
-        handleViewDetail={handleViewDetail}
         handleCopy={(notification) => {
           setSelectedNotification(notification);
           setCreateModalVisible(true);

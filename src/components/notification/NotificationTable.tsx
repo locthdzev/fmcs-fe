@@ -30,6 +30,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { NotificationResponseDTO } from "@/api/notification";
+import { useRouter } from "next/router";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -70,6 +71,7 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
   const [messageApi, contextHolder] = message.useMessage();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isLoadingAllItems, setIsLoadingAllItems] = useState<boolean>(false);
+  const router = useRouter();
 
   const columns = [
     {
@@ -80,7 +82,14 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       ),
       dataIndex: "title",
       key: "title",
-      render: (text: string) => <span className="text-blue-500">{text}</span>,
+      render: (text: string, record: NotificationResponseDTO) => (
+        <a 
+          className="text-blue-500 hover:underline cursor-pointer"
+          onClick={() => router.push(`/notification/${record.id}`)}
+        >
+          {text}
+        </a>
+      ),
       width: 200,
       ellipsis: true,
       hidden: !columnVisibility.title,
@@ -206,6 +215,13 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
           <Dropdown
             overlay={
               <Menu>
+                <Menu.Item
+                  key="view"
+                  icon={<EyeOutlined />}
+                  onClick={() => router.push(`/notification/${record.id}`)}
+                >
+                  View
+                </Menu.Item>
                 {record.status !== "Active" && (
                   <Menu.Item
                     key="reup"
