@@ -13,6 +13,7 @@ import {
   List,
   Avatar,
   Tooltip,
+  Input,
 } from "antd";
 import dayjs from "dayjs";
 import {
@@ -34,10 +35,14 @@ import {
   ClockCircleOutlined,
   NotificationOutlined,
   CloseCircleOutlined,
+  SearchOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
 const { Title, Text, Paragraph } = Typography;
+const { Search } = Input;
 
 interface NotificationDetailProps {
   id: string;
@@ -62,8 +67,11 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
     useState<NotificationResponseDTO | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [recipients, setRecipients] = useState<UserInfo[]>([]);
+  const [filteredRecipients, setFilteredRecipients] = useState<UserInfo[]>([]);
   const [loadingRecipients, setLoadingRecipients] = useState<boolean>(false);
   const [recipientPageSize, setRecipientPageSize] = useState<number>(5);
+  const [searchText, setSearchText] = useState<string>("");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     fetchNotificationDetail();
@@ -78,6 +86,21 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
   useEffect(() => {
     calculateRecipientPageSize();
   }, [notification]);
+
+  useEffect(() => {
+    // Force an immediate sort when component mounts or recipients changes
+    if (recipients.length > 0) {
+      // Sắp xếp mặc định là A-Z khi danh sách được tải
+      setSortOrder("asc");
+      filterAndSortRecipients();
+    }
+  }, [recipients]);
+
+  useEffect(() => {
+    if (recipients.length > 0) {
+      filterAndSortRecipients();
+    }
+  }, [searchText, sortOrder]);
 
   const calculateRecipientPageSize = () => {
     const contentHeight =
@@ -280,6 +303,99 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
     );
   };
 
+  // Hàm để chuẩn hóa chuỗi (loại bỏ dấu tiếng Việt và chuyển về chữ thường)
+  const normalizeString = (str: string): string => {
+    if (!str) return '';
+    
+    // Chuyển về chữ thường
+    str = str.toLowerCase();
+    
+    // Loại bỏ dấu tiếng Việt
+    str = str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    return str;
+  };
+
+  const filterAndSortRecipients = () => {
+    let result = [...recipients];
+    
+    // Filter by search text
+    if (searchText) {
+      const searchNormalized = normalizeString(searchText);
+      result = result.filter((user) => {
+        const fullNameNormalized = normalizeString(user.fullName);
+        const emailNormalized = normalizeString(user.email);
+        
+        return (
+          fullNameNormalized.includes(searchNormalized) || 
+          emailNormalized.includes(searchNormalized)
+        );
+      });
+    }
+
+    // Định nghĩa collator để sắp xếp đúng theo ngôn ngữ, không phân biệt hoa thường
+    const collator = new Intl.Collator(["vi", "en"], {
+      sensitivity: "base", // Không phân biệt hoa/thường
+      ignorePunctuation: true, // Bỏ qua dấu câu
+    });
+
+    // Sort by fullName
+    result.sort((a, b) => {
+      // Thứ tự sắp xếp (tăng dần hoặc giảm dần)
+      const direction = sortOrder === "asc" ? 1 : -1;
+
+      // Sử dụng Intl.Collator để so sánh chuỗi theo bảng chữ cái đúng
+      return direction * collator.compare(a.fullName, b.fullName);
+    });
+
+    // Nếu 2 người có tên giống nhau, sắp xếp theo email
+    result = result.reduce((acc, current) => {
+      const existingIndex = acc.findIndex(
+        (item) => collator.compare(item.fullName, current.fullName) === 0
+      );
+
+      if (existingIndex >= 0) {
+        // Sắp xếp theo email nếu tên giống nhau
+        const sorted = [...acc];
+        const position =
+          sortOrder === "asc"
+            ? sorted.findIndex(
+                (item) =>
+                  collator.compare(item.fullName, current.fullName) === 0 &&
+                  collator.compare(item.email, current.email) > 0
+              )
+            : sorted.findIndex(
+                (item) =>
+                  collator.compare(item.fullName, current.fullName) === 0 &&
+                  collator.compare(item.email, current.email) < 0
+              );
+
+        if (position >= 0) {
+          sorted.splice(position, 0, current);
+        } else {
+          sorted.push(current);
+        }
+        return sorted;
+      }
+
+      return [...acc, current];
+    }, [] as UserInfo[]);
+
+    console.log(
+      "Sorted recipients:",
+      result.map((r) => r.fullName)
+    );
+    setFilteredRecipients(result);
+  };
+
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchText(value);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -456,24 +572,109 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
 
           <div className="border-l pl-6" style={{ width: "30%" }}>
             <div className="recipients-section">
-              <Title level={5} style={{ marginTop: 0 }}>
-                Recipients ({notification.recipientIds?.length || 0})
-              </Title>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "12px",
+                }}
+              >
+                <Title level={5} style={{ margin: 0 }}>
+                  Recipients ({notification.recipientIds?.length || 0})
+                </Title>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: "12px",
+                  gap: "8px",
+                }}
+              >
+                <Search
+                  placeholder="Search by name or email"
+                  allowClear
+                  onChange={(e) => handleSearch(e.target.value)}
+                  style={{ flex: 1 }}
+                  size="middle"
+                />
+                <Tooltip title={sortOrder === "asc" ? "Sort A-Z" : "Sort Z-A"}>
+                  <Button
+                    type="default"
+                    icon={
+                      sortOrder === "asc" ? (
+                        <SortAscendingOutlined />
+                      ) : (
+                        <SortDescendingOutlined />
+                      )
+                    }
+                    onClick={toggleSortOrder}
+                    size="middle"
+                  />
+                </Tooltip>
+              </div>
+
               {loadingRecipients ? (
                 <div className="flex justify-center items-center py-4">
                   <Spin size="small" tip="Loading recipients..." />
                 </div>
-              ) : recipients.length > 0 ? (
+              ) : filteredRecipients.length > 0 ? (
                 <List
-                  dataSource={recipients}
+                  dataSource={filteredRecipients}
                   renderItem={(user, index) => (
-                    <List.Item>
-                      <div style={{ width: "50px" }}>{index + 1}.</div>
-                      <List.Item.Meta
-                        avatar={<Avatar icon={<UserOutlined />} />}
-                        title={user.fullName}
-                        description={<Text type="secondary">{user.email}</Text>}
-                      />
+                    <List.Item
+                      style={{
+                        padding: "0",
+                        height: "70px",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          width: "100%",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "40px",
+                            display: "flex",
+                            justifyContent: "center",
+                            marginRight: "8px",
+                          }}
+                        >
+                          {index + 1}.
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: "50px",
+                            marginRight: "12px",
+                          }}
+                        >
+                          <Avatar icon={<UserOutlined />} size={40} />
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <div style={{ fontWeight: 500, lineHeight: "1.5" }}>
+                            {user.fullName}
+                          </div>
+                          <Text type="secondary" style={{ lineHeight: "1.5" }}>
+                            {user.email}
+                          </Text>
+                        </div>
+                      </div>
                     </List.Item>
                   )}
                   pagination={{
@@ -485,7 +686,11 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
                 />
               ) : (
                 <div className="text-center p-4">
-                  <Text type="secondary">No recipients found</Text>
+                  <Text type="secondary">
+                    {searchText
+                      ? "No matching recipients found"
+                      : "No recipients found"}
+                  </Text>
                 </div>
               )}
             </div>
