@@ -19,8 +19,8 @@ import {
 } from "@ant-design/icons";
 import type { UploadProps, UploadFile } from "antd/es/upload/interface";
 import { NotificationResponseDTO, RoleResponseDTO, createNotification, copyNotification } from "@/api/notification";
+import RichTextEditor from "@/components/rich-text-editor";
 
-const { TextArea } = Input;
 const { Option } = Select;
 const { Title } = Typography;
 
@@ -43,23 +43,25 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [recipientType, setRecipientType] = useState<"System" | "Role">("System");
   const [loading, setLoading] = useState(false);
+  const [editorContent, setEditorContent] = useState("");
 
   // Initialize form with data when it's for copying
   useEffect(() => {
     if (visible && notification) {
       form.setFieldsValue({
         title: `Copy of ${notification.title}`,
-        content: notification.content,
         recipientType: notification.recipientType,
         roleId: notification.roleId,
         sendEmail: notification.sendEmail,
       });
+      setEditorContent(notification.content || "");
       setRecipientType(notification.recipientType as "System" | "Role");
       
       // Reset file list when the modal becomes visible
       setFileList([]);
     } else if (visible) {
       form.resetFields();
+      setEditorContent("");
       setRecipientType("System");
       setFileList([]);
     }
@@ -72,7 +74,7 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
 
       const formData = new FormData();
       formData.append("title", values.title);
-      if (values.content) formData.append("content", values.content);
+      if (editorContent) formData.append("content", editorContent);
       formData.append("sendEmail", values.sendEmail.toString());
       formData.append("recipientType", values.recipientType);
       
@@ -97,6 +99,7 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
         message.success(response.message || "Notification created successfully");
         onSuccess();
         form.resetFields();
+        setEditorContent("");
         setFileList([]);
       } else {
         message.error(response.message || "Failed to create notification");
@@ -110,6 +113,7 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
 
   const handleCancel = () => {
     form.resetFields();
+    setEditorContent("");
     setFileList([]);
     onClose();
   };
@@ -157,7 +161,7 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
           {notification ? "Copy" : "Create"}
         </Button>,
       ]}
-      width={700}
+      width={800}
     >
       <Form form={form} layout="vertical" className="mt-4">
         <Form.Item
@@ -168,12 +172,23 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
           <Input placeholder="Notification title" />
         </Form.Item>
 
-        <Form.Item name="content" label="Content">
-          <TextArea
-            placeholder="Enter notification content"
-            rows={5}
-            showCount
-            maxLength={1000}
+        <Form.Item
+          label="Content"
+          required
+          rules={[
+            {
+              validator: () => {
+                if (!editorContent || editorContent === '<p></p>') {
+                  return Promise.reject('Please enter content');
+                }
+                return Promise.resolve();
+              }
+            }
+          ]}
+        >
+          <RichTextEditor 
+            content={editorContent} 
+            onChange={setEditorContent} 
           />
         </Form.Item>
 

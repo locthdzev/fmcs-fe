@@ -59,6 +59,8 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
     try {
       setLoading(true);
       const data = await getNotificationDetailForAdmin(id);
+      console.log("Notification data:", data);
+      console.log("Attachment URL:", data.attachment);
       setNotification(data);
     } catch (error) {
       console.error("Error fetching notification detail:", error);
@@ -205,6 +207,54 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
     <div className="p-4">
       {contextHolder}
 
+      <style jsx global>{`
+        .rich-text-content {
+          font-size: 1rem;
+          line-height: 1.5;
+        }
+        .rich-text-content h1 {
+          font-size: 1.5rem;
+          font-weight: bold;
+          margin-bottom: 0.5rem;
+        }
+        .rich-text-content h2 {
+          font-size: 1.25rem;
+          font-weight: bold;
+          margin-bottom: 0.5rem;
+        }
+        .rich-text-content h3 {
+          font-size: 1.1rem;
+          font-weight: bold;
+          margin-bottom: 0.5rem;
+        }
+        .rich-text-content ul {
+          list-style-type: disc;
+          padding-left: 1.5rem;
+          margin-bottom: 0.5rem;
+        }
+        .rich-text-content ol {
+          list-style-type: decimal;
+          padding-left: 1.5rem;
+          margin-bottom: 0.5rem;
+        }
+        .rich-text-content p {
+          margin-bottom: 0.5rem;
+        }
+        .rich-text-content [data-text-align="center"] {
+          text-align: center;
+        }
+        .rich-text-content [data-text-align="right"] {
+          text-align: right;
+        }
+        .rich-text-content a {
+          color: #1890ff;
+          text-decoration: underline;
+        }
+        .rich-text-content mark {
+          background-color: #ffeb3b;
+        }
+      `}</style>
+
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Button
@@ -260,22 +310,56 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
 
             <div>
               <Text strong>Content:</Text>
-              <Paragraph className="mt-2 whitespace-pre-line">
-                {notification.content}
-              </Paragraph>
+              <div 
+                className="mt-2 rich-text-content"
+                dangerouslySetInnerHTML={{ __html: notification.content || '' }}
+              />
             </div>
 
             {notification.attachment && (
               <div className="mt-4">
                 <Text strong>Attachment:</Text>
                 <div className="mt-2">
-                  <a
-                    href={notification.attachment}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button icon={<FileOutlined />}>Download Attachment</Button>
-                  </a>
+                  {notification.attachment && notification.attachment.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                    <div className="mt-2">
+                      <img 
+                        src={notification.attachment} 
+                        alt="Attachment" 
+                        className="max-w-full h-auto max-h-96 rounded-md border border-gray-200"
+                        onError={(e) => {
+                          console.error("Image load error:", e);
+                          e.currentTarget.style.display = 'none';
+                          // Hiển thị thông báo lỗi
+                          const parent = e.currentTarget.parentElement;
+                          if (parent) {
+                            const errorMsg = document.createElement('p');
+                            errorMsg.textContent = 'Không thể hiển thị hình ảnh. Hãy dùng nút tải xuống bên dưới.';
+                            errorMsg.className = 'text-red-500 text-sm';
+                            parent.insertBefore(errorMsg, e.currentTarget);
+                          }
+                        }}
+                      />
+                      <div className="mt-2">
+                        <a
+                          href={notification.attachment}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download
+                        >
+                          <Button icon={<FileOutlined />}>Download Image</Button>
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <a
+                      href={notification.attachment}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                    >
+                      <Button icon={<FileOutlined />}>Download Attachment</Button>
+                    </a>
+                  )}
                 </div>
               </div>
             )}
