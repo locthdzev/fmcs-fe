@@ -303,9 +303,12 @@ export function NotificationManagement() {
         });
       }
 
-      // Set data and count
+      // Set data
       setNotifications(filteredData);
-      setTotalItems(filteredData.length);
+      
+      // Set total items from API response total count, not filtered data length
+      // This ensures pagination works correctly with the backend
+      setTotalItems(totalCount);
     } catch (error) {
       messageApi.error("Failed to fetch notifications");
       console.error("Error fetching notifications:", error);
@@ -356,6 +359,8 @@ export function NotificationManagement() {
     setDateRange([null, null]);
     setSortBy("CreatedAt");
     setAscending(false);
+    // Reset to page 1 when clearing filters
+    setCurrentPage(1);
     searchForm.resetFields();
   };
 
@@ -486,6 +491,8 @@ export function NotificationManagement() {
 
   // Apply filters from modal
   const handleApplyFilters = (filters: any) => {
+    // Reset to page 1 when applying filters
+    setCurrentPage(1);
     setRecipientTypeFilter(filters.recipientType || "");
     setSendEmailFilter(filters.sendEmail);
     setCreatedByFilter(filters.createdBy || "");

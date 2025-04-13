@@ -27,6 +27,10 @@ import {
   MoreOutlined,
   StopOutlined,
   CheckCircleOutlined,
+  MailOutlined,
+  CloseCircleOutlined,
+  TeamOutlined,
+  UserOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { NotificationResponseDTO } from "@/api/notification";
@@ -73,6 +77,104 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
   const [isLoadingAllItems, setIsLoadingAllItems] = useState<boolean>(false);
   const router = useRouter();
 
+  // Helper function to get consistent color for recipient types
+  const getRecipientTypeColor = (type: string) => {
+    switch (type) {
+      case "System":
+        return "blue";
+      case "Role":
+        return "orange";
+      case "User":
+        return "green";
+      case "Admin":
+        return "red";
+      case "Manager":
+        return "orange";
+      case "Healthcare Staff":
+        return "blue";
+      case "Canteen Staff":
+        return "purple";
+      default:
+        return "green"; // Default color for other recipient types
+    }
+  };
+
+  const renderRecipientType = (type: string) => {
+    switch (type) {
+      case "System":
+        return (
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+            Notify the system
+          </Tag>
+        );
+      case "Role":
+        return (
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+            Role
+          </Tag>
+        );
+      case "User":
+        return (
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+            Notify the user
+          </Tag>
+        );
+      case "Admin":
+        return (
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+            Notify the admin
+          </Tag>
+        );
+      case "Manager":
+        return (
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+            Notify the manager
+          </Tag>
+        );
+      case "Healthcare Staff":
+        return (
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+            Notify the healthcare staff
+          </Tag>
+        );
+      case "Canteen Staff":
+        return (
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+            Notify the canteen staff
+          </Tag>
+        );
+      default:
+        return (
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+            {type}
+          </Tag>
+        );
+    }
+  };
+
+  const renderStatusTag = (status: string) => {
+    switch (status) {
+      case "Active":
+        return (
+          <Tag icon={<CheckCircleOutlined />} color="green">
+            {status}
+          </Tag>
+        );
+      case "Inactive":
+        return (
+          <Tag icon={<StopOutlined />} color="red">
+            {status}
+          </Tag>
+        );
+      default:
+        return (
+          <Tag color="default">
+            {status}
+          </Tag>
+        );
+    }
+  };
+
   const columns = [
     {
       title: (
@@ -111,10 +213,10 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       key: "recipientType",
       render: (text: string) => (
         <div style={{ textAlign: "center" }}>
-          <Tag color={text === "System" ? "blue" : "green"}>{text}</Tag>
+          {renderRecipientType(text)}
         </div>
       ),
-      width: 120,
+      width: 180,
       hidden: !columnVisibility.recipientType,
     },
     {
@@ -133,9 +235,19 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       dataIndex: "sendEmail",
       key: "sendEmail",
       render: (value: boolean) => (
-        <div style={{ textAlign: "center" }}>{value ? "Yes" : "No"}</div>
+        <div style={{ textAlign: "center" }}>
+          {value ? (
+            <Tag icon={<MailOutlined />} color="blue">
+              Send emails
+            </Tag>
+          ) : (
+            <Tag icon={<CloseCircleOutlined />} color="default">
+              Don't send emails
+            </Tag>
+          )}
+        </div>
       ),
-      width: 100,
+      width: 130,
       hidden: !columnVisibility.sendEmail,
     },
     {
@@ -155,7 +267,7 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       key: "status",
       render: (text: string) => (
         <div style={{ textAlign: "center" }}>
-          <Tag color={text === "Active" ? "green" : "red"}>{text}</Tag>
+          {renderStatusTag(text)}
         </div>
       ),
       width: 100,
@@ -384,7 +496,7 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
                   current={currentPage}
                   pageSize={pageSize}
                   total={totalItems}
-                  onChange={handlePageChange}
+                  onChange={(page) => handlePageChange(page, pageSize)}
                   showSizeChanger={false}
                   showTotal={() => ""}
                 />

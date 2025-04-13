@@ -32,6 +32,7 @@ import {
   MailOutlined,
   ClockCircleOutlined,
   NotificationOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -115,9 +116,9 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
   const getStatusColor = (status: string | undefined) => {
     switch (status) {
       case "Active":
-        return "success";
+        return "green";
       case "Inactive":
-        return "default";
+        return "red";
       default:
         return "default";
     }
@@ -128,27 +129,63 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
       case "System":
         return (
           <Tag icon={<TeamOutlined />} color="blue">
-            System
+            Notify the system
           </Tag>
         );
       case "Role":
         return (
-          <Tag icon={<UserOutlined />} color="purple">
+          <Tag icon={<TeamOutlined />} color="orange">
             Role
           </Tag>
         );
+      case "User":
+        return (
+          <Tag icon={<TeamOutlined />} color="green">
+            Notify the user
+          </Tag>
+        );
+      case "Admin":
+        return (
+          <Tag icon={<TeamOutlined />} color="red">
+            Notify the admin
+          </Tag>
+        );
+      case "Manager":
+        return (
+          <Tag icon={<TeamOutlined />} color="orange">
+            Notify the manager
+          </Tag>
+        );
+      case "Healthcare Staff":
+        return (
+          <Tag icon={<TeamOutlined />} color="blue">
+            Notify the healthcare staff
+          </Tag>
+        );
+      case "Canteen Staff":
+        return (
+          <Tag icon={<TeamOutlined />} color="purple">
+            Notify the canteen staff
+          </Tag>
+        );
       default:
-        return <Tag color="default">{type}</Tag>;
+        return (
+          <Tag color="green" icon={<UserOutlined />}>
+            {type}
+          </Tag>
+        );
     }
   };
 
   const renderSendEmail = (sendEmail: boolean | undefined) => {
     return sendEmail ? (
-      <Tag icon={<MailOutlined />} color="green">
-        Send with email
+      <Tag icon={<MailOutlined />} color="blue">
+        Send emails
       </Tag>
     ) : (
-      <Tag color="default">No email</Tag>
+      <Tag icon={<CloseCircleOutlined />} color="default">
+        Don't send emails
+      </Tag>
     );
   };
 
@@ -286,7 +323,7 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
                   </span>
                   {renderRecipientType(notification.recipientType)}
                   {renderSendEmail(notification.sendEmail)}
-                </Space>{" "}
+                </Space>
                 <div className="flex items-center gap-2">
                   <Tag color={getStatusColor(notification.status)}>
                     {notification.status}
