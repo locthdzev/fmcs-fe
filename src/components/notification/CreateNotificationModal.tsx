@@ -41,7 +41,6 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [recipientType, setRecipientType] = useState<"System" | "Role">("System");
   const [loading, setLoading] = useState(false);
   const [editorContent, setEditorContent] = useState("");
 
@@ -55,14 +54,12 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
         sendEmail: notification.sendEmail,
       });
       setEditorContent(notification.content || "");
-      setRecipientType(notification.recipientType as "System" | "Role");
       
       // Reset file list when the modal becomes visible
       setFileList([]);
     } else if (visible) {
       form.resetFields();
       setEditorContent("");
-      setRecipientType("System");
       setFileList([]);
     }
   }, [visible, notification, form]);
@@ -78,12 +75,22 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
       formData.append("sendEmail", values.sendEmail.toString());
       formData.append("recipientType", values.recipientType);
       
+      // Xử lý đơn giản như code cũ
       if (values.recipientType === "Role" && values.roleId) {
         formData.append("roleId", values.roleId);
       }
       
       if (fileList.length > 0 && fileList[0].originFileObj) {
         formData.append("file", fileList[0].originFileObj);
+      }
+
+      // Debug logging
+      console.log("FormData entries to be sent:");
+      for (let pair of formData.entries()) {
+        const value = pair[1];
+        console.log(`${pair[0]}: ${value instanceof File ? 
+          `File (${(value as File).name}, ${(value as File).type}, ${(value as File).size} bytes)` : 
+          value}`);
       }
 
       let response;
@@ -128,15 +135,29 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
         message.error("File must be smaller than 5MB");
         return Upload.LIST_IGNORE;
       }
-      setFileList([file]);
+      
+      // Tạo một đối tượng UploadFile mới với originFileObj
+      const uploadFile = {
+        uid: Date.now().toString(),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        status: 'done',
+        originFileObj: file  // Thêm trường originFileObj
+      } as UploadFile;
+      
+      console.log("File selected for upload:", {
+        name: uploadFile.name,
+        type: uploadFile.type,
+        size: uploadFile.size,
+        hasOriginFileObj: !!uploadFile.originFileObj
+      });
+      
+      setFileList([uploadFile]);
       return false;
     },
     fileList,
     maxCount: 1,
-  };
-
-  const handleRecipientTypeChange = (e: any) => {
-    setRecipientType(e.target.value);
   };
 
   return (
@@ -198,27 +219,36 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
           rules={[{ required: true, message: "Please select recipient type" }]}
           initialValue="System"
         >
-          <Radio.Group onChange={handleRecipientTypeChange}>
-            <Radio.Button value="System">All Users</Radio.Button>
-            <Radio.Button value="Role">Role-Based</Radio.Button>
-          </Radio.Group>
+          <Select placeholder="Select recipient type">
+            <Option value="System">All Users</Option>
+            <Option value="Role">Role-Based</Option>
+          </Select>
         </Form.Item>
 
-        {recipientType === "Role" && (
-          <Form.Item
-            name="roleId"
-            label="Select Role"
-            rules={[{ required: true, message: "Please select a role" }]}
-          >
-            <Select placeholder="Select role">
-              {roles.map((role) => (
-                <Option key={role.id} value={role.id}>
-                  {role.roleName}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        )}
+        <Form.Item
+          noStyle
+          shouldUpdate={(prev, curr) =>
+            prev.recipientType !== curr.recipientType
+          }
+        >
+          {({ getFieldValue }) =>
+            getFieldValue("recipientType") === "Role" && (
+              <Form.Item
+                name="roleId"
+                label="Select Role"
+                rules={[{ required: true, message: "Please select a role" }]}
+              >
+                <Select placeholder="Select role">
+                  {roles.map((role) => (
+                    <Option key={role.id} value={role.id}>
+                      {role.roleName}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            )
+          }
+        </Form.Item>
 
         <Form.Item
           name="sendEmail"

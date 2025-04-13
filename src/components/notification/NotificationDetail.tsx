@@ -145,10 +145,10 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
   const renderSendEmail = (sendEmail: boolean | undefined) => {
     return sendEmail ? (
       <Tag icon={<MailOutlined />} color="green">
-        Yes
+        Send with email
       </Tag>
     ) : (
-      <Tag color="default">No</Tag>
+      <Tag color="default">No email</Tag>
     );
   };
 
@@ -270,126 +270,113 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
         <div>{renderActionButtons()}</div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 mb-8">
-        <Card
-          title={
-            <span style={{ fontWeight: "bold" }}>Notification Information</span>
-          }
-        >
-          <div className="space-y-4">
-            <Title level={3}>{notification.title}</Title>
-
-            <div className="flex items-center gap-2 mb-4">
-              <Tag color={getStatusColor(notification.status)}>
-                {notification.status}
-              </Tag>
-              {renderRecipientType(notification.recipientType)}
-              {renderSendEmail(notification.sendEmail)}
-              <Tag icon={<ClockCircleOutlined />} color="cyan">
-                {formatDateTime(notification.createdAt)}
-              </Tag>
-            </div>
-
-            <Divider />
-
-            <div>
-              <Text strong>Created By:</Text>
-              <Text className="ml-2">
-                {notification.createdBy?.userName || "Unknown"}
-              </Text>
-            </div>
-
-            {notification.recipientType === "Role" && notification.roleId && (
-              <div>
-                <Text strong>Role:</Text>
-                <Text className="ml-2">{notification.roleId}</Text>
+      <div className="grid grid-cols-12 gap-6 mb-8">
+        <div className="col-span-12">
+          <Card className="h-full">
+            <div className="mb-4 pb-4 border-b">
+              <div className="flex items-center justify-between mb-2">
+                <Space size="middle">
+                  <span className="flex items-center gap-1">
+                    <UserOutlined />
+                    {notification.createdBy?.userName || "Unknown"}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <ClockCircleOutlined />
+                    {formatDateTime(notification.createdAt)}
+                  </span>
+                  {renderRecipientType(notification.recipientType)}
+                  {renderSendEmail(notification.sendEmail)}
+                </Space>{" "}
+                <div className="flex items-center gap-2">
+                  <Tag color={getStatusColor(notification.status)}>
+                    {notification.status}
+                  </Tag>
+                </div>
               </div>
-            )}
 
-            <Divider />
-
-            <div>
-              <Text strong>Content:</Text>
-              <div 
-                className="mt-2 rich-text-content"
-                dangerouslySetInnerHTML={{ __html: notification.content || '' }}
-              />
-            </div>
-
-            {notification.attachment && (
-              <div className="mt-4">
-                <Text strong>Attachment:</Text>
-                <div className="mt-2">
-                  {notification.attachment && notification.attachment.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                    <div className="mt-2">
-                      <img 
-                        src={notification.attachment} 
-                        alt="Attachment" 
-                        className="max-w-full h-auto max-h-96 rounded-md border border-gray-200"
-                        onError={(e) => {
-                          console.error("Image load error:", e);
-                          e.currentTarget.style.display = 'none';
-                          // Hiển thị thông báo lỗi
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) {
-                            const errorMsg = document.createElement('p');
-                            errorMsg.textContent = 'Không thể hiển thị hình ảnh. Hãy dùng nút tải xuống bên dưới.';
-                            errorMsg.className = 'text-red-500 text-sm';
-                            parent.insertBefore(errorMsg, e.currentTarget);
-                          }
-                        }}
-                      />
-                      <div className="mt-2">
-                        <a
-                          href={notification.attachment}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download
-                        >
-                          <Button icon={<FileOutlined />}>Download Image</Button>
-                        </a>
-                      </div>
-                    </div>
-                  ) : (
+              {notification.attachment &&
+                !notification.attachment.match(
+                  /\.(jpg|jpeg|png|gif|webp)$/i
+                ) && (
+                  <div className="mt-2">
+                    <Text strong>Attachment: </Text>
                     <a
                       href={notification.attachment}
                       target="_blank"
                       rel="noopener noreferrer"
                       download
                     >
-                      <Button icon={<FileOutlined />}>Download Attachment</Button>
+                      <Button icon={<FileOutlined />} size="small">
+                        Download
+                      </Button>
                     </a>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
+                  </div>
+                )}
+            </div>
+
+            <div className="notification-preview">
+              <Title level={3} style={{ marginTop: 0 }}>
+                {notification.title}
+              </Title>
+
+              <div
+                className="rich-text-content my-4"
+                dangerouslySetInnerHTML={{ __html: notification.content || "" }}
+              />
+
+              {notification.attachment &&
+                notification.attachment.match(
+                  /\.(jpg|jpeg|png|gif|webp)$/i
+                ) && (
+                  <div className="mt-4">
+                    <img
+                      src={notification.attachment}
+                      alt="Attachment"
+                      className="max-w-full h-auto max-h-96 rounded-md border border-gray-200"
+                      onError={(e) => {
+                        console.error("Image load error:", e);
+                        e.currentTarget.style.display = "none";
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          const errorMsg = document.createElement("p");
+                          errorMsg.textContent = "Không thể hiển thị hình ảnh.";
+                          errorMsg.className = "text-red-500 text-sm";
+                          parent.insertBefore(errorMsg, e.currentTarget);
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+            </div>
+          </Card>
+        </div>
 
         {notification.recipientIds && notification.recipientIds.length > 0 && (
-          <Card
-            title={
-              <span style={{ fontWeight: "bold" }}>
-                Recipients ({notification.recipientIds.length})
-              </span>
-            }
-          >
-            <List
-              dataSource={notification.recipientIds}
-              renderItem={(userId) => (
-                <List.Item>
-                  <List.Item.Meta
-                    avatar={<Avatar icon={<UserOutlined />} />}
-                    title={userId}
-                  />
-                </List.Item>
-              )}
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: false,
-              }}
-            />
-          </Card>
+          <div className="col-span-12">
+            <Card
+              title={
+                <span style={{ fontWeight: "bold" }}>
+                  Recipients ({notification.recipientIds.length})
+                </span>
+              }
+            >
+              <List
+                dataSource={notification.recipientIds}
+                renderItem={(userId) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={<Avatar icon={<UserOutlined />} />}
+                      title={userId}
+                    />
+                  </List.Item>
+                )}
+                pagination={{
+                  pageSize: 10,
+                  showSizeChanger: false,
+                }}
+              />
+            </Card>
+          </div>
         )}
       </div>
     </div>
