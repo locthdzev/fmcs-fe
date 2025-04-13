@@ -174,7 +174,7 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       key: "createdAt",
       render: (text: string) => (
         <div style={{ textAlign: "center" }}>
-          {dayjs(text).format("DD/MM/YYYY HH:mm")}
+          {dayjs(text).format("DD/MM/YYYY HH:mm:ss")}
         </div>
       ),
       width: 150,

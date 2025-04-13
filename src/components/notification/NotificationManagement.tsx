@@ -44,7 +44,7 @@ import dayjs from "dayjs";
 
 import NotificationFilterModal from "./NotificationFilterModal";
 import ExportConfigModal from "./ExportConfigModal";
-import NotificationDetailModal from "./NotificationDetailModal";
+import NotificationDetailModal from "./NotificationDetail";
 import CreateNotificationModal from "./CreateNotificationModal";
 import NotificationTable from "./NotificationTable";
 
