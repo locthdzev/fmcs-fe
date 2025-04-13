@@ -38,8 +38,8 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
     onChange(changedValues);
   };
 
-  const handleExport = () => {
-    onExport();
+  const handleExport = async () => {
+    await onExport();
     onClose();
   };
 
@@ -77,7 +77,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
             valuePropName="checked"
             className="mb-2"
           >
-            <Checkbox>Title</Checkbox>
+            <Checkbox>Include Title</Checkbox>
           </Form.Item>
 
           <Form.Item
@@ -85,7 +85,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
             valuePropName="checked"
             className="mb-2"
           >
-            <Checkbox>Recipient Type</Checkbox>
+            <Checkbox>Include Recipient Type</Checkbox>
           </Form.Item>
 
           <Form.Item

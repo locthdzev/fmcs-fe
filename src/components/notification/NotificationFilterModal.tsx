@@ -6,12 +6,18 @@ import {
   Button,
   DatePicker,
   Radio,
-  Checkbox,
-  Typography,
   Space,
+  Typography,
+  Divider,
   Row,
   Col,
 } from "antd";
+import {
+  UndoOutlined,
+  CheckCircleOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 
 const { RangePicker } = DatePicker;
@@ -48,9 +54,10 @@ const NotificationFilterModal: React.FC<NotificationFilterModalProps> = ({
         recipientType: filterState.recipientTypeFilter,
         createdBy: filterState.createdByFilter,
         sendEmail: filterState.sendEmailFilter,
-        dateRange: filterState.dateRange[0] && filterState.dateRange[1]
-          ? [filterState.dateRange[0], filterState.dateRange[1]]
-          : undefined,
+        dateRange:
+          filterState.dateRange[0] && filterState.dateRange[1]
+            ? [filterState.dateRange[0], filterState.dateRange[1]]
+            : undefined,
         sortBy: filterState.sortBy,
         ascending: filterState.ascending,
       });
@@ -73,81 +80,90 @@ const NotificationFilterModal: React.FC<NotificationFilterModalProps> = ({
 
   return (
     <Modal
-      title="Filter Notifications"
+      title="Advanced Filters"
       open={visible}
       onCancel={onClose}
       width={600}
       footer={[
-        <Button key="reset" onClick={handleReset}>
+        <Button key="reset" onClick={handleReset} icon={<UndoOutlined />}>
           Reset Filters
         </Button>,
-        <Button key="cancel" onClick={onClose}>
-          Cancel
-        </Button>,
-        <Button key="apply" type="primary" onClick={handleApply}>
+        <Button
+          key="apply"
+          type="primary"
+          onClick={handleApply}
+          icon={<CheckCircleOutlined />}
+        >
           Apply Filters
         </Button>,
       ]}
     >
-      <Form form={form} layout="vertical">
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="recipientType" label="Recipient Type">
-              <Select placeholder="Select recipient type" allowClear>
-                <Option value="System">System</Option>
-                <Option value="Role">Role</Option>
-              </Select>
-            </Form.Item>
-          </Col>
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <Divider orientation="left">Filter Options</Divider>
+        <Form form={form} layout="vertical">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="recipientType" label="Recipient Type">
+                <Select placeholder="Select recipient type" allowClear>
+                  <Option value="System">System</Option>
+                  <Option value="Role">Role</Option>
+                </Select>
+              </Form.Item>
+            </Col>
 
-          <Col span={12}>
-            <Form.Item name="sendEmail" label="Email Sent">
-              <Select placeholder="Select email sent status" allowClear>
-                <Option value={true}>Yes</Option>
-                <Option value={false}>No</Option>
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
+            <Col span={12}>
+              <Form.Item name="sendEmail" label="Email Sent">
+                <Select placeholder="Select email sent status" allowClear>
+                  <Option value={true}>Yes</Option>
+                  <Option value={false}>No</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
 
-        <Form.Item name="createdBy" label="Created By">
-          <Select 
-            placeholder="Filter by creator" 
-            allowClear
-            showSearch
-            optionFilterProp="children"
-          >
-            {/* User options would be populated here */}
-            <Option value="admin">Admin</Option>
-            <Option value="system">System</Option>
-          </Select>
-        </Form.Item>
+          <Form.Item name="createdBy" label="Created By">
+            <Select
+              placeholder="Filter by creator"
+              allowClear
+              showSearch
+              optionFilterProp="children"
+            >
+              <Option value="admin">Admin</Option>
+              <Option value="system">System</Option>
+            </Select>
+          </Form.Item>
 
-        <Form.Item name="dateRange" label="Created Date Range">
-          <RangePicker 
-            style={{ width: "100%" }}
-            format="DD/MM/YYYY"
-          />
-        </Form.Item>
+          <Divider orientation="left">Date & Sorting</Divider>
 
-        <Form.Item label="Sort">
-          <Space direction="vertical" style={{ width: "100%" }}>
-            <Form.Item name="sortBy" noStyle>
-              <Radio.Group>
-                <Radio.Button value="CreatedAt">Created Date</Radio.Button>
-                <Radio.Button value="Title">Title</Radio.Button>
-                <Radio.Button value="Status">Status</Radio.Button>
-              </Radio.Group>
-            </Form.Item>
+          <Form.Item name="dateRange" label="Created Date Range">
+            <RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+          </Form.Item>
 
-            <Form.Item name="ascending" valuePropName="checked" noStyle>
-              <Checkbox>Sort Ascending</Checkbox>
-            </Form.Item>
-          </Space>
-        </Form.Item>
-      </Form>
+          <Form.Item label="Sort Direction (CreatedAt)">
+            <Radio.Group
+              name="ascending"
+              optionType="button"
+              buttonStyle="solid"
+              style={{ width: "100%" }}
+            >
+              <Radio.Button
+                value={true}
+                style={{ width: "50%", textAlign: "center" }}
+              >
+                <SortAscendingOutlined /> Oldest First
+              </Radio.Button>
+              <Radio.Button
+                value={false}
+                style={{ width: "50%", textAlign: "center" }}
+              >
+                <SortDescendingOutlined /> Newest First
+              </Radio.Button>
+            </Radio.Group>
+          </Form.Item>
+        </Form>
+      </Space>
     </Modal>
   );
 };
 
-export default NotificationFilterModal; 
+export default NotificationFilterModal;

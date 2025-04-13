@@ -36,12 +36,11 @@ import {
   CopyOutlined,
   ReloadOutlined,
   EyeOutlined,
+  NotificationOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 
 import NotificationFilterModal from "./NotificationFilterModal";
 import ExportConfigModal from "./ExportConfigModal";
@@ -62,6 +61,7 @@ import {
   RoleResponseDTO,
   getNotificationDetailForAdmin,
 } from "@/api/notification";
+import { exportNotificationsToExcel } from "./export-to-excel";
 
 const { Option } = Select;
 const { Text, Title } = Typography;
@@ -123,6 +123,7 @@ export function NotificationManagement() {
   const [exportConfig, setExportConfig] = useState({
     exportAllPages: false,
     includeTitle: true,
+    includeContent: false,
     includeRecipientType: true,
     includeStatus: true,
     includeSendEmail: true,
@@ -523,45 +524,18 @@ export function NotificationManagement() {
   };
 
   // Export to Excel
-  const handleExport = () => {
-    const dataToExport = exportConfig.exportAllPages
-      ? notifications
-      : notifications.slice(
-          (currentPage - 1) * pageSize,
-          currentPage * pageSize
-        );
-
-    const exportData = dataToExport.map((notification) => {
-      const row: any = {};
-
-      if (exportConfig.includeTitle) row["Title"] = notification.title;
-      if (exportConfig.includeRecipientType)
-        row["Recipient Type"] = notification.recipientType;
-      if (exportConfig.includeStatus) row["Status"] = notification.status;
-      if (exportConfig.includeSendEmail)
-        row["Send Email"] = notification.sendEmail ? "Yes" : "No";
-      if (exportConfig.includeCreatedAt)
-        row["Created At"] = notification.createdAt;
-      if (exportConfig.includeCreatedBy)
-        row["Created By"] = notification.createdBy?.userName;
-
-      return row;
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Notifications");
-
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    const dataBlob = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-
-    saveAs(dataBlob, "notifications_" + dayjs().format("YYYY-MM-DD") + ".xlsx");
+  const handleExport = async () => {
+    try {
+      await exportNotificationsToExcel(
+        notifications,
+        exportConfig,
+        currentPage,
+        pageSize
+      );
+    } catch (error) {
+      messageApi.error("Failed to export notifications to Excel");
+      console.error("Error exporting notifications:", error);
+    }
   };
 
   // Check if filters are applied
@@ -606,163 +580,189 @@ export function NotificationManagement() {
 
   // Table UI section
   return (
-    <>
+    <div className="history-container" style={{ padding: "20px" }}>
       {contextHolder}
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center">
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={() => router.back()}
-              className="mr-4"
-            >
-              Back
-            </Button>
-            <Title level={4} className="m-0">
-              Notification Management
-            </Title>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                setSelectedNotification(null);
-                setCreateModalVisible(true);
-              }}
-            >
-              Create Notification
-            </Button>
-          </div>
-        </div>
-
-        <Card className="mb-6">
-          <Form
-            form={searchForm}
-            layout="vertical"
-            className="flex flex-wrap gap-4"
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.back()}
+            style={{ marginRight: "8px" }}
           >
-            <Form.Item
-              label="Search"
-              name="searchText"
-              className="mb-0 min-w-[200px] flex-1"
-            >
-              <Search
-                placeholder="Search by title"
-                value={searchText}
-                onChange={(e) =>
-                  handleFormFieldChange("searchText", e.target.value)
-                }
-                onSearch={() => fetchNotifications()}
-                allowClear
+            Back
+          </Button>
+          <NotificationOutlined style={{ fontSize: "24px" }} />
+          <h3 className="text-xl font-bold">Notification Management</h3>
+        </div>
+      </div>
+
+      {/* Search and Filters Toolbar */}
+      <Card
+        className="shadow mb-4"
+        bodyStyle={{ padding: "16px" }}
+        style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+      >
+        <Row align="middle" gutter={[16, 16]}>
+          <Col span={24}>
+            <Title level={4} style={{ margin: 0 }}>
+              <AppstoreOutlined
+                style={{ marginRight: "8px", fontSize: "20px" }}
               />
-            </Form.Item>
+              Toolbar
+            </Title>
+          </Col>
+        </Row>
 
-            <Form.Item
-              label="Status"
-              name="status"
-              className="mb-0 min-w-[150px]"
-            >
-              <Select
-                placeholder="Select status"
-                value={statusFilter}
-                onChange={(value) => handleFormFieldChange("status", value)}
-                allowClear
-              >
-                <Option value="Active">Active</Option>
-                <Option value="Inactive">Inactive</Option>
-              </Select>
-            </Form.Item>
+        <Divider style={{ margin: "16px 0" }} />
 
-            <div className="flex gap-2 items-end">
+        <Form
+          form={searchForm}
+          layout="vertical"
+          className="flex flex-wrap gap-4"
+        >
+          <div className="mb-3 flex items-center justify-between w-full">
+            <div className="flex items-center gap-4">
+              <Form.Item name="searchText" className="mb-0 min-w-[320px]">
+                <Search
+                  placeholder="Search by title"
+                  value={searchText}
+                  onChange={(e) =>
+                    handleFormFieldChange("searchText", e.target.value)
+                  }
+                  onSearch={() => fetchNotifications()}
+                  allowClear
+                />
+              </Form.Item>
+
+              <Form.Item name="status" className="mb-0">
+                <Select
+                  placeholder={
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <TagOutlined style={{ marginRight: 8 }} />
+                      <span>Status</span>
+                    </div>
+                  }
+                  value={statusFilter}
+                  onChange={(value) => handleFormFieldChange("status", value)}
+                  allowClear
+                  style={{ width: "120px" }}
+                >
+                  <Option value="Active">Active</Option>
+                  <Option value="Inactive">Inactive</Option>
+                </Select>
+              </Form.Item>
+
               <Button
-                icon={<FilterOutlined />}
+                icon={
+                  <FilterOutlined
+                    style={{
+                      color: isFiltersApplied() ? "#1890ff" : undefined,
+                    }}
+                  />
+                }
                 onClick={handleOpenFilterModal}
-                className={isFiltersApplied() ? "bg-blue-50" : ""}
               >
-                More Filters
-                {isFiltersApplied() && (
-                  <span className="ml-1 bg-blue-500 text-white rounded-full px-1.5 py-0.5 text-xs">
-                    !
-                  </span>
-                )}
+                Filters
               </Button>
 
-              <Tooltip title="Reset filters">
-                <Button icon={<UndoOutlined />} onClick={handleReset} />
+              <Tooltip title="Reset All filters">
+                <Button
+                  icon={<UndoOutlined />}
+                  onClick={handleReset}
+                  disabled={!isFiltersApplied()}
+                />
               </Tooltip>
 
               <Dropdown
                 overlay={columnMenu}
-                trigger={["click"]}
+                trigger={["hover", "click"]}
                 open={dropdownOpen}
                 onOpenChange={handleDropdownVisibleChange}
+                placement="bottomRight"
+                arrow
               >
-                <Button icon={<AppstoreOutlined />}>Columns</Button>
+                <Tooltip title="Column Settings">
+                  <Button icon={<SettingOutlined />}>Columns</Button>
+                </Tooltip>
               </Dropdown>
 
               <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setSelectedNotification(null);
+                  setCreateModalVisible(true);
+                }}
+              >
+                Create
+              </Button>
+            </div>
+
+            <div>
+              <Button
+                type="primary"
                 icon={<FileExcelOutlined />}
                 onClick={handleOpenExportConfig}
               >
-                Export
+                Export to Excel
               </Button>
             </div>
-          </Form>
-        </Card>
+          </div>
+        </Form>
+      </Card>
 
-        <NotificationTable
-          loading={loading}
-          notifications={notifications}
-          totalItems={totalItems}
-          currentPage={currentPage}
-          pageSize={pageSize}
-          handlePageChange={handlePageChange}
-          selectedNotifications={selectedNotifications}
-          setSelectedNotifications={setSelectedNotifications}
-          handleDelete={handleDelete}
-          handleToggleStatus={handleToggleStatus}
-          handleReup={handleReup}
-          handleViewDetail={handleViewDetail}
-          handleCopy={(notification) => {
-            setSelectedNotification(notification);
-            setCreateModalVisible(true);
-          }}
-          columnVisibility={columnVisibility}
-          handleBulkDelete={handleBulkDelete}
-        />
+      <NotificationTable
+        loading={loading}
+        notifications={notifications}
+        totalItems={totalItems}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        handlePageChange={handlePageChange}
+        selectedNotifications={selectedNotifications}
+        setSelectedNotifications={setSelectedNotifications}
+        handleDelete={handleDelete}
+        handleToggleStatus={handleToggleStatus}
+        handleReup={handleReup}
+        handleViewDetail={handleViewDetail}
+        handleCopy={(notification) => {
+          setSelectedNotification(notification);
+          setCreateModalVisible(true);
+        }}
+        columnVisibility={columnVisibility}
+        handleBulkDelete={handleBulkDelete}
+      />
 
-        <NotificationFilterModal
-          visible={filterModalVisible}
-          onClose={() => setFilterModalVisible(false)}
-          onApply={handleApplyFilters}
-          onReset={handleResetFilters}
-          filterState={filterState}
-        />
+      <NotificationFilterModal
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        onApply={handleApplyFilters}
+        onReset={handleResetFilters}
+        filterState={filterState}
+      />
 
-        <ExportConfigModal
-          visible={exportConfigModalVisible}
-          onClose={closeExportConfigModal}
-          exportConfig={exportConfig}
-          onChange={handleExportConfigChange}
-          onExport={handleExport}
-        />
+      <ExportConfigModal
+        visible={exportConfigModalVisible}
+        onClose={closeExportConfigModal}
+        exportConfig={exportConfig}
+        onChange={handleExportConfigChange}
+        onExport={handleExport}
+      />
 
-        <NotificationDetailModal
-          visible={detailModalVisible}
-          onClose={() => setDetailModalVisible(false)}
-          notification={selectedNotification}
-        />
+      <NotificationDetailModal
+        visible={detailModalVisible}
+        onClose={() => setDetailModalVisible(false)}
+        notification={selectedNotification}
+      />
 
-        <CreateNotificationModal
-          visible={createModalVisible}
-          onClose={() => setCreateModalVisible(false)}
-          onSuccess={handleCreateSuccess}
-          roles={roles}
-          notification={selectedNotification}
-        />
-      </div>
-    </>
+      <CreateNotificationModal
+        visible={createModalVisible}
+        onClose={() => setCreateModalVisible(false)}
+        onSuccess={handleCreateSuccess}
+        roles={roles}
+        notification={selectedNotification}
+      />
+    </div>
   );
 }
 

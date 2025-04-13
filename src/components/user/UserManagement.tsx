@@ -1027,9 +1027,7 @@ export function UserManagement() {
                 icon={<UndoOutlined />}
                 onClick={handleReset}
                 disabled={!(isMainFiltersApplied() || isFiltersApplied())}
-              >
-                Reset
-              </Button>
+              />
             </Tooltip>
 
             {/* Column Settings */}
@@ -1044,7 +1042,7 @@ export function UserManagement() {
                           checked={areAllColumnsVisible()}
                           onChange={(e) => toggleAllColumns(e.target.checked)}
                         >
-                          <strong>Show All Columns</strong>
+                          Toggle All
                         </Checkbox>
                       </div>
                     ),

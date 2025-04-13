@@ -683,9 +683,7 @@ export function TreatmentPlanHistoryListNew() {
                     actionDateRange[1]
                   )
                 }
-              >
-                Reset
-              </Button>
+              />
             </Tooltip>
           </div>
 

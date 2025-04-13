@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   Space,
@@ -10,6 +10,14 @@ import {
   Typography,
   Menu,
   Popconfirm,
+  Select,
+  Row,
+  InputNumber,
+  Pagination,
+  Checkbox,
+  Spin,
+  message,
+  TableProps,
 } from "antd";
 import {
   EyeOutlined,
@@ -18,11 +26,16 @@ import {
   ReloadOutlined,
   CopyOutlined,
   MoreOutlined,
+  DownOutlined,
+  StopOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { NotificationResponseDTO } from "@/api/notification";
+import { TrashIcon } from "@heroicons/react/24/outline";
 
 const { Text } = Typography;
+const { Option } = Select;
 
 interface NotificationTableProps {
   loading: boolean;
@@ -59,10 +72,17 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
   columnVisibility,
   handleBulkDelete,
 }) => {
-  // Table columns definition
+  const [messageApi, contextHolder] = message.useMessage();
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isLoadingAllItems, setIsLoadingAllItems] = useState<boolean>(false);
+
   const columns = [
     {
-      title: "Title",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          TITLE
+        </span>
+      ),
       dataIndex: "title",
       key: "title",
       render: (text: string) => <span className="text-blue-500">{text}</span>,
@@ -71,43 +91,101 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       hidden: !columnVisibility.title,
     },
     {
-      title: "Recipient Type",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            textAlign: "center",
+            display: "block",
+          }}
+        >
+          RECIPIENT TYPE
+        </span>
+      ),
       dataIndex: "recipientType",
       key: "recipientType",
       render: (text: string) => (
-        <Tag color={text === "System" ? "blue" : "green"}>{text}</Tag>
+        <div style={{ textAlign: "center" }}>
+          <Tag color={text === "System" ? "blue" : "green"}>{text}</Tag>
+        </div>
       ),
       width: 120,
       hidden: !columnVisibility.recipientType,
     },
     {
-      title: "Send Email",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            textAlign: "center",
+            display: "block",
+          }}
+        >
+          SEND EMAIL
+        </span>
+      ),
       dataIndex: "sendEmail",
       key: "sendEmail",
-      render: (value: boolean) => (value ? "Yes" : "No"),
+      render: (value: boolean) => (
+        <div style={{ textAlign: "center" }}>{value ? "Yes" : "No"}</div>
+      ),
       width: 100,
       hidden: !columnVisibility.sendEmail,
     },
     {
-      title: "Status",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            textAlign: "center",
+            display: "block",
+          }}
+        >
+          STATUS
+        </span>
+      ),
       dataIndex: "status",
       key: "status",
       render: (text: string) => (
-        <Tag color={text === "Active" ? "green" : "red"}>{text}</Tag>
+        <div style={{ textAlign: "center" }}>
+          <Tag color={text === "Active" ? "green" : "red"}>{text}</Tag>
+        </div>
       ),
       width: 100,
       hidden: !columnVisibility.status,
     },
     {
-      title: "Created At",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            textAlign: "center",
+            display: "block",
+          }}
+        >
+          CREATED AT
+        </span>
+      ),
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (text: string) => dayjs(text).format("DD/MM/YYYY HH:mm"),
+      render: (text: string) => (
+        <div style={{ textAlign: "center" }}>
+          {dayjs(text).format("DD/MM/YYYY HH:mm")}
+        </div>
+      ),
       width: 150,
       hidden: !columnVisibility.createdAt,
     },
     {
-      title: "Created By",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          CREATED BY
+        </span>
+      ),
       dataIndex: "createdBy",
       key: "createdBy",
       render: (createdBy: { userName?: string }) => createdBy?.userName || "-",
@@ -115,51 +193,41 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       hidden: !columnVisibility.createdBy,
     },
     {
-      title: "Actions",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            textAlign: "center",
+            display: "block",
+          }}
+        >
+          ACTIONS
+        </span>
+      ),
       key: "actions",
       render: (_: any, record: NotificationResponseDTO) => (
-        <Space size="middle">
-          <Tooltip title="View details">
-            <Button
-              icon={<EyeOutlined />}
-              onClick={() => handleViewDetail(record.id)}
-              size="small"
-            />
-          </Tooltip>
-          <Tooltip
-            title={record.status === "Active" ? "Deactivate" : "Activate"}
-          >
-            <Button
-              icon={
-                record.status === "Active" ? (
-                  <DeleteOutlined />
-                ) : (
-                  <UndoOutlined />
-                )
-              }
-              onClick={() => handleToggleStatus(record.id, record.status || "")}
-              size="small"
-            />
-          </Tooltip>
-          {record.status !== "Active" && (
-            <Tooltip title="Reup notification">
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => handleReup(record.id)}
-                size="small"
-              />
-            </Tooltip>
-          )}
+        <div style={{ textAlign: "center" }}>
           <Dropdown
             overlay={
               <Menu>
                 <Menu.Item
-                  key="delete"
-                  icon={<DeleteOutlined />}
-                  onClick={() => handleDelete(record.id)}
+                  key="view"
+                  icon={<EyeOutlined />}
+                  onClick={() => handleViewDetail(record.id)}
                 >
-                  Delete
+                  View details
                 </Menu.Item>
+
+                {record.status !== "Active" && (
+                  <Menu.Item
+                    key="reup"
+                    icon={<ReloadOutlined />}
+                    onClick={() => handleReup(record.id)}
+                  >
+                    Reup
+                  </Menu.Item>
+                )}
                 <Menu.Item
                   key="copy"
                   icon={<CopyOutlined />}
@@ -167,60 +235,180 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
                 >
                   Copy
                 </Menu.Item>
+                <Menu.Item
+                  key="toggle"
+                  icon={
+                    record.status === "Active" ? (
+                      <StopOutlined />
+                    ) : (
+                      <CheckCircleOutlined />
+                    )
+                  }
+                  onClick={() =>
+                    handleToggleStatus(record.id, record.status || "")
+                  }
+                  style={{
+                    color: record.status === "Active" ? "#ff4d4f" : "#52c41a",
+                  }}
+                >
+                  {record.status === "Active" ? "Deactivate" : "Activate"}
+                </Menu.Item>
+                <Menu.Divider />
+                <Menu.Item
+                  key="delete"
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDelete(record.id)}
+                  danger
+                >
+                  Delete
+                </Menu.Item>
               </Menu>
             }
+            placement="bottomCenter"
           >
             <Button icon={<MoreOutlined />} size="small" />
           </Dropdown>
-        </Space>
+        </div>
       ),
-      width: 180,
+      width: 80,
       hidden: !columnVisibility.actions,
     },
   ].filter((column) => !column.hidden);
 
+  if (loading) {
+    return (
+      <Card className="shadow-sm">
+        <div
+          style={{ display: "flex", justifyContent: "center", padding: "40px" }}
+        >
+          <Spin tip="Loading..." />
+        </div>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="shadow-md">
-      <div className="mb-4">
-        {selectedNotifications.length > 0 && handleBulkDelete && (
-          <Popconfirm
-            title="Are you sure you want to delete the selected notifications?"
-            onConfirm={() => handleBulkDelete(selectedNotifications)}
-            okText="Yes"
-            cancelText="No"
+    <>
+      {contextHolder}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: "16px",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {selectedNotifications.length > 0 && (
+            <>
+              <Text type="secondary">
+                {selectedNotifications.length}{" "}
+                {selectedNotifications.length === 1 ? "item" : "items"} selected
+              </Text>
+              {handleBulkDelete && (
+                <Popconfirm
+                  title="Are you sure you want to delete the selected notifications?"
+                  onConfirm={() => handleBulkDelete(selectedNotifications)}
+                  okText="Yes"
+                  cancelText="No"
+                >
+                  <Button
+                    type="primary"
+                    danger
+                    disabled={!selectedNotifications.length}
+                    icon={<DeleteOutlined />}
+                  >
+                    Delete
+                  </Button>
+                </Popconfirm>
+              )}
+            </>
+          )}
+        </div>{" "}
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            alignItems: "center",
+          }}
+        >
+          <Text type="secondary">Rows per page:</Text>
+          <Select
+            value={pageSize}
+            onChange={(value) => handlePageChange(1, value)}
+            style={{ width: "80px" }}
           >
-            <Button danger className="mr-2">
-              Delete Selected ({selectedNotifications.length})
-            </Button>
-          </Popconfirm>
-        )}
-        <Text type="secondary">
-          {totalItems} {totalItems === 1 ? "notification" : "notifications"}{" "}
-          found
-        </Text>
+            <Option value={5}>5</Option>
+            <Option value={10}>10</Option>
+            <Option value={15}>15</Option>
+            <Option value={20}>20</Option>
+          </Select>
+        </div>
       </div>
 
-      <Table
-        dataSource={notifications}
-        columns={columns}
-        rowKey="id"
-        pagination={{
-          current: currentPage,
-          pageSize,
-          total: totalItems,
-          onChange: handlePageChange,
-          showSizeChanger: true,
-        }}
-        loading={loading}
-        rowSelection={{
-          selectedRowKeys: selectedNotifications,
-          onChange: (selectedRowKeys) => {
-            setSelectedNotifications(selectedRowKeys as string[]);
-          },
-        }}
-        scroll={{ x: 1000 }}
-      />
-    </Card>
+      <Card className="shadow-sm" bodyStyle={{ padding: "16px" }}>
+        <div style={{ overflowX: "auto" }}>
+          <Table
+            dataSource={notifications}
+            columns={columns}
+            rowKey="id"
+            pagination={false}
+            loading={loading}
+            rowSelection={{
+              selectedRowKeys: selectedNotifications,
+              onChange: (selectedRowKeys) => {
+                setSelectedNotifications(selectedRowKeys as string[]);
+              },
+            }}
+            scroll={{ x: "max-content" }}
+            size="middle"
+            bordered
+            sticky={{ offsetHeader: 0 }}
+            rowClassName={(record) =>
+              selectedNotifications.includes(record.id)
+                ? "ant-table-row-selected"
+                : ""
+            }
+          />
+        </div>
+
+        <Card className="mt-4 shadow-sm">
+          <Row justify="center" align="middle">
+            <Space size="large" align="center">
+              <Text type="secondary">Total {totalItems} items</Text>
+              <Space align="center" size="large">
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={totalItems}
+                  onChange={handlePageChange}
+                  showSizeChanger={false}
+                  showTotal={() => ""}
+                />
+                <Space align="center">
+                  <Text type="secondary">Go to page:</Text>
+                  <InputNumber
+                    min={1}
+                    max={Math.ceil(totalItems / pageSize)}
+                    value={currentPage}
+                    onChange={(value) => {
+                      if (
+                        value &&
+                        Number(value) > 0 &&
+                        Number(value) <= Math.ceil(totalItems / pageSize)
+                      ) {
+                        handlePageChange(Number(value), pageSize);
+                      }
+                    }}
+                    style={{ width: "60px" }}
+                  />
+                </Space>
+              </Space>
+            </Space>
+          </Row>
+        </Card>
+      </Card>
+    </>
   );
 };
 

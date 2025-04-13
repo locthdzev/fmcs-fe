@@ -1081,9 +1081,7 @@ export function TreatmentPlanManagement() {
                     updatedDateRange[1]
                   )
                 }
-              >
-                Reset
-              </Button>
+              />
             </Tooltip>
 
             {/* Column Settings */}
@@ -1098,7 +1096,7 @@ export function TreatmentPlanManagement() {
                           checked={areAllColumnsVisible()}
                           onChange={(e) => toggleAllColumns(e.target.checked)}
                         >
-                          <strong>Show All Columns</strong>
+                          Toggle All
                         </Checkbox>
                       </div>
                     ),
