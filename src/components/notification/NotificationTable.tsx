@@ -22,17 +22,14 @@ import {
 import {
   EyeOutlined,
   DeleteOutlined,
-  UndoOutlined,
   ReloadOutlined,
   CopyOutlined,
   MoreOutlined,
-  DownOutlined,
   StopOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { NotificationResponseDTO } from "@/api/notification";
-import { TrashIcon } from "@heroicons/react/24/outline";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -49,7 +46,6 @@ interface NotificationTableProps {
   handleDelete: (id: string) => void;
   handleToggleStatus: (id: string, status: string) => void;
   handleReup: (id: string) => void;
-  handleViewDetail: (id: string) => void;
   handleCopy: (notification: NotificationResponseDTO) => void;
   columnVisibility: Record<string, boolean>;
   handleBulkDelete?: (ids: string[]) => void;
@@ -67,7 +63,6 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
   handleDelete,
   handleToggleStatus,
   handleReup,
-  handleViewDetail,
   handleCopy,
   columnVisibility,
   handleBulkDelete,
@@ -211,14 +206,6 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
           <Dropdown
             overlay={
               <Menu>
-                <Menu.Item
-                  key="view"
-                  icon={<EyeOutlined />}
-                  onClick={() => handleViewDetail(record.id)}
-                >
-                  View details
-                </Menu.Item>
-
                 {record.status !== "Active" && (
                   <Menu.Item
                     key="reup"

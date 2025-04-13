@@ -44,7 +44,6 @@ import dayjs from "dayjs";
 
 import NotificationFilterModal from "./NotificationFilterModal";
 import ExportConfigModal from "./ExportConfigModal";
-import NotificationDetailModal from "./NotificationDetail";
 import CreateNotificationModal from "./CreateNotificationModal";
 import NotificationTable from "./NotificationTable";
 
@@ -747,12 +746,6 @@ export function NotificationManagement() {
         exportConfig={exportConfig}
         onChange={handleExportConfigChange}
         onExport={handleExport}
-      />
-
-      <NotificationDetailModal
-        visible={detailModalVisible}
-        onClose={() => setDetailModalVisible(false)}
-        notification={selectedNotification}
       />
 
       <CreateNotificationModal
