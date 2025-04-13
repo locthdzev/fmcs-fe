@@ -307,9 +307,9 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
         <div>{renderActionButtons()}</div>
       </div>
 
-      <div className="grid grid-cols-12 gap-6 mb-8">
-        <div className="col-span-12">
-          <Card className="h-full">
+      <Card className="mb-8">
+        <div className="flex">
+          <div className="flex-grow pr-6" style={{ width: "70%" }}>
             <div className="mb-4 pb-4 border-b">
               <div className="flex items-center justify-between mb-2">
                 <Space size="middle">
@@ -385,37 +385,39 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
                   </div>
                 )}
             </div>
-          </Card>
-        </div>
-
-        {notification.recipientIds && notification.recipientIds.length > 0 && (
-          <div className="col-span-12">
-            <Card
-              title={
-                <span style={{ fontWeight: "bold" }}>
-                  Recipients ({notification.recipientIds.length})
-                </span>
-              }
-            >
-              <List
-                dataSource={notification.recipientIds}
-                renderItem={(userId) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      avatar={<Avatar icon={<UserOutlined />} />}
-                      title={userId}
-                    />
-                  </List.Item>
-                )}
-                pagination={{
-                  pageSize: 10,
-                  showSizeChanger: false,
-                }}
-              />
-            </Card>
           </div>
-        )}
-      </div>
+
+          <div className="border-l pl-6" style={{ width: "30%" }}>
+            <div className="recipients-section">
+              <Title level={5} style={{ marginTop: 0 }}>
+                Recipients ({notification.recipientIds?.length || 0})
+              </Title>
+              {notification.recipientIds &&
+              notification.recipientIds.length > 0 ? (
+                <List
+                  dataSource={notification.recipientIds}
+                  renderItem={(userId) => (
+                    <List.Item>
+                      <List.Item.Meta
+                        avatar={<Avatar icon={<UserOutlined />} />}
+                        title={userId}
+                      />
+                    </List.Item>
+                  )}
+                  pagination={{
+                    pageSize: 10,
+                    showSizeChanger: false,
+                  }}
+                />
+              ) : (
+                <div className="text-center p-4">
+                  <Text type="secondary">No recipients found</Text>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 };
