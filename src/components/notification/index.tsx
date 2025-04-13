@@ -37,6 +37,7 @@ import {
   EnvelopeIcon,
   UsersIcon,
   RectangleGroupIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import { Chip } from "@heroui/react";
 import { Icon2fa } from "@tabler/icons-react";
@@ -54,10 +55,12 @@ export function NotificationManagement() {
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isCopyModalVisible, setIsCopyModalVisible] = useState(false);
+  const [isReupModalVisible, setIsReupModalVisible] = useState(false);
   const [selectedNotification, setSelectedNotification] =
     useState<NotificationResponseDTO | null>(null);
   const [form] = Form.useForm();
   const [copyForm] = Form.useForm();
+  const [reupForm] = Form.useForm();
   const [roles, setRoles] = useState<RoleResponseDTO[]>([]);
 
   const fetchNotifications = useCallback(async () => {
@@ -181,13 +184,29 @@ export function NotificationManagement() {
   };
 
   const handleReup = async (id: string) => {
+    const notification = notifications.find(n => n.id === id);
+    setSelectedNotification(notification || null);
+    
+    // Initialize form with default value
+    reupForm.setFieldsValue({
+      sendEmail: false
+    });
+    
+    setIsReupModalVisible(true);
+  };
+
+  const confirmReup = async () => {
     try {
-      const response = await reupNotification(id, true);
+      const values = await reupForm.validateFields();
+      if (!selectedNotification) return;
+      
+      const response = await reupNotification(selectedNotification.id, values.sendEmail);
       if (response.isSuccess) {
         toast.success(response.message);
+        setIsReupModalVisible(false);
         fetchNotifications();
       }
-    } catch {
+    } catch (error) {
       toast.error("Unable to reup notification.");
     }
   };
@@ -785,6 +804,57 @@ export function NotificationManagement() {
                 className="bg-blue-500 hover:bg-blue-600 rounded-md"
               >
                 Copy
+              </Button>
+            </div>
+          </Form>
+        </div>
+      </Modal>
+      
+      {/* Reup Notification Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <ArrowPathIcon className="w-6 h-6 text-blue-500" />
+            <span className="text-xl font-semibold">Reup Notification</span>
+          </div>
+        }
+        open={isReupModalVisible}
+        onCancel={() => setIsReupModalVisible(false)}
+        footer={null}
+        width={500}
+        className="rounded-lg"
+      >
+        <div className="p-4">
+          <p className="mb-4">Do you want to reup this notification?</p>
+          <p className="font-semibold mb-2">Title: {selectedNotification?.title}</p>
+          
+          <Form
+            form={reupForm}
+            layout="vertical"
+            className="space-y-4"
+          >
+            <Form.Item
+              name="sendEmail"
+              label={<span className="font-medium">Send Email</span>}
+              valuePropName="checked"
+              initialValue={false}
+            >
+              <Switch checkedChildren="Yes" unCheckedChildren="No" />
+            </Form.Item>
+            
+            <div className="flex justify-end gap-3 mt-6">
+              <Button
+                onClick={() => setIsReupModalVisible(false)}
+                className="bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                onClick={confirmReup}
+                className="bg-blue-500 hover:bg-blue-600 rounded-md"
+              >
+                Reup
               </Button>
             </div>
           </Form>

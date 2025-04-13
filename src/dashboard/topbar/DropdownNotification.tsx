@@ -63,7 +63,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     try {
       setLoading(true);
       const result = await getNotificationsByUserId(page, pageSize);
-
+      
+      // Backend đã lọc notifications theo status="Active"
       if (page === 1) {
         setNotifications(result.data);
       } else {
@@ -74,8 +75,9 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       setHasMore(result.data.length >= pageSize);
       setCurrentPage(page);
 
-      const count = await getUnreadNotificationCount();
-      setUnreadCount(count);
+      // Cập nhật số lượng thông báo chưa đọc từ API
+      const unreadCountResult = await getUnreadNotificationCount();
+      setUnreadCount(unreadCountResult);
     } catch (error) {
       console.error("Error fetching notifications:", error);
       message.error("Không thể tải thông báo");
@@ -103,8 +105,15 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
             data
           );
 
+          // Xử lý cập nhật unreadCount
+          if (data.unreadCount !== undefined) {
+            console.log("Updating unread count to:", data.unreadCount);
+            setUnreadCount(data.unreadCount);
+          }
+
+          // Xử lý notification status updates
           if (data.id && data.title) {
-            console.log("Adding/updating notification in list:", data.id);
+            console.log("Adding/updating notification:", data.id);
             setNotifications((prev) => {
               const exists = prev.find((n) => n.id === data.id);
               if (exists) {
@@ -120,13 +129,9 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                 );
               }
             });
-
+              
+            // Refresh notifications when new notification comes in
             fetchNotifications();
-          }
-
-          if (data.unreadCount !== undefined) {
-            console.log("Updating unread count to:", data.unreadCount);
-            setUnreadCount(data.unreadCount);
           }
         } else if (data === "AllNotificationsRead") {
           console.log("Marking all notifications as read");
@@ -187,7 +192,32 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   };
 
   const loadMoreNotifications = () => {
-    fetchNotifications(currentPage + 1);
+    const nextPage = currentPage + 1;
+    console.log(`Loading more notifications, page ${nextPage}`);
+    fetchNotifications(nextPage);
+  };
+
+  // Hiển thị thông tin về số lượng thông báo
+  const renderNotificationInfo = () => {
+    if (notifications.length > 0) {
+      return (
+        <div className="flex justify-between mb-3 items-center">
+          <Text type="secondary">
+            {notifications.length}{" "}
+            {notifications.length === 1 ? "notification" : "notifications"}
+          </Text>
+          <Button
+            type="text"
+            onClick={handleMarkAllAsRead}
+            icon={<CheckOutlined />}
+            size="small"
+          >
+            Mark all as read
+          </Button>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -221,22 +251,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
           </Title>
         </div>
         <div className="p-4">
-          {notifications.length > 0 && (
-            <div className="flex justify-between mb-3 items-center">
-              <Text type="secondary">
-                {notifications.length}{" "}
-                {notifications.length === 1 ? "notification" : "notifications"}
-              </Text>
-              <Button
-                type="text"
-                onClick={handleMarkAllAsRead}
-                icon={<CheckOutlined />}
-                size="small"
-              >
-                Mark all as read
-              </Button>
-            </div>
-          )}
+          {renderNotificationInfo()}
 
           {notifications.length === 0 ? (
             <Empty
