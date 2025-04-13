@@ -21,6 +21,7 @@ import {
   updateNotificationStatus,
   deleteNotifications,
 } from "@/api/notification";
+import { getUserById } from "@/api/user";
 import {
   ArrowLeftOutlined,
   BellOutlined,
@@ -42,6 +43,15 @@ interface NotificationDetailProps {
   id: string;
 }
 
+// Define user info interface
+interface UserInfo {
+  id: string;
+  fullName: string;
+  email: string;
+  userName?: string;
+  avatar?: string;
+}
+
 export const NotificationDetail: React.FC<NotificationDetailProps> = ({
   id,
 }) => {
@@ -51,10 +61,35 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
   const [notification, setNotification] =
     useState<NotificationResponseDTO | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
+  const [recipients, setRecipients] = useState<UserInfo[]>([]);
+  const [loadingRecipients, setLoadingRecipients] = useState<boolean>(false);
+  const [recipientPageSize, setRecipientPageSize] = useState<number>(5);
 
   useEffect(() => {
     fetchNotificationDetail();
   }, [id]);
+
+  useEffect(() => {
+    if (notification?.recipientIds?.length) {
+      fetchRecipientDetails(notification.recipientIds);
+    }
+  }, [notification]);
+
+  useEffect(() => {
+    calculateRecipientPageSize();
+  }, [notification]);
+
+  const calculateRecipientPageSize = () => {
+    const contentHeight =
+      document.querySelector(".notification-preview")?.clientHeight || 0;
+    const availableHeight = contentHeight - 100; // Subtract header and padding
+    const itemHeight = 60; // Approximate height of each list item
+    const calculatedPageSize = Math.max(
+      3,
+      Math.floor(availableHeight / itemHeight)
+    );
+    setRecipientPageSize(calculatedPageSize);
+  };
 
   const fetchNotificationDetail = async () => {
     try {
@@ -68,6 +103,38 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
       messageApi.error("Failed to load notification details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRecipientDetails = async (recipientIds: string[]) => {
+    try {
+      setLoadingRecipients(true);
+      const fetchPromises = recipientIds.map(async (userId) => {
+        try {
+          const userData = await getUserById(userId);
+          return {
+            id: userData.id,
+            fullName: userData.fullName || "Unknown",
+            email: userData.email || "No email",
+            userName: userData.userName,
+          };
+        } catch (error) {
+          console.error(`Error fetching user ${userId}:`, error);
+          return {
+            id: userId,
+            fullName: "Unknown User",
+            email: "Not available",
+          };
+        }
+      });
+
+      const usersData = await Promise.all(fetchPromises);
+      setRecipients(usersData);
+    } catch (error) {
+      console.error("Error fetching recipient details:", error);
+      messageApi.error("Failed to load recipient details");
+    } finally {
+      setLoadingRecipients(false);
     }
   };
 
@@ -392,21 +459,28 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
               <Title level={5} style={{ marginTop: 0 }}>
                 Recipients ({notification.recipientIds?.length || 0})
               </Title>
-              {notification.recipientIds &&
-              notification.recipientIds.length > 0 ? (
+              {loadingRecipients ? (
+                <div className="flex justify-center items-center py-4">
+                  <Spin size="small" tip="Loading recipients..." />
+                </div>
+              ) : recipients.length > 0 ? (
                 <List
-                  dataSource={notification.recipientIds}
-                  renderItem={(userId) => (
+                  dataSource={recipients}
+                  renderItem={(user, index) => (
                     <List.Item>
+                      <div style={{ width: "50px" }}>{index + 1}.</div>
                       <List.Item.Meta
                         avatar={<Avatar icon={<UserOutlined />} />}
-                        title={userId}
+                        title={user.fullName}
+                        description={<Text type="secondary">{user.email}</Text>}
                       />
                     </List.Item>
                   )}
                   pagination={{
-                    pageSize: 10,
+                    pageSize: recipientPageSize,
                     showSizeChanger: false,
+                    size: "small",
+                    style: { display: "flex", justifyContent: "center" },
                   }}
                 />
               ) : (
