@@ -121,13 +121,13 @@ const HistoryFilterModal: React.FC<{
 
   return (
     <Modal
-      title="Bộ lọc nâng cao"
+      title="Advanced Filters"
       open={visible}
       onCancel={onCancel}
       width={800}
       footer={[
         <Button key="reset" onClick={onReset} icon={<UndoOutlined />}>
-          Đặt lại
+          Reset
         </Button>,
         <Button
           key="apply"
@@ -135,7 +135,7 @@ const HistoryFilterModal: React.FC<{
           onClick={handleApply}
           icon={<CheckCircleOutlined />}
         >
-          Áp dụng
+          Apply
         </Button>,
       ]}
     >
@@ -145,10 +145,10 @@ const HistoryFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Mã kết quả khám
+                Filter by health check result code
               </div>
               <Select
-                placeholder="Lọc theo mã kết quả khám"
+                placeholder="Filter by health check result code"
                 allowClear
                 showSearch
                 style={{ width: "100%" }}
@@ -175,19 +175,19 @@ const HistoryFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Loại thao tác
+                Filter by action type
               </div>
               <Select
-                placeholder="Lọc theo loại thao tác"
+                placeholder="Filter by action type"
                 allowClear
                 style={{ width: "100%" }}
                 value={localFilters.action}
                 onChange={(value) => updateFilter("action", value)}
               >
-                <Option value="Created">Tạo mới</Option>
-                <Option value="Updated">Cập nhật</Option>
-                <Option value="Approved">Phê duyệt</Option>
-                <Option value="Cancelled">Hủy bỏ</Option>
+                <Option value="Created">Created</Option>
+                <Option value="Updated">Updated</Option>
+                <Option value="Approved">Approved</Option>
+                <Option value="Cancelled">Cancelled</Option>
               </Select>
             </div>
           </Col>
@@ -198,11 +198,11 @@ const HistoryFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Khoảng thời gian thao tác
+                Action Time Range
               </div>
               <RangePicker
                 style={{ width: "100%" }}
-                placeholder={["Từ ngày", "Đến ngày"]}
+                placeholder={["From date", "To date"]}
                 format="DD/MM/YYYY"
                 allowClear
                 value={localFilters.actionDateRange as any}
@@ -215,10 +215,10 @@ const HistoryFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Người thực hiện
+                Filter by performer
               </div>
               <Select
-                placeholder="Lọc theo người thực hiện"
+                placeholder="Filter by performer"
                 allowClear
                 showSearch
                 style={{ width: "100%" }}
@@ -255,21 +255,21 @@ const HistoryFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Trạng thái trước
+                Filter by previous status
               </div>
               <Select
-                placeholder="Lọc theo trạng thái trước"
+                placeholder="Filter by previous status"
                 style={{ width: "100%" }}
                 allowClear
                 value={localFilters.previousStatus}
                 onChange={(value) => updateFilter("previousStatus", value)}
               >
-                <Option value="WaitingForApproval">Chờ phê duyệt</Option>
-                <Option value="Approved">Đã phê duyệt</Option>
-                <Option value="Completed">Hoàn thành</Option>
-                <Option value="CancelledCompletely">Hủy hoàn toàn</Option>
+                <Option value="WaitingForApproval">Waiting For Approval</Option>
+                <Option value="Approved">Approved</Option>
+                <Option value="Completed">Completed</Option>
+                <Option value="CancelledCompletely">Cancelled Completely</Option>
                 <Option value="CancelledForAdjustment">
-                  Hủy để điều chỉnh
+                  Cancelled For Adjustment
                 </Option>
               </Select>
             </div>
@@ -279,21 +279,21 @@ const HistoryFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Trạng thái sau
+                Filter by new status
               </div>
               <Select
-                placeholder="Lọc theo trạng thái sau"
+                placeholder="Filter by new status"
                 style={{ width: "100%" }}
                 allowClear
                 value={localFilters.newStatus}
                 onChange={(value) => updateFilter("newStatus", value)}
               >
-                <Option value="WaitingForApproval">Chờ phê duyệt</Option>
-                <Option value="Approved">Đã phê duyệt</Option>
-                <Option value="Completed">Hoàn thành</Option>
-                <Option value="CancelledCompletely">Hủy hoàn toàn</Option>
+                <Option value="WaitingForApproval">Waiting For Approval</Option>
+                <Option value="Approved">Approved</Option>
+                <Option value="Completed">Completed</Option>
+                <Option value="CancelledCompletely">Cancelled Completely</Option>
                 <Option value="CancelledForAdjustment">
-                  Hủy để điều chỉnh
+                  Cancelled For Adjustment
                 </Option>
               </Select>
             </div>
@@ -305,16 +305,16 @@ const HistoryFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Sắp xếp theo
+                Sort by
               </div>
               <Select
-                placeholder="Sắp xếp theo"
+                placeholder="Sort by"
                 value={localFilters.sortBy}
                 onChange={(value) => updateFilter("sortBy", value)}
                 style={{ width: "100%" }}
               >
-                <Option value="ActionDate">Thời gian thực hiện</Option>
-                <Option value="healthCheckResultCode">Mã kết quả khám</Option>
+                <Option value="ActionDate">Action Time</Option>
+                <Option value="healthCheckResultCode">Health Check Result Code</Option>
               </Select>
             </div>
           </Col>
@@ -323,16 +323,16 @@ const HistoryFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Thứ tự
+                Order
               </div>
               <Select
-                placeholder="Thứ tự"
+                placeholder="Order"
                 value={localFilters.ascending ? "asc" : "desc"}
                 onChange={(value) => updateFilter("ascending", value === "asc")}
                 style={{ width: "100%" }}
               >
-                <Option value="asc">Tăng dần</Option>
-                <Option value="desc">Giảm dần</Option>
+                <Option value="asc">Ascending</Option>
+                <Option value="desc">Descending</Option>
               </Select>
             </div>
           </Col>
@@ -918,10 +918,10 @@ export const HealthCheckResultHistory: React.FC = () => {
               onClick={handleBack}
               style={{ marginRight: "8px" }}
             >
-              Quay lại
+              Back
             </Button>
             <HistoryOutlined />
-            <h3 className="text-xl font-bold">Lịch sử kết quả khám</h3>
+            <h3 className="text-xl font-bold">Health Check Result History</h3>
           </div>
         </div>
 
@@ -947,7 +947,7 @@ export const HealthCheckResultHistory: React.FC = () => {
             <div className="flex flex-wrap items-center gap-4">
               {/* Result Code Filter */}
               <Input
-                placeholder="Tìm theo mã kết quả khám"
+                placeholder="Search by result code"
                 value={healthCheckResultCode}
                 onChange={(e) => setHealthCheckResultCode(e.target.value)}
                 prefix={<SearchOutlined />}
@@ -957,7 +957,7 @@ export const HealthCheckResultHistory: React.FC = () => {
 
               {/* Performed By Filter */}
               <Input
-                placeholder="Tìm theo người thực hiện"
+                placeholder="Search by performer"
                 value={performedBySearch}
                 onChange={(e) => setPerformedBySearch(e.target.value)}
                 prefix={<SearchOutlined />}
@@ -966,7 +966,7 @@ export const HealthCheckResultHistory: React.FC = () => {
               />
 
               {/* Advanced Filters Button */}
-              <Tooltip title="Bộ lọc nâng cao">
+              <Tooltip title="Advanced Filters">
                 <Button
                   icon={
                     <FilterOutlined
@@ -986,12 +986,12 @@ export const HealthCheckResultHistory: React.FC = () => {
                   }
                   onClick={handleOpenFilterModal}
                 >
-                  Bộ lọc
+                  Filters
                 </Button>
               </Tooltip>
 
               {/* Reset Button */}
-              <Tooltip title="Đặt lại bộ lọc">
+              <Tooltip title="Reset filters">
                 <Button
                   icon={<UndoOutlined />}
                   onClick={handleReset}
@@ -1009,7 +1009,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                     )
                   }
                 >
-                  Đặt lại
+                  Reset
                 </Button>
               </Tooltip>
 
@@ -1025,7 +1025,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                             checked={areAllColumnsVisible()}
                             onChange={(e) => toggleAllColumns(e.target.checked)}
                           >
-                            <strong>Hiện tất cả cột</strong>
+                            <strong>Show all columns</strong>
                           </Checkbox>
                         </div>
                       ),
@@ -1044,7 +1044,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                               handleColumnVisibilityChange("historyCode")
                             }
                           >
-                            Mã kết quả khám
+                            Result Code
                           </Checkbox>
                         </div>
                       ),
@@ -1059,7 +1059,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                               handleColumnVisibilityChange("action")
                             }
                           >
-                            Thao tác
+                            Action
                           </Checkbox>
                         </div>
                       ),
@@ -1074,7 +1074,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                               handleColumnVisibilityChange("actionDate")
                             }
                           >
-                            Thời gian thao tác
+                            Action Time
                           </Checkbox>
                         </div>
                       ),
@@ -1089,7 +1089,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                               handleColumnVisibilityChange("performedBy")
                             }
                           >
-                            Người thực hiện
+                            Performer
                           </Checkbox>
                         </div>
                       ),
@@ -1104,7 +1104,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                               handleColumnVisibilityChange("statusChange")
                             }
                           >
-                            Thay đổi trạng thái
+                            Status Change
                           </Checkbox>
                         </div>
                       ),
@@ -1119,7 +1119,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                               handleColumnVisibilityChange("details")
                             }
                           >
-                            Chi tiết
+                            Details
                           </Checkbox>
                         </div>
                       ),
@@ -1138,8 +1138,8 @@ export const HealthCheckResultHistory: React.FC = () => {
                 mouseEnterDelay={0.1}
                 mouseLeaveDelay={0.3}
               >
-                <Tooltip title="Cài đặt cột">
-                  <Button icon={<SettingOutlined />}>Cột</Button>
+                <Tooltip title="Column settings">
+                  <Button icon={<SettingOutlined />}>Columns</Button>
                 </Tooltip>
               </Dropdown>
 
@@ -1152,7 +1152,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                   fetchDistinctHealthCheckResults();
                 }}
               >
-                Tìm kiếm
+                Search
               </Button>
             </div>
 
@@ -1164,7 +1164,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                 onClick={handleExport}
                 loading={exportLoading}
               >
-                Xuất Excel
+                Export to Excel
               </Button>
             </div>
           </div>
@@ -1174,7 +1174,7 @@ export const HealthCheckResultHistory: React.FC = () => {
         {/* Pagination Size Selection - Outside of cards */}
         <div className="flex justify-end items-center mb-4">
           <Typography.Text type="secondary">
-            Nhóm mỗi trang:
+            Groups per page:
             <Select
               value={pageSize}
               onChange={(value) => {
@@ -1202,7 +1202,7 @@ export const HealthCheckResultHistory: React.FC = () => {
               <div className="border-b pb-3 mb-4">
                 <div className="flex justify-between items-center">
                   <Title level={5} className="m-0">
-                    Mã kết quả khám: {group.code}
+                    Health Check Result Code: {group.code}
                   </Title>
                   <Button
                     type="primary"
@@ -1212,7 +1212,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                       )
                     }
                   >
-                    Xem kết quả khám
+                    View Health Check Result
                   </Button>
                 </div>
               </div>
@@ -1226,7 +1226,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                     <CaretRightOutlined rotate={isActive ? 90 : 0} />
                   )}
                 >
-                  <Panel header="Lịch sử thao tác" key="1">
+                  <Panel header="Action History" key="1">
                     <Timeline
                       mode="left"
                       items={group.histories.map((history) => ({
@@ -1250,7 +1250,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                               <div className="grid grid-cols-1 gap-1">
                                 <div className="flex">
                                   <div className="w-[180px] text-gray-500">
-                                    Người thực hiện:
+                                    Performer:
                                   </div>
                                   <div>
                                     {history.performedBy?.fullName} (
@@ -1262,7 +1262,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                                   history.newStatus && (
                                     <div className="flex">
                                       <div className="w-[180px] text-gray-500">
-                                        Trạng thái:
+                                        Status:
                                       </div>
                                       <div className="flex-1">
                                         <Tag
@@ -1287,7 +1287,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                                 {history.rejectionReason && (
                                   <div className="flex">
                                     <div className="w-[180px] text-gray-500">
-                                      Lý do:
+                                      Reason:
                                     </div>
                                     <div className="flex-1">
                                       {history.rejectionReason}
@@ -1298,7 +1298,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                                 {history.changeDetails && (
                                   <div className="flex">
                                     <div className="w-[180px] text-gray-500">
-                                      Chi tiết:
+                                      Details:
                                     </div>
                                     <div className="flex-1">
                                       {history.changeDetails}
@@ -1318,7 +1318,7 @@ export const HealthCheckResultHistory: React.FC = () => {
           ))
         ) : (
           <Card className="shadow-sm">
-            <Empty description="Không có lịch sử kết quả khám" />
+            <Empty description="No health check result history" />
           </Card>
         )}
 
@@ -1327,7 +1327,7 @@ export const HealthCheckResultHistory: React.FC = () => {
           <Row justify="space-between" align="middle">
             <Col>
               <Typography.Text type="secondary">
-                Tổng cộng {total} nhóm kết quả khám
+                Total {total} health check result groups
               </Typography.Text>
             </Col>
             <Col>
@@ -1344,7 +1344,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                 />
                 <Space align="center">
                   <Typography.Text type="secondary">
-                    Đi đến trang:
+                    Go to page:
                   </Typography.Text>
                   <InputNumber
                     min={1}
@@ -1369,13 +1369,13 @@ export const HealthCheckResultHistory: React.FC = () => {
 
         {/* Export Config Modal - Keep existing implementation */}
         <Modal
-          title="Cấu hình xuất file Excel"
+          title="Export Configuration"
           open={showExportConfigModal}
           onCancel={closeConfigModal}
           width={800}
           footer={[
             <Button key="cancel" onClick={closeConfigModal}>
-              Hủy
+              Cancel
             </Button>,
             <Button
               key="submit"
@@ -1383,7 +1383,7 @@ export const HealthCheckResultHistory: React.FC = () => {
               loading={exportLoading}
               onClick={handleExportWithConfig}
             >
-              Xuất file
+              Export
             </Button>,
           ]}
         >

@@ -23,6 +23,7 @@ import {
   Divider,
   Modal,
   DatePicker,
+  Descriptions,
 } from "antd";
 import { toast } from "react-toastify";
 import {
@@ -41,6 +42,9 @@ import {
   ReloadOutlined,
   DeleteOutlined,
   EyeOutlined,
+  InboxOutlined,
+  FileSearchOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import moment from "moment";
@@ -96,13 +100,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
   return (
     <Modal
-      title="Bộ lọc nâng cao"
+      title="Advanced Filters"
       open={visible}
       onCancel={onCancel}
       width={600}
       footer={[
         <Button key="reset" onClick={onReset} icon={<ReloadOutlined />}>
-          Đặt lại
+          Reset
         </Button>,
         <Button
           key="apply"
@@ -110,7 +114,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
           onClick={handleApply}
           icon={<FilterOutlined />}
         >
-          Áp dụng
+          Apply
         </Button>,
       ]}
     >
@@ -120,10 +124,10 @@ const FilterModal: React.FC<FilterModalProps> = ({
           <Col span={24}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Bệnh nhân
+                Patient
               </div>
               <Input
-                placeholder="Tìm theo bệnh nhân"
+                placeholder="Search by patient"
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
                 prefix={<SearchOutlined />}
@@ -137,10 +141,10 @@ const FilterModal: React.FC<FilterModalProps> = ({
           <Col span={24}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Bác sĩ / Y tá
+                Doctor / Nurse
               </div>
               <Input
-                placeholder="Tìm theo bác sĩ/y tá"
+                placeholder="Search by doctor/nurse"
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
                 prefix={<SearchOutlined />}
@@ -154,11 +158,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
           <Col span={24}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Khoảng thời gian khám
+                Checkup Date Range
               </div>
               <DatePicker.RangePicker
                 style={{ width: "100%" }}
-                placeholder={["Từ ngày", "Đến ngày"]}
+                placeholder={["From date", "To date"]}
                 format="DD/MM/YYYY"
                 allowClear
                 value={localFilters.checkupDateRange as any}
@@ -173,17 +177,17 @@ const FilterModal: React.FC<FilterModalProps> = ({
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Sắp xếp theo
+                Sort By
               </div>
               <Select
-                placeholder="Sắp xếp theo"
+                placeholder="Sort by"
                 value={localFilters.sortBy}
                 onChange={(value) => updateFilter("sortBy", value)}
                 style={{ width: "100%" }}
               >
-                <Option value="CheckupDate">Ngày khám</Option>
-                <Option value="CreatedAt">Ngày tạo</Option>
-                <Option value="UpdatedAt">Ngày cập nhật</Option>
+                <Option value="CheckupDate">Checkup Date</Option>
+                <Option value="CreatedAt">Created Date</Option>
+                <Option value="UpdatedAt">Updated Date</Option>
               </Select>
             </div>
           </Col>
@@ -192,16 +196,16 @@ const FilterModal: React.FC<FilterModalProps> = ({
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Thứ tự
+                Order
               </div>
               <Select
-                placeholder="Thứ tự"
+                placeholder="Order"
                 value={localFilters.ascending ? "asc" : "desc"}
                 onChange={(value) => updateFilter("ascending", value === "asc")}
                 style={{ width: "100%" }}
               >
-                <Option value="asc">Tăng dần</Option>
-                <Option value="desc">Giảm dần</Option>
+                <Option value="asc">Ascending</Option>
+                <Option value="desc">Descending</Option>
               </Select>
             </div>
           </Col>
@@ -211,6 +215,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   );
 };
 
+// SoftDeletedHealthCheckResults Component
 export const SoftDeletedHealthCheckResults: React.FC = () => {
   const router = useRouter();
   const [healthCheckResults, setHealthCheckResults] = useState<
@@ -231,7 +236,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
     [moment.Moment | null, moment.Moment | null]
   >([null, null]);
 
-  // Add column visibility state similar to health check result index
+  // Column visibility state
   const [columnVisibility, setColumnVisibility] = useState<
     Record<string, boolean>
   >({
@@ -421,7 +426,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
       key: "code",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          MÃ KẾT QUẢ KHÁM
+          RESULT CODE
         </span>
       ),
       dataIndex: "healthCheckResultCode",
@@ -432,7 +437,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
       key: "patient",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          BỆNH NHÂN
+          PATIENT
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -449,11 +454,11 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
       key: "checkupDate",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          NGÀY KHÁM
+          CHECKUP DATE
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Tooltip title="Nhấn để xem chi tiết">
+        <Tooltip title="Click to view details">
           <Typography.Link
             onClick={() => router.push(`/health-check-result/${record.id}`)}
           >
@@ -467,7 +472,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
       key: "staff",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          BÁC SĨ / Y TÁ
+          DOCTOR / NURSE
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -484,19 +489,19 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
       key: "actions",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          THAO TÁC
+          ACTIONS
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
         <Space>
-          <Tooltip title="Xem chi tiết">
+          <Tooltip title="View details">
             <Button
               type="text"
               icon={<EyeOutlined />}
               onClick={() => router.push(`/health-check-result/${record.id}`)}
             />
           </Tooltip>
-          <Tooltip title="Khôi phục">
+          <Tooltip title="Restore">
             <Button
               type="text"
               icon={<UndoOutlined />}
@@ -532,10 +537,10 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
             onClick={() => router.push("/health-check-result/management")}
             style={{ marginRight: "8px" }}
           >
-            Quay lại
+            Back
           </Button>
           <HealthInsuranceIcon />
-          <h3 className="text-xl font-bold">Kết quả khám đã xóa tạm thời</h3>
+          <h3 className="text-xl font-bold">Temporarily Deleted Health Check Results</h3>
         </div>
       </div>
 
@@ -561,7 +566,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
           <div className="flex flex-wrap items-center gap-4">
             {/* Code Filter */}
             <Input
-              placeholder="Tìm theo mã kết quả khám"
+              placeholder="Search by result code"
               value={codeSearch}
               onChange={(e) => setCodeSearch(e.target.value)}
               prefix={<SearchOutlined />}
@@ -570,7 +575,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
             />
 
             {/* Filter Button */}
-            <Tooltip title="Bộ lọc nâng cao">
+            <Tooltip title="Advanced Filters">
               <Button
                 icon={
                   <FilterOutlined
@@ -581,7 +586,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
                 }
                 onClick={handleOpenFilterModal}
               >
-                Bộ lọc
+                Filters
                 {isFilterApplied && (
                   <Badge
                     count="!"
@@ -594,13 +599,13 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
             </Tooltip>
 
             {/* Reset Button */}
-            <Tooltip title="Đặt lại tất cả bộ lọc">
+            <Tooltip title="Reset all filters">
               <Button
                 icon={<ReloadOutlined />}
                 onClick={handleReset}
                 disabled={!(codeSearch || isFilterApplied)}
               >
-                Đặt lại
+                Reset
               </Button>
             </Tooltip>
 
@@ -616,7 +621,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
                           checked={areAllColumnsVisible()}
                           onChange={(e) => toggleAllColumns(e.target.checked)}
                         >
-                          <strong>Hiện tất cả cột</strong>
+                          <strong>Show all columns</strong>
                         </Checkbox>
                       </div>
                     ),
@@ -633,7 +638,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
                           checked={columnVisibility.code}
                           onChange={() => handleColumnVisibilityChange("code")}
                         >
-                          Mã kết quả khám
+                          Result Code
                         </Checkbox>
                       </div>
                     ),
@@ -648,7 +653,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
                             handleColumnVisibilityChange("patient")
                           }
                         >
-                          Bệnh nhân
+                          Patient
                         </Checkbox>
                       </div>
                     ),
@@ -663,7 +668,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
                             handleColumnVisibilityChange("checkupDate")
                           }
                         >
-                          Ngày khám
+                          Checkup Date
                         </Checkbox>
                       </div>
                     ),
@@ -676,7 +681,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
                           checked={columnVisibility.staff}
                           onChange={() => handleColumnVisibilityChange("staff")}
                         >
-                          Bác sĩ / Y tá
+                          Doctor / Nurse
                         </Checkbox>
                       </div>
                     ),
@@ -691,7 +696,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
                             handleColumnVisibilityChange("actions")
                           }
                         >
-                          Thao tác
+                          Actions
                         </Checkbox>
                       </div>
                     ),
@@ -710,8 +715,8 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
               mouseEnterDelay={0.1}
               mouseLeaveDelay={0.3}
             >
-              <Tooltip title="Cài đặt cột">
-                <Button icon={<SettingOutlined />}>Cột</Button>
+              <Tooltip title="Column settings">
+                <Button icon={<SettingOutlined />}>Columns</Button>
               </Tooltip>
             </Dropdown>
           </div>
@@ -721,34 +726,34 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
         {isFilterApplied && (
           <div className="mt-2">
             <Space wrap>
-              <Text type="secondary">Bộ lọc đã áp dụng:</Text>
+              <Text type="secondary">Applied filters:</Text>
               {userSearch && (
                 <Tag closable onClose={() => setUserSearch("")}>
-                  Bệnh nhân: {userSearch}
+                  Patient: {userSearch}
                 </Tag>
               )}
               {staffSearch && (
                 <Tag closable onClose={() => setStaffSearch("")}>
-                  Bác sĩ/Y tá: {staffSearch}
+                  Doctor/Nurse: {staffSearch}
                 </Tag>
               )}
               {sortBy !== "CheckupDate" && (
                 <Tag closable onClose={() => setSortBy("CheckupDate")}>
-                  Sắp xếp theo:{" "}
-                  {sortBy === "CreatedAt" ? "Ngày tạo" : "Ngày cập nhật"}
+                  Sort by:{" "}
+                  {sortBy === "CreatedAt" ? "Created Date" : "Updated Date"}
                 </Tag>
               )}
               {ascending !== false && (
                 <Tag closable onClose={() => setAscending(false)}>
-                  Thứ tự: Tăng dần
+                  Order: Ascending
                 </Tag>
               )}
               {checkupDateRange[0] && (
                 <Tag closable onClose={() => setCheckupDateRange([null, null])}>
-                  Ngày khám:{" "}
+                  Checkup Date:{" "}
                   {formatDate(checkupDateRange[0].format("YYYY-MM-DD"))}
                   {checkupDateRange[1] &&
-                    ` đến ${formatDate(
+                    ` to ${formatDate(
                       checkupDateRange[1].format("YYYY-MM-DD")
                     )}`}
                 </Tag>
@@ -814,7 +819,15 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
             onChange: (keys) => setSelectedRowKeys(keys),
           }}
           locale={{
-            emptyText: <Empty description="Không có kết quả khám đã xóa" />,
+            emptyText: (
+              <div className="flex flex-col items-center p-8">
+                <InboxOutlined style={{ fontSize: 40, marginBottom: 16 }} />
+                <Text strong>No deleted health check results found</Text>
+                <Text type="secondary">
+                  There are no deleted health check results matching your search criteria
+                </Text>
+              </div>
+            ),
           }}
           className="border rounded-lg"
         />
@@ -825,22 +838,20 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
         <Row justify="center" align="middle">
           <Space size="large" align="center">
             <Typography.Text type="secondary">
-              Tổng cộng {total} kết quả khám đã xóa
+              Total {total} deleted health check results
             </Typography.Text>
             <Space align="center" size="large">
               <Pagination
                 current={currentPage}
-                pageSize={pageSize}
                 total={total}
-                onChange={(page) => {
-                  setCurrentPage(page);
-                }}
+                pageSize={pageSize}
+                onChange={setCurrentPage}
                 showSizeChanger={false}
-                showTotal={() => ""}
+                showTotal={(totalItems) => `${totalItems} items`}
               />
               <Space align="center">
                 <Typography.Text type="secondary">
-                  Đi đến trang:
+                  Go to page:
                 </Typography.Text>
                 <InputNumber
                   min={1}
