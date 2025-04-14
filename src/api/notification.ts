@@ -13,6 +13,7 @@ export interface NotificationResponseDTO {
   unreadCount: number;
   recipientType: string;
   roleId?: string;
+  roleName?: string;
   recipientIds: string[];
   sendEmail: boolean;
 }
@@ -63,6 +64,11 @@ export const getNotificationDetailForAdmin = async (id: string) => {
 
 export const getNotificationDetailForUser = async (id: string) => {
   const response = await api.get(`/notification-management/notifications/${id}/user`);
+  return response.data.data;
+};
+
+export const getNotificationRecipients = async (id: string) => {
+  const response = await api.get(`/notification-management/notifications/${id}/recipients`);
   return response.data.data;
 };
 

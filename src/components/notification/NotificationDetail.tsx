@@ -21,8 +21,8 @@ import {
   getNotificationDetailForAdmin,
   updateNotificationStatus,
   deleteNotifications,
+  getNotificationRecipients,
 } from "@/api/notification";
-import { getUserById } from "@/api/user";
 import {
   ArrowLeftOutlined,
   BellOutlined,
@@ -132,27 +132,12 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
   const fetchRecipientDetails = async (recipientIds: string[]) => {
     try {
       setLoadingRecipients(true);
-      const fetchPromises = recipientIds.map(async (userId) => {
-        try {
-          const userData = await getUserById(userId);
-          return {
-            id: userData.id,
-            fullName: userData.fullName || "Unknown",
-            email: userData.email || "No email",
-            userName: userData.userName,
-          };
-        } catch (error) {
-          console.error(`Error fetching user ${userId}:`, error);
-          return {
-            id: userId,
-            fullName: "Unknown User",
-            email: "Not available",
-          };
-        }
-      });
 
-      const usersData = await Promise.all(fetchPromises);
-      setRecipients(usersData);
+      // Sử dụng API mới để lấy thông tin của tất cả recipients trong một lần gọi
+      const recipientsData = await getNotificationRecipients(id);
+
+      setRecipients(recipientsData || []);
+      console.log("Recipients loaded:", recipientsData?.length || 0);
     } catch (error) {
       console.error("Error fetching recipient details:", error);
       messageApi.error("Failed to load recipient details");
@@ -216,16 +201,18 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
 
   const renderRecipientType = (type: string | undefined) => {
     switch (type) {
-      case "System":
+      case "SYSTEM":
         return (
           <Tag icon={<TeamOutlined />} color="blue">
             Notify the system
           </Tag>
         );
-      case "Role":
+      case "ROLE":
         return (
           <Tag icon={<TeamOutlined />} color="orange">
-            Role
+            {notification?.roleName
+              ? `Notify the ${notification.roleName.toLowerCase()}`
+              : "Role-Based"}
           </Tag>
         );
       case "User":
@@ -305,29 +292,29 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
 
   // Hàm để chuẩn hóa chuỗi (loại bỏ dấu tiếng Việt và chuyển về chữ thường)
   const normalizeString = (str: string): string => {
-    if (!str) return '';
-    
+    if (!str) return "";
+
     // Chuyển về chữ thường
     str = str.toLowerCase();
-    
+
     // Loại bỏ dấu tiếng Việt
     str = str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    
+
     return str;
   };
 
   const filterAndSortRecipients = () => {
     let result = [...recipients];
-    
+
     // Filter by search text
     if (searchText) {
       const searchNormalized = normalizeString(searchText);
       result = result.filter((user) => {
         const fullNameNormalized = normalizeString(user.fullName);
         const emailNormalized = normalizeString(user.email);
-        
+
         return (
-          fullNameNormalized.includes(searchNormalized) || 
+          fullNameNormalized.includes(searchNormalized) ||
           emailNormalized.includes(searchNormalized)
         );
       });
