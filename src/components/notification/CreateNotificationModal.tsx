@@ -32,6 +32,8 @@ interface CreateNotificationModalProps {
   onSuccess: () => void;
   roles: RoleResponseDTO[];
   notification?: NotificationResponseDTO | null;
+  forceReset?: boolean;
+  initialLoading?: boolean;
 }
 
 const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
@@ -40,6 +42,8 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
   onSuccess,
   roles,
   notification,
+  forceReset = false,
+  initialLoading = false,
 }) => {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
@@ -124,10 +128,32 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
   // Add useEffect to explicitly reset the editor content when modal is no longer visible
   useEffect(() => {
     if (!visible) {
+      console.log("Modal closed, resetting editor content");
       setEditorContent("");
       form.resetFields();
     }
   }, [visible, form]);
+
+  // Add useEffect to reset content when switching between create/copy mode
+  useEffect(() => {
+    if (visible) {
+      // Nếu không có notification (mode create), xóa sạch editorContent
+      if (!notification) {
+        console.log("Create mode: resetting editor content");
+        setEditorContent("");
+      }
+    }
+  }, [visible, notification]);
+
+  // Thêm useEffect để reset editor content khi forceReset = true
+  useEffect(() => {
+    if (forceReset && visible) {
+      console.log("Force reset applied");
+      setEditorContent("");
+      form.resetFields();
+      setCurrentRecipientType("System");
+    }
+  }, [forceReset, visible, form]);
 
   const handleOk = async () => {
     try {
@@ -173,9 +199,11 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
           response.message || "Notification created successfully"
         );
         onSuccess();
+        // Reset form và data
         form.resetFields();
         setEditorContent("");
         setFileList([]);
+        setCurrentRecipientType("System");
       } else {
         message.error(response.message || "Failed to create notification");
       }
@@ -187,9 +215,11 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
   };
 
   const handleCancel = () => {
+    console.log("Modal cancelled, cleaning up all data");
     form.resetFields();
     setEditorContent("");
     setFileList([]);
+    setCurrentRecipientType("System");
     onClose();
   };
 
@@ -257,8 +287,17 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
         </Button>,
       ]}
       width={800}
+      destroyOnClose={true}
     >
-      {formInitialized && (
+      {/* Hiển thị loading khi đang lấy dữ liệu notification chi tiết */}
+      {initialLoading && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+          <Spin tip="Loading notification details..." />
+        </div>
+      )}
+      
+      {/* Hiển thị form khi đã khởi tạo và không trong trạng thái initialLoading */}
+      {formInitialized && !initialLoading && (
         <Form
           form={form}
           layout="vertical"
@@ -350,13 +389,18 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
           </Form.Item>
         </Form>
       )}
-      {!formInitialized && (
+      
+      {/* Hiển thị loading khi form đang khởi tạo */}
+      {!formInitialized && !initialLoading && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-          <Spin tip="Loading..." />
+          <Spin tip="Initializing form..." />
         </div>
       )}
     </Modal>
   );
 };
+
+// Tạo thêm một component riêng với cùng code để làm CopyNotificationModal
+export const CopyNotificationModal = CreateNotificationModal;
 
 export default CreateNotificationModal;

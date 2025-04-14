@@ -44,7 +44,7 @@ import dayjs from "dayjs";
 
 import NotificationFilterModal from "./NotificationFilterModal";
 import ExportConfigModal from "./ExportConfigModal";
-import CreateNotificationModal from "./CreateNotificationModal";
+import CreateNotificationModal, { CopyNotificationModal } from "./CreateNotificationModal";
 import NotificationTable from "./NotificationTable";
 
 import {
@@ -71,6 +71,7 @@ export function NotificationManagement() {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
+  const [copyLoading, setCopyLoading] = useState(false);
   const [notifications, setNotifications] = useState<NotificationResponseDTO[]>(
     []
   );
@@ -78,6 +79,7 @@ export function NotificationManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [copyModalVisible, setCopyModalVisible] = useState(false);
   const [exportConfigModalVisible, setExportConfigModalVisible] =
     useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -376,6 +378,7 @@ export function NotificationManagement() {
   // Handle successful creation
   const handleCreateSuccess = () => {
     setCreateModalVisible(false);
+    setSelectedNotification(null);
     fetchNotifications();
   };
 
@@ -725,19 +728,19 @@ export function NotificationManagement() {
           console.log("Copy button clicked for notification:", notification.id);
           
           // Lấy chi tiết đầy đủ của notification từ API
-          setLoading(true);
+          setCopyLoading(true);
           getNotificationDetailForAdmin(notification.id)
             .then(detailedNotification => {
               console.log("Fetched detailed notification for copy:", detailedNotification);
               setSelectedNotification(detailedNotification);
-              setCreateModalVisible(true);
+              setCopyModalVisible(true);
             })
             .catch(error => {
               console.error("Failed to get notification details:", error);
               message.error("Failed to get notification details for copying");
             })
             .finally(() => {
-              setLoading(false);
+              setCopyLoading(false);
             });
         }}
         columnVisibility={columnVisibility}
@@ -762,10 +765,26 @@ export function NotificationManagement() {
 
       <CreateNotificationModal
         visible={createModalVisible}
-        onClose={() => setCreateModalVisible(false)}
+        onClose={() => {
+          setCreateModalVisible(false);
+        }}
+        onSuccess={handleCreateSuccess}
+        roles={roles}
+        notification={null}
+        forceReset={true}
+      />
+
+      <CopyNotificationModal
+        visible={copyModalVisible}
+        onClose={() => {
+          setCopyModalVisible(false);
+          setSelectedNotification(null);
+        }}
         onSuccess={handleCreateSuccess}
         roles={roles}
         notification={selectedNotification}
+        forceReset={false}
+        initialLoading={copyLoading}
       />
     </div>
   );
