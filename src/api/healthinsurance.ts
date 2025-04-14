@@ -93,6 +93,17 @@ export interface HistoryDTO {
   changeDetails: string;
 }
 
+export interface UpdateRequestParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: string;
+  ascending?: boolean;
+  status?: string;
+  requestedAtFrom?: string;
+  requestedAtTo?: string;
+}
+
 export const getAllHealthInsurances = async (
   page: number = 1,
   pageSize: number = 10,
@@ -318,19 +329,31 @@ export const resendUpdateRequest = async (id: string) => {
 };
 
 export const getUpdateRequests = async (
-  page: number = 1,
+  params: UpdateRequestParams | number,
   pageSize: number = 10,
   search?: string,
   sortBy: string = "RequestedAt",
   ascending: boolean = false,
   status?: string
 ) => {
-  const response = await api.get(
-    "/health-insurance-management/insurances/update-requests",
-    {
-      params: { page, pageSize, search, sortBy, ascending, status },
-    }
-  );
+  let requestParams: UpdateRequestParams;
+  
+  if (typeof params === 'number') {
+    requestParams = {
+      page: params,
+      pageSize,
+      search,
+      sortBy,
+      ascending,
+      status
+    };
+  } else {
+    requestParams = params;
+  }
+  
+  const response = await api.get("/health-insurance-management/update-requests", {
+    params: requestParams,
+  });
   return response.data;
 };
 
