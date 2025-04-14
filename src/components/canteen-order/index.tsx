@@ -193,7 +193,9 @@ export function CanteenOrders() {
     "Loading canteen orders..."
   );
 
-  const [canteenOrders, setCanteenOrders] = useState<CanteenOrderResponse[]>([]);
+  const [canteenOrders, setCanteenOrders] = useState<CanteenOrderResponse[]>(
+    []
+  );
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -238,13 +240,14 @@ export function CanteenOrders() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // State for order details modal
-  const [selectedOrder, setSelectedOrder] = useState<CanteenOrderResponse | null>(null);
+  const [selectedOrder, setSelectedOrder] =
+    useState<CanteenOrderResponse | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   // Selection helper variables
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isLoadingAllItems, setIsLoadingAllItems] = useState<boolean>(false);
-  
+
   // Export to Excel states
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportConfig, setExportConfig] = useState<CanteenOrderExportConfig>({
@@ -256,7 +259,7 @@ export function CanteenOrders() {
     includeStatus: true,
     includeOrderDetails: true,
   });
-  
+
   const fetchCanteenOrders = useCallback(async () => {
     if (initialLoading) {
       setLoadingMessage("Loading canteen orders...");
@@ -288,7 +291,7 @@ export function CanteenOrders() {
       const selectedOrdersData = canteenOrders.filter((order) =>
         selectedRowKeys.includes(order.id)
       );
-      
+
       // Check if any selected order has a status we can act on
       const hasPending = selectedOrdersData.some(
         (order) => order.status === "Pending"
@@ -319,125 +322,139 @@ export function CanteenOrders() {
   const headerColumns = React.useMemo(() => {
     if (areAllColumnsVisible()) return staticColumns;
 
-    return staticColumns.filter((column) =>
-      columnVisibility[column.key as string]
+    return staticColumns.filter(
+      (column) => columnVisibility[column.key as string]
     );
   }, [columnVisibility]);
 
   const filteredAndSortedOrders = useMemo(() => {
     let filtered = [...canteenOrders];
-    
+
     // Basic search filter
     if (filterValue) {
       filtered = filtered.filter((order) =>
-        order.truck.licensePlate.toLowerCase().includes(filterValue.toLowerCase())
+        order.truck.licensePlate
+          .toLowerCase()
+          .includes(filterValue.toLowerCase())
       );
     }
-    
+
     // Basic status filter
     if (statusFilter.length > 0) {
-      filtered = filtered.filter((order) => 
-        order.status && statusFilter.includes(order.status)
+      filtered = filtered.filter(
+        (order) => order.status && statusFilter.includes(order.status)
       );
     }
-    
+
     // Apply advanced filters
     if (advancedFilters.licensePlate) {
-      filtered = filtered.filter((order) =>
-        order.truck.licensePlate === advancedFilters.licensePlate
+      filtered = filtered.filter(
+        (order) => order.truck.licensePlate === advancedFilters.licensePlate
       );
     }
-    
+
     if (advancedFilters.driverName) {
-      filtered = filtered.filter((order) =>
-        order.truck.driverName === advancedFilters.driverName
+      filtered = filtered.filter(
+        (order) => order.truck.driverName === advancedFilters.driverName
       );
     }
-    
+
     if (advancedFilters.status && advancedFilters.status.length > 0) {
-      filtered = filtered.filter((order) =>
-        order.status && advancedFilters.status.includes(order.status)
+      filtered = filtered.filter(
+        (order) => order.status && advancedFilters.status.includes(order.status)
       );
     }
-    
+
     // Date range filters
     const [orderStartDate, orderEndDate] = advancedFilters.orderDateRange;
     if (orderStartDate && orderEndDate) {
       filtered = filtered.filter((order) => {
         const orderDate = dayjs(order.orderDate);
-        return orderDate.isAfter(orderStartDate, 'day') || orderDate.isSame(orderStartDate, 'day') &&
-               (orderDate.isBefore(orderEndDate, 'day') || orderDate.isSame(orderEndDate, 'day'));
+        return (
+          orderDate.isAfter(orderStartDate, "day") ||
+          (orderDate.isSame(orderStartDate, "day") &&
+            (orderDate.isBefore(orderEndDate, "day") ||
+              orderDate.isSame(orderEndDate, "day")))
+        );
       });
     }
-    
+
     const [createdStartDate, createdEndDate] = advancedFilters.createdDateRange;
     if (createdStartDate && createdEndDate) {
       filtered = filtered.filter((order) => {
         const createdDate = dayjs(order.createdAt);
-        return createdDate.isAfter(createdStartDate, 'day') || createdDate.isSame(createdStartDate, 'day') &&
-               (createdDate.isBefore(createdEndDate, 'day') || createdDate.isSame(createdEndDate, 'day'));
+        return (
+          createdDate.isAfter(createdStartDate, "day") ||
+          (createdDate.isSame(createdStartDate, "day") &&
+            (createdDate.isBefore(createdEndDate, "day") ||
+              createdDate.isSame(createdEndDate, "day")))
+        );
       });
     }
-    
+
     const [updatedStartDate, updatedEndDate] = advancedFilters.updatedDateRange;
     if (updatedStartDate && updatedEndDate) {
       filtered = filtered.filter((order) => {
         if (!order.updatedAt) return false;
         const updatedDate = dayjs(order.updatedAt);
-        return updatedDate.isAfter(updatedStartDate, 'day') || updatedDate.isSame(updatedStartDate, 'day') &&
-               (updatedDate.isBefore(updatedEndDate, 'day') || updatedDate.isSame(updatedEndDate, 'day'));
+        return (
+          updatedDate.isAfter(updatedStartDate, "day") ||
+          (updatedDate.isSame(updatedStartDate, "day") &&
+            (updatedDate.isBefore(updatedEndDate, "day") ||
+              updatedDate.isSame(updatedEndDate, "day")))
+        );
       });
     }
-    
+
     // Advanced sorting
     if (advancedFilters.sortBy) {
       filtered.sort((a, b) => {
         let comparison = 0;
-        
-        if (advancedFilters.sortBy === 'OrderDate') {
+
+        if (advancedFilters.sortBy === "OrderDate") {
           comparison = dayjs(a.orderDate).unix() - dayjs(b.orderDate).unix();
-        } else if (advancedFilters.sortBy === 'LicensePlate') {
+        } else if (advancedFilters.sortBy === "LicensePlate") {
           comparison = a.truck.licensePlate.localeCompare(b.truck.licensePlate);
-        } else if (advancedFilters.sortBy === 'DriverName') {
+        } else if (advancedFilters.sortBy === "DriverName") {
           comparison = a.truck.driverName.localeCompare(b.truck.driverName);
-        } else if (advancedFilters.sortBy === 'Status') {
-          comparison = (a.status || '').localeCompare(b.status || '');
-        } else if (advancedFilters.sortBy === 'CreatedAt') {
+        } else if (advancedFilters.sortBy === "Status") {
+          comparison = (a.status || "").localeCompare(b.status || "");
+        } else if (advancedFilters.sortBy === "CreatedAt") {
           comparison = dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix();
-        } else if (advancedFilters.sortBy === 'UpdatedAt') {
+        } else if (advancedFilters.sortBy === "UpdatedAt") {
           const aTime = a.updatedAt ? dayjs(a.updatedAt).unix() : 0;
           const bTime = b.updatedAt ? dayjs(b.updatedAt).unix() : 0;
           comparison = aTime - bTime;
         }
-        
+
         return advancedFilters.ascending ? comparison : -comparison;
       });
-      
+
       return filtered;
     }
-    
+
     // Basic sorting if advanced sorting is not applied
     if (sorter && !Array.isArray(sorter) && sorter.field) {
       const { field, order } = sorter;
       filtered.sort((a, b) => {
         let comparison = 0;
-        
-        if (field === 'licensePlate') {
+
+        if (field === "licensePlate") {
           comparison = a.truck.licensePlate.localeCompare(b.truck.licensePlate);
-        } else if (field === 'driverName') {
+        } else if (field === "driverName") {
           comparison = a.truck.driverName.localeCompare(b.truck.driverName);
-        } else if (field === 'orderDate') {
+        } else if (field === "orderDate") {
           comparison = dayjs(a.orderDate).unix() - dayjs(b.orderDate).unix();
-        } else if (field === 'updatedAt') {
+        } else if (field === "updatedAt") {
           const aTime = a.updatedAt ? dayjs(a.updatedAt).unix() : 0;
           const bTime = b.updatedAt ? dayjs(b.updatedAt).unix() : 0;
           comparison = aTime - bTime;
         }
-        
-        return order === 'ascend' ? comparison : -comparison;
+
+        return order === "ascend" ? comparison : -comparison;
       });
     }
-    
+
     return filtered;
   }, [canteenOrders, filterValue, statusFilter, sorter, advancedFilters]);
 
@@ -540,7 +557,7 @@ export function CanteenOrders() {
     setEditingOrderId(id);
     setIsEditModalOpen(true);
   };
-  
+
   const handleOpenDeleteModal = (id: string) => {
     setDeletingOrderId(id);
     setIsDeleteModalOpen(true);
@@ -569,24 +586,31 @@ export function CanteenOrders() {
     }
   };
 
-  const showConfirm = (action: "approve" | "reject" | "complete" | "delete", onOk: () => void) => {
+  const showConfirm = (
+    action: "approve" | "reject" | "complete" | "delete",
+    onOk: () => void
+  ) => {
     const selectedOrdersData = canteenOrders.filter((o) =>
       selectedRowKeys.includes(o.id)
     );
-    
+
     let targetStatus = "";
     let count = 0;
-    
+
     if (action === "approve") {
       targetStatus = "Pending";
-      count = selectedOrdersData.filter(o => o.status === targetStatus).length;
+      count = selectedOrdersData.filter(
+        (o) => o.status === targetStatus
+      ).length;
     } else if (action === "reject") {
-      count = selectedOrdersData.filter(o => 
-        o.status === "Pending" || o.status === "Approved"
+      count = selectedOrdersData.filter(
+        (o) => o.status === "Pending" || o.status === "Approved"
       ).length;
     } else if (action === "complete") {
       targetStatus = "Approved";
-      count = selectedOrdersData.filter(o => o.status === targetStatus).length;
+      count = selectedOrdersData.filter(
+        (o) => o.status === targetStatus
+      ).length;
     } else if (action === "delete") {
       // Đối với xóa, đếm tất cả các item được chọn
       count = selectedOrdersData.length;
@@ -656,9 +680,10 @@ export function CanteenOrders() {
 
   const handleReject = async () => {
     const idsToReject = canteenOrders
-      .filter((o) => 
-        selectedRowKeys.includes(o.id) && 
-        (o.status === "Pending" || o.status === "Approved")
+      .filter(
+        (o) =>
+          selectedRowKeys.includes(o.id) &&
+          (o.status === "Pending" || o.status === "Approved")
       )
       .map((o) => o.id);
 
@@ -726,23 +751,23 @@ export function CanteenOrders() {
       setLoading(false);
     }
   };
-  
+
   const handleDelete = async () => {
     if (!deletingOrderId && selectedRowKeys.length === 0) return;
-    
+
     setLoadingMessage("Deleting orders...");
     setLoading(true);
-    
+
     try {
       // Si tenemos un ID de orden específico para eliminar
       if (deletingOrderId) {
         await deleteCanteenOrder(deletingOrderId);
         messageApi.success("Canteen order deleted successfully", 5);
-        setCanteenOrders((prevOrders) => 
-          prevOrders.filter(order => order.id !== deletingOrderId)
+        setCanteenOrders((prevOrders) =>
+          prevOrders.filter((order) => order.id !== deletingOrderId)
         );
         setDeletingOrderId("");
-      } 
+      }
       // Si tenemos múltiples órdenes seleccionadas
       else if (selectedRowKeys.length > 0) {
         // Nota: Asumimos que el API soporta eliminación por lotes
@@ -751,12 +776,12 @@ export function CanteenOrders() {
           await deleteCanteenOrder(id as string);
         }
         messageApi.success("Selected canteen orders deleted successfully", 5);
-        setCanteenOrders((prevOrders) => 
-          prevOrders.filter(order => !selectedRowKeys.includes(order.id))
+        setCanteenOrders((prevOrders) =>
+          prevOrders.filter((order) => !selectedRowKeys.includes(order.id))
         );
         setSelectedRowKeys([]);
       }
-      
+
       setIsDeleteModalOpen(false);
     } catch (error) {
       messageApi.error("Failed to delete canteen order(s)", 5);
@@ -773,7 +798,7 @@ export function CanteenOrders() {
         new Set(canteenOrders.map((order) => order.truck.licensePlate))
       );
       setLicensePlateOptions(uniqueLicensePlates);
-      
+
       // Extract unique driver names for filter options
       const uniqueDriverNames = Array.from(
         new Set(canteenOrders.map((order) => order.truck.driverName))
@@ -791,14 +816,14 @@ export function CanteenOrders() {
 
   const updatePageInUrl = (newPage: number) => {
     const query = { ...router.query };
-    
+
     if (newPage === 1) {
       // Remove page parameter if it's the default page
       delete query.page;
     } else {
       query.page = newPage.toString();
     }
-    
+
     router.push(
       {
         pathname: router.pathname,
@@ -866,9 +891,11 @@ export function CanteenOrders() {
           return {
             ...col,
             render: (_: string, record: CanteenOrderResponse) => (
-              <span 
-                className="text-primary cursor-pointer hover:underline" 
-                onClick={() => router.push(`/canteen-order/details?id=${record.id}`)}
+              <span
+                className="text-primary cursor-pointer hover:underline"
+                onClick={() =>
+                  router.push(`/canteen-order/details?id=${record.id}`)
+                }
               >
                 {record.truck.licensePlate}
               </span>
@@ -879,9 +906,7 @@ export function CanteenOrders() {
           return {
             ...col,
             render: (_: string, record: CanteenOrderResponse) => (
-              <span>
-                {record.truck.driverName}
-              </span>
+              <span>{record.truck.driverName}</span>
             ),
           };
         }
@@ -889,7 +914,9 @@ export function CanteenOrders() {
           return {
             ...col,
             render: (status: string) => (
-              <Tag color={statusColorMap[status as keyof typeof statusColorMap]}>
+              <Tag
+                color={statusColorMap[status as keyof typeof statusColorMap]}
+              >
                 {status ? status.toUpperCase() : ""}
               </Tag>
             ),
@@ -901,12 +928,18 @@ export function CanteenOrders() {
             render: (createdBy: any) => (
               <div>
                 <div>{createdBy.userName}</div>
-                <Tag color={roleColorMap[createdBy.role] || "default"}>{createdBy.role}</Tag>
+                <Tag color={roleColorMap[createdBy.role] || "default"}>
+                  {createdBy.role}
+                </Tag>
               </div>
             ),
           };
         }
-        if (col.key === "orderDate" || col.key === "createdAt" || col.key === "updatedAt") {
+        if (
+          col.key === "orderDate" ||
+          col.key === "createdAt" ||
+          col.key === "updatedAt"
+        ) {
           return {
             ...col,
             render: (date: string) =>
@@ -924,32 +957,36 @@ export function CanteenOrders() {
 
   const renderSelectAll = () => {
     // Count orders by status
-    const pendingCount = paginatedOrders.filter(order => order.status === "Pending").length;
-    const approvedCount = paginatedOrders.filter(order => order.status === "Approved").length;
-    const rejectedCount = paginatedOrders.filter(order => order.status === "Rejected").length;
-    const completedCount = paginatedOrders.filter(order => order.status === "Completed").length;
+    const pendingCount = paginatedOrders.filter(
+      (order) => order.status === "Pending"
+    ).length;
+    const approvedCount = paginatedOrders.filter(
+      (order) => order.status === "Approved"
+    ).length;
+    const rejectedCount = paginatedOrders.filter(
+      (order) => order.status === "Rejected"
+    ).length;
+    const completedCount = paginatedOrders.filter(
+      (order) => order.status === "Completed"
+    ).length;
 
     // Count selectable orders
     const selectableOrders = paginatedOrders;
 
     const isSelectAll =
       selectableOrders.length > 0 &&
-      selectableOrders.every((order) =>
-        selectedRowKeys.includes(order.id)
-      );
+      selectableOrders.every((order) => selectedRowKeys.includes(order.id));
 
     const isIndeterminate =
       selectedRowKeys.length > 0 &&
       !isSelectAll &&
-      selectableOrders.some((order) =>
-        selectedRowKeys.includes(order.id)
-      );
+      selectableOrders.some((order) => selectedRowKeys.includes(order.id));
 
     // Handle select all checkbox
     const handleSelectAllChange = (e: CheckboxChangeEvent) => {
       if (e.target.checked) {
         // Select all items on the current page without status validation
-        const currentPageIds = selectableOrders.map(order => order.id);
+        const currentPageIds = selectableOrders.map((order) => order.id);
         setSelectedRowKeys(currentPageIds);
       } else {
         // Deselect all
@@ -961,57 +998,69 @@ export function CanteenOrders() {
     // Create dropdown items for status selection
     const dropdownItems = [
       {
-        key: 'page-pending',
-        label: `Select all Pending on this page (${pendingCount})`
+        key: "page-pending",
+        label: `Select all Pending on this page (${pendingCount})`,
       },
       {
-        key: 'all-pending',
-        label: isLoadingAllItems && selectedOption === "all-pending" ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Spin size="small" />
-            <span>Loading all Pending...</span>
-          </div>
-        ) : "Select all Pending (all pages)"
+        key: "all-pending",
+        label:
+          isLoadingAllItems && selectedOption === "all-pending" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Spin size="small" />
+              <span>Loading all Pending...</span>
+            </div>
+          ) : (
+            "Select all Pending (all pages)"
+          ),
       },
       {
-        key: 'page-approved',
-        label: `Select all Approved on this page (${approvedCount})`
+        key: "page-approved",
+        label: `Select all Approved on this page (${approvedCount})`,
       },
       {
-        key: 'all-approved',
-        label: isLoadingAllItems && selectedOption === "all-approved" ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Spin size="small" />
-            <span>Loading all Approved...</span>
-          </div>
-        ) : "Select all Approved (all pages)"
+        key: "all-approved",
+        label:
+          isLoadingAllItems && selectedOption === "all-approved" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Spin size="small" />
+              <span>Loading all Approved...</span>
+            </div>
+          ) : (
+            "Select all Approved (all pages)"
+          ),
       },
       {
-        key: 'page-rejected',
-        label: `Select all Rejected on this page (${rejectedCount})`
+        key: "page-rejected",
+        label: `Select all Rejected on this page (${rejectedCount})`,
       },
       {
-        key: 'all-rejected',
-        label: isLoadingAllItems && selectedOption === "all-rejected" ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Spin size="small" />
-            <span>Loading all Rejected...</span>
-          </div>
-        ) : "Select all Rejected (all pages)"
+        key: "all-rejected",
+        label:
+          isLoadingAllItems && selectedOption === "all-rejected" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Spin size="small" />
+              <span>Loading all Rejected...</span>
+            </div>
+          ) : (
+            "Select all Rejected (all pages)"
+          ),
       },
       {
-        key: 'page-completed',
-        label: `Select all Completed on this page (${completedCount})`
+        key: "page-completed",
+        label: `Select all Completed on this page (${completedCount})`,
       },
       {
-        key: 'all-completed',
-        label: isLoadingAllItems && selectedOption === "all-completed" ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Spin size="small" />
-            <span>Loading all Completed...</span>
-          </div>
-        ) : "Select all Completed (all pages)"
-      }
+        key: "all-completed",
+        label:
+          isLoadingAllItems && selectedOption === "all-completed" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Spin size="small" />
+              <span>Loading all Completed...</span>
+            </div>
+          ) : (
+            "Select all Completed (all pages)"
+          ),
+      },
     ];
 
     return (
@@ -1022,13 +1071,13 @@ export function CanteenOrders() {
           disabled={selectableOrders.length === 0}
           onChange={handleSelectAllChange}
         />
-        
+
         {dropdownItems.length > 0 && (
           <Dropdown
             menu={{
               items: dropdownItems,
               onClick: ({ key }) => handleSelectByStatus(key),
-              selectedKeys: selectedOption ? [selectedOption] : []
+              selectedKeys: selectedOption ? [selectedOption] : [],
             }}
             placement="bottomLeft"
             trigger={["click"]}
@@ -1060,7 +1109,7 @@ export function CanteenOrders() {
     onChange: (keys: React.Key[], selectedRows: CanteenOrderResponse[]) => {
       // Simply update the selection without any validation
       setSelectedRowKeys(keys);
-      
+
       // Clear selected option if manually deselecting
       if (keys.length < selectedRowKeys.length) {
         setSelectedOption(null);
@@ -1074,17 +1123,14 @@ export function CanteenOrders() {
 
   const renderSelectedInfo = () => {
     if (selectedRowKeys.length === 0) return null;
-    
+
     return (
       <Space>
         <Text>{selectedRowKeys.length} items selected</Text>
-        <Button
-          icon={<UndoOutlined />}
-          onClick={() => setSelectedRowKeys([])}
-        >
+        <Button icon={<UndoOutlined />} onClick={() => setSelectedRowKeys([])}>
           Clear
         </Button>
-        
+
         {showApproveButton && (
           <Button
             className="bg-success-100 text-primary border-primary"
@@ -1094,7 +1140,7 @@ export function CanteenOrders() {
             Approve Selected
           </Button>
         )}
-        
+
         {showRejectButton && (
           <Button
             className="bg-danger-100 text-danger border-danger"
@@ -1104,7 +1150,7 @@ export function CanteenOrders() {
             Reject Selected
           </Button>
         )}
-        
+
         {showCompleteButton && (
           <Button
             className="bg-success-100 text-success border-success"
@@ -1114,7 +1160,7 @@ export function CanteenOrders() {
             Complete Selected
           </Button>
         )}
-        
+
         <Button
           danger
           onClick={() => showConfirm("delete", handleDelete)}
@@ -1183,7 +1229,7 @@ export function CanteenOrders() {
 
       let statusToSelect = "";
       let selectCurrentPage = key.startsWith("page-");
-      
+
       if (key.includes("pending")) {
         statusToSelect = "Pending";
       } else if (key.includes("approved")) {
@@ -1193,15 +1239,18 @@ export function CanteenOrders() {
       } else if (key.includes("completed")) {
         statusToSelect = "Completed";
       }
-      
+
       // Get order IDs with the specified status
       if (statusToSelect) {
-        const selectedOrderIds = await getOrderIdsByStatus(statusToSelect, selectCurrentPage);
+        const selectedOrderIds = await getOrderIdsByStatus(
+          statusToSelect,
+          selectCurrentPage
+        );
         setSelectedRowKeys(selectedOrderIds);
       }
     }
   };
-  
+
   // Function to get order IDs by status
   const getOrderIdsByStatus = async (
     status: string,
@@ -1239,8 +1288,10 @@ export function CanteenOrders() {
     setExportModalVisible(true);
   };
 
-  const handleExportConfigChange = (newConfig: Partial<CanteenOrderExportConfig>) => {
-    setExportConfig(prev => ({ ...prev, ...newConfig }));
+  const handleExportConfigChange = (
+    newConfig: Partial<CanteenOrderExportConfig>
+  ) => {
+    setExportConfig((prev) => ({ ...prev, ...newConfig }));
   };
 
   const handleExportToExcel = async (config: CanteenOrderExportConfig) => {
@@ -1248,32 +1299,37 @@ export function CanteenOrders() {
       setLoading(true);
       setLoadingMessage("Exporting to Excel...");
       console.log("Attempting to export with config:", config);
-      
+
       // Đóng modal ngay khi bắt đầu export
       setExportModalVisible(false);
-      
+
       const result = await exportCanteenOrdersToExcel(config);
       if (result === true) {
-        messageApi.success("Exported to Excel successfully - check your downloads", 5);
+        messageApi.success(
+          "Exported to Excel successfully - check your downloads",
+          5
+        );
       }
     } catch (error: any) {
       console.error("Error exporting to Excel:", error);
-      
+
       // Hiển thị thông báo lỗi chi tiết hơn
       const errorMessage = error?.message || "Failed to export to Excel";
-      
+
       // Hiển thị modal lỗi với thông tin chi tiết
       Modal.error({
-        title: 'Export Failed',
+        title: "Export Failed",
         content: (
           <div>
             <p>{errorMessage}</p>
             <p>Please try again or contact support if the issue persists.</p>
-            <p style={{ fontSize: '12px', marginTop: '10px' }}>Error details: {error?.toString()}</p>
+            <p style={{ fontSize: "12px", marginTop: "10px" }}>
+              Error details: {error?.toString()}
+            </p>
           </div>
         ),
       });
-      
+
       messageApi.error(errorMessage, 5);
     } finally {
       // Đảm bảo loading state được reset
@@ -1293,7 +1349,9 @@ export function CanteenOrders() {
           >
             Back
           </Button>
-          <span style={{ fontSize: "24px" }}><CanteenOrderIcon /></span>
+          <span style={{ fontSize: "24px" }}>
+            <CanteenOrderIcon />
+          </span>
           <h3 className="text-xl font-bold">Canteen Order Management</h3>
         </div>
       </div>
@@ -1332,16 +1390,18 @@ export function CanteenOrders() {
                       value={filterValue || undefined}
                       onChange={handleSearchChange}
                       style={{ width: "300px" }}
-                      options={licensePlateOptions.map(plate => ({ 
-                        label: plate, 
-                        value: plate 
+                      options={licensePlateOptions.map((plate) => ({
+                        label: plate,
+                        value: plate,
                       }))}
                       filterOption={(input, option) =>
-                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                        (option?.label ?? "")
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
                       }
                       notFoundContent="No license plates found"
                     />
-                    
+
                     <Select
                       mode="multiple"
                       allowClear
@@ -1397,7 +1457,7 @@ export function CanteenOrders() {
                                 toggleAllColumns(e.target.checked)
                               }
                             >
-                              <strong>Show All Columns</strong>
+                              Toggle All
                             </Checkbox>
                           </Menu.Item>
                           <Menu.Divider />
@@ -1459,7 +1519,7 @@ export function CanteenOrders() {
                         <Button icon={<SettingOutlined />}>Columns</Button>
                       </Tooltip>
                     </Dropdown>
-                    
+
                     <Button
                       type="primary"
                       icon={<PlusOutlined />}
@@ -1475,7 +1535,11 @@ export function CanteenOrders() {
                       type="primary"
                       icon={<FileExcelOutlined />}
                       onClick={handleOpenExportModal}
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
                     >
                       Export to Excel
                     </Button>
@@ -1486,12 +1550,8 @@ export function CanteenOrders() {
 
             {/* Container for selected info and rows per page */}
             <div className="mb-4 py-2 flex justify-between items-center">
-              <div>
-                {renderSelectedInfo()}
-              </div>
-              <div>
-                {renderRowsPerPage()}
-              </div>
+              <div>{renderSelectedInfo()}</div>
+              <div>{renderRowsPerPage()}</div>
             </div>
 
             <Card
@@ -1532,13 +1592,15 @@ export function CanteenOrders() {
                           min={1}
                           max={Math.max(
                             1,
-                            Math.ceil(
-                              filteredAndSortedOrders.length / pageSize
-                            )
+                            Math.ceil(filteredAndSortedOrders.length / pageSize)
                           )}
                           value={currentPage}
-                          onPressEnter={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                            const value = Number((e.target as HTMLInputElement).value);
+                          onPressEnter={(
+                            e: React.KeyboardEvent<HTMLInputElement>
+                          ) => {
+                            const value = Number(
+                              (e.target as HTMLInputElement).value
+                            );
                             if (
                               value > 0 &&
                               value <=
@@ -1590,14 +1652,20 @@ export function CanteenOrders() {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirmDelete={handleDelete}
-        order={canteenOrders.find(order => order.id === deletingOrderId) || null}
+        order={
+          canteenOrders.find((order) => order.id === deletingOrderId) || null
+        }
       />
 
       <Modal
         title={`Confirm ${
-          confirmAction === "approve" ? "Approval" : 
-          confirmAction === "reject" ? "Rejection" : 
-          confirmAction === "complete" ? "Completion" : "Deletion"
+          confirmAction === "approve"
+            ? "Approval"
+            : confirmAction === "reject"
+            ? "Rejection"
+            : confirmAction === "complete"
+            ? "Completion"
+            : "Deletion"
         }`}
         open={isConfirmModalOpen}
         onCancel={() => setIsConfirmModalOpen(false)}
@@ -1617,22 +1685,32 @@ export function CanteenOrders() {
       >
         {confirmAction === "approve" ? (
           <p>
-            Are you sure you want to approve the selected canteen orders? <strong>Only orders with "Pending" status will be approved.</strong> Once approved, 
-            you can no longer edit the order, but you can reject or complete it.
+            Are you sure you want to approve the selected canteen orders?{" "}
+            <strong>Only orders with "Pending" status will be approved.</strong>{" "}
+            Once approved, you can no longer edit the order, but you can reject
+            or complete it.
           </p>
         ) : confirmAction === "reject" ? (
           <p>
-            Are you sure you want to reject the selected canteen orders? <strong>Only orders with "Pending" or "Approved" status will be rejected.</strong> Once rejected, 
-            the order and its details will be marked inactive and no further actions can be performed.
+            Are you sure you want to reject the selected canteen orders?{" "}
+            <strong>
+              Only orders with "Pending" or "Approved" status will be rejected.
+            </strong>{" "}
+            Once rejected, the order and its details will be marked inactive and
+            no further actions can be performed.
           </p>
         ) : confirmAction === "complete" ? (
           <p>
-            Are you sure you want to complete the selected canteen orders? <strong>Only orders with "Approved" status will be completed.</strong> Once completed, 
-            the order will be finalized.
+            Are you sure you want to complete the selected canteen orders?{" "}
+            <strong>
+              Only orders with "Approved" status will be completed.
+            </strong>{" "}
+            Once completed, the order will be finalized.
           </p>
         ) : (
           <p>
-            Are you sure you want to delete the selected canteen orders? This action cannot be undone.
+            Are you sure you want to delete the selected canteen orders? This
+            action cannot be undone.
           </p>
         )}
       </Modal>

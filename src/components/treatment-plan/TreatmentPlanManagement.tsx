@@ -10,6 +10,9 @@ import {
   Dropdown,
   Checkbox,
   Modal as AntdModal,
+  Row,
+  Col,
+  Divider,
 } from "antd";
 import {
   PlusOutlined,
@@ -412,13 +415,19 @@ export function TreatmentPlanManagement() {
           );
         }
 
-        console.log(`Fetched ${allData.length} treatment plans for dropdown options`);
+        console.log(
+          `Fetched ${allData.length} treatment plans for dropdown options`
+        );
 
         // Extract dropdown options - sắp xếp theo ngày tạo mới nhất trước
-        allData.sort((a: TreatmentPlanResponseDTO, b: TreatmentPlanResponseDTO) => {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-        
+        allData.sort(
+          (a: TreatmentPlanResponseDTO, b: TreatmentPlanResponseDTO) => {
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+          }
+        );
+
         // Extract dropdown options
         extractDataFromTreatmentPlans(allData);
       } else {
@@ -957,20 +966,21 @@ export function TreatmentPlanManagement() {
       <Card
         className="shadow mb-4"
         bodyStyle={{ padding: "16px" }}
-        title={
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "16px",
-            }}
-          >
-            <AppstoreOutlined />
-            <span>Toolbar</span>
-          </div>
-        }
+        style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
       >
+        <Row align="middle" gutter={[16, 16]}>
+          <Col span={24}>
+            <Title level={4} style={{ margin: 0 }}>
+              <AppstoreOutlined
+                style={{ marginRight: "8px", fontSize: "20px" }}
+              />
+              Toolbar
+            </Title>
+          </Col>
+        </Row>
+
+        <Divider style={{ margin: "16px 0" }} />
+
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Treatment Plan Code Search */}
@@ -1071,9 +1081,7 @@ export function TreatmentPlanManagement() {
                     updatedDateRange[1]
                   )
                 }
-              >
-                Reset
-              </Button>
+              />
             </Tooltip>
 
             {/* Column Settings */}
@@ -1088,7 +1096,7 @@ export function TreatmentPlanManagement() {
                           checked={areAllColumnsVisible()}
                           onChange={(e) => toggleAllColumns(e.target.checked)}
                         >
-                          <strong>Show All Columns</strong>
+                          Toggle All
                         </Checkbox>
                       </div>
                     ),

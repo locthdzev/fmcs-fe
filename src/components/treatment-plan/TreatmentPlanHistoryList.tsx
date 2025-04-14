@@ -16,6 +16,8 @@ import {
   Card,
   InputNumber,
   message,
+  Col,
+  Divider,
 } from "antd";
 import dayjs from "dayjs";
 import {
@@ -607,22 +609,21 @@ export function TreatmentPlanHistoryListNew() {
       <Card
         className="shadow mb-4"
         bodyStyle={{ padding: "16px" }}
-        title={
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "16px",
-            }}
-          >
-            <AppstoreOutlined style={{ fontSize: "16px" }} />
-            <Title level={5} style={{ margin: 0 }}>
+        style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+      >
+        <Row align="middle" gutter={[16, 16]}>
+          <Col span={24}>
+            <Title level={4} style={{ margin: 0 }}>
+              <AppstoreOutlined
+                style={{ marginRight: "8px", fontSize: "20px" }}
+              />
               Toolbar
             </Title>
-          </div>
-        }
-      >
+          </Col>
+        </Row>
+
+        <Divider style={{ margin: "16px 0" }} />
+
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Select
@@ -682,9 +683,7 @@ export function TreatmentPlanHistoryListNew() {
                     actionDateRange[1]
                   )
                 }
-              >
-                Reset
-              </Button>
+              />
             </Tooltip>
           </div>
 
@@ -699,7 +698,6 @@ export function TreatmentPlanHistoryListNew() {
           </div>
         </div>
       </Card>
-
       <div
         style={{
           display: "flex",

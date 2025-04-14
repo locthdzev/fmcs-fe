@@ -54,14 +54,16 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import { ChipProps } from "@heroui/react";
 import CanteenItemFilterModal from "./CanteenItemFilterModal";
-import ExportConfigModal, { CanteenItemExportConfigWithUI } from "./ExportConfigModal";
-import type { MenuProps } from 'antd';
-import type { 
-  ItemType, 
-  MenuItemType, 
+import ExportConfigModal, {
+  CanteenItemExportConfigWithUI,
+} from "./ExportConfigModal";
+import type { MenuProps } from "antd";
+import type {
+  ItemType,
+  MenuItemType,
   MenuDividerType,
-  MenuItemGroupType 
-} from 'antd/es/menu/interface';
+  MenuItemGroupType,
+} from "antd/es/menu/interface";
 
 // Extend dayjs with the plugins
 dayjs.extend(isSameOrBefore);
@@ -215,19 +217,20 @@ export function CanteenItems() {
 
   // Export to Excel states
   const [exportModalVisible, setExportModalVisible] = useState(false);
-  const [exportConfig, setExportConfig] = useState<CanteenItemExportConfigWithUI>({
-    exportAllPages: true,
-    includeId: true,
-    includeItemName: true,
-    includeDescription: true,
-    includeUnitPrice: true,
-    includeAvailable: true,
-    includeImageUrl: true,
-    includeCreatedAt: true,
-    includeUpdatedAt: true,
-    includeStatus: true,
-    fileName: "CanteenItems_Export"
-  });
+  const [exportConfig, setExportConfig] =
+    useState<CanteenItemExportConfigWithUI>({
+      exportAllPages: true,
+      includeId: true,
+      includeItemName: true,
+      includeDescription: true,
+      includeUnitPrice: true,
+      includeAvailable: true,
+      includeImageUrl: true,
+      includeCreatedAt: true,
+      includeUpdatedAt: true,
+      includeStatus: true,
+      fileName: "CanteenItems_Export",
+    });
 
   // Column visibility state
   const [columnVisibility, setColumnVisibility] = useState<
@@ -281,7 +284,7 @@ export function CanteenItems() {
       const selectedItemsData = canteenItems.filter((item) =>
         selectedRowKeys.includes(item.id)
       );
-      
+
       // Count status types among selected items
       const inactiveCount = selectedItemsData.filter(
         (item) => item.status === "Inactive"
@@ -289,10 +292,10 @@ export function CanteenItems() {
       const activeCount = selectedItemsData.filter(
         (item) => item.status === "Active"
       ).length;
-      
+
       // Only show activate button if ALL selected items are inactive
       setShowActivateButton(inactiveCount > 0 && activeCount === 0);
-      
+
       // Only show deactivate button if ALL selected items are active
       setShowDeactivateButton(activeCount > 0 && inactiveCount === 0);
     } else {
@@ -329,7 +332,10 @@ export function CanteenItems() {
       }
 
       // Apply price range filter
-      if (filters.priceRange && (filters.priceRange[0] !== null || filters.priceRange[1] !== null)) {
+      if (
+        filters.priceRange &&
+        (filters.priceRange[0] !== null || filters.priceRange[1] !== null)
+      ) {
         const [minPrice, maxPrice] = filters.priceRange;
         processedItems = processedItems.filter((item) => {
           const price = parseFloat(item.unitPrice.toString());
@@ -347,47 +353,65 @@ export function CanteenItems() {
       // Apply availability filter
       if (filters.availability !== null) {
         const isAvailable = filters.availability === "true";
-        processedItems = processedItems.filter((item) => item.available === isAvailable);
+        processedItems = processedItems.filter(
+          (item) => item.available === isAvailable
+        );
       }
 
       // Apply status filter from advanced filters
       if (filters.status !== null) {
-        processedItems = processedItems.filter((item) => item.status === filters.status);
+        processedItems = processedItems.filter(
+          (item) => item.status === filters.status
+        );
       }
 
       // Apply created date range filter
-      if (filters.createdDateRange && (filters.createdDateRange[0] !== null || filters.createdDateRange[1] !== null)) {
+      if (
+        filters.createdDateRange &&
+        (filters.createdDateRange[0] !== null ||
+          filters.createdDateRange[1] !== null)
+      ) {
         processedItems = processedItems.filter((item) => {
           const itemDate = dayjs(item.createdAt);
           const startDate = filters.createdDateRange[0];
           const endDate = filters.createdDateRange[1];
-          
+
           if (startDate && endDate) {
-            return itemDate.isAfter(startDate.startOf('day')) && itemDate.isBefore(endDate.endOf('day'));
+            return (
+              itemDate.isAfter(startDate.startOf("day")) &&
+              itemDate.isBefore(endDate.endOf("day"))
+            );
           } else if (startDate) {
-            return itemDate.isAfter(startDate.startOf('day'));
+            return itemDate.isAfter(startDate.startOf("day"));
           } else if (endDate) {
-            return itemDate.isBefore(endDate.endOf('day'));
+            return itemDate.isBefore(endDate.endOf("day"));
           }
           return true;
         });
       }
 
       // Apply updated date range filter
-      if (filters.updatedDateRange && (filters.updatedDateRange[0] !== null || filters.updatedDateRange[1] !== null)) {
+      if (
+        filters.updatedDateRange &&
+        (filters.updatedDateRange[0] !== null ||
+          filters.updatedDateRange[1] !== null)
+      ) {
         processedItems = processedItems.filter((item) => {
           if (!item.updatedAt) return false;
-          
+
           const itemDate = dayjs(item.updatedAt);
           const startDate = filters.updatedDateRange[0];
           const endDate = filters.updatedDateRange[1];
-          
+
           if (startDate && endDate) {
-            return itemDate.isAfter(startDate.startOf('day')) && itemDate.isBefore(endDate.endOf('day'));
+            return (
+              itemDate.isAfter(startDate.startOf("day")) &&
+              itemDate.isBefore(endDate.endOf("day"))
+            );
           } else if (startDate) {
-            return itemDate.isAfter(startDate.startOf('day'));
+            return itemDate.isAfter(startDate.startOf("day"));
           } else if (endDate) {
-            return itemDate.isBefore(endDate.endOf('day'));
+            return itemDate.isBefore(endDate.endOf("day"));
           }
           return true;
         });
@@ -402,12 +426,12 @@ export function CanteenItems() {
     if (filters && filters.sortBy) {
       // Map the filter sortBy values to actual field names
       const fieldMapping: Record<string, keyof CanteenItemResponse> = {
-        "ItemName": "itemName",
-        "UnitPrice": "unitPrice",
-        "CreatedAt": "createdAt",
-        "UpdatedAt": "updatedAt"
+        ItemName: "itemName",
+        UnitPrice: "unitPrice",
+        CreatedAt: "createdAt",
+        UpdatedAt: "updatedAt",
       };
-      
+
       sortField = fieldMapping[filters.sortBy] || "createdAt";
       sortOrder = filters.ascending ? "ascend" : "descend";
     } else {
@@ -747,7 +771,7 @@ export function CanteenItems() {
     const inactiveCount = paginatedItems.filter(
       (item) => item.status === "Inactive"
     ).length;
-    
+
     // Count items by availability
     const availableCount = paginatedItems.filter(
       (item) => item.available === true
@@ -773,10 +797,10 @@ export function CanteenItems() {
 
     // Add group label for Status as MenuItemGroupType
     const statusGroup: MenuItemGroupType = {
-      type: 'group',
-      key: 'status-group',
+      type: "group",
+      key: "status-group",
       label: <strong>Filter by Status</strong>,
-      children: []
+      children: [],
     };
     items.push(statusGroup);
 
@@ -867,21 +891,21 @@ export function CanteenItems() {
         disabled: selectedOption?.includes("active"),
       } as MenuItemType);
     }
-    
+
     // Add a divider
     items.push({
       type: "divider",
     } as MenuDividerType);
-    
+
     // Add group label for Availability as MenuItemGroupType
     const availabilityGroup: MenuItemGroupType = {
-      type: 'group',
-      key: 'availability-group',
+      type: "group",
+      key: "availability-group",
       label: <strong>Filter by Availability</strong>,
-      children: []
+      children: [],
     };
     items.push(availabilityGroup);
-    
+
     // Add Available options
     if (availableCount > 0) {
       items.push({
@@ -925,7 +949,7 @@ export function CanteenItems() {
         disabled: selectedOption?.includes("outofstock"),
       } as MenuItemType);
     }
-    
+
     // Add Out of Stock options
     if (outOfStockCount > 0) {
       items.push({
@@ -1086,40 +1110,61 @@ export function CanteenItems() {
     setExportModalVisible(true);
   };
 
-  const handleExportConfigChange = (newConfig: Partial<CanteenItemExportConfigWithUI>) => {
-    setExportConfig(prev => ({ ...prev, ...newConfig }));
+  const handleExportConfigChange = (
+    newConfig: Partial<CanteenItemExportConfigWithUI>
+  ) => {
+    setExportConfig((prev) => ({ ...prev, ...newConfig }));
   };
 
   // Hàm kiểm tra xem có áp dụng bộ lọc nâng cao nào không
   const hasAdvancedFilters = useMemo(() => {
     if (!filters) return false;
-    
+
     // Kiểm tra từng loại bộ lọc
     return (
-      !!filters.itemName || 
-      (filters.priceRange && (filters.priceRange[0] !== null || filters.priceRange[1] !== null)) ||
+      !!filters.itemName ||
+      (filters.priceRange &&
+        (filters.priceRange[0] !== null || filters.priceRange[1] !== null)) ||
       filters.availability !== null ||
       filters.status !== null ||
-      (filters.createdDateRange && (filters.createdDateRange[0] !== null || filters.createdDateRange[1] !== null)) ||
-      (filters.updatedDateRange && (filters.updatedDateRange[0] !== null || filters.updatedDateRange[1] !== null))
+      (filters.createdDateRange &&
+        (filters.createdDateRange[0] !== null ||
+          filters.createdDateRange[1] !== null)) ||
+      (filters.updatedDateRange &&
+        (filters.updatedDateRange[0] !== null ||
+          filters.updatedDateRange[1] !== null))
     );
   }, [filters]);
 
   // Đếm số bộ lọc đang áp dụng
   const activeFilterCount = useMemo(() => {
     if (!filters) return 0;
-    
+
     let count = 0;
     if (filters.itemName) count++;
-    if (filters.priceRange && (filters.priceRange[0] !== null || filters.priceRange[1] !== null)) count++;
+    if (
+      filters.priceRange &&
+      (filters.priceRange[0] !== null || filters.priceRange[1] !== null)
+    )
+      count++;
     if (filters.availability !== null) count++;
     if (filters.status !== null) count++;
-    if (filters.createdDateRange && (filters.createdDateRange[0] !== null || filters.createdDateRange[1] !== null)) count++;
-    if (filters.updatedDateRange && (filters.updatedDateRange[0] !== null || filters.updatedDateRange[1] !== null)) count++;
-    
+    if (
+      filters.createdDateRange &&
+      (filters.createdDateRange[0] !== null ||
+        filters.createdDateRange[1] !== null)
+    )
+      count++;
+    if (
+      filters.updatedDateRange &&
+      (filters.updatedDateRange[0] !== null ||
+        filters.updatedDateRange[1] !== null)
+    )
+      count++;
+
     return count;
   }, [filters]);
-  
+
   // Cập nhật nội dung top toolbar để hiển thị số lượng bộ lọc đang áp dụng
   const topContent = () => (
     <div className="flex flex-col gap-4">
@@ -1133,7 +1178,7 @@ export function CanteenItems() {
             style={{ width: "300px" }}
             allowClear
           />
-          
+
           <Select
             mode="multiple"
             allowClear
@@ -1169,12 +1214,14 @@ export function CanteenItems() {
             <Button
               icon={<UndoOutlined />}
               onClick={handleResetFilters}
-              disabled={!filterValue && statusFilter.length === 0 && !hasAdvancedFilters}
+              disabled={
+                !filterValue && statusFilter.length === 0 && !hasAdvancedFilters
+              }
             >
               Reset
             </Button>
           </Tooltip>
-          
+
           <Dropdown
             menu={{
               items: [
@@ -1185,7 +1232,7 @@ export function CanteenItems() {
                       checked={areAllColumnsVisible()}
                       onChange={(e) => toggleAllColumns(e.target.checked)}
                     >
-                      <strong>Show All Columns</strong>
+                      Toggle All
                     </Checkbox>
                   ),
                 },
@@ -1218,9 +1265,7 @@ export function CanteenItems() {
                       checked={!!columnVisibility["actions"]}
                       onChange={() => handleColumnVisibilityChange("actions")}
                     >
-                      <span
-                        style={{ color: "dimgray", fontWeight: "normal" }}
-                      >
+                      <span style={{ color: "dimgray", fontWeight: "normal" }}>
                         Actions
                       </span>
                     </Checkbox>
@@ -1231,11 +1276,9 @@ export function CanteenItems() {
             }}
             trigger={["click"]}
           >
-            <Button icon={<SettingOutlined />}>
-              Columns
-            </Button>
+            <Button icon={<SettingOutlined />}>Columns</Button>
           </Dropdown>
-          
+
           <Button
             type="primary"
             icon={<PlusOutlined />}
@@ -1571,16 +1614,16 @@ export function CanteenItems() {
 
   const handleFilterModalApply = (appliedFilters: any) => {
     console.log("Applied filters:", appliedFilters);
-    
+
     // Cập nhật state filters với giá trị mới từ modal
     setFilters(appliedFilters);
-    
+
     // Đóng modal
     setIsFilterModalVisible(false);
-    
+
     // Hiển thị thông báo để người dùng biết bộ lọc đã được áp dụng
     messageApi.success("Filters applied successfully");
-    
+
     // Đặt lại trang hiện tại về 1 khi thay đổi bộ lọc
     setCurrentPage(1);
   };
@@ -1592,21 +1635,27 @@ export function CanteenItems() {
       priceRange: [null, null] as [number | null, number | null],
       availability: null as string | null,
       status: null as string | null,
-      createdDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
-      updatedDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+      createdDateRange: [null, null] as [
+        dayjs.Dayjs | null,
+        dayjs.Dayjs | null
+      ],
+      updatedDateRange: [null, null] as [
+        dayjs.Dayjs | null,
+        dayjs.Dayjs | null
+      ],
       sortBy: "CreatedAt",
       ascending: false,
     };
-    
+
     // Cập nhật state
     setFilters(defaultFilters);
-    
+
     // Đóng modal
     setIsFilterModalVisible(false);
-    
+
     // Hiển thị thông báo
     messageApi.success("All filters have been reset");
-    
+
     // Đặt lại trang hiện tại về 1
     setCurrentPage(1);
   };
@@ -1657,7 +1706,9 @@ export function CanteenItems() {
 
             {/* Container for selected info and rows per page */}
             <div className="mb-4 py-2 flex justify-between items-center">
-              <div>{selectedRowKeys.length > 0 ? renderSelectedInfo() : null}</div>
+              <div>
+                {selectedRowKeys.length > 0 ? renderSelectedInfo() : null}
+              </div>
               <div>{renderRowsPerPage()}</div>
             </div>
 
@@ -1678,7 +1729,7 @@ export function CanteenItems() {
                   bordered
                   onRow={(record) => ({
                     onClick: () => handleItemDetails(record.id),
-                    style: { cursor: 'pointer' }
+                    style: { cursor: "pointer" },
                   })}
                 />
               </div>
@@ -1793,7 +1844,9 @@ export function CanteenItems() {
         onApply={handleFilterModalApply}
         onReset={handleFilterModalReset}
         filters={filters}
-        itemNames={canteenItems.map(item => item.itemName).filter((name, index, self) => self.indexOf(name) === index)}
+        itemNames={canteenItems
+          .map((item) => item.itemName)
+          .filter((name, index, self) => self.indexOf(name) === index)}
       />
 
       <ExportConfigModal
