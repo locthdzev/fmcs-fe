@@ -125,13 +125,13 @@ const FilterModal: React.FC<{
 
   return (
     <Modal
-      title="Bộ lọc nâng cao"
+      title="Advanced Filters"
       open={visible}
       onCancel={onCancel}
       width={700}
       footer={[
         <Button key="reset" onClick={onReset} icon={<UndoOutlined />}>
-          Đặt lại
+          Reset
         </Button>,
         <Button
           key="apply"
@@ -139,7 +139,7 @@ const FilterModal: React.FC<{
           onClick={handleApply}
           icon={<FilterOutlined />}
         >
-          Áp dụng
+          Apply
         </Button>,
       ]}
     >
@@ -149,10 +149,10 @@ const FilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Tìm theo bệnh nhân
+                Search by patient
               </div>
               <Input
-                placeholder="Nhập tên bệnh nhân"
+                placeholder="Enter patient name"
                 allowClear
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
@@ -165,10 +165,10 @@ const FilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Tìm theo bác sĩ/y tá
+                Search by doctor/nurse
               </div>
               <Input
-                placeholder="Nhập tên bác sĩ/y tá"
+                placeholder="Enter doctor/nurse name"
                 allowClear
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
@@ -183,11 +183,11 @@ const FilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Khoảng thời gian khám
+                Checkup date range
               </div>
               <RangePicker
                 style={{ width: "100%" }}
-                placeholder={["Từ ngày khám", "Đến ngày khám"]}
+                placeholder={["From date", "To date"]}
                 format="DD/MM/YYYY"
                 allowClear
                 value={localFilters.checkupDateRange as any}
@@ -204,17 +204,17 @@ const FilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Sắp xếp theo
+                Sort by
               </div>
               <Select
-                placeholder="Sắp xếp theo"
+                placeholder="Sort by"
                 value={localFilters.sortBy}
                 onChange={(value) => updateFilter("sortBy", value)}
                 style={{ width: "100%" }}
               >
-                <Option value="ApprovedDate">Ngày phê duyệt</Option>
-                <Option value="CheckupDate">Ngày khám</Option>
-                <Option value="CreatedAt">Ngày tạo</Option>
+                <Option value="ApprovedDate">Approval date</Option>
+                <Option value="CheckupDate">Checkup date</Option>
+                <Option value="CreatedAt">Created date</Option>
               </Select>
             </div>
           </Col>
@@ -223,16 +223,16 @@ const FilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Thứ tự
+                Order
               </div>
               <Select
-                placeholder="Thứ tự"
+                placeholder="Order"
                 value={localFilters.ascending ? "asc" : "desc"}
                 onChange={(value) => updateFilter("ascending", value === "asc")}
                 style={{ width: "100%" }}
               >
-                <Option value="asc">Tăng dần</Option>
-                <Option value="desc">Giảm dần</Option>
+                <Option value="asc">Ascending</Option>
+                <Option value="desc">Descending</Option>
               </Select>
             </div>
           </Col>
@@ -415,7 +415,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       key: "code",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          MÃ KẾT QUẢ KHÁM
+          RESULT CODE
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -427,7 +427,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       key: "patient",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          BỆNH NHÂN
+          PATIENT
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -444,7 +444,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       key: "checkupDate", 
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          NGÀY KHÁM
+          CHECKUP DATE
         </span>
       ), 
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -460,7 +460,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       key: "staff", 
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          BÁC SĨ / Y TÁ
+          DOCTOR / NURSE
         </span>
       ), 
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -477,7 +477,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       key: "approvedDate", 
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          NGÀY PHÊ DUYỆT
+          APPROVAL DATE
         </span>
       ), 
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -489,12 +489,12 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       key: "status", 
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          TRẠNG THÁI
+          STATUS
         </span>
       ), 
       render: (record: HealthCheckResultsResponseDTO) => (
         <Tag color={getStatusColor("NoFollowUpRequired")}>
-          Không yêu cầu tái khám
+          No Follow-up Required
         </Tag>
       ),
       visible: columnVisibility.status,
@@ -503,12 +503,12 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       key: "actions",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          THAO TÁC
+          ACTIONS
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
         <Space>
-          <Tooltip title="Xem chi tiết">
+          <Tooltip title="View details">
             <Button
               type="text"
               icon={<EyeOutlined />}
@@ -516,7 +516,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
             />
           </Tooltip>
           
-          <Tooltip title="Hoàn thành">
+          <Tooltip title="Complete">
             <Button
               type="text"
               icon={<CheckCircleOutlined />}
@@ -525,12 +525,12 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
             />
           </Tooltip>
           
-          <Tooltip title="Hủy">
+          <Tooltip title="Cancel">
             <Popconfirm
-              title="Nhập lý do hủy"
+              title="Enter cancellation reason"
               description={
                 <Input.TextArea 
-                  placeholder="Lý do hủy"
+                  placeholder="Cancellation reason"
                   onChange={(e) => {
                     (e.target as any).reason = e.target.value;
                   }}
@@ -542,8 +542,8 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                 const reason = target?.reason || "Cancelled by user";
                 handleCancel(record.id, reason);
               }}
-              okText="Xác nhận"
-              cancelText="Hủy"
+              okText="Confirm"
+              cancelText="Cancel"
             >
               <Button
                 type="text"
@@ -575,9 +575,9 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
             onClick={handleBack}
             style={{ marginRight: "8px" }}
           >
-            Quay lại
+            Back
           </Button>
-          <h3 className="text-xl font-bold">Kết quả khám - Không yêu cầu tái khám</h3>
+          <h3 className="text-xl font-bold">Health Check Results - No Follow-up Required</h3>
         </div>
       </div>
 
@@ -603,7 +603,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
           <div className="flex flex-wrap items-center gap-4 mb-3">
             {/* Code Search - Keep this outside of filter modal */}
             <Input
-              placeholder="Tìm theo mã kết quả khám"
+              placeholder="Search by result code"
               value={codeSearch}
               onChange={(e) => setCodeSearch(e.target.value)}
               prefix={<SearchOutlined />}
@@ -623,7 +623,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                           checked={areAllColumnsVisible()}
                           onChange={(e) => toggleAllColumns(e.target.checked)}
                         >
-                          <strong>Hiện tất cả cột</strong>
+                          <strong>Show all columns</strong>
                         </Checkbox>
                       </div>
                     ),
@@ -640,7 +640,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                           checked={columnVisibility.code}
                           onChange={() => handleColumnVisibilityChange("code")}
                         >
-                          Mã kết quả khám
+                          Result Code
                         </Checkbox>
                       </div>
                     ),
@@ -653,7 +653,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                           checked={columnVisibility.patient}
                           onChange={() => handleColumnVisibilityChange("patient")}
                         >
-                          Bệnh nhân
+                          Patient
                         </Checkbox>
                       </div>
                     ),
@@ -666,7 +666,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                           checked={columnVisibility.checkupDate}
                           onChange={() => handleColumnVisibilityChange("checkupDate")}
                         >
-                          Ngày khám
+                          Checkup Date
                         </Checkbox>
                       </div>
                     ),
@@ -679,7 +679,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                           checked={columnVisibility.staff}
                           onChange={() => handleColumnVisibilityChange("staff")}
                         >
-                          Bác sĩ / Y tá
+                          Doctor / Nurse
                         </Checkbox>
                       </div>
                     ),
@@ -692,7 +692,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                           checked={columnVisibility.approvedDate}
                           onChange={() => handleColumnVisibilityChange("approvedDate")}
                         >
-                          Ngày phê duyệt
+                          Approval Date
                         </Checkbox>
                       </div>
                     ),
@@ -705,7 +705,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                           checked={columnVisibility.status}
                           onChange={() => handleColumnVisibilityChange("status")}
                         >
-                          Trạng thái
+                          Status
                         </Checkbox>
                       </div>
                     ),
@@ -718,7 +718,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                           checked={columnVisibility.actions}
                           onChange={() => handleColumnVisibilityChange("actions")}
                         >
-                          Thao tác
+                          Actions
                         </Checkbox>
                       </div>
                     ),
@@ -737,13 +737,13 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
               mouseEnterDelay={0.1}
               mouseLeaveDelay={0.3}
             >
-              <Tooltip title="Cài đặt cột">
-                <Button icon={<SettingOutlined />}>Cột</Button>
+              <Tooltip title="Column settings">
+                <Button icon={<SettingOutlined />}>Columns</Button>
               </Tooltip>
             </Dropdown>
 
             {/* Filter Button */}
-            <Tooltip title="Bộ lọc nâng cao">
+            <Tooltip title="Advanced Filters">
               <Button
                 icon={<FilterOutlined 
                   style={{
@@ -752,18 +752,18 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                 />}
                 onClick={handleOpenFilterModal}
               >
-                Bộ lọc
+                Filters
               </Button>
             </Tooltip>
 
             {/* Reset Button - Always visible now */}
-            <Tooltip title="Đặt lại bộ lọc">
+            <Tooltip title="Reset filters">
               <Button
                 icon={<UndoOutlined />}
                 onClick={handleReset}
                 disabled={!hasActiveFilters()}
               >
-                Đặt lại
+                Reset
               </Button>
             </Tooltip>
           </div>
@@ -779,7 +779,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
         <div></div>
         <div>
           <Typography.Text type="secondary">
-            Dòng mỗi trang:
+            Rows per page:
             <Select
               value={pageSize}
               onChange={(value) => {
@@ -807,7 +807,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
           pagination={false}
           rowKey="id"
           locale={{
-            emptyText: <Empty description="Không tìm thấy kết quả khám không yêu cầu tái khám" />,
+            emptyText: <Empty description="No health check results without follow-up required found" />,
           }}
           className="border rounded-lg"
         />
@@ -816,7 +816,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
         <Card className="mt-4 shadow-sm">
           <Row justify="center" align="middle">
             <Space size="large" align="center">
-              <Typography.Text type="secondary">Tổng cộng {total} kết quả khám không yêu cầu tái khám</Typography.Text>
+              <Typography.Text type="secondary">Total {total} health check results without follow-up required</Typography.Text>
               <Space align="center" size="large">
                 <Pagination
                   current={currentPage}
@@ -829,7 +829,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                   showTotal={() => ""}
                 />
                 <Space align="center">
-                  <Typography.Text type="secondary">Đi đến trang:</Typography.Text>
+                  <Typography.Text type="secondary">Go to page:</Typography.Text>
                   <InputNumber
                     min={1}
                     max={Math.ceil(total / pageSize)}
