@@ -6,11 +6,11 @@ import {
   ChevronDownIcon,
   DrugIcon,
 } from "./Icons";
-import { 
-  UndoOutlined, 
-  AppstoreOutlined, 
-  FilterOutlined, 
-  SettingOutlined, 
+import {
+  UndoOutlined,
+  AppstoreOutlined,
+  FilterOutlined,
+  SettingOutlined,
   PlusOutlined,
   TagOutlined,
   SearchOutlined,
@@ -21,7 +21,25 @@ import {
   ArrowLeftOutlined,
   DownOutlined,
 } from "@ant-design/icons";
-import { Card, Button as AntButton, Select, Tooltip, Dropdown as AntDropdown, Menu, Checkbox, Tag, Typography, InputNumber, Row, Space, Table as AntTable, Pagination, Spin, message, Modal } from "antd";
+import {
+  Card,
+  Button as AntButton,
+  Select,
+  Tooltip,
+  Dropdown as AntDropdown,
+  Menu,
+  Checkbox,
+  Tag,
+  Typography,
+  InputNumber,
+  Row,
+  Space,
+  Table as AntTable,
+  Pagination,
+  Spin,
+  message,
+  Modal,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   getDrugs,
@@ -30,7 +48,7 @@ import {
   getDrugById,
   activateDrugs,
   deactivateDrugs,
-  DrugFilterParams
+  DrugFilterParams,
 } from "@/api/drug";
 import {
   Button as HeroButton,
@@ -41,7 +59,7 @@ import {
   Chip,
   Selection,
   ChipProps,
-  SortDescriptor
+  SortDescriptor,
 } from "@heroui/react";
 import { CreateDrugForm } from "./CreateDrugForm";
 import { ConfirmDeleteDrugModal } from "./ConfirmDelete";
@@ -112,9 +130,7 @@ export function Drugs() {
   const [messageApi, contextHolder] = message.useMessage();
   const [totalItemsCount, setTotalItemsCount] = useState(0);
 
-  const [selectedKeys, setSelectedKeys] = useState<Selection>(
-    new Set([])
-  );
+  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
   const [visibleColumns, setVisibleColumns] = useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
@@ -125,7 +141,6 @@ export function Drugs() {
     direction: "descending",
   });
 
-  
   const [page, setPage] = useState(1);
   const [drugs, setDrugs] = useState<DrugResponse[]>([]);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -133,7 +148,7 @@ export function Drugs() {
   const [drugNames, setDrugNames] = useState<string[]>([]);
   const [drugGroups, setDrugGroups] = useState<any[]>([]);
   const [manufacturers, setManufacturers] = useState<string[]>([]);
-  
+
   // Filter states
   const [advancedFilters, setAdvancedFilters] = useState({
     drugCode: "",
@@ -161,29 +176,35 @@ export function Drugs() {
     includeDrugGroup: true,
     includeCreatedAt: true,
     includeUpdatedAt: true,
-    includeStatus: true
+    includeStatus: true,
   });
 
   const extractFilterOptions = useCallback((data: DrugResponse[]) => {
     // Extract drug codes
-    const codes = [...new Set(data.map(drug => drug.drugCode))];
+    const codes = [...new Set(data.map((drug) => drug.drugCode))];
     setDrugCodes(codes);
-    
+
     // Extract drug names
-    const names = [...new Set(data.map(drug => drug.name))];
+    const names = [...new Set(data.map((drug) => drug.name))];
     setDrugNames(names);
-    
+
     // Extract drug groups
     const groups = data.reduce((acc: any[], drug) => {
-      if (drug.drugGroup && !acc.some(g => g.id === drug.drugGroup.id)) {
+      if (drug.drugGroup && !acc.some((g) => g.id === drug.drugGroup.id)) {
         acc.push(drug.drugGroup);
       }
       return acc;
     }, []);
     setDrugGroups(groups);
-    
+
     // Extract manufacturers
-    const mfrs = [...new Set(data.filter(drug => drug.manufacturer).map(drug => drug.manufacturer as string))];
+    const mfrs = [
+      ...new Set(
+        data
+          .filter((drug) => drug.manufacturer)
+          .map((drug) => drug.manufacturer as string)
+      ),
+    ];
     setManufacturers(mfrs);
   }, []);
 
@@ -194,15 +215,19 @@ export function Drugs() {
       // Thử gọi API không có bất kỳ filter nào để lấy toàn bộ dữ liệu
       const emptyFilter: DrugFilterParams = {
         page: 1,
-        pageSize: 1000 // Số lượng lớn để lấy tất cả dữ liệu
+        pageSize: 1000, // Số lượng lớn để lấy tất cả dữ liệu
       };
-      
+
       const result = await getDrugs(emptyFilter);
       if (Array.isArray(result)) {
         setDrugs(result);
         setTotalItemsCount(result.length); // Lưu tổng số items
         extractFilterOptions(result);
-      } else if (result && typeof result === 'object' && Array.isArray(result.data)) {
+      } else if (
+        result &&
+        typeof result === "object" &&
+        Array.isArray(result.data)
+      ) {
         setDrugs(result.data);
         setTotalItemsCount(result.data.length); // Lưu tổng số items từ response.data
         extractFilterOptions(result.data);
@@ -211,7 +236,7 @@ export function Drugs() {
         setTotalItemsCount(result.length); // Lưu tổng số items
         extractFilterOptions(result);
       }
-      
+
       setIsReady(true);
     } catch (error) {
       console.error("Error fetching drugs:", error);
@@ -297,9 +322,9 @@ export function Drugs() {
 
   // Add a function to handle sort direction change
   const handleSortDirectionChange = (ascending: boolean) => {
-    setSortDescriptor(prev => ({
+    setSortDescriptor((prev) => ({
       ...prev,
-      direction: ascending ? "ascending" : "descending"
+      direction: ascending ? "ascending" : "descending",
     }));
   };
 
@@ -316,7 +341,9 @@ export function Drugs() {
           (drug.drugGroup?.groupName?.toLowerCase() || "").includes(
             filterValue.toLowerCase()
           ) ||
-          (drug.manufacturer?.toLowerCase() || "").includes(filterValue.toLowerCase())
+          (drug.manufacturer?.toLowerCase() || "").includes(
+            filterValue.toLowerCase()
+          )
       );
     }
 
@@ -363,12 +390,16 @@ export function Drugs() {
     // Apply price range filter
     if (advancedFilters.priceRange[0] !== null) {
       processedDrugs = processedDrugs.filter(
-        (d) => parseFloat(d.price as unknown as string) >= (advancedFilters.priceRange[0] || 0)
+        (d) =>
+          parseFloat(d.price as unknown as string) >=
+          (advancedFilters.priceRange[0] || 0)
       );
     }
     if (advancedFilters.priceRange[1] !== null) {
       processedDrugs = processedDrugs.filter(
-        (d) => parseFloat(d.price as unknown as string) <= (advancedFilters.priceRange[1] || 0)
+        (d) =>
+          parseFloat(d.price as unknown as string) <=
+          (advancedFilters.priceRange[1] || 0)
       );
     }
 
@@ -381,22 +412,26 @@ export function Drugs() {
 
     // Apply manufacturer filter
     if (advancedFilters.manufacturer) {
-      processedDrugs = processedDrugs.filter(
-        (d) => d.manufacturer?.toLowerCase().includes(advancedFilters.manufacturer.toLowerCase())
+      processedDrugs = processedDrugs.filter((d) =>
+        d.manufacturer
+          ?.toLowerCase()
+          .includes(advancedFilters.manufacturer.toLowerCase())
       );
     }
 
     // Apply drug code filter
     if (advancedFilters.drugCode) {
-      processedDrugs = processedDrugs.filter(
-        (d) => d.drugCode.toLowerCase().includes(advancedFilters.drugCode.toLowerCase())
+      processedDrugs = processedDrugs.filter((d) =>
+        d.drugCode
+          .toLowerCase()
+          .includes(advancedFilters.drugCode.toLowerCase())
       );
     }
 
     // Apply drug name filter
     if (advancedFilters.drugName) {
-      processedDrugs = processedDrugs.filter(
-        (d) => d.name.toLowerCase().includes(advancedFilters.drugName.toLowerCase())
+      processedDrugs = processedDrugs.filter((d) =>
+        d.name.toLowerCase().includes(advancedFilters.drugName.toLowerCase())
       );
     }
 
@@ -410,39 +445,41 @@ export function Drugs() {
         if (sortField === "drugGroup") {
           const groupNameA = a.drugGroup?.groupName || "";
           const groupNameB = b.drugGroup?.groupName || "";
-          return sortDirection === "descending" 
-            ? groupNameB.localeCompare(groupNameA) 
+          return sortDirection === "descending"
+            ? groupNameB.localeCompare(groupNameA)
             : groupNameA.localeCompare(groupNameB);
         }
-        
+
         if (sortField === "price") {
           const priceA = parseFloat(a.price as unknown as string) || 0;
           const priceB = parseFloat(b.price as unknown as string) || 0;
-          return sortDirection === "descending" ? priceB - priceA : priceA - priceB;
+          return sortDirection === "descending"
+            ? priceB - priceA
+            : priceA - priceB;
         }
-        
+
         if (sortField === "createdAt" || sortField === "updatedAt") {
           // Handle date fields
           const dateA = a[sortField] ? dayjs(a[sortField] as string).unix() : 0;
           const dateB = b[sortField] ? dayjs(b[sortField] as string).unix() : 0;
           return sortDirection === "descending" ? dateB - dateA : dateA - dateB;
         }
-        
+
         // Default string comparison for other fields
         const strA = String(a[sortField] || "");
         const strB = String(b[sortField] || "");
-        return sortDirection === "descending" 
-          ? strB.localeCompare(strA) 
+        return sortDirection === "descending"
+          ? strB.localeCompare(strA)
           : strA.localeCompare(strB);
       });
     }
 
     return processedDrugs;
   }, [drugs, filterValue, statusFilter, sortDescriptor, advancedFilters]);
-  
+
   // Calculate the total number of pages based on filtered and sorted items
   const pages = Math.ceil(filteredAndSortedItems.length / pageSize);
-  
+
   // Then apply pagination to get the current page items
   const paginatedItems = React.useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -549,7 +586,7 @@ export function Drugs() {
   };
 
   const formatPrice = (price: string | number) => {
-    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    const numPrice = typeof price === "string" ? parseFloat(price) : price;
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
@@ -761,7 +798,9 @@ export function Drugs() {
               onChange={(value) => onSearchChange(value)}
               style={{ width: "300px" }}
               filterOption={(input, option) =>
-                (option?.label?.toString().toLowerCase() ?? "").includes(input.toLowerCase())
+                (option?.label?.toString().toLowerCase() ?? "").includes(
+                  input.toLowerCase()
+                )
               }
               options={[...drugs]
                 .sort((a, b) => {
@@ -777,11 +816,13 @@ export function Drugs() {
 
             <Tooltip title="Advanced Filters">
               <AntButton
-                icon={<FilterOutlined 
-                  style={{
-                    color: isFiltersApplied() ? "#1890ff" : undefined,
-                  }}
-                />}
+                icon={
+                  <FilterOutlined
+                    style={{
+                      color: isFiltersApplied() ? "#1890ff" : undefined,
+                    }}
+                  />
+                }
                 onClick={handleOpenFilterModal}
               >
                 Filters
@@ -797,13 +838,17 @@ export function Drugs() {
                   <span>Status</span>
                 </div>
               }
-              value={statusFilter !== "all" ? Array.from(statusFilter as Set<string>)[0] : undefined}
+              value={
+                statusFilter !== "all"
+                  ? Array.from(statusFilter as Set<string>)[0]
+                  : undefined
+              }
               onChange={(value) => {
                 setStatusFilter(value ? new Set([value]) : "all");
               }}
-              options={statusOptions.map(status => ({
+              options={statusOptions.map((status) => ({
                 value: status.uid,
-                label: status.name
+                label: status.name,
               }))}
             />
 
@@ -821,65 +866,89 @@ export function Drugs() {
               menu={{
                 items: [
                   {
-                    key: 'selectAll',
+                    key: "selectAll",
                     label: (
                       <Checkbox
-                        checked={(visibleColumns as Set<string>).size === columns.length}
+                        checked={
+                          (visibleColumns as Set<string>).size ===
+                          columns.length
+                        }
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setVisibleColumns(new Set(columns.map(col => col.uid)));
+                            setVisibleColumns(
+                              new Set(columns.map((col) => col.uid))
+                            );
                           } else {
                             // Khi bỏ tích, chỉ giữ lại cột đầu tiên
                             const firstColumn = columns[0].uid;
                             setVisibleColumns(new Set([firstColumn]));
-                            messageApi.warning("At least one column must be visible.", 5);
+                            messageApi.warning(
+                              "At least one column must be visible.",
+                              5
+                            );
                           }
                         }}
                       >
                         <strong>Show All Columns</strong>
                       </Checkbox>
-                    )
+                    ),
                   },
                   {
-                    type: 'divider'
+                    type: "divider",
                   },
-                  ...columns.filter(col => col.uid !== "actions").map((column) => ({
-                    key: column.uid,
-                    label: (
-                      <Checkbox
-                        checked={(visibleColumns as Set<string>).has(column.uid)}
-                        onChange={() => {
-                          const newVisibility = new Set(visibleColumns as Set<string>);
-                          if (newVisibility.has(column.uid)) {
-                            // Kiểm tra nếu đây là cột cuối cùng
-                            if (newVisibility.size === 1) {
-                              messageApi.warning("Cannot hide the last visible column.", 5);
-                              return;
+                  ...columns
+                    .filter((col) => col.uid !== "actions")
+                    .map((column) => ({
+                      key: column.uid,
+                      label: (
+                        <Checkbox
+                          checked={(visibleColumns as Set<string>).has(
+                            column.uid
+                          )}
+                          onChange={() => {
+                            const newVisibility = new Set(
+                              visibleColumns as Set<string>
+                            );
+                            if (newVisibility.has(column.uid)) {
+                              // Kiểm tra nếu đây là cột cuối cùng
+                              if (newVisibility.size === 1) {
+                                messageApi.warning(
+                                  "Cannot hide the last visible column.",
+                                  5
+                                );
+                                return;
+                              }
+                              newVisibility.delete(column.uid);
+                            } else {
+                              newVisibility.add(column.uid);
                             }
-                            newVisibility.delete(column.uid);
-                          } else {
-                            newVisibility.add(column.uid);
-                          }
-                          setVisibleColumns(newVisibility);
-                        }}
-                      >
-                        <span style={{ color: "dimgray", fontWeight: "normal" }}>
-                          {capitalize(column.name)}
-                        </span>
-                      </Checkbox>
-                    )
-                  })),
+                            setVisibleColumns(newVisibility);
+                          }}
+                        >
+                          <span
+                            style={{ color: "dimgray", fontWeight: "normal" }}
+                          >
+                            {capitalize(column.name)}
+                          </span>
+                        </Checkbox>
+                      ),
+                    })),
                   {
-                    key: 'actions',
+                    key: "actions",
                     label: (
                       <Checkbox
                         checked={(visibleColumns as Set<string>).has("actions")}
                         onChange={() => {
-                          const newVisibility = new Set(visibleColumns as Set<string>);
+                          const newVisibility = new Set(
+                            visibleColumns as Set<string>
+                          );
                           if (newVisibility.has("actions")) {
                             // Kiểm tra nếu đây là cột cuối cùng
                             if (newVisibility.size === 1) {
-                              messageApi.warning("Cannot hide the last visible column.", 5);
+                              messageApi.warning(
+                                "Cannot hide the last visible column.",
+                                5
+                              );
                               return;
                             }
                             newVisibility.delete("actions");
@@ -889,40 +958,40 @@ export function Drugs() {
                           setVisibleColumns(newVisibility);
                         }}
                       >
-                        <span style={{ color: "dimgray", fontWeight: "normal" }}>
+                        <span
+                          style={{ color: "dimgray", fontWeight: "normal" }}
+                        >
                           Actions
                         </span>
                       </Checkbox>
-                    )
-                  }
+                    ),
+                  },
                 ],
                 onClick: (e) => e.domEvent.stopPropagation(),
               }}
             >
-            <Tooltip title="Column Settings">
-                <AntButton icon={<SettingOutlined />}>
-                  Columns
-                </AntButton>
-            </Tooltip>
+              <Tooltip title="Column Settings">
+                <AntButton icon={<SettingOutlined />}>Columns</AntButton>
+              </Tooltip>
             </AntDropdown>
 
             <AntButton
               type="primary"
               onClick={() => setIsModalOpen(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+              style={{ display: "flex", alignItems: "center", gap: "4px" }}
               className="bg-blue-500"
             >
               <PlusOutlined />
               <span>Create</span>
             </AntButton>
           </div>
-          
+
           <div>
             <AntButton
               type="primary"
               icon={<FileExcelOutlined />}
               onClick={() => setExportModalVisible(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+              style={{ display: "flex", alignItems: "center", gap: "4px" }}
             >
               Export to Excel
             </AntButton>
@@ -939,12 +1008,12 @@ export function Drugs() {
     drugs,
     isFiltersApplied,
     onClear,
-    handleOpenFilterModal
+    handleOpenFilterModal,
   ]);
 
   const renderActiveFilters = () => {
     if (!isFiltersApplied()) return null;
-    
+
     return (
       <div className="active-filters-summary mt-2 p-2">
         <div className="text-sm text-gray-600 mb-1">Active Filters:</div>
@@ -954,94 +1023,182 @@ export function Drugs() {
               Search: {filterValue}
             </Tag>
           )}
-          
-          
-          {statusFilter !== "all" && Array.from(statusFilter as Set<string>).map(status => (
-            <Tag 
-              key={status} 
-              closable 
-              color={statusColorMap[status as keyof typeof statusColorMap]} 
-              onClose={() => {
-                const newStatuses = new Set(Array.from(statusFilter as Set<string>).filter(s => s !== status));
-                setStatusFilter(newStatuses.size > 0 ? newStatuses : "all");
-              }}
-            >
-              Status: {status}
-            </Tag>
-          ))}
-          
+
+          {statusFilter !== "all" &&
+            Array.from(statusFilter as Set<string>).map((status) => (
+              <Tag
+                key={status}
+                closable
+                color={statusColorMap[status as keyof typeof statusColorMap]}
+                onClose={() => {
+                  const newStatuses = new Set(
+                    Array.from(statusFilter as Set<string>).filter(
+                      (s) => s !== status
+                    )
+                  );
+                  setStatusFilter(newStatuses.size > 0 ? newStatuses : "all");
+                }}
+              >
+                Status: {status}
+              </Tag>
+            ))}
+
           {advancedFilters.drugCode && (
-            <Tag closable onClose={() => setAdvancedFilters(prev => ({ ...prev, drugCode: "" }))}>
+            <Tag
+              closable
+              onClose={() =>
+                setAdvancedFilters((prev) => ({ ...prev, drugCode: "" }))
+              }
+            >
               Code: {advancedFilters.drugCode}
             </Tag>
           )}
-          
+
           {advancedFilters.drugName && (
-            <Tag closable onClose={() => setAdvancedFilters(prev => ({ ...prev, drugName: "" }))}>
+            <Tag
+              closable
+              onClose={() =>
+                setAdvancedFilters((prev) => ({ ...prev, drugName: "" }))
+              }
+            >
               Name: {advancedFilters.drugName}
             </Tag>
           )}
-          
+
           {advancedFilters.drugGroupId && (
-            <Tag closable onClose={() => setAdvancedFilters(prev => ({ ...prev, drugGroupId: "" }))}>
-              Group: {drugGroups.find(g => g.id === advancedFilters.drugGroupId)?.groupName || advancedFilters.drugGroupId}
+            <Tag
+              closable
+              onClose={() =>
+                setAdvancedFilters((prev) => ({ ...prev, drugGroupId: "" }))
+              }
+            >
+              Group:{" "}
+              {drugGroups.find((g) => g.id === advancedFilters.drugGroupId)
+                ?.groupName || advancedFilters.drugGroupId}
             </Tag>
           )}
-          
+
           {advancedFilters.manufacturer && (
-            <Tag closable onClose={() => setAdvancedFilters(prev => ({ ...prev, manufacturer: "" }))}>
+            <Tag
+              closable
+              onClose={() =>
+                setAdvancedFilters((prev) => ({ ...prev, manufacturer: "" }))
+              }
+            >
               Manufacturer: {advancedFilters.manufacturer}
             </Tag>
           )}
-          
+
           {advancedFilters.priceRange[0] !== null && (
-            <Tag closable onClose={() => setAdvancedFilters(prev => ({ ...prev, priceRange: [null, prev.priceRange[1]] }))}>
+            <Tag
+              closable
+              onClose={() =>
+                setAdvancedFilters((prev) => ({
+                  ...prev,
+                  priceRange: [null, prev.priceRange[1]],
+                }))
+              }
+            >
               Min Price: {formatPrice(advancedFilters.priceRange[0])}
             </Tag>
           )}
-          
+
           {advancedFilters.priceRange[1] !== null && (
-            <Tag closable onClose={() => setAdvancedFilters(prev => ({ ...prev, priceRange: [prev.priceRange[0], null] }))}>
+            <Tag
+              closable
+              onClose={() =>
+                setAdvancedFilters((prev) => ({
+                  ...prev,
+                  priceRange: [prev.priceRange[0], null],
+                }))
+              }
+            >
               Max Price: {formatPrice(advancedFilters.priceRange[1])}
             </Tag>
           )}
-          
+
           {advancedFilters.createdDateRange[0] && (
-            <Tag closable onClose={() => setAdvancedFilters(prev => ({ ...prev, createdDateRange: [null, prev.createdDateRange[1]] }))}>
-              Created From: {advancedFilters.createdDateRange[0].format('YYYY-MM-DD')}
+            <Tag
+              closable
+              onClose={() =>
+                setAdvancedFilters((prev) => ({
+                  ...prev,
+                  createdDateRange: [null, prev.createdDateRange[1]],
+                }))
+              }
+            >
+              Created From:{" "}
+              {advancedFilters.createdDateRange[0].format("YYYY-MM-DD")}
             </Tag>
           )}
-          
+
           {advancedFilters.createdDateRange[1] && (
-            <Tag closable onClose={() => setAdvancedFilters(prev => ({ ...prev, createdDateRange: [prev.createdDateRange[0], null] }))}>
-              Created To: {advancedFilters.createdDateRange[1].format('YYYY-MM-DD')}
+            <Tag
+              closable
+              onClose={() =>
+                setAdvancedFilters((prev) => ({
+                  ...prev,
+                  createdDateRange: [prev.createdDateRange[0], null],
+                }))
+              }
+            >
+              Created To:{" "}
+              {advancedFilters.createdDateRange[1].format("YYYY-MM-DD")}
             </Tag>
           )}
-          
+
           {advancedFilters.updatedDateRange[0] && (
-            <Tag closable onClose={() => setAdvancedFilters(prev => ({ ...prev, updatedDateRange: [null, prev.updatedDateRange[1]] }))}>
-              Updated From: {advancedFilters.updatedDateRange[0].format('YYYY-MM-DD')}
+            <Tag
+              closable
+              onClose={() =>
+                setAdvancedFilters((prev) => ({
+                  ...prev,
+                  updatedDateRange: [null, prev.updatedDateRange[1]],
+                }))
+              }
+            >
+              Updated From:{" "}
+              {advancedFilters.updatedDateRange[0].format("YYYY-MM-DD")}
             </Tag>
           )}
-          
+
           {advancedFilters.updatedDateRange[1] && (
-            <Tag closable onClose={() => setAdvancedFilters(prev => ({ ...prev, updatedDateRange: [prev.updatedDateRange[0], null] }))}>
-              Updated To: {advancedFilters.updatedDateRange[1].format('YYYY-MM-DD')}
+            <Tag
+              closable
+              onClose={() =>
+                setAdvancedFilters((prev) => ({
+                  ...prev,
+                  updatedDateRange: [prev.updatedDateRange[0], null],
+                }))
+              }
+            >
+              Updated To:{" "}
+              {advancedFilters.updatedDateRange[1].format("YYYY-MM-DD")}
             </Tag>
           )}
-          
+
           {advancedFilters.sortBy !== "CreatedAt" && (
-            <Tag closable onClose={() => setAdvancedFilters(prev => ({ ...prev, sortBy: "CreatedAt" }))}>
+            <Tag
+              closable
+              onClose={() =>
+                setAdvancedFilters((prev) => ({ ...prev, sortBy: "CreatedAt" }))
+              }
+            >
               Sort By: {advancedFilters.sortBy}
             </Tag>
           )}
-          
+
           {advancedFilters.ascending !== false && (
-            <Tag closable onClose={() => setAdvancedFilters(prev => ({ ...prev, ascending: false }))}>
+            <Tag
+              closable
+              onClose={() =>
+                setAdvancedFilters((prev) => ({ ...prev, ascending: false }))
+              }
+            >
               Sort: Ascending
             </Tag>
           )}
-          
+
           <Tag icon={<UndoOutlined />} color="default" onClick={onClear}>
             Reset All
           </Tag>
@@ -1062,7 +1219,7 @@ export function Drugs() {
       <div className="py-2 px-2">
         <div className="flex flex-col">
           {renderActiveFilters()}
-          
+
           <div className="flex justify-between items-center mt-2">
             <span className="text-small text-default-400">
               Total {totalItemsCount} items
@@ -1121,21 +1278,21 @@ export function Drugs() {
   // Hàm render phần thông tin selected items và các nút action
   const renderSelectedInfo = () => {
     if ((selectedKeys as Set<string>).size === 0) return null;
-    
+
     return (
       <div className="flex items-center gap-4">
         <span className="text-small">
           {(selectedKeys as Set<string>).size} items selected
         </span>
         <HeroButton
-            size="sm"
-            variant="flat"
+          size="sm"
+          variant="flat"
           startContent={<UndoOutlined className="text-small" />}
           onClick={() => setSelectedKeys(new Set([]))}
         >
           Restore
         </HeroButton>
-        
+
         {showActivate && (
           <HeroButton
             size="sm"
@@ -1146,18 +1303,18 @@ export function Drugs() {
             Activate Selected
           </HeroButton>
         )}
-        
+
         {showDeactivate && (
           <HeroButton
             size="sm"
             className="bg-danger-100 text-danger-600"
-            variant="flat" 
+            variant="flat"
             onClick={handleConfirmDeactivate}
           >
             Deactivate Selected
           </HeroButton>
         )}
-        </div>
+      </div>
     );
   };
 
@@ -1186,24 +1343,24 @@ export function Drugs() {
   // Update the handleApplyFilters function to handle sort direction
   const handleApplyFilters = (filters: any) => {
     console.log("Received filters in handleApplyFilters:", filters);
-    
+
     // Cập nhật state advancedFilters
     setAdvancedFilters(filters);
-    
+
     // Cập nhật sort direction
     handleSortDirectionChange(filters.ascending);
-    
+
     // Cập nhật các bộ lọc khác nếu cần
     if (filters.drugName) {
       setFilterValue(filters.drugName);
     }
-    
+
     // Đặt lại trang về 1 khi thay đổi bộ lọc
     setPage(1);
-    
+
     // Đóng modal filter
     setIsFilterModalOpen(false);
-    
+
     // Gọi fetchDrugs để áp dụng các bộ lọc sau khi đã cập nhật state
     // Sử dụng setTimeout để đảm bảo state đã được cập nhật
     setTimeout(() => {
@@ -1214,7 +1371,7 @@ export function Drugs() {
   // Update the handleResetFilters function to reset sort direction
   const handleResetFilters = () => {
     console.log("Resetting filters from modal and reloading data...");
-    
+
     // Đặt lại tất cả các state filter
     setAdvancedFilters({
       drugCode: "",
@@ -1228,47 +1385,54 @@ export function Drugs() {
       sortBy: "CreatedAt",
       ascending: false,
     });
-    
+
     // Reset sort direction
     setSortDescriptor({
       column: "createdAt",
       direction: "descending",
     });
-    
+
     setFilterValue("");
     setStatusFilter("all");
-    
+
     setPage(1);
     setIsFilterModalOpen(false);
-    
+
     // Gọi API để lấy dữ liệu không có filter
     setTimeout(() => {
       // Gọi trực tiếp API với filter rỗng để đảm bảo lấy tất cả dữ liệu
       const emptyFilter: DrugFilterParams = {
         page: 1,
-        pageSize: pageSize
+        pageSize: pageSize,
       };
-      
-      console.log("Calling API with empty filters from modal reset:", emptyFilter);
-      
+
+      console.log(
+        "Calling API with empty filters from modal reset:",
+        emptyFilter
+      );
+
       getDrugs(emptyFilter)
-        .then(result => {
+        .then((result) => {
           console.log("Data reloaded after modal reset:", result);
-          
+
           if (Array.isArray(result)) {
             setDrugs(result);
             extractFilterOptions(result);
-          } else if (result && typeof result === 'object' && Array.isArray(result.data)) {
+          } else if (
+            result &&
+            typeof result === "object" &&
+            Array.isArray(result.data)
+          ) {
             setDrugs(result.data);
             extractFilterOptions(result.data);
           } else if (result && Array.isArray(result)) {
             setDrugs(result);
             extractFilterOptions(result);
           }
-          
+
           setIsReady(true);
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("Error reloading data after modal reset:", error);
           messageApi.error("Failed to reload data", 5);
           setIsReady(true);
@@ -1281,9 +1445,11 @@ export function Drugs() {
   const handleOpenExportConfig = () => {
     setExportModalVisible(true);
   };
-  
-  const handleExportConfigChange = (newConfig: Partial<DrugExportConfigWithUI>) => {
-    setExportConfig(prev => ({ ...prev, ...newConfig }));
+
+  const handleExportConfigChange = (
+    newConfig: Partial<DrugExportConfigWithUI>
+  ) => {
+    setExportConfig((prev) => ({ ...prev, ...newConfig }));
   };
 
   // Hàm xử lý chọn theo trạng thái
@@ -1298,7 +1464,7 @@ export function Drugs() {
       setSelectedOption(key);
 
       let selectedDrugIds: string[] = [];
-      
+
       switch (key) {
         case "page-active":
           // Chọn thuốc Active trên trang hiện tại
@@ -1319,30 +1485,42 @@ export function Drugs() {
         default:
           break;
       }
-      
+
       // Kiểm tra các thuốc đã chọn trước đó
-      const previousSelectedDrugs = drugs.filter(drug => 
-        (selectedKeys instanceof Set) && (selectedKeys as Set<string>).has(drug.id)
+      const previousSelectedDrugs = drugs.filter(
+        (drug) =>
+          selectedKeys instanceof Set &&
+          (selectedKeys as Set<string>).has(drug.id)
       );
-      
+
       // Kiểm tra xem có đang chọn cả Active và Inactive không
       if (previousSelectedDrugs.length > 0) {
         // Xác định trạng thái của các thuốc đã chọn
-        const hasActiveSelected = previousSelectedDrugs.some(drug => drug.status === "Active");
-        const hasInactiveSelected = previousSelectedDrugs.some(drug => drug.status === "Inactive");
-        
+        const hasActiveSelected = previousSelectedDrugs.some(
+          (drug) => drug.status === "Active"
+        );
+        const hasInactiveSelected = previousSelectedDrugs.some(
+          (drug) => drug.status === "Inactive"
+        );
+
         // Xác định trạng thái của các thuốc sẽ chọn
         const isSelectingActive = key.includes("active");
         const isSelectingInactive = key.includes("inactive");
-        
+
         // Nếu đang cố gắng chọn cả Active và Inactive cùng lúc
-        if ((hasActiveSelected && isSelectingInactive) || (hasInactiveSelected && isSelectingActive)) {
-          messageApi.warning("Cannot select both Active and Inactive drugs at the same time.", 5);
+        if (
+          (hasActiveSelected && isSelectingInactive) ||
+          (hasInactiveSelected && isSelectingActive)
+        ) {
+          messageApi.warning(
+            "Cannot select both Active and Inactive drugs at the same time.",
+            5
+          );
           setSelectedOption(null);
           return;
         }
       }
-      
+
       setSelectedKeys(new Set(selectedDrugIds));
     }
   };
@@ -1356,17 +1534,13 @@ export function Drugs() {
       if (currentPageOnly) {
         // Chỉ lấy ID trên trang hiện tại theo trạng thái
         return paginatedItems
-          .filter(
-            (drug) => drug.status && statuses.includes(drug.status)
-          )
+          .filter((drug) => drug.status && statuses.includes(drug.status))
           .map((drug) => drug.id);
       } else {
         // Lấy ID từ tất cả các trang
         setIsLoadingAllItems(true);
         const result = filteredAndSortedItems
-          .filter(
-            (drug) => drug.status && statuses.includes(drug.status)
-          )
+          .filter((drug) => drug.status && statuses.includes(drug.status))
           .map((drug) => drug.id);
 
         setIsLoadingAllItems(false);
@@ -1380,182 +1554,226 @@ export function Drugs() {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div className="history-container" style={{ padding: "20px" }}>
       {contextHolder}
-      
+
       {!isReady ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "80vh",
+          }}
+        >
           <Spin size="large" tip="Loading Drug Management..." />
         </div>
       ) : (
         <>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <AntButton
-            icon={<ArrowLeftOutlined />}
-            onClick={handleBack}
-            style={{ marginRight: "8px" }}
-          >
-            Back
-          </AntButton>
-          <DrugIcon />
-          <h3 className="text-xl font-bold">Drug Management</h3>
-        </div>
-      </div>
-
-      <Card
-        className="shadow mb-4 mx-4"
-        bodyStyle={{ padding: "16px" }}
-        title={(
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "16px 0 0 0",
-            }}
-          >
-            <AppstoreOutlined />
-            <span>Toolbar</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <AntButton
+                icon={<ArrowLeftOutlined />}
+                onClick={handleBack}
+                style={{ marginRight: "8px" }}
+              >
+                Back
+              </AntButton>
+              <DrugIcon />
+              <h3 className="text-xl font-bold">Drug Management</h3>
+            </div>
           </div>
-        )}
-      >
-            <Spin spinning={loading} tip={loadingMessage}>
-        <div className="flex flex-col gap-4">
-          <div className="flex justify-between items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Select
-                showSearch
-                allowClear
-                placeholder={
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    <SearchOutlined style={{ marginRight: 8 }} />
-                    <span>Search by drug code, name, or group...</span>
-                  </div>
-                }
-                value={filterValue || undefined}
-                onChange={(value) => onSearchChange(value)}
-                style={{ width: "300px" }}
-                filterOption={(input, option) =>
-                  (option?.label?.toString().toLowerCase() ?? "").includes(input.toLowerCase())
-                }
-                options={[...drugs]
-                  .sort((a, b) => {
-                    const dateA = dayjs(a.createdAt).unix();
-                    const dateB = dayjs(b.createdAt).unix();
-                    return dateB - dateA; // Sắp xếp giảm dần (mới nhất lên đầu)
-                  })
-                  .map((drug) => ({
-                    value: drug.drugCode,
-                    label: `${drug.drugCode} - ${drug.name}`,
-                  }))}
-              />
 
-              <Tooltip title="Advanced Filters">
-                <AntButton
-                  icon={<FilterOutlined 
-                    style={{
-                      color: isFiltersApplied() ? "#1890ff" : undefined,
-                    }}
-                  />}
-                  onClick={handleOpenFilterModal}
-                >
-                  Filters
-                </AntButton>
-              </Tooltip>
-
-              <Select
-                allowClear
-                style={{ width: "120px" }}
-                placeholder={
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    <TagOutlined style={{ marginRight: 8 }} />
-                    <span>Status</span>
-                  </div>
-                }
-                value={statusFilter !== "all" ? Array.from(statusFilter as Set<string>)[0] : undefined}
-                onChange={(value) => {
-                  setStatusFilter(value ? new Set([value]) : "all");
+          <Card
+            className="shadow mb-4"
+            bodyStyle={{ padding: "16px" }}
+            title={
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "16px 0 0 0",
                 }}
-                options={statusOptions.map(status => ({
-                  value: status.uid,
-                  label: status.name
-                }))}
-              />
+              >
+                <AppstoreOutlined />
+                <span>Toolbar</span>
+              </div>
+            }
+          >
+            <Spin spinning={loading} tip={loadingMessage}>
+              <div className="flex flex-col gap-4">
+                <div className="flex justify-between items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Select
+                      showSearch
+                      allowClear
+                      placeholder={
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          <SearchOutlined style={{ marginRight: 8 }} />
+                          <span>Search by drug code, name, or group...</span>
+                        </div>
+                      }
+                      value={filterValue || undefined}
+                      onChange={(value) => onSearchChange(value)}
+                      style={{ width: "300px" }}
+                      filterOption={(input, option) =>
+                        (
+                          option?.label?.toString().toLowerCase() ?? ""
+                        ).includes(input.toLowerCase())
+                      }
+                      options={[...drugs]
+                        .sort((a, b) => {
+                          const dateA = dayjs(a.createdAt).unix();
+                          const dateB = dayjs(b.createdAt).unix();
+                          return dateB - dateA; // Sắp xếp giảm dần (mới nhất lên đầu)
+                        })
+                        .map((drug) => ({
+                          value: drug.drugCode,
+                          label: `${drug.drugCode} - ${drug.name}`,
+                        }))}
+                    />
 
-              <Tooltip title="Reset All Filters">
-                <AntButton
-                  icon={<UndoOutlined />}
-                  onClick={onClear}
-                  disabled={!isFiltersApplied()}
-                >
-                  Reset
-                </AntButton>
-              </Tooltip>
+                    <Tooltip title="Advanced Filters">
+                      <AntButton
+                        icon={
+                          <FilterOutlined
+                            style={{
+                              color: isFiltersApplied() ? "#1890ff" : undefined,
+                            }}
+                          />
+                        }
+                        onClick={handleOpenFilterModal}
+                      >
+                        Filters
+                      </AntButton>
+                    </Tooltip>
+
+                    <Select
+                      allowClear
+                      style={{ width: "120px" }}
+                      placeholder={
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          <TagOutlined style={{ marginRight: 8 }} />
+                          <span>Status</span>
+                        </div>
+                      }
+                      value={
+                        statusFilter !== "all"
+                          ? Array.from(statusFilter as Set<string>)[0]
+                          : undefined
+                      }
+                      onChange={(value) => {
+                        setStatusFilter(value ? new Set([value]) : "all");
+                      }}
+                      options={statusOptions.map((status) => ({
+                        value: status.uid,
+                        label: status.name,
+                      }))}
+                    />
+
+                    <Tooltip title="Reset All Filters">
+                      <AntButton
+                        icon={<UndoOutlined />}
+                        onClick={onClear}
+                        disabled={!isFiltersApplied()}
+                      >
+                        Reset
+                      </AntButton>
+                    </Tooltip>
 
                     <AntDropdown
                       menu={{
                         items: [
                           {
-                            key: 'selectAll',
+                            key: "selectAll",
                             label: (
                               <Checkbox
-                                checked={(visibleColumns as Set<string>).size === columns.length}
+                                checked={
+                                  (visibleColumns as Set<string>).size ===
+                                  columns.length
+                                }
                                 onChange={(e) => {
                                   if (e.target.checked) {
-                                    setVisibleColumns(new Set(columns.map(col => col.uid)));
+                                    setVisibleColumns(
+                                      new Set(columns.map((col) => col.uid))
+                                    );
                                   } else {
                                     // Khi bỏ tích, chỉ giữ lại cột đầu tiên
                                     const firstColumn = columns[0].uid;
                                     setVisibleColumns(new Set([firstColumn]));
-                                    messageApi.warning("At least one column must be visible.", 5);
+                                    messageApi.warning(
+                                      "At least one column must be visible.",
+                                      5
+                                    );
                                   }
                                 }}
                               >
                                 <strong>Show All Columns</strong>
                               </Checkbox>
-                            )
+                            ),
                           },
                           {
-                            type: 'divider'
+                            type: "divider",
                           },
-                          ...columns.filter(col => col.uid !== "actions").map((column) => ({
-                            key: column.uid,
-                            label: (
-                              <Checkbox
-                                checked={(visibleColumns as Set<string>).has(column.uid)}
-                                onChange={() => {
-                                  const newVisibility = new Set(visibleColumns as Set<string>);
-                                  if (newVisibility.has(column.uid)) {
-                                    // Kiểm tra nếu đây là cột cuối cùng
-                                    if (newVisibility.size === 1) {
-                                      messageApi.warning("Cannot hide the last visible column.", 5);
-                                      return;
+                          ...columns
+                            .filter((col) => col.uid !== "actions")
+                            .map((column) => ({
+                              key: column.uid,
+                              label: (
+                                <Checkbox
+                                  checked={(visibleColumns as Set<string>).has(
+                                    column.uid
+                                  )}
+                                  onChange={() => {
+                                    const newVisibility = new Set(
+                                      visibleColumns as Set<string>
+                                    );
+                                    if (newVisibility.has(column.uid)) {
+                                      // Kiểm tra nếu đây là cột cuối cùng
+                                      if (newVisibility.size === 1) {
+                                        messageApi.warning(
+                                          "Cannot hide the last visible column.",
+                                          5
+                                        );
+                                        return;
+                                      }
+                                      newVisibility.delete(column.uid);
+                                    } else {
+                                      newVisibility.add(column.uid);
                                     }
-                                    newVisibility.delete(column.uid);
-                                  } else {
-                                    newVisibility.add(column.uid);
-                                  }
-                                  setVisibleColumns(newVisibility);
-                                }}
-                              >
-                                <span style={{ color: "dimgray", fontWeight: "normal" }}>
-                                  {capitalize(column.name)}
-                                </span>
-                              </Checkbox>
-                            )
-                          })),
+                                    setVisibleColumns(newVisibility);
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      color: "dimgray",
+                                      fontWeight: "normal",
+                                    }}
+                                  >
+                                    {capitalize(column.name)}
+                                  </span>
+                                </Checkbox>
+                              ),
+                            })),
                           {
-                            key: 'actions',
+                            key: "actions",
                             label: (
                               <Checkbox
-                                checked={(visibleColumns as Set<string>).has("actions")}
+                                checked={(visibleColumns as Set<string>).has(
+                                  "actions"
+                                )}
                                 onChange={() => {
-                                  const newVisibility = new Set(visibleColumns as Set<string>);
+                                  const newVisibility = new Set(
+                                    visibleColumns as Set<string>
+                                  );
                                   if (newVisibility.has("actions")) {
                                     // Kiểm tra nếu đây là cột cuối cùng
                                     if (newVisibility.size === 1) {
-                                      messageApi.warning("Cannot hide the last visible column.", 5);
+                                      messageApi.warning(
+                                        "Cannot hide the last visible column.",
+                                        5
+                                      );
                                       return;
                                     }
                                     newVisibility.delete("actions");
@@ -1565,52 +1783,65 @@ export function Drugs() {
                                   setVisibleColumns(newVisibility);
                                 }}
                               >
-                                <span style={{ color: "dimgray", fontWeight: "normal" }}>
+                                <span
+                                  style={{
+                                    color: "dimgray",
+                                    fontWeight: "normal",
+                                  }}
+                                >
                                   Actions
                                 </span>
                               </Checkbox>
-                            )
-                          }
+                            ),
+                          },
                         ],
                         onClick: (e) => e.domEvent.stopPropagation(),
                       }}
                     >
-              <Tooltip title="Column Settings">
+                      <Tooltip title="Column Settings">
                         <AntButton icon={<SettingOutlined />}>
                           Columns
                         </AntButton>
-              </Tooltip>
+                      </Tooltip>
                     </AntDropdown>
 
-              <AntButton
-                type="primary"
-                onClick={() => setIsModalOpen(true)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                    <AntButton
+                      type="primary"
+                      onClick={() => setIsModalOpen(true)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
                       className="bg-blue-500"
-              >
+                    >
                       <PlusOutlined />
                       <span>Create</span>
-              </AntButton>
-            </div>
+                    </AntButton>
+                  </div>
 
-        <div>
+                  <div>
                     <AntButton
                       type="primary"
                       icon={<FileExcelOutlined />}
                       onClick={() => setExportModalVisible(true)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
                     >
                       Export to Excel
                     </AntButton>
-        </div>
-        </div>
-      </div>
+                  </div>
+                </div>
+              </div>
             </Spin>
           </Card>
 
-      {isModalOpen && (
-        <Modal
-          className="max-w-3xl"
+          {isModalOpen && (
+            <Modal
+              className="max-w-3xl"
               open={isModalOpen}
               onCancel={() => setIsModalOpen(false)}
               footer={null}
@@ -1623,22 +1854,27 @@ export function Drugs() {
                 }}
                 onCreate={fetchDrugs}
               />
-        </Modal>
-      )}
+            </Modal>
+          )}
 
-      <ConfirmDeleteDrugModal
-        drug={deletingDrug}
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirmDelete={handleConfirmDelete}
-      />
+          <ConfirmDeleteDrugModal
+            drug={deletingDrug}
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirmDelete={handleConfirmDelete}
+          />
 
-      <Modal
-            title={`Confirm ${confirmAction === "activate" ? "Activation" : "Deactivation"}`}
+          <Modal
+            title={`Confirm ${
+              confirmAction === "activate" ? "Activation" : "Deactivation"
+            }`}
             open={isConfirmModalOpen}
             onCancel={() => setIsConfirmModalOpen(false)}
             footer={[
-              <AntButton key="cancel" onClick={() => setIsConfirmModalOpen(false)}>
+              <AntButton
+                key="cancel"
+                onClick={() => setIsConfirmModalOpen(false)}
+              >
                 Cancel
               </AntButton>,
               <AntButton
@@ -1656,19 +1892,19 @@ export function Drugs() {
               {confirmAction === "activate" ? "activate" : "deactivate"} the
               selected drugs?
             </p>
-      </Modal>
+          </Modal>
 
-      <DrugFilterModal
-        visible={isFilterModalOpen}
-        onCancel={() => setIsFilterModalOpen(false)}
-        onApply={handleApplyFilters}
-        onReset={handleResetFilters}
-        filters={advancedFilters}
-        drugGroups={drugGroups}
-        drugCodes={drugCodes}
-        drugNames={drugNames}
-        manufacturers={manufacturers}
-      />
+          <DrugFilterModal
+            visible={isFilterModalOpen}
+            onCancel={() => setIsFilterModalOpen(false)}
+            onApply={handleApplyFilters}
+            onReset={handleResetFilters}
+            filters={advancedFilters}
+            drugGroups={drugGroups}
+            drugCodes={drugCodes}
+            drugNames={drugNames}
+            manufacturers={manufacturers}
+          />
 
           <ExportConfigModal
             visible={exportModalVisible}
@@ -1680,26 +1916,22 @@ export function Drugs() {
               statusFilter: Array.from(statusFilter as Set<string>),
               advancedFilters,
               currentPage: page,
-              pageSize: pageSize
+              pageSize: pageSize,
             }}
             drugs={drugs}
-            statusOptions={statusOptions.map(option => ({ 
-              label: option.name, 
-              value: option.uid 
+            statusOptions={statusOptions.map((option) => ({
+              label: option.name,
+              value: option.uid,
             }))}
           />
 
           {/* Container for selected info and rows per page */}
-      <div className="flex justify-between items-center mx-4 mb-4">
-        <div>
-          {renderSelectedInfo()}
-        </div>
-        <div>
-          {renderRowsPerPage()}
-        </div>
-      </div>
+          <div className="flex justify-between items-center mx-4 mb-4">
+            <div>{renderSelectedInfo()}</div>
+            <div>{renderRowsPerPage()}</div>
+          </div>
 
-      <Card className="shadow-sm mb-4 mx-4" bodyStyle={{ padding: 0 }}>
+          <Card className="shadow-sm">
             <style>
               {`
                 .ant-table-thead > tr > th {
@@ -1719,61 +1951,95 @@ export function Drugs() {
               bordered
               loading={loading}
               rowSelection={{
-                selectedRowKeys: Array.from(selectedKeys instanceof Set ? selectedKeys : []),
+                selectedRowKeys: Array.from(
+                  selectedKeys instanceof Set ? selectedKeys : []
+                ),
                 onChange: (keys) => {
                   // Kiểm tra xem người dùng có đang cố gắng chọn cả Active và Inactive không
                   if (keys.length > 0) {
-                    const selectedDrugList = paginatedItems.filter(drug => keys.includes(drug.id));
-                    const hasActive = selectedDrugList.some(drug => drug.status === "Active");
-                    const hasInactive = selectedDrugList.some(drug => drug.status === "Inactive");
-                    
+                    const selectedDrugList = paginatedItems.filter((drug) =>
+                      keys.includes(drug.id)
+                    );
+                    const hasActive = selectedDrugList.some(
+                      (drug) => drug.status === "Active"
+                    );
+                    const hasInactive = selectedDrugList.some(
+                      (drug) => drug.status === "Inactive"
+                    );
+
                     if (hasActive && hasInactive) {
-                      messageApi.warning("Cannot select both Active and Inactive drugs at the same time.", 5);
+                      messageApi.warning(
+                        "Cannot select both Active and Inactive drugs at the same time.",
+                        5
+                      );
                       return;
                     }
                   }
-                  
+
                   setSelectedKeys(new Set(keys));
                   setSelectedOption(null); // Reset selected option when manually selecting
                 },
                 columnTitle: () => {
                   // Đếm thuốc theo trạng thái
-                  const activeCount = paginatedItems.filter(drug => drug.status === "Active").length;
-                  const inactiveCount = paginatedItems.filter(drug => drug.status === "Inactive").length;
-                  
+                  const activeCount = paginatedItems.filter(
+                    (drug) => drug.status === "Active"
+                  ).length;
+                  const inactiveCount = paginatedItems.filter(
+                    (drug) => drug.status === "Inactive"
+                  ).length;
+
                   const isSelectAll = false; // Disabled
                   const isIndeterminate = false; // Disabled
-                  
+
                   // Tạo các mục cho dropdown
                   const dropdownItems = [
                     {
-                      key: 'page-active',
-                      label: `Select all Active on this page (${activeCount})`
+                      key: "page-active",
+                      label: `Select all Active on this page (${activeCount})`,
                     },
                     {
-                      key: 'all-active',
-                      label: isLoadingAllItems && selectedOption === "all-active" ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <Spin size="small" />
-                          <span>Loading all Active...</span>
-                        </div>
-                      ) : "Select all Active (all pages)"
+                      key: "all-active",
+                      label:
+                        isLoadingAllItems && selectedOption === "all-active" ? (
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                            }}
+                          >
+                            <Spin size="small" />
+                            <span>Loading all Active...</span>
+                          </div>
+                        ) : (
+                          "Select all Active (all pages)"
+                        ),
                     },
                     {
-                      key: 'page-inactive',
-                      label: `Select all Inactive on this page (${inactiveCount})`
+                      key: "page-inactive",
+                      label: `Select all Inactive on this page (${inactiveCount})`,
                     },
                     {
-                      key: 'all-inactive',
-                      label: isLoadingAllItems && selectedOption === "all-inactive" ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <Spin size="small" />
-                          <span>Loading all Inactive...</span>
-                        </div>
-                      ) : "Select all Inactive (all pages)"
-                    }
+                      key: "all-inactive",
+                      label:
+                        isLoadingAllItems &&
+                        selectedOption === "all-inactive" ? (
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                            }}
+                          >
+                            <Spin size="small" />
+                            <span>Loading all Inactive...</span>
+                          </div>
+                        ) : (
+                          "Select all Inactive (all pages)"
+                        ),
+                    },
                   ];
-                  
+
                   return (
                     <>
                       <Checkbox
@@ -1781,13 +2047,15 @@ export function Drugs() {
                         indeterminate={false}
                         disabled={true}
                       />
-                      
+
                       {dropdownItems.length > 0 && (
                         <AntDropdown
                           menu={{
                             items: dropdownItems,
                             onClick: ({ key }) => handleSelectByStatus(key),
-                            selectedKeys: selectedOption ? [selectedOption] : []
+                            selectedKeys: selectedOption
+                              ? [selectedOption]
+                              : [],
                           }}
                           placement="bottomLeft"
                           trigger={["click"]}
@@ -1812,17 +2080,24 @@ export function Drugs() {
                       )}
                     </>
                   );
-                }
+                },
               }}
               scroll={{ x: "max-content" }}
               sticky
               columns={[
                 {
-                  title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>DRUG CODE</span>,
+                  title: (
+                    <span
+                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
+                    >
+                      DRUG CODE
+                    </span>
+                  ),
                   dataIndex: "drugCode",
                   key: "drugCode",
                   width: 180,
-                  sorter: (a: DrugResponse, b: DrugResponse) => a.drugCode.localeCompare(b.drugCode),
+                  sorter: (a: DrugResponse, b: DrugResponse) =>
+                    a.drugCode.localeCompare(b.drugCode),
                   render: (text: string, record: DrugResponse) => (
                     <div className="flex items-center gap-2">
                       {record.imageUrl && (
@@ -1835,7 +2110,7 @@ export function Drugs() {
                           }}
                         />
                       )}
-                      <span 
+                      <span
                         className="text-primary cursor-pointer hover:underline"
                         onClick={() => handleOpenDetails(record.id)}
                       >
@@ -1845,47 +2120,91 @@ export function Drugs() {
                   ),
                 },
                 {
-                  title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>NAME</span>,
+                  title: (
+                    <span
+                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
+                    >
+                      NAME
+                    </span>
+                  ),
                   dataIndex: "name",
                   key: "name",
-                  sorter: (a: DrugResponse, b: DrugResponse) => a.name.localeCompare(b.name),
-                  render: (text: string) => <span className="capitalize">{text}</span>,
+                  sorter: (a: DrugResponse, b: DrugResponse) =>
+                    a.name.localeCompare(b.name),
+                  render: (text: string) => (
+                    <span className="capitalize">{text}</span>
+                  ),
                 },
                 {
-                  title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>DRUG GROUP</span>,
+                  title: (
+                    <span
+                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
+                    >
+                      DRUG GROUP
+                    </span>
+                  ),
                   dataIndex: "drugGroup",
                   key: "drugGroup",
-                  sorter: (a: DrugResponse, b: DrugResponse) => 
-                    (a.drugGroup?.groupName || "").localeCompare(b.drugGroup?.groupName || ""),
-                  render: (drugGroup: any) => drugGroup ? drugGroup.groupName : "-",
+                  sorter: (a: DrugResponse, b: DrugResponse) =>
+                    (a.drugGroup?.groupName || "").localeCompare(
+                      b.drugGroup?.groupName || ""
+                    ),
+                  render: (drugGroup: any) =>
+                    drugGroup ? drugGroup.groupName : "-",
                 },
                 {
-                  title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>UNIT</span>,
+                  title: (
+                    <span
+                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
+                    >
+                      UNIT
+                    </span>
+                  ),
                   dataIndex: "unit",
                   key: "unit",
                 },
                 {
-                  title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>PRICE</span>,
+                  title: (
+                    <span
+                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
+                    >
+                      PRICE
+                    </span>
+                  ),
                   dataIndex: "price",
                   key: "price",
                   sorter: (a: DrugResponse, b: DrugResponse) => {
-                    const priceA = parseFloat(a.price as unknown as string) || 0;
-                    const priceB = parseFloat(b.price as unknown as string) || 0;
+                    const priceA =
+                      parseFloat(a.price as unknown as string) || 0;
+                    const priceB =
+                      parseFloat(b.price as unknown as string) || 0;
                     return priceA - priceB;
                   },
                   render: (price: string | number) => formatPrice(price),
                 },
                 {
-                  title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>MANUFACTURER</span>,
+                  title: (
+                    <span
+                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
+                    >
+                      MANUFACTURER
+                    </span>
+                  ),
                   dataIndex: "manufacturer",
                   key: "manufacturer",
                 },
                 {
-                  title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>STATUS</span>,
+                  title: (
+                    <span
+                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
+                    >
+                      STATUS
+                    </span>
+                  ),
                   dataIndex: "status",
                   key: "status",
                   align: "center" as const,
-                  sorter: (a: DrugResponse, b: DrugResponse) => 
+                  sorter: (a: DrugResponse, b: DrugResponse) =>
                     (a.status || "").localeCompare(b.status || ""),
                   render: (status: string) => (
                     <Tag color={status === "Active" ? "success" : "error"}>
@@ -1894,20 +2213,36 @@ export function Drugs() {
                   ),
                 },
                 {
-                  title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>CREATED AT</span>,
+                  title: (
+                    <span
+                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
+                    >
+                      CREATED AT
+                    </span>
+                  ),
                   dataIndex: "createdAt",
                   key: "createdAt",
-                  sorter: (a: DrugResponse, b: DrugResponse) => 
-                    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+                  sorter: (a: DrugResponse, b: DrugResponse) =>
+                    new Date(a.createdAt).getTime() -
+                    new Date(b.createdAt).getTime(),
                   render: (date: string) => formatDate(date),
                 },
                 {
-                  title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>ACTIONS</span>,
+                  title: (
+                    <span
+                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
+                    >
+                      ACTIONS
+                    </span>
+                  ),
                   key: "actions",
                   width: 100,
                   align: "center" as const,
                   render: (_: any, record: DrugResponse) => (
-                    <Space size="small" style={{ display: "flex", justifyContent: "center" }}>
+                    <Space
+                      size="small"
+                      style={{ display: "flex", justifyContent: "center" }}
+                    >
                       <Tooltip title="Edit">
                         <AntButton
                           type="text"
@@ -1918,7 +2253,7 @@ export function Drugs() {
                     </Space>
                   ),
                 },
-              ].filter(col => {
+              ].filter((col) => {
                 const key = col.key as string;
                 return visibleColumns instanceof Set && visibleColumns.has(key);
               })}
@@ -1926,9 +2261,7 @@ export function Drugs() {
             <Card className="mt-4 shadow-sm">
               <Row justify="center" align="middle">
                 <Space size="large" align="center">
-                  <Text type="secondary">
-                    Total {totalItemsCount} items
-                  </Text>
+                  <Text type="secondary">Total {totalItemsCount} items</Text>
                   <Space align="center" size="large">
                     <Pagination
                       current={page}
@@ -1947,12 +2280,18 @@ export function Drugs() {
                           Math.ceil(filteredAndSortedItems.length / pageSize)
                         )}
                         value={page}
-                        onPressEnter={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                          const value = Number((e.target as HTMLInputElement).value);
+                        onPressEnter={(
+                          e: React.KeyboardEvent<HTMLInputElement>
+                        ) => {
+                          const value = Number(
+                            (e.target as HTMLInputElement).value
+                          );
                           if (
                             value > 0 &&
                             value <=
-                              Math.ceil(filteredAndSortedItems.length / pageSize)
+                              Math.ceil(
+                                filteredAndSortedItems.length / pageSize
+                              )
                           ) {
                             onPageChange(value, pageSize);
                           }
@@ -1962,7 +2301,9 @@ export function Drugs() {
                             value &&
                             Number(value) > 0 &&
                             Number(value) <=
-                              Math.ceil(filteredAndSortedItems.length / pageSize)
+                              Math.ceil(
+                                filteredAndSortedItems.length / pageSize
+                              )
                           ) {
                             onPageChange(Number(value), pageSize);
                           }

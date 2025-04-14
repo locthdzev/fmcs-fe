@@ -14,9 +14,12 @@ import {
   Card,
   Typography,
   Badge,
-  Divider
+  Divider,
+  Select,
+  Form,
+  InputNumber,
+  message
 } from "antd";
-import { toast } from "react-toastify";
 import moment from "moment";
 import {
   getAllHealthInsurances,
@@ -24,20 +27,28 @@ import {
   setupHealthInsuranceRealTime,
   resendUpdateRequest,
   softDeleteHealthInsurances,
+  exportHealthInsurances,
 } from "@/api/healthinsurance";
-import { 
-  SearchOutlined, 
-  RedoOutlined, 
-  WarningOutlined, 
+import {
+  SearchOutlined,
+  RedoOutlined,
+  WarningOutlined,
   DeleteOutlined,
   UserOutlined,
   CalendarOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined,
-  SyncOutlined
+  SyncOutlined,
+  UndoOutlined,
+  AppstoreOutlined,
+  FileExcelOutlined,
+  ArrowLeftOutlined,
 } from "@ant-design/icons";
+import { useRouter } from "next/router";
+import { HealthInsuranceIcon } from "@/dashboard/sidebar/icons/HealthInsuranceIcon";
 
 const { Title, Text } = Typography;
+const { Option } = Select;
 
 const formatDate = (date: string | undefined) => {
   if (!date) return "";
@@ -50,13 +61,21 @@ const formatDateTime = (datetime: string | undefined) => {
 };
 
 export function ExpiredUpdateList() {
-  const [insurances, setInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
+  const router = useRouter();
+  const [insurances, setInsurances] = useState<HealthInsuranceResponseDTO[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState("");
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [insuranceNumberOptions, setInsuranceNumberOptions] = useState<
+    string[]
+  >([]);
+  const [searchForm] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const fetchInsurances = useCallback(async () => {
     setLoading(true);
@@ -72,34 +91,68 @@ export function ExpiredUpdateList() {
       setInsurances(result.data);
       setTotal(result.totalRecords);
     } catch (error) {
-      toast.error("Unable to load expired insurances.");
+      messageApi.error("Unable to load expired insurances.");
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, searchText]);
+  }, [currentPage, pageSize, searchText, messageApi]);
+
+  const fetchAllInsuranceNumbers = useCallback(async () => {
+    try {
+      const result = await getAllHealthInsurances(
+        1,
+        1000,
+        "",
+        "Deadline",
+        true,
+        "Expired"
+      );
+
+      if (result.data && result.data.length > 0) {
+        const uniqueNumbers = Array.from(
+          new Set(
+            result.data
+              .filter(
+                (insurance: HealthInsuranceResponseDTO) =>
+                  insurance.healthInsuranceNumber
+              )
+              .map(
+                (insurance: HealthInsuranceResponseDTO) =>
+                  insurance.healthInsuranceNumber
+              )
+          )
+        );
+        setInsuranceNumberOptions(uniqueNumbers as string[]);
+      }
+    } catch (error) {
+      console.error("Unable to load all insurance numbers", error);
+    }
+  }, []);
 
   useEffect(() => {
     fetchInsurances();
+    fetchAllInsuranceNumbers();
+
     const connection = setupHealthInsuranceRealTime(() => {
       fetchInsurances();
     });
     return () => {
       connection.stop();
     };
-  }, [fetchInsurances]);
+  }, [fetchInsurances, fetchAllInsuranceNumbers]);
 
   const handleResendRequest = async (id: string) => {
     try {
       setResendingId(id);
       const response = await resendUpdateRequest(id);
       if (response.isSuccess) {
-        toast.success("Update request resent successfully!");
+        messageApi.success("Update request resent successfully!");
         fetchInsurances();
       } else {
-        toast.error(response.message);
+        messageApi.error(response.message);
       }
     } catch (error) {
-      toast.error("Unable to resend update request.");
+      messageApi.error("Unable to resend update request.");
     } finally {
       setResendingId(null);
     }
@@ -109,23 +162,31 @@ export function ExpiredUpdateList() {
     try {
       const response = await softDeleteHealthInsurances([id]);
       if (response.isSuccess) {
-        toast.success("Insurance soft deleted successfully!");
+        messageApi.success("Insurance soft deleted successfully!");
         fetchInsurances();
       } else {
-        toast.error(response.message || "Failed to soft delete insurance");
+        messageApi.error(response.message || "Failed to soft delete insurance");
       }
     } catch (error) {
-      toast.error("Unable to soft delete insurance.");
+      messageApi.error("Unable to soft delete insurance.");
     }
+  };
+
+  const handleReset = () => {
+    setSearchText("");
+    setCurrentPage(1);
+  };
+
+  const handleBack = () => {
+    router.back();
   };
 
   const columns = [
     {
       title: (
-        <div className="flex items-center">
-          <UserOutlined className="mr-2" />
-          Policyholder
-        </div>
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          POLICYHOLDER
+        </span>
       ),
       render: (record: HealthInsuranceResponseDTO) => (
         <div className="flex items-start space-x-3">
@@ -133,30 +194,33 @@ export function ExpiredUpdateList() {
             <UserOutlined className="text-blue-500" />
           </div>
           <div>
-            <Text strong className="block">{record.user.fullName}</Text>
-            <Text type="secondary" className="text-sm">{record.user.email}</Text>
+            <Text strong className="block">
+              {record.user.fullName}
+            </Text>
+            <Text type="secondary" className="text-sm">
+              {record.user.email}
+            </Text>
           </div>
         </div>
       ),
     },
     {
       title: (
-        <div className="flex items-center">
-          <SyncOutlined className="mr-2" />
-          Insurance Number
-        </div>
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>          INSURANCE NUMBER
+        </span>
       ),
       dataIndex: "healthInsuranceNumber",
       render: (text: string) => (
-        <Text strong className="text-blue-600">{text}</Text>
+        <Text strong className="text-blue-600">
+          {text}
+        </Text>
       ),
     },
     {
       title: (
-        <div className="flex items-center">
-          <CalendarOutlined className="mr-2" />
-          Valid Period
-        </div>
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          VALID PERIOD
+        </span>
       ),
       render: (record: HealthInsuranceResponseDTO) => (
         <div className="space-y-1">
@@ -173,28 +237,25 @@ export function ExpiredUpdateList() {
     },
     {
       title: (
-        <div className="flex items-center">
-          <WarningOutlined className="mr-2" />
-          Status
-        </div>
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          STATUS
+        </span>
       ),
       render: (record: HealthInsuranceResponseDTO) => (
-        <Tag icon={<WarningOutlined />} color="error" className="px-3 py-1">
+        <Tag  color="error" className="px-3 py-1">
           {record.status}
         </Tag>
       ),
     },
     {
       title: (
-        <div className="flex items-center">
-          <ClockCircleOutlined className="mr-2" />
-          Deadline
-        </div>
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          DEADLINE
+        </span>
       ),
       render: (record: HealthInsuranceResponseDTO) => (
         <Tooltip title={moment(record.deadline).fromNow()}>
           <div className="flex items-center space-x-2">
-            <ExclamationCircleOutlined className="text-red-500" />
             <Text type="danger">{formatDateTime(record.deadline)}</Text>
           </div>
         </Tooltip>
@@ -202,10 +263,9 @@ export function ExpiredUpdateList() {
     },
     {
       title: (
-        <div className="flex items-center">
-          <SyncOutlined className="mr-2" />
-          Actions
-        </div>
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          ACTIONS
+        </span>
       ),
       render: (record: HealthInsuranceResponseDTO) => (
         <Space>
@@ -216,7 +276,8 @@ export function ExpiredUpdateList() {
             onClick={() => {
               Modal.confirm({
                 title: "Resend Update Request",
-                content: "Are you sure you want to resend the update request to this user?",
+                content:
+                  "Are you sure you want to resend the update request to this user?",
                 okText: "Yes",
                 cancelText: "No",
                 icon: <ExclamationCircleOutlined className="text-blue-500" />,
@@ -233,7 +294,7 @@ export function ExpiredUpdateList() {
             onConfirm={() => handleSoftDelete(record.id)}
             okText="Yes"
             cancelText="No"
-            icon={<ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />}
+            icon={<ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />}
           >
             <Button
               type="text"
@@ -250,63 +311,166 @@ export function ExpiredUpdateList() {
   ];
 
   const topContent = (
-    <Card className="mb-4">
-      <div className="flex flex-col space-y-4">
-        <div className="flex items-center justify-between">
-          <Title level={5} className="mb-0">Expired Insurance List</Title>
-          <Text type="secondary">Total: {total}</Text>
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={handleBack}
+            style={{ marginRight: "8px" }}
+          >
+            Back
+          </Button>
+          <HealthInsuranceIcon/>
+          <h3 className="text-xl font-bold">Expired Insurance List</h3>
         </div>
-        <Divider className="my-3" />
-        <Row gutter={[16, 16]} align="middle" justify="space-between">
-          <Col>
-            <Space size="middle">
-              <Input.Search
-                placeholder="Search by insurance number"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                style={{ width: 300 }}
-                className="search-input"
-              />
-            </Space>
-          </Col>
-        </Row>
       </div>
-    </Card>
+
+      <Card
+        className="shadow mb-4"
+        bodyStyle={{ padding: "16px" }}
+        title={
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "16px",
+            }}
+          >
+            <AppstoreOutlined />
+            <span>Toolbar</span>
+          </div>
+        }
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Select
+              showSearch
+              allowClear
+              style={{ width: 200 }}
+              placeholder="Insurance Number"
+              optionFilterProp="children"
+              onChange={(value) => setSearchText(value || "")}
+              value={searchText || undefined}
+              filterOption={(input, option) =>
+                (option?.children as unknown as string)
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+            >
+              {insuranceNumberOptions.map((number) => (
+                <Option key={number} value={number}>
+                  {number}
+                </Option>
+              ))}
+            </Select>
+
+            <Tooltip title="Reset All Filters">
+              <Button
+                icon={<UndoOutlined />}
+                onClick={handleReset}
+                disabled={!searchText}
+              >
+                Reset
+              </Button>
+            </Tooltip>
+          </div>
+
+          <div>
+            <Button
+              type="primary"
+              icon={<FileExcelOutlined />}
+              onClick={exportHealthInsurances}
+              disabled={loading}
+            >
+              Export to Excel
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <div className="flex justify-between items-center mb-4">
+        <div></div>
+        <div>
+          <Text type="secondary">
+            Rows per page:
+            <Select
+              value={pageSize}
+              onChange={(value) => {
+                setPageSize(value);
+                setCurrentPage(1);
+              }}
+              style={{ marginLeft: 8, width: 70 }}
+            >
+              <Option value={5}>5</Option>
+              <Option value={10}>10</Option>
+              <Option value={15}>15</Option>
+              <Option value={20}>20</Option>
+            </Select>
+          </Text>
+        </div>
+      </div>
+    </>
   );
 
-  const bottomContent = (
-    <Card className="mt-4">
-      <Row justify="end">
-        <Pagination
-          current={currentPage}
-          pageSize={pageSize}
-          total={total}
-          onChange={(page, size) => {
-            setCurrentPage(page);
-            setPageSize(size);
-          }}
-          showSizeChanger
-          showTotal={(total) => `Total ${total} records`}
-          className="pagination-custom"
-        />
+  // Update the bottom pagination component to match the style in index.tsx
+  const bottomContent: React.ReactNode = (
+    <Card className="mt-4 shadow-sm">
+      <Row justify="center" align="middle">
+        <Space size="large" align="center">
+          <Text type="secondary">Total {total} items</Text>
+          <Space align="center" size="large">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={total}
+              onChange={(page) => {
+                setCurrentPage(page);
+              }}
+              showSizeChanger={false}
+              showTotal={() => ""}
+            />
+            <Space align="center">
+              <Text type="secondary">Go to page:</Text>
+              <InputNumber
+                min={1}
+                max={Math.ceil(total / pageSize)}
+                value={currentPage}
+                onChange={(value) => {
+                  if (
+                    value &&
+                    Number(value) > 0 &&
+                    Number(value) <= Math.ceil(total / pageSize)
+                  ) {
+                    setCurrentPage(Number(value));
+                  }
+                }}
+                style={{ width: "60px" }}
+              />
+            </Space>
+          </Space>
+        </Space>
       </Row>
     </Card>
   );
 
   return (
-    <div className="space-y-4">
+    <div className="history-container" style={{ padding: "20px" }}>
+      {contextHolder}
       {topContent}
-      <Card bodyStyle={{ padding: 0 }}>
+      <Card className="shadow-sm">
         <Table
+          bordered
+          loading={loading}
           columns={columns}
           dataSource={insurances}
-          loading={loading}
+          rowKey={(record) => record.id}
           pagination={false}
-          rowKey="id"
-          className="custom-table"
+          className="border rounded-lg overflow-x-auto"
         />
+        {bottomContent}
       </Card>
-      {bottomContent}
     </div>
   );
-} 
+}
