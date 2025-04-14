@@ -99,54 +99,54 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
     }
   };
 
-  const renderRecipientType = (type: string) => {
-    switch (type) {
-      case "System":
+  const renderRecipientType = (text: string, record: NotificationResponseDTO) => {
+    switch (text) {
+      case "SYSTEM":
         return (
-          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(text)}>
             Notify the system
           </Tag>
         );
-      case "Role":
+      case "ROLE":
         return (
-          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
-            Role
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(text)}>
+            {record.roleName ? `Notify the ${record.roleName.toLowerCase()}` : "Role-Based"}
           </Tag>
         );
       case "User":
         return (
-          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(text)}>
             Notify the user
           </Tag>
         );
       case "Admin":
         return (
-          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(text)}>
             Notify the admin
           </Tag>
         );
       case "Manager":
         return (
-          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(text)}>
             Notify the manager
           </Tag>
         );
       case "Healthcare Staff":
         return (
-          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(text)}>
             Notify the healthcare staff
           </Tag>
         );
       case "Canteen Staff":
         return (
-          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(text)}>
             Notify the canteen staff
           </Tag>
         );
       default:
         return (
-          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(type)}>
-            {type}
+          <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(text)}>
+            {text}
           </Tag>
         );
     }
@@ -207,8 +207,8 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       ),
       dataIndex: "recipientType",
       key: "recipientType",
-      render: (text: string) => (
-        <div style={{ textAlign: "center" }}>{renderRecipientType(text)}</div>
+      render: (text: string, record: NotificationResponseDTO) => (
+        <div style={{ textAlign: "center" }}>{renderRecipientType(text, record)}</div>
       ),
       width: 180,
       hidden: !columnVisibility.recipientType,

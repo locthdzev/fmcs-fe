@@ -216,16 +216,16 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
 
   const renderRecipientType = (type: string | undefined) => {
     switch (type) {
-      case "System":
+      case "SYSTEM":
         return (
           <Tag icon={<TeamOutlined />} color="blue">
             Notify the system
           </Tag>
         );
-      case "Role":
+      case "ROLE":
         return (
           <Tag icon={<TeamOutlined />} color="orange">
-            Role
+            {notification?.roleName ? `Notify the ${notification.roleName.toLowerCase()}` : "Role-Based"}
           </Tag>
         );
       case "User":

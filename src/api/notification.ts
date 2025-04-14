@@ -13,6 +13,7 @@ export interface NotificationResponseDTO {
   unreadCount: number;
   recipientType: string;
   roleId?: string;
+  roleName?: string;
   recipientIds: string[];
   sendEmail: boolean;
 }

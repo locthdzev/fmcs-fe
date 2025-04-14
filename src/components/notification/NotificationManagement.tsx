@@ -722,8 +722,23 @@ export function NotificationManagement() {
         handleToggleStatus={handleToggleStatus}
         handleReup={handleReup}
         handleCopy={(notification) => {
-          setSelectedNotification(notification);
-          setCreateModalVisible(true);
+          console.log("Copy button clicked for notification:", notification.id);
+          
+          // Lấy chi tiết đầy đủ của notification từ API
+          setLoading(true);
+          getNotificationDetailForAdmin(notification.id)
+            .then(detailedNotification => {
+              console.log("Fetched detailed notification for copy:", detailedNotification);
+              setSelectedNotification(detailedNotification);
+              setCreateModalVisible(true);
+            })
+            .catch(error => {
+              console.error("Failed to get notification details:", error);
+              message.error("Failed to get notification details for copying");
+            })
+            .finally(() => {
+              setLoading(false);
+            });
         }}
         columnVisibility={columnVisibility}
         handleBulkDelete={handleBulkDelete}
