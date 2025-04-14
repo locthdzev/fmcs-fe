@@ -47,7 +47,12 @@ export const getAllNotifications = async (page: number = 1, pageSize: number = 1
 };
 
 export const getNotificationsByUserId = async (page: number = 1, pageSize: number = 10) => {
-  const response = await api.get(`/notification-management/user-notifications?page=${page}&pageSize=${pageSize}`);
+  const response = await api.get(`/notification-management/user-notifications`, {
+    params: {
+      page,
+      pageSize
+    }
+  });
   return response.data;
 };
 

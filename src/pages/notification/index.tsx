@@ -1,5 +1,5 @@
 import { NotificationManagement } from "../../components/notification";
 
-export default function InventoryRecordManagementPage() {
+export default function NotificationManagementPage() {
   return <NotificationManagement />;
 }
