@@ -889,7 +889,7 @@ export function Drugs() {
                           }
                         }}
                       >
-                        <strong>Show All Columns</strong>
+                        Toggle All
                       </Checkbox>
                     ),
                   },
@@ -1585,7 +1585,7 @@ export function Drugs() {
           </div>
 
           <Card
-            className="shadow mb-4"
+            className="shadow mb-4 mx-4"
             bodyStyle={{ padding: "16px" }}
             title={
               <div
@@ -1709,7 +1709,7 @@ export function Drugs() {
                                   }
                                 }}
                               >
-                                <strong>Show All Columns</strong>
+                                <strong>Toggle All</strong>
                               </Checkbox>
                             ),
                           },
@@ -1931,7 +1931,7 @@ export function Drugs() {
             <div>{renderRowsPerPage()}</div>
           </div>
 
-          <Card className="shadow-sm">
+          <Card className="shadow-sm mb-4 mx-4" bodyStyle={{ padding: 0 }}>
             <style>
               {`
                 .ant-table-thead > tr > th {

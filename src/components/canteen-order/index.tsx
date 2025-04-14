@@ -1458,7 +1458,7 @@ export function CanteenOrders() {
                                 toggleAllColumns(e.target.checked)
                               }
                             >
-                              <strong>Show All Columns</strong>
+                              Toggle All
                             </Checkbox>
                           </Menu.Item>
                           <Menu.Divider />
