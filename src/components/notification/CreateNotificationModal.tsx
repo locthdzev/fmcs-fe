@@ -12,13 +12,14 @@ import {
   Typography,
   Space,
 } from "antd";
-import {
-  UploadOutlined,
-  InboxOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
+import { UploadOutlined, InboxOutlined, PlusOutlined } from "@ant-design/icons";
 import type { UploadProps, UploadFile } from "antd/es/upload/interface";
-import { NotificationResponseDTO, RoleResponseDTO, createNotification, copyNotification } from "@/api/notification";
+import {
+  NotificationResponseDTO,
+  RoleResponseDTO,
+  createNotification,
+  copyNotification,
+} from "@/api/notification";
 import RichTextEditor from "@/components/rich-text-editor";
 
 const { Option } = Select;
@@ -53,8 +54,14 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
         roleId: notification.roleId,
         sendEmail: notification.sendEmail,
       });
-      setEditorContent(notification.content || "");
-      
+
+      // Ensure content is properly set for copying
+      if (notification.content) {
+        setEditorContent(notification.content);
+      } else {
+        setEditorContent("");
+      }
+
       // Reset file list when the modal becomes visible
       setFileList([]);
     } else if (visible) {
@@ -63,6 +70,14 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
       setFileList([]);
     }
   }, [visible, notification, form]);
+
+  // Add useEffect to explicitly reset the editor content when modal is no longer visible
+  useEffect(() => {
+    if (!visible) {
+      setEditorContent("");
+      form.resetFields();
+    }
+  }, [visible, form]);
 
   const handleOk = async () => {
     try {
@@ -74,12 +89,13 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
       if (editorContent) formData.append("content", editorContent);
       formData.append("sendEmail", values.sendEmail.toString());
       formData.append("recipientType", values.recipientType);
-      
-      // Xử lý đơn giản như code cũ
+
+      // Handle role-based recipient type
       if (values.recipientType === "Role" && values.roleId) {
         formData.append("roleId", values.roleId);
+        console.log("Adding roleId to formData:", values.roleId);
       }
-      
+
       if (fileList.length > 0 && fileList[0].originFileObj) {
         formData.append("file", fileList[0].originFileObj);
       }
@@ -88,9 +104,15 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
       console.log("FormData entries to be sent:");
       for (let pair of formData.entries()) {
         const value = pair[1];
-        console.log(`${pair[0]}: ${value instanceof File ? 
-          `File (${(value as File).name}, ${(value as File).type}, ${(value as File).size} bytes)` : 
-          value}`);
+        console.log(
+          `${pair[0]}: ${
+            value instanceof File
+              ? `File (${(value as File).name}, ${(value as File).type}, ${
+                  (value as File).size
+                } bytes)`
+              : value
+          }`
+        );
       }
 
       let response;
@@ -103,7 +125,9 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
       }
 
       if (response.isSuccess) {
-        message.success(response.message || "Notification created successfully");
+        message.success(
+          response.message || "Notification created successfully"
+        );
         onSuccess();
         form.resetFields();
         setEditorContent("");
@@ -135,24 +159,24 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
         message.error("File must be smaller than 5MB");
         return Upload.LIST_IGNORE;
       }
-      
+
       // Tạo một đối tượng UploadFile mới với originFileObj
       const uploadFile = {
         uid: Date.now().toString(),
         name: file.name,
         size: file.size,
         type: file.type,
-        status: 'done',
-        originFileObj: file  // Thêm trường originFileObj
+        status: "done",
+        originFileObj: file, // Thêm trường originFileObj
       } as UploadFile;
-      
+
       console.log("File selected for upload:", {
         name: uploadFile.name,
         type: uploadFile.type,
         size: uploadFile.size,
-        hasOriginFileObj: !!uploadFile.originFileObj
+        hasOriginFileObj: !!uploadFile.originFileObj,
       });
-      
+
       setFileList([uploadFile]);
       return false;
     },
@@ -199,18 +223,15 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
           rules={[
             {
               validator: () => {
-                if (!editorContent || editorContent === '<p></p>') {
-                  return Promise.reject('Please enter content');
+                if (!editorContent || editorContent === "<p></p>") {
+                  return Promise.reject("Please enter content");
                 }
                 return Promise.resolve();
-              }
-            }
+              },
+            },
           ]}
         >
-          <RichTextEditor 
-            content={editorContent} 
-            onChange={setEditorContent} 
-          />
+          <RichTextEditor content={editorContent} onChange={setEditorContent} />
         </Form.Item>
 
         <Form.Item
@@ -220,7 +241,7 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
           initialValue="System"
         >
           <Select placeholder="Select recipient type">
-            <Option value="System">All Users</Option>
+            <Option value="System">System</Option>
             <Option value="Role">Role-Based</Option>
           </Select>
         </Form.Item>
@@ -260,13 +281,8 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
         </Form.Item>
 
         <Form.Item label="Attachment (Optional)">
-          <Upload
-            {...uploadProps}
-            listType="picture"
-          >
-            <Button icon={<UploadOutlined />}>
-              Select File (Max: 5MB)
-            </Button>
+          <Upload {...uploadProps} listType="picture">
+            <Button icon={<UploadOutlined />}>Select File (Max: 5MB)</Button>
           </Upload>
         </Form.Item>
       </Form>
@@ -274,4 +290,4 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
   );
 };
 
-export default CreateNotificationModal; 
+export default CreateNotificationModal;

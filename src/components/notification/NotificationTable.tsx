@@ -30,7 +30,7 @@ import {
   MailOutlined,
   CloseCircleOutlined,
   TeamOutlined,
-  UserOutlined
+  UserOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { NotificationResponseDTO } from "@/api/notification";
@@ -167,11 +167,7 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
           </Tag>
         );
       default:
-        return (
-          <Tag color="default">
-            {status}
-          </Tag>
-        );
+        return <Tag color="default">{status}</Tag>;
     }
   };
 
@@ -185,7 +181,7 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       dataIndex: "title",
       key: "title",
       render: (text: string, record: NotificationResponseDTO) => (
-        <a 
+        <a
           className="text-blue-500 hover:underline cursor-pointer"
           onClick={() => router.push(`/notification/${record.id}`)}
         >
@@ -212,9 +208,7 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       dataIndex: "recipientType",
       key: "recipientType",
       render: (text: string) => (
-        <div style={{ textAlign: "center" }}>
-          {renderRecipientType(text)}
-        </div>
+        <div style={{ textAlign: "center" }}>{renderRecipientType(text)}</div>
       ),
       width: 180,
       hidden: !columnVisibility.recipientType,
@@ -266,9 +260,7 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       dataIndex: "status",
       key: "status",
       render: (text: string) => (
-        <div style={{ textAlign: "center" }}>
-          {renderStatusTag(text)}
-        </div>
+        <div style={{ textAlign: "center" }}>{renderStatusTag(text)}</div>
       ),
       width: 100,
       hidden: !columnVisibility.status,
@@ -327,13 +319,6 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
           <Dropdown
             overlay={
               <Menu>
-                <Menu.Item
-                  key="view"
-                  icon={<EyeOutlined />}
-                  onClick={() => router.push(`/notification/${record.id}`)}
-                >
-                  View
-                </Menu.Item>
                 {record.status !== "Active" && (
                   <Menu.Item
                     key="reup"

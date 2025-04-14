@@ -9,11 +9,13 @@ import {
   Row,
   Col,
   message,
+  Typography,
 } from "antd";
 import dayjs from "dayjs";
 import { createUser } from "@/api/user";
 
 const { Option } = Select;
+const { Title } = Typography;
 
 interface CreateModalProps {
   visible: boolean;
@@ -42,31 +44,34 @@ const CreateModal: React.FC<CreateModalProps> = ({
       setSubmitLoading(true);
       messageApi.loading({ content: "Creating user...", key: "createUser" });
       const values = await form.validateFields();
-      
+
       // Format date of birth and set current timestamp for createdAt
       const formattedValues = {
         ...values,
         dob: values.dob.format("YYYY-MM-DD"),
         createdAt: new Date().toISOString(),
-        status: "Active"
+        status: "Active",
       };
 
       const response = await createUser(formattedValues);
-      
+
       if (response.isSuccess) {
-        messageApi.success({ content: "User created successfully", key: "createUser" });
+        messageApi.success({
+          content: "User created successfully",
+          key: "createUser",
+        });
         onSuccess();
       } else {
-        messageApi.error({ 
-          content: response.message || "Failed to create user", 
-          key: "createUser" 
+        messageApi.error({
+          content: response.message || "Failed to create user",
+          key: "createUser",
         });
       }
     } catch (error: any) {
       console.error("Error creating user:", error);
-      messageApi.error({ 
-        content: "An error occurred while validating the form", 
-        key: "createUser" 
+      messageApi.error({
+        content: "An error occurred while validating the form",
+        key: "createUser",
       });
     } finally {
       setSubmitLoading(false);
@@ -75,7 +80,11 @@ const CreateModal: React.FC<CreateModalProps> = ({
 
   return (
     <Modal
-      title="Create New User"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Create New User
+        </Title>
+      }
       open={visible}
       onCancel={onCancel}
       footer={[
@@ -121,7 +130,8 @@ const CreateModal: React.FC<CreateModalProps> = ({
                 { max: 50, message: "Username cannot exceed 50 characters" },
                 {
                   pattern: /^[a-zA-Z0-9_]+$/,
-                  message: "Username can only contain letters, numbers, and underscores",
+                  message:
+                    "Username can only contain letters, numbers, and underscores",
                 },
               ]}
             >
@@ -129,7 +139,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
             </Form.Item>
           </Col>
         </Row>
-        
+
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -156,7 +166,8 @@ const CreateModal: React.FC<CreateModalProps> = ({
                 { required: true, message: "Please enter a phone number" },
                 {
                   pattern: /^(0|\+84)[3|5|7|8|9][0-9]{8}$/,
-                  message: "Please enter a valid Vietnam phone number (eg: 0912345678 or +84912345678)",
+                  message:
+                    "Please enter a valid Vietnam phone number (eg: 0912345678 or +84912345678)",
                 },
               ]}
             >
@@ -164,7 +175,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
             </Form.Item>
           </Col>
         </Row>
-        
+
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -175,7 +186,6 @@ const CreateModal: React.FC<CreateModalProps> = ({
               <Select placeholder="Select gender">
                 <Option value="Male">Male</Option>
                 <Option value="Female">Female</Option>
-                <Option value="Other">Other</Option>
               </Select>
             </Form.Item>
           </Col>
@@ -189,10 +199,14 @@ const CreateModal: React.FC<CreateModalProps> = ({
                   validator: (_, value) => {
                     if (!value) return Promise.resolve();
                     if (value.isAfter(dayjs().subtract(18, "year"))) {
-                      return Promise.reject("User must be at least 18 years old");
+                      return Promise.reject(
+                        "User must be at least 18 years old"
+                      );
                     }
                     if (value.isBefore(dayjs().subtract(100, "year"))) {
-                      return Promise.reject("Date of birth is too far in the past");
+                      return Promise.reject(
+                        "Date of birth is too far in the past"
+                      );
                     }
                     return Promise.resolve();
                   },
@@ -203,7 +217,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
             </Form.Item>
           </Col>
         </Row>
-        
+
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item
@@ -214,16 +228,16 @@ const CreateModal: React.FC<CreateModalProps> = ({
                 { max: 200, message: "Address cannot exceed 200 characters" },
               ]}
             >
-              <Input.TextArea 
-                placeholder="Enter address" 
-                maxLength={200} 
+              <Input.TextArea
+                placeholder="Enter address"
+                maxLength={200}
                 rows={3}
-                style={{ resize: 'none' }}
+                style={{ resize: "none" }}
               />
             </Form.Item>
           </Col>
         </Row>
-        
+
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -234,7 +248,8 @@ const CreateModal: React.FC<CreateModalProps> = ({
                 { min: 8, message: "Password must be at least 8 characters" },
                 { max: 50, message: "Password must not exceed 50 characters" },
                 {
-                  pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+                  pattern:
+                    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
                   message:
                     "Password must include at least one uppercase letter, one lowercase letter, one number, and one special character",
                 },
@@ -269,4 +284,4 @@ const CreateModal: React.FC<CreateModalProps> = ({
   );
 };
 
-export default CreateModal; 
+export default CreateModal;

@@ -81,7 +81,6 @@ export function NotificationManagement() {
   const [exportConfigModalVisible, setExportConfigModalVisible] =
     useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedNotification, setSelectedNotification] =
     useState<NotificationResponseDTO | null>(null);
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>(
@@ -262,9 +261,13 @@ export function NotificationManagement() {
         statusFilter
       );
 
+      console.log("API Response:", response);
+
       // Extract data and total count
       const data = response.data || [];
-      const totalCount = response.totalCount || 0;
+      const totalCount = response.totalRecords || 0;
+
+      console.log(`Setting total items to: ${totalCount} from API response`);
 
       // Client-side filtering for fields not supported by the backend
       let filteredData = [...data];
@@ -305,7 +308,7 @@ export function NotificationManagement() {
 
       // Set data
       setNotifications(filteredData);
-      
+
       // Set total items from API response total count, not filtered data length
       // This ensures pagination works correctly with the backend
       setTotalItems(totalCount);
@@ -461,18 +464,6 @@ export function NotificationManagement() {
     } catch (error) {
       messageApi.error("Failed to reup notification");
       console.error("Error reupping notification:", error);
-    }
-  };
-
-  // Open notification detail
-  const handleViewDetail = async (id: string) => {
-    try {
-      const detail = await getNotificationDetailForAdmin(id);
-      setSelectedNotification(detail);
-      setDetailModalVisible(true);
-    } catch (error) {
-      messageApi.error("Failed to load notification details");
-      console.error("Error loading notification details:", error);
     }
   };
 
