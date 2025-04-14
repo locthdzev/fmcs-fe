@@ -210,13 +210,13 @@ const HealthCheckFilterModal: React.FC<{
 
   return (
     <Modal
-      title="Bộ lọc nâng cao"
+      title="Advanced Filters"
       open={visible}
       onCancel={onCancel}
       width={800}
       footer={[
         <Button key="reset" onClick={onReset} icon={<UndoOutlined />}>
-          Đặt lại
+          Reset
         </Button>,
         <Button
           key="apply"
@@ -224,7 +224,7 @@ const HealthCheckFilterModal: React.FC<{
           onClick={handleApply}
           icon={<CheckCircleOutlined />}
         >
-          Áp dụng
+          Apply
         </Button>,
       ]}
     >
@@ -234,10 +234,10 @@ const HealthCheckFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Trạng thái
+                Status
               </div>
               <Select
-                placeholder="Lọc theo trạng thái"
+                placeholder="Filter by status"
                 allowClear
                 style={{ width: "100%" }}
                 value={localFilters.statusFilter}
@@ -256,31 +256,31 @@ const HealthCheckFilterModal: React.FC<{
                 }}
               >
                 <Option value="DEFAULT">
-                  <Badge status="default" text="Mặc định (Hoàn thành & Đã hủy)" />
+                  <Badge status="default" text="Default (Completed & Cancelled)" />
                 </Option>
                 <Option value="ALL">
-                  <Badge status="default" text="Tất cả trạng thái" />
+                  <Badge status="default" text="All statuses" />
                 </Option>
                 <Option value="Waiting for Approval">
-                  <Badge status="warning" text="Chờ phê duyệt" />
+                  <Badge status="warning" text="Waiting for Approval" />
                 </Option>
                 <Option value="Completed">
-                  <Badge status="success" text="Hoàn thành" />
+                  <Badge status="success" text="Completed" />
                 </Option>
                 <Option value="FollowUpRequired">
-                  <Badge status="processing" text="Yêu cầu tái khám" />
+                  <Badge status="processing" text="Follow-up Required" />
                 </Option>
                 <Option value="CancelledCompletely">
-                  <Badge status="error" text="Đã hủy hoàn toàn" />
+                  <Badge status="error" text="Completely Cancelled" />
                 </Option>
                 <Option value="CancelledForAdjustment">
-                  <Badge color="orange" text="Hủy để điều chỉnh" />
+                  <Badge color="orange" text="Cancelled for Adjustment" />
                 </Option>
                 <Option value="NoFollowUpRequired">
-                  <Badge status="default" text="Không yêu cầu tái khám" />
+                  <Badge status="default" text="No Follow-up Required" />
                 </Option>
                 <Option value="SoftDeleted">
-                  <Badge status="default" text="Đã xóa tạm thời" />
+                  <Badge status="default" text="Soft Deleted" />
                 </Option>
               </Select>
             </div>
@@ -290,17 +290,17 @@ const HealthCheckFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Tái khám
+                Follow-up
               </div>
               <Select
-                placeholder="Yêu cầu tái khám"
+                placeholder="Follow-up required"
                 style={{ width: "100%" }}
                 allowClear
                 value={localFilters.followUpRequired}
                 onChange={(value) => updateFilter("followUpRequired", value)}
               >
-                <Option value={true}>Có</Option>
-                <Option value={false}>Không</Option>
+                <Option value={true}>Yes</Option>
+                <Option value={false}>No</Option>
               </Select>
             </div>
           </Col>
@@ -311,11 +311,11 @@ const HealthCheckFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Khoảng thời gian khám
+                Checkup Date Range
               </div>
               <RangePicker
                 style={{ width: "100%" }}
-                placeholder={["Từ ngày khám", "Đến ngày khám"]}
+                placeholder={["From date", "To date"]}
                 format="DD/MM/YYYY"
                 allowClear
                 value={localFilters.checkupDateRange as any}
@@ -330,11 +330,11 @@ const HealthCheckFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Khoảng thời gian tái khám
+                Follow-up Date Range
               </div>
               <RangePicker
                 style={{ width: "100%" }}
-                placeholder={["Từ ngày tái khám", "Đến ngày tái khám"]}
+                placeholder={["From follow-up date", "To follow-up date"]}
                 format="DD/MM/YYYY"
                 allowClear
                 disabled={localFilters.followUpRequired === false}
@@ -352,17 +352,17 @@ const HealthCheckFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Sắp xếp theo
+                Sort By
               </div>
               <Select
-                placeholder="Sắp xếp theo"
+                placeholder="Sort by"
                 value={localFilters.sortBy}
                 onChange={(value) => updateFilter("sortBy", value)}
                 style={{ width: "100%" }}
               >
-                <Option value="CheckupDate">Ngày khám</Option>
-                <Option value="CreatedAt">Ngày tạo</Option>
-                <Option value="Code">Mã kết quả khám</Option>
+                <Option value="CheckupDate">Checkup Date</Option>
+                <Option value="CreatedAt">Created Date</Option>
+                <Option value="Code">Result Code</Option>
               </Select>
             </div>
           </Col>
@@ -371,16 +371,16 @@ const HealthCheckFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Thứ tự
+                Order
               </div>
               <Select
-                placeholder="Thứ tự"
+                placeholder="Order"
                 value={localFilters.ascending ? "asc" : "desc"}
                 onChange={(value) => updateFilter("ascending", value === "asc")}
                 style={{ width: "100%" }}
               >
-                <Option value="asc">Tăng dần</Option>
-                <Option value="desc">Giảm dần</Option>
+                <Option value="asc">Ascending</Option>
+                <Option value="desc">Descending</Option>
               </Select>
             </div>
           </Col>
@@ -440,7 +440,7 @@ export function HealthCheckResultManagement() {
   const fetchUsers = useCallback(async () => {
     try {
       const users = await getUsers();
-      // Lọc người dùng có vai trò 'User' và loại bỏ trùng lặp
+      // Filter users with 'User' role and remove duplicates
       const uniqueUserIds = new Set();
       const userRoleUsers = users
         .filter((user: UserProfile) => 
@@ -453,7 +453,7 @@ export function HealthCheckResultManagement() {
         }));
       setUserOptions(userRoleUsers);
 
-      // Lọc người dùng có vai trò 'Doctor' hoặc 'Nurse' và loại bỏ trùng lặp
+      // Filter users with 'Doctor' or 'Nurse' role and remove duplicates
       const uniqueStaffIds = new Set();
       const staffUsers = users
         .filter((user: UserProfile) => 
@@ -467,7 +467,7 @@ export function HealthCheckResultManagement() {
         }));
       setStaffOptions(staffUsers);
     } catch (error) {
-      toast.error("Không thể tải danh sách người dùng");
+      toast.error("Unable to load user list");
     }
   }, []);
 
@@ -478,7 +478,7 @@ export function HealthCheckResultManagement() {
       if (response.success) {
         setStatistics(response.data);
       } else {
-        toast.error(response.message || "Không thể tải thống kê");
+        toast.error(response.message || "Unable to load statistics");
         // Handle the error case gracefully with default data
         setStatistics({
           totalResults: 0,
@@ -501,7 +501,7 @@ export function HealthCheckResultManagement() {
         });
       }
     } catch (error) {
-      toast.error("Không thể tải thống kê");
+      toast.error("Unable to load statistics");
       // Handle the error case gracefully with default data
       setStatistics({
         totalResults: 0,
@@ -529,10 +529,10 @@ export function HealthCheckResultManagement() {
 
   const fetchHealthCheckCodesAndStaff = useCallback(async () => {
     try {
-      // Fetch tất cả kết quả khám (không phân trang)
+      // Fetch all health check results (without pagination)
       const response = await getAllHealthCheckResults(
         1,
-        1000, // Số lượng lớn để lấy tất cả
+        1000, // Large amount to get all
         undefined,
         undefined,
         undefined,
@@ -547,13 +547,13 @@ export function HealthCheckResultManagement() {
       );
 
       if (response.success) {
-        // Lấy danh sách các mã duy nhất
+        // Get list of unique codes
         const uniqueCodes = Array.from(new Set(
           response.data.map((result: HealthCheckResultsResponseDTO) => result.healthCheckResultCode)
         )) as string[];
         setHealthCheckCodes(uniqueCodes);
 
-        // Lấy danh sách healthcare staff duy nhất từ kết quả khám
+        // Get list of unique healthcare staff from results
         const staffMap = new Map<string, { id: string; fullName: string; email: string }>();
         response.data.forEach((result: HealthCheckResultsResponseDTO) => {
           if (result.staff && !staffMap.has(result.staff.id)) {
@@ -569,7 +569,7 @@ export function HealthCheckResultManagement() {
         setHealthCheckStaff(uniqueStaff);
       }
     } catch (error) {
-      console.error("Không thể tải danh sách mã kết quả khám và staff:", error);
+      console.error("Unable to load health check result codes and staff:", error);
     }
   }, []);
 
@@ -616,10 +616,10 @@ export function HealthCheckResultManagement() {
           setTotal(response.totalRecords);
         }
       } else {
-        toast.error(response.message || "Không thể tải danh sách kết quả khám");
+        toast.error(response.message || "Unable to load health check results list");
       }
     } catch (error) {
-      toast.error("Không thể tải danh sách kết quả khám");
+      toast.error("Unable to load health check results list");
     } finally {
       setLoading(false);
     }
@@ -710,14 +710,14 @@ export function HealthCheckResultManagement() {
     try {
       const response = await softDeleteHealthCheckResults([id]);
       if (response.isSuccess) {
-        toast.success("Kết quả khám đã được xóa tạm thời!");
+        toast.success("Health check result has been temporarily deleted!");
         fetchHealthCheckResults();
         fetchStatistics();
       } else {
-        toast.error(response.message || "Không thể xóa tạm thời kết quả khám");
+        toast.error(response.message || "Unable to temporarily delete health check result");
       }
     } catch (error) {
-      toast.error("Không thể xóa tạm thời kết quả khám");
+      toast.error("Unable to temporarily delete health check result");
     }
   };
 
@@ -725,14 +725,14 @@ export function HealthCheckResultManagement() {
     try {
       const response = await restoreSoftDeletedHealthCheckResults([id]);
       if (response.isSuccess) {
-        toast.success("Kết quả khám đã được khôi phục!");
+        toast.success("Health check result has been restored!");
         fetchHealthCheckResults();
         fetchStatistics();
       } else {
-        toast.error(response.message || "Không thể khôi phục kết quả khám");
+        toast.error(response.message || "Unable to restore health check result");
       }
     } catch (error) {
-      toast.error("Không thể khôi phục kết quả khám");
+      toast.error("Unable to restore health check result");
     }
   };
 
@@ -740,14 +740,14 @@ export function HealthCheckResultManagement() {
     try {
       const response = await approveHealthCheckResult(id);
       if (response.isSuccess) {
-        toast.success("Kết quả khám đã được phê duyệt!");
+        toast.success("Health check result has been approved!");
         fetchHealthCheckResults();
         fetchStatistics();
       } else {
-        toast.error(response.message || "Không thể phê duyệt kết quả khám");
+        toast.error(response.message || "Unable to approve health check result");
       }
     } catch (error) {
-      toast.error("Không thể phê duyệt kết quả khám");
+      toast.error("Unable to approve health check result");
     }
   };
 
@@ -755,14 +755,14 @@ export function HealthCheckResultManagement() {
     try {
       const response = await completeHealthCheckResult(id);
       if (response.isSuccess) {
-        toast.success("Kết quả khám đã được hoàn thành!");
+        toast.success("Health check result has been completed!");
         fetchHealthCheckResults();
         fetchStatistics();
       } else {
-        toast.error(response.message || "Không thể hoàn thành kết quả khám");
+        toast.error(response.message || "Unable to complete health check result");
       }
     } catch (error) {
-      toast.error("Không thể hoàn thành kết quả khám");
+      toast.error("Unable to complete health check result");
     }
   };
 
@@ -770,14 +770,14 @@ export function HealthCheckResultManagement() {
     try {
       const response = await cancelCompletelyHealthCheckResult(id, reason);
       if (response.isSuccess) {
-        toast.success("Kết quả khám đã bị hủy!");
+        toast.success("Health check result has been cancelled!");
         fetchHealthCheckResults();
         fetchStatistics();
       } else {
-        toast.error(response.message || "Không thể hủy kết quả khám");
+        toast.error(response.message || "Unable to cancel health check result");
       }
     } catch (error) {
-      toast.error("Không thể hủy kết quả khám");
+      toast.error("Unable to cancel health check result");
     }
   };
 
@@ -785,14 +785,14 @@ export function HealthCheckResultManagement() {
     try {
       const response = await cancelForAdjustmentHealthCheckResult(id, reason);
       if (response.isSuccess) {
-        toast.success("Kết quả khám đã bị hủy để điều chỉnh!");
+        toast.success("Health check result has been cancelled for adjustment!");
         fetchHealthCheckResults();
         fetchStatistics();
       } else {
-        toast.error(response.message || "Không thể hủy kết quả khám để điều chỉnh");
+        toast.error(response.message || "Unable to cancel health check result for adjustment");
       }
     } catch (error) {
-      toast.error("Không thể hủy kết quả khám để điều chỉnh");
+      toast.error("Unable to cancel health check result for adjustment");
     }
   };
 
@@ -800,15 +800,15 @@ export function HealthCheckResultManagement() {
     try {
       const response = await softDeleteHealthCheckResults(selectedRowKeys as string[]);
       if (response.isSuccess) {
-        toast.success("Các kết quả khám đã được xóa tạm thời!");
+        toast.success("Selected health check results have been temporarily deleted!");
         setSelectedRowKeys([]);
         fetchHealthCheckResults();
         fetchStatistics();
       } else {
-        toast.error(response.message || "Không thể xóa tạm thời các kết quả khám đã chọn");
+        toast.error(response.message || "Unable to temporarily delete selected health check results");
       }
     } catch (error) {
-      toast.error("Không thể xóa tạm thời các kết quả khám đã chọn");
+      toast.error("Unable to temporarily delete selected health check results");
     }
   };
 
@@ -820,14 +820,14 @@ export function HealthCheckResultManagement() {
       const followUpStartDate = followUpDateRange[0] ? followUpDateRange[0].format('YYYY-MM-DD') : undefined;
       const followUpEndDate = followUpDateRange[1] ? followUpDateRange[1].format('YYYY-MM-DD') : undefined;
       
-      // Đảm bảo đã load đầy đủ dữ liệu cho dropdown
+      // Ensure data is fully loaded for dropdown
       if (healthCheckCodes.length === 0 || healthCheckStaff.length === 0) {
         await fetchHealthCheckCodesAndStaff();
       }
       
-      // Cập nhật giá trị ban đầu cho form
+      // Update initial values for form
       form.setFieldsValue({
-        exportAllPages: true, // Mặc định chọn xuất tất cả
+        exportAllPages: true, // Default to export all
         includeCode: true,
         includeUser: true,
         includeStaff: true,
@@ -837,7 +837,7 @@ export function HealthCheckResultManagement() {
         includeCreatedAt: true,
         includeUpdatedAt: true,
         includeDetails: true,
-        // Giá trị lọc
+        // Filter values
         filterCodeSearch: codeSearch,
         filterUserSearch: userSearch,
         filterStaffSearch: staffSearch,
@@ -845,30 +845,30 @@ export function HealthCheckResultManagement() {
         filterCheckupDateRange: checkupDateRange,
         filterFollowUpRequired: followUpRequired,
         filterFollowUpDateRange: followUpDateRange,
-        // Tùy chọn sắp xếp
+        // Sort options
         sortOption: sortBy,
         sortDirection: ascending ? "asc" : "desc"
       });
       
-      // Đặt giá trị mặc định cho exportConfig
+      // Set default values for exportConfig
       setExportConfig({
         ...DEFAULT_EXPORT_CONFIG,
-        exportAllPages: true // Đảm bảo chọn xuất tất cả
+        exportAllPages: true // Ensure export all is selected
       });
       
       setShowExportConfigModal(true);
       setExportLoading(false);
     } catch (error) {
-      toast.error("Không thể xuất Excel");
+      toast.error("Unable to export to Excel");
       setExportLoading(false);
     }
   };
 
   const closeConfigModal = () => {
-    // Reset form và export config khi đóng modal
+    // Reset form and export config when closing modal
     form.setFieldsValue({
       ...DEFAULT_EXPORT_CONFIG,
-      exportAllPages: true // Đảm bảo mặc định là xuất tất cả
+      exportAllPages: true // Ensure default is export all
     });
     setExportConfig({
       ...DEFAULT_EXPORT_CONFIG,
@@ -897,7 +897,7 @@ export function HealthCheckResultManagement() {
         includeDetails: values.includeDetails !== false,
       };
       
-      // Xử lý dữ liệu ngày tháng
+      // Process date data
       const filterCheckupDateRange = values.filterCheckupDateRange;
       const filterFollowUpDateRange = values.filterFollowUpDateRange;
       
@@ -914,11 +914,11 @@ export function HealthCheckResultManagement() {
         ? filterFollowUpDateRange[1].format('YYYY-MM-DD') 
         : undefined;
       
-      // Xác định thứ tự sắp xếp
+      // Determine sort order
       const modalSortBy = values.sortOption || sortBy;
       const modalAscending = values.sortDirection === "asc";
       
-      // Cập nhật lại giá trị sortBy và ascending
+      // Update sortBy and ascending values
       setSortBy(modalSortBy);
       setAscending(modalAscending);
 
@@ -927,7 +927,7 @@ export function HealthCheckResultManagement() {
       const followUpStartDate = followUpDateRange[0] ? followUpDateRange[0].format('YYYY-MM-DD') : undefined;
       const followUpEndDate = followUpDateRange[1] ? followUpDateRange[1].format('YYYY-MM-DD') : undefined;
       
-      // Sử dụng các giá trị từ modal thay vì giá trị ngoài
+      // Use values from modal instead of outside values
       await exportHealthCheckResultsToExcelWithConfig(
         config,
         currentPage,
@@ -948,7 +948,7 @@ export function HealthCheckResultManagement() {
       closeConfigModal();
     } catch (error) {
       console.error("Export error:", error);
-      toast.error("Không thể xuất Excel");
+      toast.error("Unable to export to Excel");
     } finally {
       setExportLoading(false);
     }
@@ -987,7 +987,7 @@ export function HealthCheckResultManagement() {
       key: "code",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          MÃ KẾT QUẢ KHÁM
+          RESULT CODE
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -999,7 +999,7 @@ export function HealthCheckResultManagement() {
       key: "patient",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          BỆNH NHÂN
+          PATIENT
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -1014,11 +1014,11 @@ export function HealthCheckResultManagement() {
       key: "checkupDate", 
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          NGÀY KHÁM
+          CHECKUP DATE
         </span>
       ), 
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Tooltip title="Nhấn để xem chi tiết">
+        <Tooltip title="Click to view details">
           <Typography.Link onClick={() => router.push(`/health-check-result/${record.id}`)}>
             {formatDate(record.checkupDate)}
           </Typography.Link>
@@ -1030,7 +1030,7 @@ export function HealthCheckResultManagement() {
       key: "staff", 
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          BÁC SĨ / Y TÁ
+          DOCTOR / NURSE
         </span>
       ), 
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -1045,18 +1045,18 @@ export function HealthCheckResultManagement() {
       key: "followUp",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          TÁI KHÁM
+          FOLLOW-UP
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
         <Space direction="vertical" size="small">
           {record.followUpRequired ? (
             <>
-              <Badge status="processing" text="Yêu cầu tái khám" />
-              <Typography.Text>{record.followUpDate ? formatDate(record.followUpDate) : 'Chưa lên lịch'}</Typography.Text>
+              <Badge status="processing" text="Follow-up Required" />
+              <Typography.Text>{record.followUpDate ? formatDate(record.followUpDate) : 'Not scheduled'}</Typography.Text>
             </>
           ) : (
-            <Badge status="default" text="Không yêu cầu tái khám" />
+            <Badge status="default" text="No Follow-up Required" />
           )}
         </Space>
       ),
@@ -1066,7 +1066,7 @@ export function HealthCheckResultManagement() {
       key: "status", 
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          TRẠNG THÁI
+          STATUS
         </span>
       ), 
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -1080,12 +1080,12 @@ export function HealthCheckResultManagement() {
       key: "actions",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          THAO TÁC
+          ACTIONS
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
         <Space>
-          <Tooltip title="Xem chi tiết">
+          <Tooltip title="View details">
             <Button
               type="text"
               icon={<EyeOutlined />}
@@ -1094,7 +1094,7 @@ export function HealthCheckResultManagement() {
           </Tooltip>
           
           {record.status === 'Pending' && (
-            <Tooltip title="Phê duyệt">
+            <Tooltip title="Approve">
               <Button
                 type="text"
                 icon={<CheckCircleOutlined />}
@@ -1105,7 +1105,7 @@ export function HealthCheckResultManagement() {
           )}
           
           {record.status === 'Approved' && (
-            <Tooltip title="Hoàn thành">
+            <Tooltip title="Complete">
               <Button
                 type="text"
                 icon={<CheckSquareOutlined />}
@@ -1116,12 +1116,12 @@ export function HealthCheckResultManagement() {
           )}
           
           {(record.status === 'Pending' || record.status === 'Approved') && (
-            <Tooltip title="Hủy">
+            <Tooltip title="Cancel">
               <Popconfirm
-                title="Nhập lý do hủy"
+                title="Enter reason for cancellation"
                 description={
                   <Input.TextArea 
-                    placeholder="Lý do hủy"
+                    placeholder="Cancellation reason"
                     onChange={(e) => {
                       (e.target as any).reason = e.target.value;
                     }}
@@ -1130,11 +1130,11 @@ export function HealthCheckResultManagement() {
                 }
                 onConfirm={(e) => {
                   const target = e?.target as any;
-                  const reason = target?.reason || "Không có lý do";
+                  const reason = target?.reason || "No reason provided";
                   handleCancel(record.id, reason);
                 }}
-                okText="Xác nhận"
-                cancelText="Hủy"
+                okText="Confirm"
+                cancelText="Cancel"
               >
                 <Button
                   type="text"
@@ -1146,12 +1146,12 @@ export function HealthCheckResultManagement() {
           )}
           
           {(record.status === 'Pending' || record.status === 'Approved') && (
-            <Tooltip title="Hủy để điều chỉnh">
+            <Tooltip title="Cancel for adjustment">
               <Popconfirm
-                title="Nhập lý do hủy để điều chỉnh"
+                title="Enter reason for cancellation for adjustment"
                 description={
                   <Input.TextArea 
-                    placeholder="Lý do hủy để điều chỉnh"
+                    placeholder="Reason for cancellation for adjustment"
                     onChange={(e) => {
                       (e.target as any).reason = e.target.value;
                     }}
@@ -1160,11 +1160,11 @@ export function HealthCheckResultManagement() {
                 }
                 onConfirm={(e) => {
                   const target = e?.target as any;
-                  const reason = target?.reason || "Không có lý do";
+                  const reason = target?.reason || "No reason provided";
                   handleCancelForAdjustment(record.id, reason);
                 }}
-                okText="Xác nhận"
-                cancelText="Hủy"
+                okText="Confirm"
+                cancelText="Cancel"
               >
                 <Button
                   type="text"
@@ -1176,12 +1176,12 @@ export function HealthCheckResultManagement() {
           )}
           
           {record.status !== 'SoftDeleted' ? (
-            <Tooltip title="Xóa tạm thời">
+            <Tooltip title="Temporarily delete">
               <Popconfirm
-                title="Bạn có chắc chắn muốn xóa tạm thời kết quả khám này?"
+                title="Are you sure you want to temporarily delete this health check result?"
                 onConfirm={() => handleSoftDelete(record.id)}
-                okText="Xác nhận"
-                cancelText="Hủy"
+                okText="Confirm"
+                cancelText="Cancel"
               >
                 <Button
                   type="text"
@@ -1191,7 +1191,7 @@ export function HealthCheckResultManagement() {
               </Popconfirm>
             </Tooltip>
           ) : (
-            <Tooltip title="Khôi phục">
+            <Tooltip title="Restore">
               <Button
                 type="text"
                 icon={<CheckCircleOutlined />}
@@ -1213,16 +1213,16 @@ export function HealthCheckResultManagement() {
       <Col xs={24} sm={12} md={6}>
         <Card className="h-full">
           <Statistic
-            title="Tổng số kết quả khám"
+            title="Total Health Check Results"
             value={statistics?.totalResults || 0}
             prefix={<LineChartOutlined />}
           />
         </Card>
       </Col>
 
-      {/* Pie Chart cho phân bố trạng thái */}
+      {/* Pie Chart for status distribution */}
       <Col xs={24} sm={12} md={9}>
-        <Card title="Phân bố trạng thái" className="h-full">
+        <Card title="Status Distribution" className="h-full">
           {statsLoading ? (
             <div className="flex items-center justify-center h-64">
               <Spin />
@@ -1232,13 +1232,13 @@ export function HealthCheckResultManagement() {
               <Pie 
                 data={{
                   labels: [
-                    'Chờ phê duyệt',
-                    'Tái khám',
-                    'Không tái khám',
-                    'Hoàn thành',
-                    'Đã hủy',
-                    'Hủy để điều chỉnh',
-                    'Đã xóa tạm thời'
+                    'Waiting for Approval',
+                    'Follow-up Required',
+                    'No Follow-up Required',
+                    'Completed',
+                    'Cancelled',
+                    'Cancelled for Adjustment',
+                    'Soft Deleted'
                   ],
                   datasets: [
                     {
@@ -1252,13 +1252,13 @@ export function HealthCheckResultManagement() {
                         statistics?.statusDistribution?.softDeleted || 0
                       ],
                       backgroundColor: [
-                        '#faad14', // Vàng - Chờ phê duyệt
-                        '#1890ff', // Xanh dương - Tái khám
-                        '#52c41a', // Xanh lá - Không tái khám
-                        '#13c2c2', // Lục lam - Hoàn thành
-                        '#ff4d4f', // Đỏ - Đã hủy
-                        '#fa8c16', // Cam - Hủy để điều chỉnh
-                        '#d9d9d9'  // Xám - Đã xóa tạm thời
+                        '#faad14', // Yellow - Waiting for Approval
+                        '#1890ff', // Blue - Follow-up Required
+                        '#52c41a', // Green - No Follow-up Required
+                        '#13c2c2', // Cyan - Completed
+                        '#ff4d4f', // Red - Cancelled
+                        '#fa8c16', // Orange - Cancelled for Adjustment
+                        '#d9d9d9'  // Gray - Soft Deleted
                       ],
                       borderColor: [
                         '#fff',
@@ -1308,9 +1308,9 @@ export function HealthCheckResultManagement() {
         </Card>
       </Col>
 
-      {/* Bar Chart cho tái khám */}
+      {/* Bar Chart for follow-ups */}
       <Col xs={24} sm={12} md={9}>
-        <Card title="Thống kê tái khám" className="h-full">
+        <Card title="Follow-up Statistics" className="h-full">
           {statsLoading ? (
             <div className="flex items-center justify-center h-64">
               <Spin />
@@ -1319,10 +1319,10 @@ export function HealthCheckResultManagement() {
             <div style={{ height: 300 }}>
               <Bar 
                 data={{
-                  labels: ['Tổng số', 'Sắp tới', 'Quá hạn', 'Hôm nay'],
+                  labels: ['Total', 'Upcoming', 'Overdue', 'Today'],
                   datasets: [
                     {
-                      label: 'Tái khám',
+                      label: 'Follow-ups',
                       data: [
                         statistics?.followUpStatistics?.totalFollowUps || 0,
                         statistics?.followUpStatistics?.upcomingFollowUps || 0,
@@ -1375,15 +1375,15 @@ export function HealthCheckResultManagement() {
         </Card>
       </Col>
 
-      {/* Line Chart cho phân bố theo tháng */}
+      {/* Line Chart for monthly distribution */}
       <Col xs={24}>
-        <Card title="Phân bố theo tháng" className="h-full">
+        <Card title="Monthly Distribution" className="h-full">
           {statsLoading ? (
             <div className="flex items-center justify-center h-64">
               <Spin />
             </div>
           ) : (!statistics?.monthlyDistribution || statistics.monthlyDistribution.length === 0) ? (
-            <Empty description="Không có dữ liệu phân bố theo tháng" />
+            <Empty description="No monthly distribution data available" />
           ) : (
             <div style={{ height: 300 }}>
               <Line 
@@ -1391,7 +1391,7 @@ export function HealthCheckResultManagement() {
                   labels: statistics?.monthlyDistribution.map(item => `${item.month}/${item.year}`),
                   datasets: [
                     {
-                      label: 'Số lượng',
+                      label: 'Count',
                       data: statistics?.monthlyDistribution.map(item => item.count),
                       fill: false,
                       backgroundColor: '#1890ff',
@@ -1680,10 +1680,10 @@ export function HealthCheckResultManagement() {
               onClick={handleBack}
               style={{ marginRight: "8px" }}
             >
-              Quay lại
+              Back
             </Button>
             <HealthInsuranceIcon />
-            <h3 className="text-xl font-bold">Quản lý kết quả khám</h3>
+            <h3 className="text-xl font-bold">Health Check Results Management</h3>
           </div>
         </div>
         <Card
@@ -1707,7 +1707,7 @@ export function HealthCheckResultManagement() {
             <div className="flex flex-wrap items-center gap-4">
               {/* Code Filter */}
               <Input
-                placeholder="Tìm theo mã kết quả khám"
+                placeholder="Search by result code"
                 value={codeSearch}
                 onChange={(e) => setCodeSearch(e.target.value)}
                 prefix={<SearchOutlined />}
@@ -1716,7 +1716,7 @@ export function HealthCheckResultManagement() {
               />
 
               {/* Advanced Filters Button */}
-              <Tooltip title="Bộ lọc nâng cao">
+              <Tooltip title="Advanced Filters">
                 <Button
                   icon={<FilterOutlined 
                     style={{
@@ -1731,12 +1731,12 @@ export function HealthCheckResultManagement() {
                   />}
                   onClick={handleOpenFilterModal}
                 >
-                  Bộ lọc
+                  Filters
                 </Button>
               </Tooltip>
 
               {/* Reset Button */}
-              <Tooltip title="Đặt lại bộ lọc">
+              <Tooltip title="Reset filters">
                 <Button
                   icon={<UndoOutlined />}
                   onClick={handleReset}
@@ -1746,7 +1746,7 @@ export function HealthCheckResultManagement() {
                     followUpDateRange[0] || followUpDateRange[1] ||
                     sortBy !== "CheckupDate" || ascending !== false)}
                 >
-                  Đặt lại
+                  Reset
                 </Button>
               </Tooltip>
 
@@ -1762,7 +1762,7 @@ export function HealthCheckResultManagement() {
                             checked={areAllColumnsVisible()}
                             onChange={(e) => toggleAllColumns(e.target.checked)}
                           >
-                            <strong>Hiện tất cả cột</strong>
+                            <strong>Show all columns</strong>
                           </Checkbox>
                         </div>
                       ),
@@ -1779,7 +1779,7 @@ export function HealthCheckResultManagement() {
                             checked={columnVisibility.code}
                             onChange={() => handleColumnVisibilityChange("code")}
                           >
-                            Mã kết quả khám
+                            Result Code
                           </Checkbox>
                         </div>
                       ),
@@ -1792,7 +1792,7 @@ export function HealthCheckResultManagement() {
                             checked={columnVisibility.patient}
                             onChange={() => handleColumnVisibilityChange("patient")}
                           >
-                            Bệnh nhân
+                            Patient
                           </Checkbox>
                         </div>
                       ),
@@ -1805,7 +1805,7 @@ export function HealthCheckResultManagement() {
                             checked={columnVisibility.checkupDate}
                             onChange={() => handleColumnVisibilityChange("checkupDate")}
                           >
-                            Ngày khám
+                            Checkup Date
                           </Checkbox>
                         </div>
                       ),
@@ -1818,7 +1818,7 @@ export function HealthCheckResultManagement() {
                             checked={columnVisibility.staff}
                             onChange={() => handleColumnVisibilityChange("staff")}
                           >
-                            Bác sĩ / Y tá
+                            Doctor / Nurse
                           </Checkbox>
                         </div>
                       ),
@@ -1831,7 +1831,7 @@ export function HealthCheckResultManagement() {
                             checked={columnVisibility.followUp}
                             onChange={() => handleColumnVisibilityChange("followUp")}
                           >
-                            Tái khám
+                            Follow-up
                           </Checkbox>
                         </div>
                       ),
@@ -1844,7 +1844,7 @@ export function HealthCheckResultManagement() {
                             checked={columnVisibility.status}
                             onChange={() => handleColumnVisibilityChange("status")}
                           >
-                            Trạng thái
+                            Status
                           </Checkbox>
                         </div>
                       ),
@@ -1857,7 +1857,7 @@ export function HealthCheckResultManagement() {
                             checked={columnVisibility.actions}
                             onChange={() => handleColumnVisibilityChange("actions")}
                           >
-                            Thao tác
+                            Actions
                           </Checkbox>
                         </div>
                       ),
@@ -1876,8 +1876,8 @@ export function HealthCheckResultManagement() {
                 mouseEnterDelay={0.1}
                 mouseLeaveDelay={0.3}
               >
-                <Tooltip title="Cài đặt cột">
-                  <Button icon={<SettingOutlined />}>Cột</Button>
+                <Tooltip title="Column settings">
+                  <Button icon={<SettingOutlined />}>Columns</Button>
                 </Tooltip>
               </Dropdown>
 
@@ -1888,7 +1888,7 @@ export function HealthCheckResultManagement() {
                 onClick={() => setIsCreateModalVisible(true)}
                 disabled={loading}
               >
-                Tạo mới
+                Create New
               </Button>
             </div>
 
@@ -1900,7 +1900,7 @@ export function HealthCheckResultManagement() {
                 onClick={handleExport}
                 disabled={loading}
               >
-                Xuất Excel
+                Export to Excel
               </Button>
             </div>
           </div>
@@ -1909,15 +1909,15 @@ export function HealthCheckResultManagement() {
           <div>
             {selectedRowKeys.length > 0 && (
               <Space>
-                <Typography.Text>{selectedRowKeys.length} mục đã chọn</Typography.Text>
+                <Typography.Text>{selectedRowKeys.length} items selected</Typography.Text>
                 <Popconfirm
-                  title="Bạn có chắc chắn muốn xóa tạm thời các kết quả khám đã chọn?"
+                  title="Are you sure you want to temporarily delete the selected health check results?"
                   onConfirm={handleBulkDelete}
-                  okText="Xác nhận"
-                  cancelText="Hủy"
+                  okText="Confirm"
+                  cancelText="Cancel"
                 >
                   <Button danger icon={<DeleteOutlined />}>
-                    Xóa
+                    Delete
                   </Button>
                 </Popconfirm>
               </Space>
@@ -1925,7 +1925,7 @@ export function HealthCheckResultManagement() {
           </div>
           <div>
             <Typography.Text type="secondary">
-              Dòng mỗi trang:
+              Rows per page:
               <Select
                 value={pageSize}
                 onChange={(value) => {
@@ -1959,7 +1959,7 @@ export function HealthCheckResultManagement() {
           <Card className="mt-4 shadow-sm">
             <Row justify="center" align="middle">
               <Space size="large" align="center">
-                <Typography.Text type="secondary">Tổng cộng {total} kết quả khám</Typography.Text>
+                <Typography.Text type="secondary">Total {total} health check results</Typography.Text>
                 <Space align="center" size="large">
                   <Pagination
                     current={currentPage}
@@ -1972,7 +1972,7 @@ export function HealthCheckResultManagement() {
                     showTotal={() => ""}
                   />
                   <Space align="center">
-                    <Typography.Text type="secondary">Đi đến trang:</Typography.Text>
+                    <Typography.Text type="secondary">Go to page:</Typography.Text>
                     <InputNumber
                       min={1}
                       max={Math.ceil(total / pageSize)}
@@ -2005,13 +2005,13 @@ export function HealthCheckResultManagement() {
           staffOptions={staffOptions}
         />
       <Modal
-        title="Cấu hình xuất file Excel"
+        title="Excel Export Configuration"
         open={showExportConfigModal}
         onCancel={closeConfigModal}
         width={800}
         footer={[
           <Button key="cancel" onClick={closeConfigModal}>
-            Hủy
+            Cancel
           </Button>,
           <Button 
             key="submit" 
@@ -2019,7 +2019,7 @@ export function HealthCheckResultManagement() {
             loading={exportLoading}
             onClick={handleExportWithConfig}
           >
-            Xuất file
+            Export File
           </Button>
         ]}
         maskClosable={true}
@@ -2032,7 +2032,7 @@ export function HealthCheckResultManagement() {
         >
           <Row gutter={[16, 8]}>
             <Col span={24}>
-              <Typography.Title level={5}>Tùy chọn cơ bản</Typography.Title>
+              <Typography.Title level={5}>Basic Options</Typography.Title>
             </Col>
             
             <Col span={24}>
@@ -2041,18 +2041,18 @@ export function HealthCheckResultManagement() {
                 valuePropName="checked"
                 style={{ marginBottom: "12px" }}
               >
-                <Checkbox>Xuất tất cả dữ liệu (bỏ qua phân trang)</Checkbox>
+                <Checkbox>Export all data (ignore pagination)</Checkbox>
               </Form.Item>
             </Col>
             
             <Col span={24} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Typography.Title level={5}>Bộ lọc dữ liệu</Typography.Title>
+              <Typography.Title level={5}>Data Filters</Typography.Title>
             </Col>
             
             <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Tìm theo mã" name="filterCodeSearch">
+              <Form.Item label="Search by code" name="filterCodeSearch">
                 <Select
-                  placeholder="Tìm theo mã kết quả khám"
+                  placeholder="Search by result code"
                   allowClear
                   showSearch
                   defaultValue={codeSearch || undefined}
@@ -2071,9 +2071,9 @@ export function HealthCheckResultManagement() {
             </Col>
             
             <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Tìm theo bệnh nhân" name="filterUserSearch">
+              <Form.Item label="Search by patient" name="filterUserSearch">
                 <Select
-                  placeholder="Tìm theo bệnh nhân"
+                  placeholder="Search by patient"
                   allowClear
                   showSearch
                   defaultValue={userSearch || undefined}
@@ -2093,9 +2093,9 @@ export function HealthCheckResultManagement() {
             </Col>
             
             <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Tìm theo bác sĩ/y tá" name="filterStaffSearch">
+              <Form.Item label="Search by doctor/nurse" name="filterStaffSearch">
                 <Select
-                  placeholder="Tìm theo healthcare staff"
+                  placeholder="Search by healthcare staff"
                   allowClear
                   showSearch
                   defaultValue={staffSearch || undefined}
@@ -2115,27 +2115,27 @@ export function HealthCheckResultManagement() {
             </Col>
             
             <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Trạng thái" name="filterStatus">
+              <Form.Item label="Status" name="filterStatus">
                 <Select
-                  placeholder="Trạng thái"
+                  placeholder="Status"
                   allowClear
                   style={{ width: '100%' }}
                   defaultValue={statusFilter}
                 >
-                  <Option value="Waiting for Approval">Chờ phê duyệt</Option>
-                  <Option value="Completed">Hoàn thành</Option>
-                  <Option value="FollowUpRequired">Yêu cầu tái khám</Option>
-                  <Option value="CancelledCompletely">Đã hủy hoàn toàn</Option>
-                  <Option value="CancelledForAdjustment">Hủy để điều chỉnh</Option>
-                  <Option value="NoFollowUpRequired">Không yêu cầu tái khám</Option>
+                  <Option value="Waiting for Approval">Waiting for Approval</Option>
+                  <Option value="Completed">Completed</Option>
+                  <Option value="FollowUpRequired">Follow-up Required</Option>
+                  <Option value="CancelledCompletely">Completely Cancelled</Option>
+                  <Option value="CancelledForAdjustment">Cancelled for Adjustment</Option>
+                  <Option value="NoFollowUpRequired">No Follow-up Required</Option>
                 </Select>
               </Form.Item>
             </Col>
             
             <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Khoảng thời gian khám" name="filterCheckupDateRange">
+              <Form.Item label="Checkup date range" name="filterCheckupDateRange">
                 <RangePicker
-                  placeholder={["Từ ngày khám", "Đến ngày khám"]}
+                  placeholder={["From date", "To date"]}
                   style={{ width: '100%' }}
                   defaultValue={checkupDateRange as any}
                 />
@@ -2143,23 +2143,23 @@ export function HealthCheckResultManagement() {
             </Col>
             
             <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Yêu cầu tái khám" name="filterFollowUpRequired">
+              <Form.Item label="Follow-up required" name="filterFollowUpRequired">
                 <Select
-                  placeholder="Yêu cầu tái khám"
+                  placeholder="Follow-up required"
                   allowClear
                   style={{ width: '100%' }}
                   defaultValue={followUpRequired}
                 >
-                  <Option value={true}>Có</Option>
-                  <Option value={false}>Không</Option>
+                  <Option value={true}>Yes</Option>
+                  <Option value={false}>No</Option>
                 </Select>
               </Form.Item>
             </Col>
             
             <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Khoảng thời gian tái khám" name="filterFollowUpDateRange">
+              <Form.Item label="Follow-up date range" name="filterFollowUpDateRange">
                 <RangePicker
-                  placeholder={["Từ ngày tái khám", "Đến ngày tái khám"]}
+                  placeholder={["From follow-up date", "To follow-up date"]}
                   style={{ width: '100%' }}
                   disabled={form.getFieldValue('filterFollowUpRequired') === false}
                   defaultValue={followUpDateRange as any}
@@ -2168,43 +2168,43 @@ export function HealthCheckResultManagement() {
             </Col>
             
             <Col span={24}>
-              <Typography.Title level={5}>Tùy chọn sắp xếp</Typography.Title>
+              <Typography.Title level={5}>Sort Options</Typography.Title>
             </Col>
             
             <Col span={12}>
               <Form.Item 
-                label="Sắp xếp theo"
+                label="Sort by"
                 name="sortOption"
               >
                 <Select
                   style={{ width: '100%' }}
                   defaultValue={sortBy}
                 >
-                  <Option value="CheckupDate">Ngày khám</Option>
-                  <Option value="CreatedAt">Thời gian tạo</Option>
-                    <Option value="Code">Mã kết quả khám</Option>
+                  <Option value="CheckupDate">Checkup Date</Option>
+                  <Option value="CreatedAt">Created Date</Option>
+                  <Option value="Code">Result Code</Option>
                 </Select>
               </Form.Item>
             </Col>
             
             <Col span={12}>
               <Form.Item 
-                label="Thứ tự sắp xếp"
+                label="Sort direction"
                 name="sortDirection"
               >
                 <Select
                   style={{ width: '100%' }}
                   defaultValue={ascending ? "asc" : "desc"}
                 >
-                  <Option value="asc">Tăng dần</Option>
-                  <Option value="desc">Giảm dần</Option>
+                  <Option value="asc">Ascending</Option>
+                  <Option value="desc">Descending</Option>
                 </Select>
               </Form.Item>
             </Col>
             
             <Col span={24}>
               <Divider />
-              <Typography.Title level={5}>Chọn các cột hiển thị</Typography.Title>
+              <Typography.Title level={5}>Select Columns to Display</Typography.Title>
             </Col>
             
             <Col span={8}>
@@ -2213,7 +2213,7 @@ export function HealthCheckResultManagement() {
                 valuePropName="checked"
                 style={{ marginBottom: "8px" }}
               >
-                <Checkbox>Mã kết quả khám</Checkbox>
+                <Checkbox>Result Code</Checkbox>
               </Form.Item>
             </Col>
             
@@ -2223,7 +2223,7 @@ export function HealthCheckResultManagement() {
                 valuePropName="checked"
                 style={{ marginBottom: "8px" }}
               >
-                <Checkbox>Thông tin bệnh nhân</Checkbox>
+                <Checkbox>Patient Information</Checkbox>
               </Form.Item>
             </Col>
             
@@ -2233,7 +2233,7 @@ export function HealthCheckResultManagement() {
                 valuePropName="checked"
                 style={{ marginBottom: "8px" }}
               >
-                <Checkbox>Thông tin nhân viên y tế</Checkbox>
+                <Checkbox>Healthcare Staff Information</Checkbox>
               </Form.Item>
             </Col>
             
@@ -2243,7 +2243,7 @@ export function HealthCheckResultManagement() {
                 valuePropName="checked"
                 style={{ marginBottom: "8px" }}
               >
-                <Checkbox>Ngày khám</Checkbox>
+                <Checkbox>Checkup Date</Checkbox>
               </Form.Item>
             </Col>
             
@@ -2253,7 +2253,7 @@ export function HealthCheckResultManagement() {
                 valuePropName="checked"
                 style={{ marginBottom: "8px" }}
               >
-                <Checkbox>Thông tin tái khám</Checkbox>
+                <Checkbox>Follow-up Information</Checkbox>
               </Form.Item>
             </Col>
             
@@ -2263,7 +2263,7 @@ export function HealthCheckResultManagement() {
                 valuePropName="checked"
                 style={{ marginBottom: "8px" }}
               >
-                <Checkbox>Trạng thái</Checkbox>
+                <Checkbox>Status</Checkbox>
               </Form.Item>
             </Col>
             
@@ -2273,7 +2273,7 @@ export function HealthCheckResultManagement() {
                 valuePropName="checked"
                 style={{ marginBottom: "8px" }}
               >
-                <Checkbox>Thời gian tạo</Checkbox>
+                <Checkbox>Created Date</Checkbox>
               </Form.Item>
             </Col>
             
@@ -2283,7 +2283,7 @@ export function HealthCheckResultManagement() {
                 valuePropName="checked"
                 style={{ marginBottom: "8px" }}
               >
-                <Checkbox>Thông tin cập nhật</Checkbox>
+                <Checkbox>Update Information</Checkbox>
               </Form.Item>
             </Col>
 
@@ -2293,14 +2293,14 @@ export function HealthCheckResultManagement() {
                 valuePropName="checked"
                 style={{ marginBottom: "8px" }}
               >
-                <Checkbox>Chi tiết kết quả khám</Checkbox>
+                <Checkbox>Health Check Details</Checkbox>
               </Form.Item>
             </Col>
           </Row>
           
           <Alert
-            message="Thông tin về định dạng Excel"
-            description="Khi chọn 'Chi tiết kết quả khám', các thông tin chi tiết sẽ được hiển thị cùng với kết quả khám trên cùng một worksheet. Mỗi kết quả khám có nhiều chi tiết sẽ được hiển thị trên nhiều dòng khác nhau."
+            message="Excel Format Information"
+            description="When 'Health Check Details' is selected, detailed information will be displayed alongside the health check results on the same worksheet. Each health check result with multiple details will be displayed on multiple rows."
             type="info"
             showIcon
             style={{ marginTop: "16px" }}

@@ -1,7 +1,12 @@
 import React, { useState } from "react";
-import { Modal, Form, Input, Button } from "antd";
+import { Modal, Form, Input, Button, TimePicker, Space, Card, Typography, Tooltip } from "antd";
 import { ShiftCreateRequest, createShift } from "@/api/shift";
 import { toast } from "react-toastify";
+import { InfoCircleOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import moment from "moment";
+import type { Moment } from "moment";
+
+const { Text } = Typography;
 
 interface CreateShiftModalProps {
   visible: boolean;
@@ -17,9 +22,16 @@ const CreateShiftModal: React.FC<CreateShiftModalProps> = ({
   const [form] = Form.useForm();
   const [totalTime, setTotalTime] = useState<string>("");
 
-  const handleSubmit = async (values: ShiftCreateRequest) => {
+  const handleSubmit = async (values: any) => {
     try {
-      const response = await createShift(values);
+      // Format the time
+      const formattedValues: ShiftCreateRequest = {
+        shiftName: values.shiftName,
+        startTime: values.startTime.format("HH:mm:ss"),
+        endTime: values.endTime.format("HH:mm:ss"),
+      };
+
+      const response = await createShift(formattedValues);
       if (response.isSuccess) {
         toast.success("Shift created successfully!");
         form.resetFields();
@@ -29,7 +41,7 @@ const CreateShiftModal: React.FC<CreateShiftModalProps> = ({
       } else {
         toast.error(response.message || "Failed to create shift");
       }
-    } catch {
+    } catch (error) {
       toast.error("Failed to create shift");
     }
   };
@@ -47,23 +59,35 @@ const CreateShiftModal: React.FC<CreateShiftModalProps> = ({
     }
   };
 
-  const calculateTotalTime = (startTime: string, endTime: string) => {
-    const start = new Date(`2000/01/01 ${startTime}`);
-    const end = new Date(`2000/01/01 ${endTime}`);
-    let diff = end.getTime() - start.getTime();
-    if (diff < 0) diff += 24 * 60 * 60 * 1000;
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${minutes}m`;
+  const calculateTotalTime = (startTime: Moment, endTime: Moment) => {
+    const start = startTime.clone();
+    const end = endTime.clone();
+    
+    let diffMinutes = end.diff(start, 'minutes');
+    if (diffMinutes < 0) {
+      diffMinutes += 24 * 60; // Add 24 hours if end time is before start time
+    }
+    
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+    
+    return `${hours} hours ${minutes} minutes`;
   };
 
   return (
     <Modal
-      title="Add New Shift"
+      title={
+        <Space>
+          <ClockCircleOutlined />
+          <span>Add New Shift</span>
+        </Space>
+      }
       open={visible}
       onCancel={onClose}
+      width={550}
+      bodyStyle={{ paddingTop: 24 }}
       footer={[
-        <Button key="reset" onClick={handleReset}>
+        <Button key="reset" onClick={handleReset} icon={<ClockCircleOutlined />}>
           Reset
         </Button>,
         <Button key="submit" type="primary" onClick={() => form.submit()}>
@@ -79,25 +103,73 @@ const CreateShiftModal: React.FC<CreateShiftModalProps> = ({
         <Form.Item
           name="shiftName"
           label="Shift Name"
-          rules={[{ required: true }]}
+          rules={[{ required: true, message: "Please enter shift name" }]}
+          tooltip="Enter a descriptive name for the shift (e.g., Morning Shift, Night Shift)"
         >
-          <Input />
+          <Input placeholder="Enter shift name" />
         </Form.Item>
-        <Form.Item
-          name="startTime"
-          label="Start Time"
-          rules={[{ required: true }]}
-        >
-          <Input type="time" onChange={handleTimeChange} />
-        </Form.Item>
-        <Form.Item name="endTime" label="End Time" rules={[{ required: true }]}>
-          <Input type="time" onChange={handleTimeChange} />
-        </Form.Item>
-        {totalTime && (
-          <Form.Item label="Total Time">
-            <Input value={totalTime} disabled />
-          </Form.Item>
-        )}
+
+        <Card className="mb-4" size="small" title="Shift Time">
+          <div className="flex flex-col gap-4">
+            <Form.Item
+              name="startTime"
+              label={
+                <Space>
+                  <Text>Start Time</Text>
+                  <Tooltip title="Select the time when the shift begins">
+                    <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                  </Tooltip>
+                </Space>
+              }
+              rules={[{ required: true, message: "Please select start time" }]}
+            >
+              <TimePicker 
+                format="HH:mm" 
+                onChange={handleTimeChange}
+                placeholder="Select start time"
+                style={{ width: '100%' }}
+                className="w-full"
+                inputReadOnly
+                minuteStep={5}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="endTime"
+              label={
+                <Space>
+                  <Text>End Time</Text>
+                  <Tooltip title="Select the time when the shift ends">
+                    <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                  </Tooltip>
+                </Space>
+              }
+              rules={[{ required: true, message: "Please select end time" }]}
+            >
+              <TimePicker 
+                format="HH:mm" 
+                onChange={handleTimeChange}
+                placeholder="Select end time"
+                style={{ width: '100%' }}
+                className="w-full"
+                inputReadOnly
+                minuteStep={5}
+              />
+            </Form.Item>
+
+            {totalTime && (
+              <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+                <Space>
+                  <ClockCircleOutlined style={{ color: "#1890ff" }} />
+                  <Text strong>Total Duration: {totalTime}</Text>
+                </Space>
+              </div>
+            )}
+          </div>
+        </Card>
+        <Text type="secondary">
+          Note: Please ensure that the shift times are accurate. For overnight shifts, set the end time after midnight.
+        </Text>
       </Form>
     </Modal>
   );
