@@ -99,9 +99,12 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
     }
   };
 
-  const renderRecipientType = (text: string, record: NotificationResponseDTO) => {
+  const renderRecipientType = (
+    text: string,
+    record: NotificationResponseDTO
+  ) => {
     switch (text) {
-      case "SYSTEM":
+      case "System":
         return (
           <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(text)}>
             Notify the system
@@ -110,7 +113,9 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       case "ROLE":
         return (
           <Tag icon={<TeamOutlined />} color={getRecipientTypeColor(text)}>
-            {record.roleName ? `Notify the ${record.roleName.toLowerCase()}` : "Role-Based"}
+            {record.roleName
+              ? `Notify the ${record.roleName.toLowerCase()}`
+              : "Role-Based"}
           </Tag>
         );
       case "User":
@@ -208,7 +213,9 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       dataIndex: "recipientType",
       key: "recipientType",
       render: (text: string, record: NotificationResponseDTO) => (
-        <div style={{ textAlign: "center" }}>{renderRecipientType(text, record)}</div>
+        <div style={{ textAlign: "center" }}>
+          {renderRecipientType(text, record)}
+        </div>
       ),
       width: 180,
       hidden: !columnVisibility.recipientType,
@@ -319,15 +326,13 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
           <Dropdown
             overlay={
               <Menu>
-                {record.status !== "Active" && (
-                  <Menu.Item
-                    key="reup"
-                    icon={<ReloadOutlined />}
-                    onClick={() => handleReup(record.id)}
-                  >
-                    Reup
-                  </Menu.Item>
-                )}
+                <Menu.Item
+                  key="reup"
+                  icon={<ReloadOutlined />}
+                  onClick={() => handleReup(record.id)}
+                >
+                  Reup
+                </Menu.Item>
                 <Menu.Item
                   key="copy"
                   icon={<CopyOutlined />}
