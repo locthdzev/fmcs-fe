@@ -1128,7 +1128,7 @@ export function CanteenOrders() {
       <Space>
         <Text>{selectedRowKeys.length} items selected</Text>
         <Button icon={<UndoOutlined />} onClick={() => setSelectedRowKeys([])}>
-          Clear
+          Restore
         </Button>
 
         {showApproveButton && (
@@ -1163,10 +1163,11 @@ export function CanteenOrders() {
 
         <Button
           danger
+          icon={<DeleteOutlined />}
           onClick={() => showConfirm("delete", handleDelete)}
           disabled={loading}
         >
-          Delete Selected
+          Delete
         </Button>
       </Space>
     );

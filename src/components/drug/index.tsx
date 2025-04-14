@@ -1554,7 +1554,7 @@ export function Drugs() {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div className="history-container" style={{ padding: "20px" }}>
       {contextHolder}
 
       {!isReady ? (
