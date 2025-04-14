@@ -22,7 +22,7 @@ import dayjs from "dayjs";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
-const { Text } = Typography;
+const { Title } = Typography;
 
 interface NotificationFilterModalProps {
   visible: boolean;
@@ -80,7 +80,11 @@ const NotificationFilterModal: React.FC<NotificationFilterModalProps> = ({
 
   return (
     <Modal
-      title="Advanced Filters"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Advanced Filters
+        </Title>
+      }
       open={visible}
       onCancel={onClose}
       width={600}

@@ -67,6 +67,11 @@ export const getNotificationDetailForUser = async (id: string) => {
   return response.data.data;
 };
 
+export const getNotificationRecipients = async (id: string) => {
+  const response = await api.get(`/notification-management/notifications/${id}/recipients`);
+  return response.data.data;
+};
+
 export const getUnreadNotificationCount = async () => {
   const response = await api.get("/notification-management/unread-count");
   return response.data.data;
