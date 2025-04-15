@@ -121,23 +121,50 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   };
 
   const logout = () => {
-    const token = Cookies.get("token");
-    const email = Cookies.get("email");
-    const role = Cookies.get("role");
+    // Tạo một promise để xử lý chuyển hướng trước rồi mới xóa cookies
+    const handleLogout = async () => {
+      try {
+        // Chuyển hướng người dùng về trang login trước
+        await router.replace("/");
+        
+        // Sau khi chuyển hướng hoàn tất, xóa cookies
+        const token = Cookies.get("token");
+        const email = Cookies.get("email");
+        const role = Cookies.get("role");
 
-    if (token) Cookies.remove("token");
-    if (email) Cookies.remove("email");
-    if (role) Cookies.remove("role");
+        if (token) Cookies.remove("token");
+        if (email) Cookies.remove("email");
+        if (role) Cookies.remove("role");
 
-    setUser({
-      email: "",
-      userId: "",
-      userName: "",
-      role: [],
-      auth: false,
-      imageURL: undefined,
-    });
-    router.replace("/");
+        // Reset user state sau cùng
+        setUser({
+          email: "",
+          userId: "",
+          userName: "",
+          role: [],
+          auth: false,
+          imageURL: undefined,
+        });
+      } catch (error) {
+        console.error("Error during logout:", error);
+        // Nếu có lỗi khi chuyển hướng, vẫn xóa cookies
+        Cookies.remove("token");
+        Cookies.remove("email");
+        Cookies.remove("role");
+        
+        setUser({
+          email: "",
+          userId: "",
+          userName: "",
+          role: [],
+          auth: false,
+          imageURL: undefined,
+        });
+      }
+    };
+
+    // Gọi hàm xử lý logout
+    handleLogout();
   };
 
   // Hàm để cập nhật ảnh đại diện người dùng
