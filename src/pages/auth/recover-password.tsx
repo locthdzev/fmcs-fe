@@ -12,6 +12,7 @@ import {
   Divider,
   Row,
   Col,
+  Steps,
 } from "antd";
 import OTPInput from "react-otp-input";
 import Link from "next/link";
@@ -147,6 +148,28 @@ export default function Recovery() {
                 RECOVER YOUR ACCOUNT
               </Title>
               <Text type="secondary">Enter your details to recover access</Text>
+            </div>
+
+            <div className="mb-6">
+              <Steps
+                current={step === "send" ? 0 : 1}
+                items={[
+                  {
+                    title: "Verify Identity",
+                    description: "Enter your email/username",
+                  },
+                  {
+                    title: "Enter OTP",
+                    description: "Verify with code",
+                  },
+                  {
+                    title: "Reset Password",
+                    description: "Create new password",
+                  },
+                ]}
+                progressDot
+                size="small"
+              />
             </div>
 
             {step === "send" ? (

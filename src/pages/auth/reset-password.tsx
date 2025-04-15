@@ -12,6 +12,7 @@ import {
   Divider,
   Row,
   Col,
+  Steps,
 } from "antd";
 import Link from "next/link";
 import { ArrowLeftOutlined, LockOutlined } from "@ant-design/icons";
@@ -120,6 +121,28 @@ export default function ResetPassword() {
                 RESET YOUR PASSWORD
               </Title>
               <Text type="secondary">Enter your new password</Text>
+            </div>
+
+            <div className="mb-6">
+              <Steps
+                current={2}
+                items={[
+                  {
+                    title: "Verify Identity",
+                    description: "Enter your email/username",
+                  },
+                  {
+                    title: "Enter OTP",
+                    description: "Verify with code",
+                  },
+                  {
+                    title: "Reset Password",
+                    description: "Create new password",
+                  },
+                ]}
+                progressDot
+                size="small"
+              />
             </div>
 
             <Form
