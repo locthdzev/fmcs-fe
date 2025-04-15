@@ -84,7 +84,6 @@ const DropdownUser = () => {
   const userContext = useContext(UserContext);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const [profileImageURL, setProfileImageURL] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [randomSeed, setRandomSeed] = useState<number>(0); // Thêm state để lưu seed ngẫu nhiên
   const [useCustomAvatar, setUseCustomAvatar] = useState<boolean>(false); // State để theo dõi việc sử dụng avatar tùy chỉnh
@@ -94,11 +93,8 @@ const DropdownUser = () => {
     const fetchUserDetails = async () => {
       setIsLoading(true);
       try {
-        const userProfile = await getUserProfile();
-        console.log("User profile from API:", userProfile);
-        if (userProfile.imageURL) {
-          setProfileImageURL(userProfile.imageURL);
-        }
+        await getUserProfile();
+        // Không cần lưu imageURL từ API vào state vì sẽ dùng trực tiếp từ userContext
       } catch (error) {
         console.error("Error fetching user profile:", error);
       } finally {
@@ -193,41 +189,65 @@ const DropdownUser = () => {
 
   // Get avatar URL based on user role
   const getAvatarUrl = () => {
+    // Lấy role cao nhất cho người dùng
     const highestRole = getHighestRole(userContext?.user.role || []);
     
-    // If user is Healthcare Staff and has an imageURL from profile API AND not choosing to use custom avatar
-    if (highestRole === "Healthcare Staff" && profileImageURL && !useCustomAvatar) {
-      return profileImageURL;
+    // Ghi log chi tiết để debug
+    console.log("Getting avatar URL. Debug info:", {
+      role: highestRole,
+      imageURL: userContext?.user.imageURL,
+      useCustomAvatar: useCustomAvatar,
+      updateTrigger: userContext ? JSON.stringify(userContext.user) : 'no-context'
+    });
+    
+    // Nếu người dùng là Healthcare Staff và có hình ảnh trong context
+    if (highestRole === "Healthcare Staff" && userContext?.user.imageURL && !useCustomAvatar) {
+      // Khi sử dụng ảnh thật từ profile
+      console.log("Using real profile image:", userContext.user.imageURL);
+      
+      // Thêm timestamp để tránh cache
+      const timestamp = new Date().getTime();
+      const imageUrl = userContext.user.imageURL;
+      const urlWithTimestamp = imageUrl.includes('?') 
+        ? `${imageUrl}&t=${timestamp}` 
+        : `${imageUrl}?t=${timestamp}`;
+      
+      return urlWithTimestamp;
     }
     
-    // Otherwise use one of our custom avatars
-    // Sử dụng userId hoặc email để chọn ảnh cố định cho mỗi người dùng
+    // Sử dụng avatar ngẫu nhiên nếu không phải Healthcare Staff hoặc không có ảnh
     const userId = userContext?.user.userId || '';
     const email = userContext?.user.email || '';
     
-    // Sử dụng userId làm seed chính, nếu không có thì dùng email
+    // Logic chọn avatar ngẫu nhiên
     const seedStr = userId || email || 'default';
-    
-    // Tính toán giá trị hash đơn giản từ chuỗi
     let hashValue = 0;
     for (let i = 0; i < seedStr.length; i++) {
       hashValue = ((hashValue << 5) - hashValue) + seedStr.charCodeAt(i);
-      hashValue = hashValue & hashValue; // Chuyển về số nguyên 32-bit
+      hashValue = hashValue & hashValue;
     }
     
-    // Lấy giá trị tuyệt đối để đảm bảo không bị âm
     hashValue = Math.abs(hashValue);
-    
-    // Thêm randomSeed vào hashValue nếu người dùng đã click random
     if (randomSeed > 0) {
       hashValue = (hashValue + randomSeed) % 1000000;
     }
     
-    // Chọn ảnh dựa trên hash và đảm bảo kết quả nhất quán
     const avatarIndex = hashValue % AVATARS.length;
-    
+    console.log("Using random avatar:", AVATARS[avatarIndex]);
     return AVATARS[avatarIndex];
   };
+
+  // Force re-render when user image changes
+  useEffect(() => {
+    // This is just to trigger a re-render when the image URL changes
+    if (userContext?.user.imageURL) {
+      console.log("Avatar image URL updated in DropdownUser:", userContext.user.imageURL);
+      // Đảm bảo sử dụng ảnh thật khi có sẵn cho Healthcare Staff
+      if (getHighestRole(userContext?.user.role || []) === "Healthcare Staff") {
+        setUseCustomAvatar(false);
+      }
+    }
+  }, [userContext?.user.imageURL]);
 
   // Mặc định hiển thị skeleton loader khi đang tải
   if (isLoading) {
@@ -246,7 +266,7 @@ const DropdownUser = () => {
   }
 
   // Kiểm tra xem có đang hiển thị ảnh thật từ Healthcare Staff không
-  const isUsingRealImage = getHighestRole(userContext?.user.role || []) === "Healthcare Staff" && profileImageURL && !useCustomAvatar;
+  const isUsingRealImage = getHighestRole(userContext?.user.role || []) === "Healthcare Staff" && userContext?.user.imageURL && !useCustomAvatar;
   
   // Lấy role cao nhất của người dùng
   const highestRole = getHighestRole(userContext?.user.role || []);
@@ -278,6 +298,7 @@ const DropdownUser = () => {
           <div className={`relative p-0.5 rounded-full ${avatarFrame.ringGradient || "bg-white"} ${avatarFrame.animation || ""}`}>
             <div className={`overflow-hidden rounded-full ${avatarFrame.borderStyle} ${avatarFrame.ringColor} ${avatarFrame.ringWidth} hover:scale-105 transition-all duration-300`}>
               <img
+                key={`avatar-${userContext?.user.imageURL || 'default'}-${useCustomAvatar}-${randomSeed}`}
                 alt="User Avatar"
                 src={getAvatarUrl()}
                 className="h-10 w-10 rounded-full object-cover"
@@ -295,13 +316,17 @@ const DropdownUser = () => {
           </button>
           
           {/* Nút quay lại dùng ảnh thật - chỉ hiển thị cho Healthcare Staff đang dùng avatar tùy chỉnh */}
-          {getHighestRole(userContext?.user.role || []) === "Healthcare Staff" && profileImageURL && useCustomAvatar && (
+          {getHighestRole(userContext?.user.role || []) === "Healthcare Staff" && userContext?.user.imageURL && useCustomAvatar && (
             <button 
               onClick={handleUseRealImage}
               className="absolute -bottom-1 -left-1 bg-white rounded-full p-1 shadow-md hover:bg-gray-100 transition-colors duration-200 z-10"
               title="Use Real Image"
             >
-              <img src={profileImageURL} className="w-3 h-3 rounded-full object-cover" />
+              <img 
+                key={`small-${userContext.user.imageURL}`}
+                src={userContext.user.imageURL} 
+                className="w-3 h-3 rounded-full object-cover" 
+              />
             </button>
           )}
         </div>

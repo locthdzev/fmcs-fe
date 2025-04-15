@@ -1,4 +1,4 @@
-import { useEffect, useState, createContext, ReactNode } from "react";
+import { useEffect, useState, createContext, ReactNode, useCallback } from "react";
 import jwtDecode from "jwt-decode"; // Fixed import
 import Cookies from "js-cookie";
 import router from "next/router";
@@ -17,6 +17,8 @@ interface UserContextType {
   user: User;
   loginContext: (email: string, token: string) => void;
   logout: () => void;
+  updateUserImage: (imageURL: string) => void;
+  forceUpdate: () => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -29,6 +31,14 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     role: [],
     auth: false,
   });
+  
+  // Thêm state để bắt buộc re-render
+  const [updateTrigger, setUpdateTrigger] = useState(0);
+  
+  // Hàm để bắt buộc re-render
+  const forceUpdate = useCallback(() => {
+    setUpdateTrigger(prev => prev + 1);
+  }, []);
 
   // Hàm helper để lấy imageURL từ token với nhiều cách viết khác nhau
   const getImageUrlFromToken = (decoded: any): string | undefined => {
@@ -130,8 +140,40 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     router.replace("/");
   };
 
+  // Hàm để cập nhật ảnh đại diện người dùng
+  const updateUserImage = (imageURL: string) => {
+    if (!imageURL) {
+      console.warn("Attempted to update user image with empty URL");
+      return;
+    }
+
+    console.log("updateUserImage called with:", imageURL);
+    
+    try {
+      // Tạo một đối tượng user mới hoàn toàn để React nhận biết sự thay đổi
+      const newUser = {
+        ...user,
+        imageURL: imageURL
+      };
+      
+      // Cập nhật state với đối tượng mới
+      setUser(newUser);
+      
+      // Bắt buộc re-render sau khi cập nhật
+      setTimeout(() => {
+        forceUpdate();
+        console.log("Force update triggered after image update");
+      }, 0);
+      
+      // Cập nhật thông tin vào console để debug
+      console.log("User state updated with new image:", newUser);
+    } catch (error) {
+      console.error("Error updating user image in context:", error);
+    }
+  };
+
   return (
-    <UserContext.Provider value={{ user, loginContext, logout }}>
+    <UserContext.Provider value={{ user, loginContext, logout, updateUserImage, forceUpdate }}>
       {children}
     </UserContext.Provider>
   );

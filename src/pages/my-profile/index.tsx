@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { getUserProfile, UserProfile, updateUser, updateProfileImage } from "@/api/user";
 import { changePassword } from "@/api/auth";
 import router from "next/router";
@@ -7,6 +7,7 @@ import { Button, Form, Input, Modal, Upload, message, Image, Spin } from "antd";
 import { LockIcon } from "@/components/users/Icons";
 import { UploadOutlined, LoadingOutlined, CameraOutlined, EyeOutlined } from "@ant-design/icons";
 import type { UploadProps } from "antd/es/upload";
+import { UserContext } from "@/context/UserContext";
 
 export default function UserProfilePage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -18,6 +19,7 @@ export default function UserProfilePage() {
   const [previewVisible, setPreviewVisible] = useState<boolean>(false);
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
+  const userContext = useContext(UserContext);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -126,27 +128,99 @@ export default function UserProfilePage() {
       
       clearInterval(interval);
       
-      if (result.isSuccess) {
-        messageApi.success("Profile image updated successfully.");
+      console.log("Update profile image result:", result); // Log toàn bộ kết quả trả về
+      
+      // Kiểm tra cấu trúc response từ API
+      if (result) {
+        let imageURL = null;
         
-        // Tạo URL tạm thời cho ảnh mới để hiển thị ngay lập tức
-        const newImageURL = result.data.ImageURL;
-        
-        // Cập nhật imageURL trong profile
-        setUserProfile((prevProfile) => {
-          if (!prevProfile) return null;
-          return {
-            ...prevProfile,
-            imageURL: newImageURL
-          };
-        });
-        
-        onSuccess(result, file);
+        // Kiểm tra các trường hợp có thể chứa URL ảnh
+        if (result.data?.ImageURL) {
+          imageURL = result.data.ImageURL;
+        } else if (result.data?.imageURL) {
+          imageURL = result.data.imageURL;
+        } else if (result.data?.imageUrl) {
+          imageURL = result.data.imageUrl;
+        } else if (typeof result.data === 'string' && result.data.startsWith('http')) {
+          imageURL = result.data;
+        } else if (result.ImageURL) {
+          imageURL = result.ImageURL;
+        } else if (result.imageURL) {
+          imageURL = result.imageURL;
+        } else if (result.imageUrl) {
+          imageURL = result.imageUrl;
+        }
+
+        if (imageURL) {
+          // Thêm timestamp để đảm bảo URL luôn mới và browser không cache ảnh cũ
+          const timestampedURL = imageURL.includes('?') 
+            ? `${imageURL}&t=${new Date().getTime()}` 
+            : `${imageURL}?t=${new Date().getTime()}`;
+          
+          // Cập nhật imageURL trong profile
+          setUserProfile((prevProfile) => {
+            if (!prevProfile) return null;
+            return {
+              ...prevProfile,
+              imageURL: timestampedURL
+            };
+          });
+          
+          // Cập nhật imageURL trong UserContext
+          if (userContext) {
+            // Cập nhật hình ảnh người dùng trong context
+            userContext.updateUserImage(timestampedURL);
+            
+            // Sử dụng forceUpdate để bắt buộc re-render các component sử dụng context
+            userContext.forceUpdate();
+          }
+          
+          // Hiển thị thông báo thành công sau khi đã cập nhật xong
+          messageApi.success("Profile image updated successfully.");
+          
+          // Log để kiểm tra giá trị mới của ảnh
+          console.log("New profile image set:", timestampedURL);
+          
+          onSuccess(result, file);
+        } else {
+          console.error("No image URL found in response:", result);
+          // Nếu không tìm thấy URL trong response, gọi API getUserProfile để lấy URL mới nhất
+          try {
+            const userProfileData = await getUserProfile();
+            if (userProfileData.imageURL) {
+              const timestampedURL = userProfileData.imageURL.includes('?') 
+                ? `${userProfileData.imageURL}&t=${new Date().getTime()}` 
+                : `${userProfileData.imageURL}?t=${new Date().getTime()}`;
+              
+              setUserProfile((prevProfile) => ({
+                ...prevProfile!,
+                imageURL: timestampedURL
+              }));
+              
+              if (userContext) {
+                userContext.updateUserImage(timestampedURL);
+                userContext.forceUpdate();
+              }
+              
+              messageApi.success("Profile image updated successfully.");
+              onSuccess(result, file);
+            } else {
+              messageApi.warning("Image updated but URL not returned. Please reload the page.");
+              onSuccess(result, file);
+            }
+          } catch (error) {
+            console.error("Error fetching updated profile:", error);
+            messageApi.warning("Image updated but URL not returned. Please reload the page.");
+            onSuccess(result, file);
+          }
+        }
       } else {
-        messageApi.error(result.message || "Failed to update profile image.");
+        console.error("Failed response structure:", result);
+        messageApi.error("Failed to update profile image.");
         onError(result);
       }
     } catch (error: any) {
+      console.error("Error during profile image update:", error);
       messageApi.error(
         error.response?.data?.message || "Failed to update profile image."
       );
@@ -199,6 +273,7 @@ export default function UserProfilePage() {
               >
                 {userProfile.imageURL ? (
                   <img
+                    key={userProfile.imageURL}
                     src={userProfile.imageURL}
                     alt="Profile"
                     className="w-full h-full object-cover"
