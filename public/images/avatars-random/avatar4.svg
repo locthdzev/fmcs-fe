@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="90" fill="#f2f2f2"/>
+  
+  <!-- FPT Orange Uniform -->
+  <path d="M60,100 L60,160 C60,170 80,180 100,180 C120,180 140,170 140,160 L140,100 Z" fill="#ff5e00"/>
+  <path d="M60,110 L140,110" stroke="white" stroke-width="2"/>
+  
+  <!-- FPT Logo -->
+  <text x="95" y="140" font-family="Arial" font-size="16" font-weight="bold" fill="white" text-anchor="middle">FPT</text>
+  
+  <!-- Head -->
+  <circle cx="100" cy="70" r="40" fill="#ffdbac"/>
+  
+  <!-- Hair - Short Red -->
+  <path d="M100,30 C75,30 65,50 65,70 C65,75 67,80 70,85 C75,75 85,75 100,75 C115,75 125,75 130,85 C133,80 135,75 135,70 C135,50 125,30 100,30 Z" fill="#e74c3c"/>
+  <!-- Short hair details -->
+  <path d="M70,65 C75,55 80,50 70,45" fill="none" stroke="#e74c3c" stroke-width="5"/>
+  <path d="M130,65 C125,55 120,50 130,45" fill="none" stroke="#e74c3c" stroke-width="5"/>
+  
+  <!-- Eyes -->
+  <ellipse cx="85" cy="65" rx="5" ry="6" fill="#2d2d2d"/>
+  <ellipse cx="115" cy="65" rx="5" ry="6" fill="#2d2d2d"/>
+  
+  <!-- Blush -->
+  <circle cx="75" cy="75" r="5" fill="#ff9999" opacity="0.5"/>
+  <circle cx="125" cy="75" r="5" fill="#ff9999" opacity="0.5"/>
+  
+  <!-- Smile -->
+  <path d="M85,80 C90,88 110,88 115,80" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Health Chart - Medical element -->
+  <rect x="75" y="115" width="30" height="35" fill="white" stroke="#2d2d2d" stroke-width="2"/>
+  <!-- Chart grid lines -->
+  <line x1="75" y1="125" x2="105" y2="125" stroke="#2d2d2d" stroke-width="0.5"/>
+  <line x1="75" y1="135" x2="105" y2="135" stroke="#2d2d2d" stroke-width="0.5"/>
+  <line x1="75" y1="145" x2="105" y2="145" stroke="#2d2d2d" stroke-width="0.5"/>
+  <line x1="85" y1="115" x2="85" y2="150" stroke="#2d2d2d" stroke-width="0.5"/>
+  <line x1="95" y1="115" x2="95" y2="150" stroke="#2d2d2d" stroke-width="0.5"/>
+  <!-- Heart rate line -->
+  <polyline points="75,135 80,135 85,125 90,145 95,125 100,135 105,135" fill="none" stroke="#e74c3c" stroke-width="1"/>
+  <!-- Heart symbol -->
+  <path d="M87,120 C89,118 91,118 93,120 C95,118 97,118 99,120 C101,122 101,125 99,127 L93,133 L87,127 C85,125 85,122 87,120" fill="#e74c3c"/>
+  
+  <!-- Ears -->
+  <path d="M60,70 Q55,70 58,80" fill="#ffdbac"/>
+  <path d="M140,70 Q145,70 142,80" fill="#ffdbac"/>
+</svg> 
