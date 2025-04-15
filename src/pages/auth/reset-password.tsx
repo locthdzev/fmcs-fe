@@ -1,21 +1,37 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { resetPassword } from "@/api/auth";
-import { message } from "antd";
+import {
+  message,
+  Form,
+  Input,
+  Button,
+  Card,
+  Typography,
+  Space,
+  Divider,
+  Row,
+  Col,
+} from "antd";
+import Link from "next/link";
+import { ArrowLeftOutlined, LockOutlined } from "@ant-design/icons";
+
+const { Title, Text } = Typography;
 
 export default function ResetPassword() {
-  const [newPassword, setNewPassword] = useState<string>("");
-  const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
   const { email, username } = router.query;
   const [messageApi, contextHolder] = message.useMessage();
+  const [form] = Form.useForm();
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleResetPassword = async (values: {
+    newPassword: string;
+    confirmPassword: string;
+  }) => {
     setIsLoading(true);
 
-    if (newPassword !== confirmPassword) {
+    if (values.newPassword !== values.confirmPassword) {
       messageApi.error({
         content: "Passwords do not match. Please try again.",
         duration: 5,
@@ -38,7 +54,7 @@ export default function ResetPassword() {
         emailOrUsername: Array.isArray(emailOrUsername)
           ? emailOrUsername[0]
           : emailOrUsername,
-        password: newPassword,
+        password: values.newPassword,
       });
 
       if (response.isSuccess) {
@@ -65,71 +81,123 @@ export default function ResetPassword() {
       setIsLoading(false);
     }
   };
+
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gray-100 relative overflow-hidden">
+    <div className="min-h-screen flex justify-center items-center bg-gray-100">
       {contextHolder}
-      <div className="relative bg-white p-12 rounded-lg shadow-xl w-full max-w-lg border border-gray-200 hover:shadow-2xl transition-shadow duration-300">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-orange-600 mb-2">
-            Reset Password
-          </h1>
-          <p className="text-gray-600 text-lg">Enter your new password</p>
-        </div>
-        <form
-          onSubmit={handleResetPassword}
-          className="space-y-6 backdrop-blur-sm"
+      <Row gutter={[24, 0]} className="w-full max-w-6xl mx-auto" align="middle">
+        <Col
+          xs={0}
+          sm={0}
+          md={12}
+          lg={14}
+          xl={14}
+          className="flex justify-center items-center"
         >
-          <div className="relative">
-            <input
-              type="password"
-              placeholder="New Password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              className="w-full px-6 py-4 text-lg border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all duration-300"
+          <div className="p-8 w-full">
+            <img
+              src="/reset-password.svg"
+              alt="Reset Password"
+              className="w-full h-auto"
             />
           </div>
-          <div className="relative">
-            <input
-              type="password"
-              placeholder="Confirm New Password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              className="w-full px-6 py-4 text-lg border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all duration-300"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-orange-500 text-white py-4 text-lg rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+        </Col>
+        <Col
+          xs={24}
+          sm={24}
+          md={12}
+          lg={10}
+          xl={10}
+          className="flex items-center"
+        >
+          <Card
+            style={{ width: "100%" }}
+            bordered={false}
+            className="shadow-lg"
           >
-            {isLoading ? "Resetting..." : "Reset Password"}
-          </button>
-        </form>
-        <div className="mt-8 text-center">
-          <a
-            href="/"
-            className="text-orange-600 hover:text-orange-700 flex items-center justify-center gap-2 transition-colors duration-300 hover:underline text-lg"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+            <div className="text-center mb-6">
+              <Title level={4} style={{ color: "#f97316", fontWeight: "bold" }}>
+                RESET YOUR PASSWORD
+              </Title>
+              <Text type="secondary">Enter your new password</Text>
+            </div>
+
+            <Form
+              form={form}
+              name="reset_password"
+              onFinish={handleResetPassword}
+              layout="vertical"
+              size="large"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-            Back to Login
-          </a>
-        </div>
-      </div>
+              <Form.Item
+                name="newPassword"
+                rules={[
+                  {
+                    required: true,
+                    message: "Please input your new password!",
+                  },
+                  { min: 6, message: "Password must be at least 6 characters" },
+                ]}
+              >
+                <Input.Password
+                  prefix={<LockOutlined />}
+                  placeholder="New Password"
+                  size="large"
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="confirmPassword"
+                rules={[
+                  {
+                    required: true,
+                    message: "Please confirm your new password!",
+                  },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue("newPassword") === value) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(
+                        new Error("The two passwords do not match!")
+                      );
+                    },
+                  }),
+                ]}
+              >
+                <Input.Password
+                  prefix={<LockOutlined />}
+                  placeholder="Confirm New Password"
+                  size="large"
+                />
+              </Form.Item>
+
+              <Form.Item>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={isLoading}
+                  block
+                  style={{ background: "#f97316", height: "45px" }}
+                >
+                  Reset Password
+                </Button>
+              </Form.Item>
+            </Form>
+
+            <Divider />
+
+            <div className="text-center">
+              <Link href="/" className="text-orange-600 hover:text-orange-700">
+                <Space>
+                  <ArrowLeftOutlined />
+                  <span>Back to Login</span>
+                </Space>
+              </Link>
+            </div>
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 }
