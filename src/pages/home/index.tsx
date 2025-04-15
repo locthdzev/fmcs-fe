@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { UserContext } from '@/context/UserContext';
 import { useRouter } from 'next/router';
-import { Spin, Result, Button, Card, Typography } from 'antd';
+import { Spin, Card, Typography, Button } from 'antd';
 import AdminHomePage from '@/components/home/AdminHomePage';
 import ManagerHomePage from '@/components/home/ManagerHomePage';
 import HealthcareStaffHomePage from '@/components/home/HealthcareStaffHomePage';
@@ -15,16 +15,12 @@ export default function HomePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
+  // Giản lược useEffect, chỉ đợi userContext load xong
   useEffect(() => {
-    // Check if user is authenticated
-    if (!userContext?.user?.auth) {
-      router.push('/');
-      return;
+    if (userContext?.user !== undefined) {
+      setLoading(false);
     }
-    
-    // Set loading to false after confirming authentication
-    setLoading(false);
-  }, [userContext?.user, router]);
+  }, [userContext?.user]);
 
   if (loading) {
     return (
