@@ -48,6 +48,7 @@
     "@tiptap/starter-kit": "^2.11.7",
     "ant": "^0.0.0",
     "antd": "^5.24.6",
+    "antd-img-crop": "^4.24.0",
     "axios": "^1.8.1",
     "chart.js": "^4.4.7",
     "clsx": "^2.1.1",

@@ -8,6 +8,24 @@ import { LockIcon } from "@/components/users/Icons";
 import { UploadOutlined, LoadingOutlined, CameraOutlined, EyeOutlined } from "@ant-design/icons";
 import type { UploadProps } from "antd/es/upload";
 import { UserContext } from "@/context/UserContext";
+import ImgCrop from 'antd-img-crop';
+
+// Định nghĩa style cho animation
+const spinAnimation = {
+  animation: 'spin 15s linear infinite',
+};
+
+// Định nghĩa keyframes trong style tag
+const styleTag = `
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
 
 export default function UserProfilePage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -79,12 +97,29 @@ export default function UserProfilePage() {
         setIsChangingPassword(false);
         form.resetFields();
       } else {
-        messageApi.error(result?.message || "Failed to change password.");
+        // Xử lý các trường hợp lỗi cụ thể
+        if (result?.message?.toLowerCase().includes("old password")) {
+          messageApi.error("The old password is incorrect. Please try again.");
+        } else if (result?.message?.toLowerCase().includes("same")) {
+          messageApi.error("The new password cannot be the same as the old password.");
+        } else if (result?.message?.toLowerCase().includes("requirements")) {
+          messageApi.error("The new password does not meet security requirements. Password must be at least 8 characters long and contain a mix of letters, numbers, and special characters.");
+        } else {
+          messageApi.error(result?.message || "Failed to change password. Please try again.");
+        }
       }
     } catch (error: any) {
-      messageApi.error(
-        error.response?.data?.message || "Failed to change password."
-      );
+      // Xử lý lỗi từ API response
+      const errorMessage = error.response?.data?.message;
+      if (errorMessage?.toLowerCase().includes("old password")) {
+        messageApi.error("The old password is incorrect. Please try again.");
+      } else if (errorMessage?.toLowerCase().includes("same")) {
+        messageApi.error("The new password cannot be the same as the old password.");
+      } else if (errorMessage?.toLowerCase().includes("requirements")) {
+        messageApi.error("The new password does not meet security requirements. Password must be at least 8 characters long and contain a mix of letters, numbers, and special characters.");
+      } else {
+        messageApi.error(errorMessage || "Failed to change password. Please try again.");
+      }
     }
   };
 
@@ -104,12 +139,18 @@ export default function UserProfilePage() {
     return isJpgOrPng && isLt2M;
   };
 
+  // Kiểm tra xem người dùng có quyền thay đổi ảnh hay không
+  const canChangeProfileImage = (roles: string[]) => {
+    const allowedRoles = ["Admin", "Manager", "Healthcare Staff", "Canteen Staff"];
+    return roles.some(role => allowedRoles.includes(role));
+  };
+
   const handleUpload = async (options: any) => {
     const { file, onSuccess, onError, onProgress } = options;
     
-    // Kiểm tra điều kiện Healthcare Staff
-    if (!userProfile?.roles.includes("Healthcare Staff")) {
-      messageApi.error("Only Healthcare Staff can update profile image.");
+    // Kiểm tra quyền thay đổi ảnh
+    if (!canChangeProfileImage(userProfile?.roles || [])) {
+      messageApi.error("Only Admin, Manager, Healthcare Staff and Canteen Staff can update profile image.");
       onError("Permission denied");
       return;
     }
@@ -248,338 +289,364 @@ export default function UserProfilePage() {
     );
   }
 
-  // Kiểm tra xem người dùng có phải là Healthcare Staff hay không
-  const isHealthcareStaff = userProfile.roles.includes("Healthcare Staff");
+  // Kiểm tra quyền thay đổi ảnh
+  const canUpdateImage = canChangeProfileImage(userProfile.roles);
 
   return (
-    <div className="flex justify-center p-6">
-      {contextHolder}
-      <div className="w-full lg:w-8/12 bg-white rounded-3xl shadow-xl p-8">
-        <h3 className="text-2xl font-bold mb-4">
-          {isEditing ? "Edit Profile" : "User Profile"}
-        </h3>
-        
-        {/* Profile Image Section - Chỉ hiển thị cho Healthcare Staff */}
-        {isHealthcareStaff && (
-          <div className="mb-8 flex flex-col items-center">
-            <div className="relative">
-              <div 
-                className="relative w-32 h-32 rounded-full overflow-hidden cursor-pointer"
-                onClick={() => {
-                  if (userProfile.imageURL) {
-                    setPreviewVisible(true);
-                  }
-                }}
-              >
-                {userProfile.imageURL ? (
-                  <img
-                    key={userProfile.imageURL}
-                    src={userProfile.imageURL}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                    <span className="text-gray-500">No Image</span>
+    <>
+      <style>{styleTag}</style>
+      <div className="flex justify-center p-6">
+        {contextHolder}
+        <div className="w-full lg:w-8/12 bg-white rounded-3xl shadow-xl p-8">
+          <h3 className="text-2xl font-bold mb-4">
+            {isEditing ? "Edit Profile" : "User Profile"}
+          </h3>
+          
+          {/* Profile Image Section - Hiển thị cho các role được phép */}
+          {canUpdateImage && (
+            <div className="mb-8 flex flex-col items-center">
+              <div className="relative">
+                {/* Outer glow effect */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 blur-lg opacity-30"></div>
+                
+                {/* Decorative ring - với animation inline */}
+                <div 
+                  className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600" 
+                  style={spinAnimation}
+                ></div>
+                
+                {/* Main container with white border */}
+                <div className="relative p-1 rounded-full bg-white shadow-xl">
+                  <div 
+                    className="relative w-32 h-32 rounded-full overflow-hidden cursor-pointer ring-4 ring-white"
+                    onClick={() => {
+                      if (userProfile.imageURL) {
+                        setPreviewVisible(true);
+                      }
+                    }}
+                  >
+                    {userProfile.imageURL ? (
+                      <img
+                        key={userProfile.imageURL}
+                        src={userProfile.imageURL}
+                        alt="Profile"
+                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-300 flex items-center justify-center">
+                        <span className="text-gray-500">No Image</span>
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  {/* Camera icon for upload with image cropping */}
+                  <ImgCrop
+                    rotationSlider
+                    quality={1}
+                    modalTitle="Edit Profile Image"
+                    modalOk="Upload"
+                    modalCancel="Cancel"
+                    showGrid
+                    cropShape="round"
+                    aspect={1}
+                  >
+                    <Upload
+                      name="imageFile"
+                      showUploadList={false}
+                      customRequest={handleUpload}
+                      beforeUpload={beforeUpload}
+                      className="absolute -right-2 -bottom-2 z-10"
+                    >
+                      <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-full cursor-pointer shadow-lg transition-all duration-300 hover:scale-110">
+                        {uploadLoading 
+                          ? <LoadingOutlined className="text-lg" /> 
+                          : <CameraOutlined className="text-lg" />
+                        }
+                      </div>
+                    </Upload>
+                  </ImgCrop>
+                </div>
               </div>
 
-              {/* Camera icon for upload */}
-              <Upload
-                name="imageFile"
-                showUploadList={false}
-                customRequest={handleUpload}
-                beforeUpload={beforeUpload}
-                className="absolute -right-2 -bottom-2"
-              >
-                <div className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full cursor-pointer shadow-md transition-colors duration-300">
-                  {uploadLoading 
-                    ? <LoadingOutlined className="text-lg" /> 
-                    : <CameraOutlined className="text-lg" />
-                  }
-                </div>
-              </Upload>
+              {/* Image preview modal */}
+              {userProfile.imageURL && (
+                <Image
+                  src={userProfile.imageURL}
+                  style={{ display: 'none' }}
+                  preview={{
+                    visible: previewVisible,
+                    onVisibleChange: (vis) => setPreviewVisible(vis),
+                    src: userProfile.imageURL,
+                  }}
+                />
+              )}
             </div>
-
-            {/* Image preview modal */}
-            {userProfile.imageURL && (
-              <Image
-                src={userProfile.imageURL}
-                style={{ display: 'none' }}
-                preview={{
-                  visible: previewVisible,
-                  onVisibleChange: (vis) => setPreviewVisible(vis),
-                  src: userProfile.imageURL,
-                }}
-              />
-            )}
-          </div>
-        )}
-        
-        {isEditing ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              {
-                label: "Full Name",
-                name: "fullName",
-                placeholder: "Daisy",
-                type: "text",
-              },
-              {
-                label: "Username",
-                name: "userName",
-                placeholder: "Username",
-                type: "text",
-              },
-              {
-                label: "Email",
-                name: "email",
-                placeholder: "daisy@site.com",
-                type: "email",
-              },
-              {
-                label: "Gender",
-                name: "gender",
-                placeholder: "Gender",
-                type: "select",
-                options: ["Male", "Female"],
-              },
-              {
-                label: "Date of Birth",
-                name: "dob",
-                placeholder: "Date of Birth",
-                type: "date",
-              },
-              {
-                label: "Phone",
-                name: "phone",
-                placeholder: "Phone",
-                type: "text",
-              },
-            ].map((field, index) => (
-              <label
-                key={index}
-                htmlFor={field.name}
-                className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600"
-              >
-                <span className="text-xs font-medium text-gray-700">
-                  {field.label}
-                </span>
-                {field.type === "select" ? (
-                  <select
-                    id={field.name}
-                    name={field.name}
-                    value={formValues[field.name as keyof UserProfile] || ""}
-                    onChange={handleInputChange}
-                    className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-                  >
-                    {field.options?.map((option, idx) => (
-                      <option key={idx} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type={field.type}
-                    id={field.name}
-                    name={field.name}
-                    value={String(
-                      formValues[field.name as keyof UserProfile] || ""
-                    )}
-                    onChange={handleInputChange}
-                    className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-                    placeholder={field.placeholder}
-                  />
-                )}
-              </label>
-            ))}
-            <label
-              htmlFor="address"
-              className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 md:col-span-2"
-            >
-              <span className="text-xs font-medium text-gray-700">Address</span>
-              <input
-                type="text"
-                id="address"
-                name="address"
-                value={String(formValues.address || "")}
-                onChange={handleInputChange}
-                className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-                placeholder="Address"
-              />
-            </label>
-          </div>
-        ) : (
-          <div className="col-span-7 space-y-4 text-gray-700">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          )}
+          
+          {isEditing ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
-                { label: "Full Name", value: userProfile.fullName },
-                { label: "Username", value: userProfile.userName || "N/A" },
-                { label: "Email", value: userProfile.email },
-                { label: "Gender", value: userProfile.gender },
+                {
+                  label: "Full Name",
+                  name: "fullName",
+                  placeholder: "Daisy",
+                  type: "text",
+                },
+                {
+                  label: "Username",
+                  name: "userName",
+                  placeholder: "Username",
+                  type: "text",
+                },
+                {
+                  label: "Email",
+                  name: "email",
+                  placeholder: "daisy@site.com",
+                  type: "email",
+                },
+                {
+                  label: "Gender",
+                  name: "gender",
+                  placeholder: "Gender",
+                  type: "select",
+                  options: ["Male", "Female"],
+                },
                 {
                   label: "Date of Birth",
-                  value: new Date(userProfile.dob).toLocaleDateString("vi-VN"),
+                  name: "dob",
+                  placeholder: "Date of Birth",
+                  type: "date",
                 },
-                { label: "Phone", value: userProfile.phone },
+                {
+                  label: "Phone",
+                  name: "phone",
+                  placeholder: "Phone",
+                  type: "text",
+                },
               ].map((field, index) => (
                 <label
                   key={index}
-                  className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm"
+                  htmlFor={field.name}
+                  className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600"
                 >
                   <span className="text-xs font-medium text-gray-700">
                     {field.label}
                   </span>
-                  <div className="mt-1 w-full border-none p-0 sm:text-sm">
-                    {field.value}
-                  </div>
+                  {field.type === "select" ? (
+                    <select
+                      id={field.name}
+                      name={field.name}
+                      value={formValues[field.name as keyof UserProfile] || ""}
+                      onChange={handleInputChange}
+                      className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+                    >
+                      {field.options?.map((option, idx) => (
+                        <option key={idx} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type={field.type}
+                      id={field.name}
+                      name={field.name}
+                      value={String(
+                        formValues[field.name as keyof UserProfile] || ""
+                      )}
+                      onChange={handleInputChange}
+                      className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+                      placeholder={field.placeholder}
+                    />
+                  )}
                 </label>
               ))}
-              <label className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm md:col-span-2">
-                <span className="text-xs font-medium text-gray-700">
-                  Address
-                </span>
-                <div className="mt-1 w-full border-none p-0 sm:text-sm">
-                  {userProfile.address}
-                </div>
+              <label
+                htmlFor="address"
+                className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 md:col-span-2"
+              >
+                <span className="text-xs font-medium text-gray-700">Address</span>
+                <input
+                  type="text"
+                  id="address"
+                  name="address"
+                  value={String(formValues.address || "")}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+                  placeholder="Address"
+                />
               </label>
             </div>
-          </div>
-        )}
-        <div className="mt-6 flex justify-end">
-          {isEditing ? (
-            <>
-              <Button
-                className="mr-2"
-                onClick={() => {
-                  setIsEditing(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="bg-orange-500 border-orange-500 text-white"
-                onClick={handleSave}
-              >
-                Save
-              </Button>
-            </>
           ) : (
-            <Button
-              className="bg-orange-500 border-orange-500 text-white"
-              onClick={() => setIsEditing(true)}
-            >
-              Change information
-            </Button>
+            <div className="col-span-7 space-y-4 text-gray-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { label: "Full Name", value: userProfile.fullName },
+                  { label: "Username", value: userProfile.userName || "N/A" },
+                  { label: "Email", value: userProfile.email },
+                  { label: "Gender", value: userProfile.gender },
+                  {
+                    label: "Date of Birth",
+                    value: new Date(userProfile.dob).toLocaleDateString("vi-VN"),
+                  },
+                  { label: "Phone", value: userProfile.phone },
+                ].map((field, index) => (
+                  <label
+                    key={index}
+                    className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm"
+                  >
+                    <span className="text-xs font-medium text-gray-700">
+                      {field.label}
+                    </span>
+                    <div className="mt-1 w-full border-none p-0 sm:text-sm">
+                      {field.value}
+                    </div>
+                  </label>
+                ))}
+                <label className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm md:col-span-2">
+                  <span className="text-xs font-medium text-gray-700">
+                    Address
+                  </span>
+                  <div className="mt-1 w-full border-none p-0 sm:text-sm">
+                    {userProfile.address}
+                  </div>
+                </label>
+              </div>
+            </div>
           )}
-        </div>
-        <div className="mt-6 border-t border-gray-200 pt-2">
-          <h3 className="text-xl font-bold mb-2">Account & Security</h3>
-          <div className="flex items-center">
-            <span className="mr-2">
-              <LockIcon />
-            </span>
-            <span className="mr-2 font-bold italic">
-              Change account password
-            </span>
-            <div className="ml-auto">
+          <div className="mt-6 flex justify-end">
+            {isEditing ? (
+              <>
+                <Button
+                  className="mr-2"
+                  onClick={() => {
+                    setIsEditing(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-orange-500 border-orange-500 text-white"
+                  onClick={handleSave}
+                >
+                  Save
+                </Button>
+              </>
+            ) : (
               <Button
                 className="bg-orange-500 border-orange-500 text-white"
-                onClick={() => {
-                  setIsChangingPassword(!isChangingPassword);
-                  if (!isChangingPassword) {
-                    form.resetFields();
-                  }
-                }}
+                onClick={() => setIsEditing(true)}
               >
-                Change password
+                Change information
               </Button>
-            </div>
+            )}
           </div>
-          <div className="text-gray-500 mt-2 italic">
-            Use strong passwords for security!
-          </div>
-          {isChangingPassword && (
-            <div className="mt-4 p-4 border border-gray-300 rounded-lg shadow-md">
-              <Form
-                form={form}
-                onFinish={handleChangePassword}
-                layout="vertical"
-              >
-                <Form.Item
-                  name="oldPassword"
-                  label="Old Password"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Please input your old password!",
-                    },
-                  ]}
-                >
-                  <Input.Password placeholder="Enter your old password" />
-                </Form.Item>
-
-                <Form.Item
-                  name="newPassword"
-                  label="New Password"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Please input your new password!",
-                    },
-                  ]}
-                >
-                  <Input.Password placeholder="Enter your new password" />
-                </Form.Item>
-
-                <Form.Item
-                  name="confirmPassword"
-                  label="Confirm Password"
-                  dependencies={["newPassword"]}
-                  rules={[
-                    {
-                      required: true,
-                      message: "Please confirm your password!",
-                    },
-                    ({ getFieldValue }) => ({
-                      validator(_, value) {
-                        if (!value || getFieldValue("newPassword") === value) {
-                          return Promise.resolve();
-                        }
-                        return Promise.reject(
-                          new Error("The two passwords do not match!")
-                        );
-                      },
-                    }),
-                  ]}
-                >
-                  <Input.Password placeholder="Confirm your new password" />
-                </Form.Item>
-
-                <Form.Item className="flex justify-end mb-0">
-                  <Button
-                    className="mr-2"
-                    onClick={() => {
-                      setIsChangingPassword(false);
+          <div className="mt-6 border-t border-gray-200 pt-2">
+            <h3 className="text-xl font-bold mb-2">Account & Security</h3>
+            <div className="flex items-center">
+              <span className="mr-2">
+                <LockIcon />
+              </span>
+              <span className="mr-2 font-bold italic">
+                Change account password
+              </span>
+              <div className="ml-auto">
+                <Button
+                  className="bg-orange-500 border-orange-500 text-white"
+                  onClick={() => {
+                    setIsChangingPassword(!isChangingPassword);
+                    if (!isChangingPassword) {
                       form.resetFields();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    htmlType="submit"
-                    className="bg-orange-500 border-orange-500 text-white"
-                  >
-                    Submit
-                  </Button>
-                </Form.Item>
-              </Form>
+                    }
+                  }}
+                >
+                  Change password
+                </Button>
+              </div>
             </div>
-          )}
+            <div className="text-gray-500 mt-2 italic">
+              Use strong passwords for security!
+            </div>
+            {isChangingPassword && (
+              <div className="mt-4 p-4 border border-gray-300 rounded-lg shadow-md">
+                <Form
+                  form={form}
+                  onFinish={handleChangePassword}
+                  layout="vertical"
+                >
+                  <Form.Item
+                    name="oldPassword"
+                    label="Old Password"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please input your old password!",
+                      },
+                    ]}
+                  >
+                    <Input.Password placeholder="Enter your old password" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="newPassword"
+                    label="New Password"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please input your new password!",
+                      },
+                    ]}
+                  >
+                    <Input.Password placeholder="Enter your new password" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="confirmPassword"
+                    label="Confirm Password"
+                    dependencies={["newPassword"]}
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please confirm your password!",
+                      },
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (!value || getFieldValue("newPassword") === value) {
+                            return Promise.resolve();
+                          }
+                          return Promise.reject(
+                            new Error("The two passwords do not match!")
+                          );
+                        },
+                      }),
+                    ]}
+                  >
+                    <Input.Password placeholder="Confirm your new password" />
+                  </Form.Item>
+
+                  <Form.Item className="flex justify-end mb-0">
+                    <Button
+                      className="mr-2"
+                      onClick={() => {
+                        setIsChangingPassword(false);
+                        form.resetFields();
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      htmlType="submit"
+                      className="bg-orange-500 border-orange-500 text-white"
+                    >
+                      Submit
+                    </Button>
+                  </Form.Item>
+                </Form>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
