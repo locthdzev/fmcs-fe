@@ -129,8 +129,19 @@ export const setupSignalRConnection = (
 ): HubConnection => {
   const token = Cookies.get("token");
   if (!token) {
-    console.error("No token available for SignalR connection.");
-    throw new Error("Authentication token is missing.");
+    console.warn("No token available for SignalR connection. Returning a dummy connection.");
+    // Trả về một đối tượng giả với các phương thức cần thiết
+    return {
+      on: () => {},
+      off: () => {},
+      start: () => Promise.resolve(),
+      stop: () => Promise.resolve(),
+      state: {},
+      onreconnecting: () => {},
+      onreconnected: () => {},
+      onclose: () => {},
+      invoke: () => Promise.resolve(),
+    } as unknown as HubConnection;
   }
 
   const connection = new HubConnectionBuilder()
