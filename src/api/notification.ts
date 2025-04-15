@@ -57,6 +57,11 @@ export const getNotificationsByUserId = async (page: number = 1, pageSize: numbe
   return response.data;
 };
 
+export const getLatestUserNotification = async () => {
+  const response = await api.get(`/notification-management/user-notifications/latest`);
+  return response.data;
+};
+
 export const getNotificationDetailForAdmin = async (id: string) => {
   const response = await api.get(`/notification-management/notifications/${id}/admin`);
   return response.data.data;
