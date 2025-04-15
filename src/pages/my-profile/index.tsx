@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { getUserProfile, UserProfile, updateUser } from "@/api/user";
-import { changePassword } from "@/api/auth"; // Import changePassword function
-import { toast } from "react-toastify";
+import { getUserProfile, UserProfile, updateUser, updateProfileImage } from "@/api/user";
+import { changePassword } from "@/api/auth";
 import router from "next/router";
 import Cookies from "js-cookie";
-import { Button, Form, Input } from "antd";
+import { Button, Form, Input, Modal, Upload, message, Image, Spin } from "antd";
 import { LockIcon } from "@/components/users/Icons";
+import { UploadOutlined, LoadingOutlined, CameraOutlined, EyeOutlined } from "@ant-design/icons";
+import type { UploadProps } from "antd/es/upload";
 
 export default function UserProfilePage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -13,7 +14,10 @@ export default function UserProfilePage() {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [formValues, setFormValues] = useState<Partial<UserProfile>>({});
   const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
+  const [uploadLoading, setUploadLoading] = useState<boolean>(false);
+  const [previewVisible, setPreviewVisible] = useState<boolean>(false);
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -32,7 +36,7 @@ export default function UserProfilePage() {
         setUserProfile(data);
         setFormValues(formattedData);
       } catch (error: any) {
-        toast.error("Failed to fetch user profile.");
+        messageApi.error("Failed to fetch user profile.");
         router.replace("/");
       } finally {
         setIsLoading(false);
@@ -40,7 +44,7 @@ export default function UserProfilePage() {
     };
 
     fetchUserProfile();
-  }, []);
+  }, [messageApi]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -53,11 +57,11 @@ export default function UserProfilePage() {
     if (!userProfile) return;
     try {
       const result = await updateUser(userProfile.id, formValues);
-      toast.success("User information updated successfully.");
+      messageApi.success("User information updated successfully.");
       setUserProfile({ ...userProfile, ...formValues });
       setIsEditing(false);
     } catch (error) {
-      toast.error("Failed to update user information.");
+      messageApi.error("Failed to update user information.");
     }
   };
 
@@ -69,23 +73,93 @@ export default function UserProfilePage() {
       });
 
       if (result?.isSuccess) {
-        toast.success("Password changed successfully.");
+        messageApi.success("Password changed successfully.");
         setIsChangingPassword(false);
         form.resetFields();
       } else {
-        toast.error(result?.message || "Failed to change password.");
+        messageApi.error(result?.message || "Failed to change password.");
       }
     } catch (error: any) {
-      toast.error(
+      messageApi.error(
         error.response?.data?.message || "Failed to change password."
       );
+    }
+  };
+
+  const beforeUpload = (file: File) => {
+    const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/gif';
+    if (!isJpgOrPng) {
+      messageApi.error('You can only upload JPG/PNG/GIF files!');
+      return false;
+    }
+    
+    const isLt2M = file.size / 1024 / 1024 < 2;
+    if (!isLt2M) {
+      messageApi.error('Image must be smaller than 2MB!');
+      return false;
+    }
+    
+    return isJpgOrPng && isLt2M;
+  };
+
+  const handleUpload = async (options: any) => {
+    const { file, onSuccess, onError, onProgress } = options;
+    
+    // Kiểm tra điều kiện Healthcare Staff
+    if (!userProfile?.roles.includes("Healthcare Staff")) {
+      messageApi.error("Only Healthcare Staff can update profile image.");
+      onError("Permission denied");
+      return;
+    }
+    
+    setUploadLoading(true);
+    
+    try {
+      // Trả về progress giả lập cho UX tốt hơn
+      let percent = 0;
+      const interval = setInterval(() => {
+        percent = Math.min(99, percent + 5);
+        onProgress({ percent });
+      }, 100);
+      
+      const result = await updateProfileImage(file);
+      
+      clearInterval(interval);
+      
+      if (result.isSuccess) {
+        messageApi.success("Profile image updated successfully.");
+        
+        // Tạo URL tạm thời cho ảnh mới để hiển thị ngay lập tức
+        const newImageURL = result.data.ImageURL;
+        
+        // Cập nhật imageURL trong profile
+        setUserProfile((prevProfile) => {
+          if (!prevProfile) return null;
+          return {
+            ...prevProfile,
+            imageURL: newImageURL
+          };
+        });
+        
+        onSuccess(result, file);
+      } else {
+        messageApi.error(result.message || "Failed to update profile image.");
+        onError(result);
+      }
+    } catch (error: any) {
+      messageApi.error(
+        error.response?.data?.message || "Failed to update profile image."
+      );
+      onError(error);
+    } finally {
+      setUploadLoading(false);
     }
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl font-semibold">Loading...</div>
+        <Spin size="large" tip="Loading..." />
       </div>
     );
   }
@@ -100,12 +174,74 @@ export default function UserProfilePage() {
     );
   }
 
+  // Kiểm tra xem người dùng có phải là Healthcare Staff hay không
+  const isHealthcareStaff = userProfile.roles.includes("Healthcare Staff");
+
   return (
     <div className="flex justify-center p-6">
+      {contextHolder}
       <div className="w-full lg:w-8/12 bg-white rounded-3xl shadow-xl p-8">
         <h3 className="text-2xl font-bold mb-4">
           {isEditing ? "Edit Profile" : "User Profile"}
         </h3>
+        
+        {/* Profile Image Section - Chỉ hiển thị cho Healthcare Staff */}
+        {isHealthcareStaff && (
+          <div className="mb-8 flex flex-col items-center">
+            <div className="relative">
+              <div 
+                className="relative w-32 h-32 rounded-full overflow-hidden cursor-pointer"
+                onClick={() => {
+                  if (userProfile.imageURL) {
+                    setPreviewVisible(true);
+                  }
+                }}
+              >
+                {userProfile.imageURL ? (
+                  <img
+                    src={userProfile.imageURL}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                    <span className="text-gray-500">No Image</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Camera icon for upload */}
+              <Upload
+                name="imageFile"
+                showUploadList={false}
+                customRequest={handleUpload}
+                beforeUpload={beforeUpload}
+                className="absolute -right-2 -bottom-2"
+              >
+                <div className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full cursor-pointer shadow-md transition-colors duration-300">
+                  {uploadLoading 
+                    ? <LoadingOutlined className="text-lg" /> 
+                    : <CameraOutlined className="text-lg" />
+                  }
+                </div>
+              </Upload>
+            </div>
+
+            {/* Image preview modal */}
+            {userProfile.imageURL && (
+              <Image
+                src={userProfile.imageURL}
+                style={{ display: 'none' }}
+                preview={{
+                  visible: previewVisible,
+                  onVisibleChange: (vis) => setPreviewVisible(vis),
+                  src: userProfile.imageURL,
+                }}
+              />
+            )}
+          </div>
+        )}
+        
         {isEditing ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[

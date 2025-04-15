@@ -12,6 +12,7 @@ export interface UserProfile {
   createdAt: string;
   status?: string;
   roles: string[];
+  imageURL?: string;
 }
 
 export interface UserCreateRequest {
@@ -408,6 +409,23 @@ export const getUserById = async (userId: string): Promise<UserResponseDTO> => {
       return response.data.data;
     }
     throw new Error(response.data.message || "Failed to fetch user.");
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateProfileImage = async (imageFile: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('imageFile', imageFile);
+    
+    const response = await api.put('/user-management/users/update-profile-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return response.data;
   } catch (error) {
     throw error;
   }
