@@ -38,6 +38,7 @@ import {
   SearchOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -500,25 +501,6 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
                   </Tag>
                 </div>
               </div>
-
-              {notification.attachment &&
-                !notification.attachment.match(
-                  /\.(jpg|jpeg|png|gif|webp)$/i
-                ) && (
-                  <div className="mt-2">
-                    <Text strong>Attachment: </Text>
-                    <a
-                      href={notification.attachment}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download
-                    >
-                      <Button icon={<FileOutlined />} size="small">
-                        Download
-                      </Button>
-                    </a>
-                  </div>
-                )}
             </div>
 
             <div className="notification-preview">
@@ -531,29 +513,95 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
                 dangerouslySetInnerHTML={{ __html: notification.content || "" }}
               />
 
-              {notification.attachment &&
-                notification.attachment.match(
-                  /\.(jpg|jpeg|png|gif|webp)$/i
-                ) && (
-                  <div className="mt-4">
+              {notification.attachment && (
+                <div className="mt-6">
+                  {notification.attachment.match(
+                    /\.(jpg|jpeg|png|gif|webp)$/i
+                  ) ? (
                     <img
                       src={notification.attachment}
                       alt="Attachment"
-                      className="max-w-full h-auto max-h-96 rounded-md border border-gray-200"
+                      className="max-w-full rounded-md border border-gray-100 shadow-sm"
+                      style={{ maxHeight: "500px", objectFit: "contain" }}
                       onError={(e) => {
                         console.error("Image load error:", e);
                         e.currentTarget.style.display = "none";
                         const parent = e.currentTarget.parentElement;
                         if (parent) {
                           const errorMsg = document.createElement("p");
-                          errorMsg.textContent = "Không thể hiển thị hình ảnh.";
+                          errorMsg.textContent = "Unable to display image.";
                           errorMsg.className = "text-red-500 text-sm";
                           parent.insertBefore(errorMsg, e.currentTarget);
                         }
                       }}
                     />
-                  </div>
-                )}
+                  ) : (
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center">
+                        <FileOutlined className="text-blue-500 mr-2 text-lg" />
+                        <Text strong style={{ fontSize: "15px" }}>
+                          {(() => {
+                            try {
+                              const url = notification.attachment;
+                              
+                              // Lấy phần cuối của URL (sau dấu gạch chéo cuối cùng)
+                              let filename = url.split('/').pop() || "";
+                              
+                              // Nếu có dấu ? thì cắt tại đó
+                              filename = filename.split('?')[0];
+                              
+                              // Xử lý với các trường hợp có UUID
+                              filename = filename.replace(/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}_/g, "");
+                              filename = filename.replace(/^[a-f0-9]{32}_[a-f0-9]{32}_/g, "");
+                              
+                              // Nếu chuỗi bắt đầu bằng 'notifications/'
+                              if (filename.startsWith('notifications/')) {
+                                filename = filename.substring('notifications/'.length);
+                              }
+                              
+                              // Nếu URL có dạng đặc biệt như trong query parameter
+                              if (filename.length === 0 || !filename.includes('.')) {
+                                // Tìm trong query parameter
+                                const urlObj = new URL(url.startsWith('http') ? url : `http://example.com${url.startsWith('/') ? '' : '/'}${url}`);
+                                const prefixParam = urlObj.searchParams.get('prefix');
+                                
+                                if (prefixParam) {
+                                  // Lấy tên file từ prefix
+                                  let prefixFilename = prefixParam.split('/').pop() || "";
+                                  // Loại bỏ UUID nếu có
+                                  prefixFilename = prefixFilename.replace(/^[a-f0-9]{32}_[a-f0-9]{32}_/g, "");
+                                  
+                                  if (prefixFilename.includes('.')) {
+                                    return decodeURIComponent(prefixFilename);
+                                  }
+                                }
+                              }
+                              
+                              // Decode URI để hiển thị đúng ký tự đặc biệt
+                              return filename ? decodeURIComponent(filename) : "Attachment";
+                            } catch (error) {
+                              console.error("Error extracting filename:", error);
+                              return "Attachment";
+                            }
+                          })()}
+                        </Text>
+                        <div className="flex-grow"></div>
+                        <Button
+                          type="primary"
+                          icon={<DownloadOutlined />}
+                          href={notification.attachment}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download
+                          size="middle"
+                        >
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
