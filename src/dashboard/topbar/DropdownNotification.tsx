@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { IoNotificationsOutline } from "react-icons/io5";
 import {
-  Modal,
   Badge,
   Drawer,
   Button,
@@ -9,16 +8,12 @@ import {
   Typography,
   Space,
   message,
-  Divider,
   Empty,
   Avatar,
   Spin,
 } from "antd";
 import {
   CheckOutlined,
-  BellOutlined,
-  ClockCircleOutlined,
-  FileTextOutlined,
   MailOutlined,
 } from "@ant-design/icons";
 import {
@@ -29,10 +24,10 @@ import {
   setupNotificationRealTime,
   getUnreadNotificationCount,
 } from "@/api/notification";
-import Cookies from "js-cookie";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/en";
+import { NotificationDetailModal } from "@/components/notification";
 
 dayjs.extend(relativeTime);
 dayjs.locale("en");
@@ -89,12 +84,6 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       // Older: show date and time
       return date.format("DD/MM/YYYY HH:mm");
     }
-  };
-
-  // Hiển thị định dạng đầy đủ cho chi tiết thông báo
-  const formatFullDate = (dateString: string) => {
-    if (!dateString) return "";
-    return dayjs(dateString).format("DD/MM/YYYY HH:mm:ss");
   };
 
   const fetchNotifications = async (page = 1, pageSize = initialBatchSize) => {
@@ -367,25 +356,46 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                     style={{ width: "100%" }}
                     size={2}
                   >
-                    <Text
-                      style={{
-                        fontSize: "13px",
-                        lineHeight: "1.5",
-                        color: !n.isRead ? "#4a4a4a" : "#8c8c8c",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                      ellipsis={{ tooltip: "Click to view full content" }}
-                    >
-                      {n.content || (
-                        <span style={{ fontStyle: "italic", opacity: 0.7 }}>
-                          Click to view details
-                        </span>
-                      )}
-                    </Text>
+                    {n.content ? (
+                      <div 
+                        className="notification-preview"
+                        style={{
+                          fontSize: "13px",
+                          lineHeight: "1.5",
+                          color: !n.isRead ? "#4a4a4a" : "#8c8c8c",
+                          maxHeight: "40px",
+                          overflow: "hidden",
+                          position: "relative",
+                        }}
+                      >
+                        {/* Hiển thị nội dung đã lọc bỏ các tag HTML để tạo preview ngắn gọn */}
+                        <Text
+                          style={{
+                            fontSize: "13px",
+                            lineHeight: "1.5",
+                          }}
+                          ellipsis={{ tooltip: "Click to view full content" }}
+                        >
+                          {/* Loại bỏ tất cả các thẻ HTML để hiển thị text thuần túy trong preview */}
+                          {n.content.replace(/<[^>]*>/g, ' ').trim()}
+                        </Text>
+                        {/* Hiệu ứng gradient mờ dần ở cuối */}
+                        <div 
+                          style={{
+                            position: "absolute",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: "20px",
+                            background: "linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1))",
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <span style={{ fontStyle: "italic", opacity: 0.7 }}>
+                        Click to view details
+                      </span>
+                    )}
                   </Space>
                 }
               />
@@ -394,6 +404,11 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
         />
       </div>
     );
+  };
+
+  // Đóng modal chi tiết thông báo
+  const handleCloseModal = () => {
+    setSelectedNotification(null);
   };
 
   return (
@@ -480,82 +495,13 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
         </div>
       </Drawer>
 
-      <Modal
-        title={null}
-        open={!!selectedNotification}
-        onCancel={() => setSelectedNotification(null)}
-        footer={null}
-        width={600}
-        style={{ borderRadius: "8px", overflow: "hidden" }}
-        bodyStyle={{ padding: 0 }}
-        closeIcon={
-          <button className="absolute top-4 right-4 z-10 text-black w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200">
-            ✕
-          </button>
-        }
-      >
-        <div>
-          <div className="bg-gray-100 border-b p-6">
-            <Title level={4} style={{ margin: 0 }}>
-              {selectedNotification?.title}
-            </Title>
-            <div className="flex items-center mt-2">
-              <ClockCircleOutlined
-                style={{ color: "#8c8c8c", marginRight: "8px" }}
-              />
-              <Text type="secondary">
-                {selectedNotification?.createdAt &&
-                  formatFullDate(selectedNotification.createdAt)}
-              </Text>
-            </div>
-          </div>
-
-          <Spin spinning={loading} tip="Loading details...">
-            <div className="p-6">
-              {selectedNotification?.content ? (
-                <Paragraph style={{ fontSize: "16px", lineHeight: "1.8" }}>
-                  {selectedNotification.content}
-                </Paragraph>
-              ) : (
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
-                  <Text type="secondary" style={{ fontSize: "14px" }}>
-                    This notification has no additional content.
-                  </Text>
-                </div>
-              )}
-
-              {selectedNotification?.attachment && (
-                <div className="mt-6 p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center mb-3">
-                    <FileTextOutlined className="text-blue-600 mr-2" />
-                    <Text strong>Attachment</Text>
-                  </div>
-
-                  {selectedNotification.attachment.match(
-                    /\.(jpg|jpeg|png|gif)$/i
-                  ) ? (
-                    <img
-                      src={selectedNotification.attachment}
-                      alt="Attachment"
-                      className="max-w-full rounded-md border border-gray-200"
-                    />
-                  ) : (
-                    <Button
-                      type="primary"
-                      icon={<FileTextOutlined />}
-                      href={selectedNotification.attachment}
-                      download
-                      className="mt-2"
-                    >
-                      Download Attachment
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-          </Spin>
-        </div>
-      </Modal>
+      {/* Sử dụng component NotificationDetailModal */}
+      <NotificationDetailModal
+        notification={selectedNotification}
+        visible={!!selectedNotification}
+        loading={loading}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 };

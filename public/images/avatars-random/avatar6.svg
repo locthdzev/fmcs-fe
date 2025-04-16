@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="90" fill="#f2f2f2"/>
+  
+  <!-- FPT Orange Uniform -->
+  <path d="M60,100 L60,160 C60,170 80,180 100,180 C120,180 140,170 140,160 L140,100 Z" fill="#ff5e00"/>
+  <path d="M60,110 L140,110" stroke="white" stroke-width="2"/>
+  
+  <!-- FPT Logo -->
+  <text x="95" y="140" font-family="Arial" font-size="16" font-weight="bold" fill="white" text-anchor="middle">FPT</text>
+  
+  <!-- Head -->
+  <circle cx="100" cy="70" r="40" fill="#ffdbac"/>
+  
+  <!-- Hair - Blue -->
+  <path d="M100,30 C75,30 65,50 65,70 C65,75 70,85 75,90 C65,90 60,75 60,65 C60,40 75,20 100,20 C125,20 140,40 140,65 C140,75 135,90 125,90 C130,85 135,75 135,70 C135,50 125,30 100,30 Z" fill="#3498db"/>
+  <!-- Hair strand detail -->
+  <path d="M80,30 C75,40 70,60 75,80" fill="none" stroke="#3498db" stroke-width="6" stroke-linecap="round"/>
+  <path d="M120,30 C125,40 130,60 125,80" fill="none" stroke="#3498db" stroke-width="6" stroke-linecap="round"/>
+  
+  <!-- Eyes -->
+  <ellipse cx="85" cy="65" rx="5" ry="6" fill="#2d2d2d"/>
+  <ellipse cx="115" cy="65" rx="5" ry="6" fill="#2d2d2d"/>
+  <!-- Eyelashes -->
+  <line x1="80" y1="60" x2="75" y2="58" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="85" y1="59" x2="85" y2="55" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="90" y1="60" x2="95" y2="58" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="110" y1="60" x2="105" y2="58" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="115" y1="59" x2="115" y2="55" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="120" y1="60" x2="125" y2="58" stroke="#2d2d2d" stroke-width="1"/>
+  
+  <!-- Smile -->
+  <path d="M85,80 C90,88 110,88 115,80" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Blush -->
+  <circle cx="75" cy="75" r="5" fill="#ff9999" opacity="0.5"/>
+  <circle cx="125" cy="75" r="5" fill="#ff9999" opacity="0.5"/>
+  
+  <!-- Syringe - Medical element -->
+  <line x1="75" y1="125" x2="100" y2="120" stroke="#2d2d2d" stroke-width="3" stroke-linecap="round"/>
+  <rect x="80" y="122" width="20" height="6" transform="rotate(-10, 90, 125)" fill="#ecf0f1" stroke="#2d2d2d" stroke-width="1"/>
+  <rect x="95" y="120" width="5" height="6" transform="rotate(-10, 97, 123)" fill="#3498db" stroke="#2d2d2d" stroke-width="1"/>
+  <rect x="75" y="124" width="5" height="0.5" transform="rotate(-10, 77, 124)" fill="#2d2d2d"/>
+  <line x1="100" y1="120" x2="105" y2="119" stroke="#2d2d2d" stroke-width="1" stroke-linecap="round"/>
+  
+  <!-- Ears -->
+  <path d="M60,70 Q55,70 58,80" fill="#ffdbac"/>
+  <path d="M140,70 Q145,70 142,80" fill="#ffdbac"/>
+</svg> 

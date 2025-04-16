@@ -12,6 +12,7 @@ export interface UserProfile {
   createdAt: string;
   status?: string;
   roles: string[];
+  imageURL?: string;
 }
 
 export interface UserCreateRequest {
@@ -409,6 +410,34 @@ export const getUserById = async (userId: string): Promise<UserResponseDTO> => {
     }
     throw new Error(response.data.message || "Failed to fetch user.");
   } catch (error) {
+    throw error;
+  }
+};
+
+export const updateProfileImage = async (imageFile: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('imageFile', imageFile);
+    
+    console.log('Sending profile image update request with file:', imageFile.name, imageFile.size);
+    
+    const response = await api.put('/user-management/users/update-profile-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    console.log('Profile image update response:', response.data);
+    
+    // Kiểm tra response có cấu trúc đúng không
+    if (!response.data) {
+      throw new Error('Empty response received from server');
+    }
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('Error updating profile image:', error);
+    console.error('Error response:', error.response?.data);
     throw error;
   }
 };

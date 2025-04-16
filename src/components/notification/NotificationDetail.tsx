@@ -21,8 +21,8 @@ import {
   getNotificationDetailForAdmin,
   updateNotificationStatus,
   deleteNotifications,
+  getNotificationRecipients,
 } from "@/api/notification";
-import { getUserById } from "@/api/user";
 import {
   ArrowLeftOutlined,
   BellOutlined,
@@ -38,6 +38,7 @@ import {
   SearchOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -132,27 +133,12 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
   const fetchRecipientDetails = async (recipientIds: string[]) => {
     try {
       setLoadingRecipients(true);
-      const fetchPromises = recipientIds.map(async (userId) => {
-        try {
-          const userData = await getUserById(userId);
-          return {
-            id: userData.id,
-            fullName: userData.fullName || "Unknown",
-            email: userData.email || "No email",
-            userName: userData.userName,
-          };
-        } catch (error) {
-          console.error(`Error fetching user ${userId}:`, error);
-          return {
-            id: userId,
-            fullName: "Unknown User",
-            email: "Not available",
-          };
-        }
-      });
 
-      const usersData = await Promise.all(fetchPromises);
-      setRecipients(usersData);
+      // Sử dụng API mới để lấy thông tin của tất cả recipients trong một lần gọi
+      const recipientsData = await getNotificationRecipients(id);
+
+      setRecipients(recipientsData || []);
+      console.log("Recipients loaded:", recipientsData?.length || 0);
     } catch (error) {
       console.error("Error fetching recipient details:", error);
       messageApi.error("Failed to load recipient details");
@@ -216,16 +202,18 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
 
   const renderRecipientType = (type: string | undefined) => {
     switch (type) {
-      case "System":
+      case "SYSTEM":
         return (
           <Tag icon={<TeamOutlined />} color="blue">
             Notify the system
           </Tag>
         );
-      case "Role":
+      case "ROLE":
         return (
           <Tag icon={<TeamOutlined />} color="orange">
-            Role
+            {notification?.roleName
+              ? `Notify the ${notification.roleName.toLowerCase()}`
+              : "Role-Based"}
           </Tag>
         );
       case "User":
@@ -305,29 +293,29 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
 
   // Hàm để chuẩn hóa chuỗi (loại bỏ dấu tiếng Việt và chuyển về chữ thường)
   const normalizeString = (str: string): string => {
-    if (!str) return '';
-    
+    if (!str) return "";
+
     // Chuyển về chữ thường
     str = str.toLowerCase();
-    
+
     // Loại bỏ dấu tiếng Việt
     str = str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    
+
     return str;
   };
 
   const filterAndSortRecipients = () => {
     let result = [...recipients];
-    
+
     // Filter by search text
     if (searchText) {
       const searchNormalized = normalizeString(searchText);
       result = result.filter((user) => {
         const fullNameNormalized = normalizeString(user.fullName);
         const emailNormalized = normalizeString(user.email);
-        
+
         return (
-          fullNameNormalized.includes(searchNormalized) || 
+          fullNameNormalized.includes(searchNormalized) ||
           emailNormalized.includes(searchNormalized)
         );
       });
@@ -513,25 +501,6 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
                   </Tag>
                 </div>
               </div>
-
-              {notification.attachment &&
-                !notification.attachment.match(
-                  /\.(jpg|jpeg|png|gif|webp)$/i
-                ) && (
-                  <div className="mt-2">
-                    <Text strong>Attachment: </Text>
-                    <a
-                      href={notification.attachment}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download
-                    >
-                      <Button icon={<FileOutlined />} size="small">
-                        Download
-                      </Button>
-                    </a>
-                  </div>
-                )}
             </div>
 
             <div className="notification-preview">
@@ -544,29 +513,95 @@ export const NotificationDetail: React.FC<NotificationDetailProps> = ({
                 dangerouslySetInnerHTML={{ __html: notification.content || "" }}
               />
 
-              {notification.attachment &&
-                notification.attachment.match(
-                  /\.(jpg|jpeg|png|gif|webp)$/i
-                ) && (
-                  <div className="mt-4">
+              {notification.attachment && (
+                <div className="mt-6">
+                  {notification.attachment.match(
+                    /\.(jpg|jpeg|png|gif|webp)$/i
+                  ) ? (
                     <img
                       src={notification.attachment}
                       alt="Attachment"
-                      className="max-w-full h-auto max-h-96 rounded-md border border-gray-200"
+                      className="max-w-full rounded-md border border-gray-100 shadow-sm"
+                      style={{ maxHeight: "500px", objectFit: "contain" }}
                       onError={(e) => {
                         console.error("Image load error:", e);
                         e.currentTarget.style.display = "none";
                         const parent = e.currentTarget.parentElement;
                         if (parent) {
                           const errorMsg = document.createElement("p");
-                          errorMsg.textContent = "Không thể hiển thị hình ảnh.";
+                          errorMsg.textContent = "Unable to display image.";
                           errorMsg.className = "text-red-500 text-sm";
                           parent.insertBefore(errorMsg, e.currentTarget);
                         }
                       }}
                     />
-                  </div>
-                )}
+                  ) : (
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center">
+                        <FileOutlined className="text-blue-500 mr-2 text-lg" />
+                        <Text strong style={{ fontSize: "15px" }}>
+                          {(() => {
+                            try {
+                              const url = notification.attachment;
+                              
+                              // Lấy phần cuối của URL (sau dấu gạch chéo cuối cùng)
+                              let filename = url.split('/').pop() || "";
+                              
+                              // Nếu có dấu ? thì cắt tại đó
+                              filename = filename.split('?')[0];
+                              
+                              // Xử lý với các trường hợp có UUID
+                              filename = filename.replace(/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}_/g, "");
+                              filename = filename.replace(/^[a-f0-9]{32}_[a-f0-9]{32}_/g, "");
+                              
+                              // Nếu chuỗi bắt đầu bằng 'notifications/'
+                              if (filename.startsWith('notifications/')) {
+                                filename = filename.substring('notifications/'.length);
+                              }
+                              
+                              // Nếu URL có dạng đặc biệt như trong query parameter
+                              if (filename.length === 0 || !filename.includes('.')) {
+                                // Tìm trong query parameter
+                                const urlObj = new URL(url.startsWith('http') ? url : `http://example.com${url.startsWith('/') ? '' : '/'}${url}`);
+                                const prefixParam = urlObj.searchParams.get('prefix');
+                                
+                                if (prefixParam) {
+                                  // Lấy tên file từ prefix
+                                  let prefixFilename = prefixParam.split('/').pop() || "";
+                                  // Loại bỏ UUID nếu có
+                                  prefixFilename = prefixFilename.replace(/^[a-f0-9]{32}_[a-f0-9]{32}_/g, "");
+                                  
+                                  if (prefixFilename.includes('.')) {
+                                    return decodeURIComponent(prefixFilename);
+                                  }
+                                }
+                              }
+                              
+                              // Decode URI để hiển thị đúng ký tự đặc biệt
+                              return filename ? decodeURIComponent(filename) : "Attachment";
+                            } catch (error) {
+                              console.error("Error extracting filename:", error);
+                              return "Attachment";
+                            }
+                          })()}
+                        </Text>
+                        <div className="flex-grow"></div>
+                        <Button
+                          type="primary"
+                          icon={<DownloadOutlined />}
+                          href={notification.attachment}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download
+                          size="middle"
+                        >
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
