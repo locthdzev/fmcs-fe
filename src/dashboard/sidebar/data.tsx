@@ -52,7 +52,7 @@ export const data = [
       {
         title: "My Insurance",
         icon: <HealthIcon />,
-        link: "/health-insurance/my-insurance",
+        link: "/my-health-insurance",
       },
     ],
   },
@@ -162,12 +162,12 @@ export const data = [
           {
             title: "Schedules",
             icon: <ScheduleIcon />,
-            link: "/schedule/management",
+            link: "/schedule",
           },
           {
             title: "Shifts",
             icon: <ShiftIcon />,
-            link: "/shift/management",
+            link: "/shift",
           },
         ],
       },
@@ -178,12 +178,12 @@ export const data = [
           {
             title: "Batch Numbers",
             icon: <BatchNumberIcon />,
-            link: "/batch-number/management",
+            link: "/batch-number",
           },
           {
             title: "Inventory Records",
             icon: <InventoryRecordIcon />,
-            link: "/inventory-record/management",
+            link: "/inventory-record",
           },
           {
             title: "Inventory History",
@@ -220,7 +220,7 @@ export const data = [
           {
             title: "List",
             icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/management",
+            link: "/health-insurance",
           },
           {
             title: "Initial",
@@ -266,7 +266,7 @@ export const data = [
           {
             title: "Management",
             icon: <PeriodicHealthCheckupsIcon />,
-            link: "/health-check-result/management",
+            link: "/health-check-result",
           },
           {
             title: "Waiting for Approval",
@@ -301,18 +301,13 @@ export const data = [
         ],
       },
       {
-        title: "PeriodicHealthCheckups",
-        icon: <PeriodicHealthCheckupsIcon />,
-        link: "/periodic-health-checkup/management",
-      },
-      {
         title: "Prescriptions",
         icon: <DrugIcon />,
         submenu: [
           {
             title: "Management",
             icon: <DrugIcon />,
-            link: "/prescription/management",
+            link: "/prescription",
           },
           {
             title: "History",
