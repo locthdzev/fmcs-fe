@@ -28,11 +28,18 @@ import { HealthIcon } from "./icons/HealthIcon";
 import { SurveyManagementIcon } from "./icons/SurveyManagementIcon";
 import { SurveyForUserIcon } from "./icons/SurveyForUserIcon";
 import { SurveyIcon } from "./icons/SurveyIcon";
+import { CalendarOutlined } from "@ant-design/icons";
+
 export const data = [
   {
     groupTitle: "Main",
     items: [
       { title: "Home", icon: <HomeIcon />, link: "/home" },
+      { 
+        title: "My Schedule", 
+        icon: <CalendarOutlined />, 
+        link: "/my-schedule" 
+      },
       {
         title: "Statitics",
         icon: <StatusIcon />,
