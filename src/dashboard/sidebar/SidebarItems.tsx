@@ -30,9 +30,11 @@ export function SidebarItems() {
   // Get user roles and check if admin
   const userRoles = userContext?.user?.role || [];
   const isAdmin = Array.isArray(userRoles) ? userRoles.includes("Admin") : userRoles === "Admin";
+  const isHealthcareStaff = Array.isArray(userRoles) ? userRoles.includes("Healthcare Staff") : userRoles === "Healthcare Staff";
 
   console.log("User roles in sidebar:", userRoles);
   console.log("Is admin:", isAdmin);
+  console.log("Is healthcare staff:", isHealthcareStaff);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -50,9 +52,14 @@ export function SidebarItems() {
 
   // Filter items based on user role
   const filterItemsByRole = (groupTitle: string, item: any) => {
-    // Always show Home, My Insurance in Main group
+    // Show Home, My Insurance in Main group for all users
     if (groupTitle === "Main" && (item.title === "Home" || item.title === "My Insurance")) {
       return true;
+    }
+    
+    // Show My Schedule only for healthcare staff
+    if (groupTitle === "Main" && item.title === "My Schedule") {
+      return isHealthcareStaff;
     }
     
     // Always show items in Others group
