@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Button, Collapse } from "antd";
+import { Modal, Button, Collapse, message } from "antd";
 import { Listbox, ListboxItem } from "@heroui/react";
 import { getMergeableBatchGroups, mergeBatchNumbers } from "@/api/batchnumber";
-import { toast } from "react-toastify";
 
 const { Panel } = Collapse;
 
@@ -35,13 +34,17 @@ const MergeBatchNumbersModal: React.FC<MergeBatchNumbersModalProps> = ({
   const [mergeableGroups, setMergeableGroups] = useState<MergeableBatchGroup[]>(
     []
   );
+  const [messageApi, contextHolder] = message.useMessage();
 
   const fetchMergeableGroups = async () => {
     try {
       const groups = await getMergeableBatchGroups();
       setMergeableGroups(groups);
     } catch {
-      toast.error("Unable to load mergeable batch groups.");
+      messageApi.error({
+        content: "Unable to load mergeable batch groups.",
+        duration: 5,
+      });
     }
   };
 
@@ -53,14 +56,23 @@ const MergeBatchNumbersModal: React.FC<MergeBatchNumbersModalProps> = ({
     try {
       const response = await mergeBatchNumbers({ batchNumberIds: batchIds });
       if (response.isSuccess) {
-        toast.success("Batch numbers merged successfully!");
+        messageApi.success({
+          content: "Batch numbers merged successfully!",
+          duration: 5,
+        });
         onSuccess();
         onClose();
       } else {
-        toast.error(response.message || "Unable to merge batch numbers");
+        messageApi.error({
+          content: response.message || "Unable to merge batch numbers",
+          duration: 5,
+        });
       }
     } catch {
-      toast.error("Unable to merge batch numbers");
+      messageApi.error({
+        content: "Unable to merge batch numbers",
+        duration: 5,
+      });
     }
   };
 
@@ -72,6 +84,7 @@ const MergeBatchNumbersModal: React.FC<MergeBatchNumbersModalProps> = ({
       footer={null}
       width={800}
     >
+      {contextHolder}
       <div className="max-h-[60vh] overflow-y-auto">
         {mergeableGroups.length === 0 ? (
           <p className="text-gray-500">No mergeable batch groups available.</p>

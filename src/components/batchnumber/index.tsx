@@ -8,6 +8,7 @@ import {
   DatePicker,
   Pagination,
   Space,
+  message,
 } from "antd";
 import { Chip, Card, CardHeader, CardBody } from "@heroui/react";
 import { PencilSquareIcon, PlusIcon } from "@heroicons/react/24/outline";
@@ -19,7 +20,6 @@ import {
   getMergeableBatchGroups,
 } from "@/api/batchnumber";
 import { exportToExcel } from "@/api/export";
-import { toast } from "react-toastify";
 import EditBatchNumberModal from "./EditBatchNumberModal";
 import MergeBatchNumbersModal from "./MergeBatchNumbersModal";
 import { BatchNumberIcon } from "./Icons";
@@ -30,6 +30,7 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 export function BatchNumberManagement() {
+  const [messageApi, contextHolder] = message.useMessage();
   const [batchNumbers, setBatchNumbers] = useState<BatchNumberResponseDTO[]>(
     []
   );
@@ -44,7 +45,7 @@ export function BatchNumberManagement() {
   const [total, setTotal] = useState<number>(0);
   const [searchText, setSearchText] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("CreatedAt");
-  const [ascending, setAscending] = useState<boolean>(false); // Mặc định descending, nhưng sẽ không áp dụng nếu API đã sort
+  const [ascending, setAscending] = useState<boolean>(false);
 
   const [drugNameFilter, setDrugNameFilter] = useState<string>("");
   const [supplierFilter, setSupplierFilter] = useState<string>("");
@@ -75,7 +76,10 @@ export function BatchNumberManagement() {
       setBatchNumbers(result.data);
       setTotal(result.totalRecords);
     } catch (error) {
-      toast.error("Unable to load batch number list.");
+      messageApi.error({
+        content: "Unable to load batch number list.",
+        duration: 5,
+      });
     }
   }, [
     currentPage,
@@ -88,6 +92,7 @@ export function BatchNumberManagement() {
     statusFilter,
     manufacturingDateRange,
     expiryDateRange,
+    messageApi,
   ]);
 
   const fetchMergeableGroups = useCallback(async () => {
@@ -95,9 +100,12 @@ export function BatchNumberManagement() {
       const groups = await getMergeableBatchGroups();
       setMergeableGroups(groups);
     } catch (error) {
-      toast.error("Unable to load mergeable batch groups.");
+      messageApi.error({
+        content: "Unable to load mergeable batch groups.",
+        duration: 5,
+      });
     }
-  }, []);
+  }, [messageApi]);
 
   useEffect(() => {
     fetchBatchNumbers();
@@ -118,7 +126,10 @@ export function BatchNumberManagement() {
   const handleToggleStatus = async (id: string, isActive: boolean) => {
     const batch = batchNumbers.find((b) => b.id === id);
     if (!batch?.manufacturingDate || !batch?.expiryDate) {
-      toast.error("Please update Manufacturing Date and Expiry Date first.");
+      messageApi.error({
+        content: "Please update Manufacturing Date and Expiry Date first.",
+        duration: 5,
+      });
       return;
     }
 
@@ -129,14 +140,23 @@ export function BatchNumberManagement() {
         isActive ? "Active" : "Inactive"
       );
       if (response.isSuccess) {
-        toast.success(response.message || "Status updated successfully!");
+        messageApi.success({
+          content: response.message || "Status updated successfully!",
+          duration: 5,
+        });
         fetchBatchNumbers();
         fetchMergeableGroups();
       } else {
-        toast.error(response.message || "Unable to update status");
+        messageApi.error({
+          content: response.message || "Unable to update status",
+          duration: 5,
+        });
       }
     } catch (error) {
-      toast.error("Unable to update status");
+      messageApi.error({
+        content: "Unable to update status",
+        duration: 5,
+      });
     } finally {
       setLoading((prev) => ({ ...prev, [id]: false }));
     }
@@ -156,7 +176,10 @@ export function BatchNumberManagement() {
       "/batchnumber-management/batchnumbers/export",
       "batch_numbers.xlsx"
     );
-    toast.success("Downloading Excel file...");
+    messageApi.success({
+      content: "Downloading Excel file...",
+      duration: 5,
+    });
   };
 
   const handleSearchChange = debounce((value: string) => {
@@ -186,7 +209,6 @@ export function BatchNumberManagement() {
       );
       setAscending(order === "ascend");
     } else {
-      // Nếu không có sorting từ người dùng, giữ mặc định của API (CreatedAt descending)
       setSortBy("CreatedAt");
       setAscending(false);
     }
@@ -196,6 +218,7 @@ export function BatchNumberManagement() {
 
   return (
     <div>
+      {contextHolder}
       <Card className="m-4">
         <CardHeader className="flex items-center gap-2">
           <BatchNumberIcon />
