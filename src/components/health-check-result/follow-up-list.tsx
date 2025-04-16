@@ -50,6 +50,9 @@ import {
 import { useRouter } from 'next/router';
 import { getUsers, UserProfile } from "@/api/user";
 import FollowUpFilterModal from "./FollowUpFilterModal";
+import PageContainer from "../shared/PageContainer";
+import ToolbarCard from "../shared/ToolbarCard";
+import PaginationFooter from "../shared/PaginationFooter";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -482,53 +485,26 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
   };
 
   return (
-    <div className="history-container" style={{ padding: "20px" }}>
+    <PageContainer
+      title="Follow-up Required Results"
+      icon={<CalendarOutlined />}
+      onBack={handleBack}
+    >
       {contextHolder}
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-              <Button 
-                icon={<ArrowLeftOutlined />}
-            onClick={handleBack}
-            style={{ marginRight: "8px" }}
-              >
-                Back
-              </Button>
-          <CalendarOutlined />
-          <h3 className="text-xl font-bold">Follow-up Required Results</h3>
-        </div>
-      </div>
-
       {/* Search and Filters Toolbar */}
-      <Card
-        className="shadow mb-4"
-        bodyStyle={{ padding: "16px" }}
-        title={
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "16px",
-            }}
-          >
-            <AppstoreOutlined />
-            <span>Toolbar</span>
-          </div>
-        }
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <ToolbarCard
+        leftContent={
+          <>
             {/* Code Search */}
-              <Input
+            <Input
               placeholder="Search by result code"
-                value={codeSearch}
-                onChange={(e) => setCodeSearch(e.target.value)}
-                prefix={<SearchOutlined />}
-                style={{ width: 200 }}
-                allowClear
-              />
+              value={codeSearch}
+              onChange={(e) => setCodeSearch(e.target.value)}
+              prefix={<SearchOutlined />}
+              style={{ width: 200 }}
+              allowClear
+            />
 
             {/* Follow-up Status */}
             <div>
@@ -730,21 +706,19 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
                 <Button icon={<SettingOutlined />}>Columns</Button>
               </Tooltip>
             </Dropdown>
-          </div>
-
-          <div>
-            {/* Export Button */}
-            <Button
-              type="primary"
-              icon={<FileExcelOutlined />}
-              onClick={handleExport}
-              disabled={loading}
-            >
-              Export to Excel
-            </Button>
-          </div>
-        </div>
-      </Card>
+          </>
+        }
+        rightContent={
+          <Button
+            type="primary"
+            icon={<FileExcelOutlined />}
+            onClick={handleExport}
+            disabled={loading}
+          >
+            Export to Excel
+          </Button>
+        }
+      />
 
       {/* Selection Actions và Rows per page */}
       <div className="flex justify-between items-center mb-4">
@@ -805,44 +779,15 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
           className="border rounded-lg"
         />
 
-        {/* Bottom Pagination */}
-      <Card className="mt-4 shadow-sm">
-          <Row justify="center" align="middle">
-            <Space size="large" align="center">
-              <Text type="secondary">Total {total} items</Text>
-              <Space align="center" size="large">
-            <Pagination
-              current={currentPage}
-              pageSize={pageSize}
-              total={total}
-                  onChange={(page) => {
-                setCurrentPage(page);
-                  }}
-                  showSizeChanger={false}
-                  showTotal={() => ""}
-                />
-                <Space align="center">
-                  <Text type="secondary">Go to page:</Text>
-                  <InputNumber
-                    min={1}
-                    max={Math.ceil(total / pageSize)}
-                    value={currentPage}
-                    onChange={(value) => {
-                      if (
-                        value &&
-                        Number(value) > 0 &&
-                        Number(value) <= Math.ceil(total / pageSize)
-                      ) {
-                        setCurrentPage(Number(value));
-                      }
-                    }}
-                    style={{ width: "60px" }}
-                  />
-                </Space>
-              </Space>
-            </Space>
-        </Row>
-        </Card>
+        {/* Using the reusable PaginationFooter component */}
+        <PaginationFooter
+          current={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onChange={(page) => setCurrentPage(page)}
+          showGoToPage={true}
+          showTotal={true}
+        />
       </Card>
 
       {/* Filter Modal */}
@@ -859,6 +804,6 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
           ascending,
         }}
       />
-    </div>
+    </PageContainer>
   );
 }; 
