@@ -52,8 +52,8 @@ export function SidebarItems() {
 
   // Filter items based on user role
   const filterItemsByRole = (groupTitle: string, item: any) => {
-    // Show Home, My Insurance in Main group for all users
-    if (groupTitle === "Main" && (item.title === "Home" || item.title === "My Insurance")) {
+    // Show Home, My Insurance, and My Health Check Results in Main group for all users
+    if (groupTitle === "Main" && (item.title === "Home" || item.title === "My Insurance" || item.title === "My Health Check Results")) {
       return true;
     }
     

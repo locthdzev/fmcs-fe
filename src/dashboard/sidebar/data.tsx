@@ -60,6 +60,11 @@ export const data = [
         icon: <HealthIcon />,
         link: "/my-health-insurance",
       },
+      {
+        title: "My Health Check Results",
+        icon: <PeriodicHealthCheckupsIcon />,
+        link: "/my-health-check",
+      },
     ],
   },
   {

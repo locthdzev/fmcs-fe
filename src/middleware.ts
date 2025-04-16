@@ -14,7 +14,9 @@ const commonUserRoutes = [
   "/admin/settings/security",
   "/survey/surveyUser",
   "/survey/details",
-  "/my-schedule"
+  "/my-schedule",
+  "/my-health-check",
+  "/health-check-result"
 ];
 
 // Các trang chỉ dành cho Admin
