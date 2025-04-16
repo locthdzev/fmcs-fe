@@ -1,7 +1,17 @@
 import React, { useState } from "react";
-import { Modal, Form, Input, Button, TimePicker, Space, Card, Typography, Tooltip } from "antd";
+import {
+  Modal,
+  Form,
+  Input,
+  Button,
+  TimePicker,
+  Space,
+  Card,
+  Typography,
+  Tooltip,
+  message,
+} from "antd";
 import { ShiftCreateRequest, createShift } from "@/api/shift";
-import { toast } from "react-toastify";
 import { InfoCircleOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import moment from "moment";
 import type { Moment } from "moment";
@@ -21,6 +31,7 @@ const CreateShiftModal: React.FC<CreateShiftModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [totalTime, setTotalTime] = useState<string>("");
+  const [messageApi, contextHolder] = message.useMessage();
 
   const handleSubmit = async (values: any) => {
     try {
@@ -33,16 +44,25 @@ const CreateShiftModal: React.FC<CreateShiftModalProps> = ({
 
       const response = await createShift(formattedValues);
       if (response.isSuccess) {
-        toast.success("Shift created successfully!");
+        messageApi.success({
+          content: "Shift created successfully!",
+          duration: 5,
+        });
         form.resetFields();
         setTotalTime("");
         onSuccess();
         onClose();
       } else {
-        toast.error(response.message || "Failed to create shift");
+        messageApi.error({
+          content: response.message || "Failed to create shift",
+          duration: 5,
+        });
       }
     } catch (error) {
-      toast.error("Failed to create shift");
+      messageApi.error({
+        content: "Failed to create shift",
+        duration: 5,
+      });
     }
   };
 
@@ -62,15 +82,15 @@ const CreateShiftModal: React.FC<CreateShiftModalProps> = ({
   const calculateTotalTime = (startTime: Moment, endTime: Moment) => {
     const start = startTime.clone();
     const end = endTime.clone();
-    
-    let diffMinutes = end.diff(start, 'minutes');
+
+    let diffMinutes = end.diff(start, "minutes");
     if (diffMinutes < 0) {
       diffMinutes += 24 * 60; // Add 24 hours if end time is before start time
     }
-    
+
     const hours = Math.floor(diffMinutes / 60);
     const minutes = diffMinutes % 60;
-    
+
     return `${hours} hours ${minutes} minutes`;
   };
 
@@ -87,7 +107,11 @@ const CreateShiftModal: React.FC<CreateShiftModalProps> = ({
       width={550}
       bodyStyle={{ paddingTop: 24 }}
       footer={[
-        <Button key="reset" onClick={handleReset} icon={<ClockCircleOutlined />}>
+        <Button
+          key="reset"
+          onClick={handleReset}
+          icon={<ClockCircleOutlined />}
+        >
           Reset
         </Button>,
         <Button key="submit" type="primary" onClick={() => form.submit()}>
@@ -99,6 +123,7 @@ const CreateShiftModal: React.FC<CreateShiftModalProps> = ({
         setTotalTime("");
       }}
     >
+      {contextHolder}
       <Form form={form} onFinish={handleSubmit} layout="vertical">
         <Form.Item
           name="shiftName"
@@ -123,11 +148,11 @@ const CreateShiftModal: React.FC<CreateShiftModalProps> = ({
               }
               rules={[{ required: true, message: "Please select start time" }]}
             >
-              <TimePicker 
-                format="HH:mm" 
+              <TimePicker
+                format="HH:mm"
                 onChange={handleTimeChange}
                 placeholder="Select start time"
-                style={{ width: '100%' }}
+                style={{ width: "100%" }}
                 className="w-full"
                 inputReadOnly
                 minuteStep={5}
@@ -146,11 +171,11 @@ const CreateShiftModal: React.FC<CreateShiftModalProps> = ({
               }
               rules={[{ required: true, message: "Please select end time" }]}
             >
-              <TimePicker 
-                format="HH:mm" 
+              <TimePicker
+                format="HH:mm"
                 onChange={handleTimeChange}
                 placeholder="Select end time"
-                style={{ width: '100%' }}
+                style={{ width: "100%" }}
                 className="w-full"
                 inputReadOnly
                 minuteStep={5}
@@ -168,7 +193,8 @@ const CreateShiftModal: React.FC<CreateShiftModalProps> = ({
           </div>
         </Card>
         <Text type="secondary">
-          Note: Please ensure that the shift times are accurate. For overnight shifts, set the end time after midnight.
+          Note: Please ensure that the shift times are accurate. For overnight
+          shifts, set the end time after midnight.
         </Text>
       </Form>
     </Modal>
