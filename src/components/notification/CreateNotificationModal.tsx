@@ -195,9 +195,7 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
       }
 
       if (response.isSuccess) {
-        message.success(
-          response.message || "Notification created successfully"
-        );
+        // Không gọi message.success ở đây nữa, để component cha xử lý
         onSuccess();
         // Reset form và data
         form.resetFields();
@@ -205,6 +203,7 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
         setFileList([]);
         setCurrentRecipientType("System");
       } else {
+        // Vẫn giữ xử lý lỗi ở đây vì lỗi cụ thể xảy ra trong component này
         message.error(response.message || "Failed to create notification");
       }
     } catch (error) {

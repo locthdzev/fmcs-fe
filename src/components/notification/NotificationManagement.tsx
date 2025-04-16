@@ -378,7 +378,9 @@ export function NotificationManagement() {
   // Handle successful creation
   const handleCreateSuccess = () => {
     setCreateModalVisible(false);
+    setCopyModalVisible(false);
     setSelectedNotification(null);
+    messageApi.success("Notification created successfully");
     fetchNotifications();
   };
 
@@ -577,6 +579,14 @@ export function NotificationManagement() {
       ))}
     </Menu>
   );
+
+  // Thêm thông báo riêng cho Copy thành công
+  const handleCopySuccess = () => {
+    setCopyModalVisible(false);
+    setSelectedNotification(null);
+    messageApi.success("Notification copied successfully");
+    fetchNotifications();
+  };
 
   // Table UI section
   return (
@@ -780,7 +790,7 @@ export function NotificationManagement() {
           setCopyModalVisible(false);
           setSelectedNotification(null);
         }}
-        onSuccess={handleCreateSuccess}
+        onSuccess={handleCopySuccess}
         roles={roles}
         notification={selectedNotification}
         forceReset={false}
