@@ -39,6 +39,7 @@ import { useRouter } from "next/router";
 import dayjs from "dayjs";
 import { TreatmentPlanResponseDTO } from "@/api/treatment-plan";
 import PaginationFooter from "../shared/PaginationFooter";
+import TableControls, { createDeleteBulkAction, createRestoreBulkAction } from "../shared/TableControls";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -782,114 +783,49 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   return (
     <>
       {contextHolder}
-      {/* Row that shows selected items count (left) and rows per page (right) */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: "16px",
-          alignItems: "center",
-        }}
-      >
-        {/* Selected items count and bulk actions - left side */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          {selectedRowKeys.length > 0 && (
-            <>
-              <Text type="secondary">
-                {selectedRowKeys.length} items selected
-              </Text>
-              {/* Show delete button only if completed/cancelled items are selected */}
-              {selectedItemTypes.hasCompletedOrCancelled &&
-                handleBulkDelete && (
-                  <Tooltip title="Delete selected treatment plans">
-                    <Popconfirm
-                      title={
-                        <div style={{ padding: "0 10px" }}>
-                          Delete selected items
-                        </div>
-                      }
-                      description={
-                        <p style={{ padding: "10px 40px 10px 18px" }}>
-                          Are you sure you want to delete{" "}
-                          {selectedRowKeys.length} selected item(s)?
-                        </p>
-                      }
-                      onConfirm={async () => {
-                        setDeletingItems(true);
-                        try {
-                          await handleBulkDelete(selectedRowKeys);
-                        } finally {
-                          setDeletingItems(false);
-                        }
-                      }}
-                      okButtonProps={{ loading: deletingItems }}
-                      okText="Delete"
-                      cancelText="Cancel"
-                      placement="rightBottom"
-                    >
-                      <Button danger icon={<DeleteOutlined />}>
-                        Delete
-                      </Button>
-                    </Popconfirm>
-                  </Tooltip>
-                )}
-              {/* Show restore button only if soft deleted items are selected */}
-              {selectedItemTypes.hasSoftDeleted && handleBulkRestore && (
-                <Tooltip title="Restore selected treatment plans">
-                  <Popconfirm
-                    title={
-                      <div style={{ padding: "0 10px" }}>
-                        Restore selected items
-                      </div>
-                    }
-                    description={
-                      <div style={{ padding: "10px 40px 10px 18px" }}>
-                        Are you sure you want to restore{" "}
-                        {selectedRowKeys.length} selected item(s)?
-                      </div>
-                    }
-                    onConfirm={async () => {
-                      setRestoringItems(true);
-                      try {
-                        await handleBulkRestore(selectedRowKeys);
-                      } finally {
-                        setRestoringItems(false);
-                      }
-                    }}
-                    okButtonProps={{ loading: restoringItems }}
-                    okText="Restore"
-                    cancelText="Cancel"
-                    placement="rightBottom"
-                  >
-                    <Button icon={<UndoOutlined />}>Restore</Button>
-                  </Popconfirm>
-                </Tooltip>
-              )}{" "}
-            </>
-          )}
-        </div>
-
-        {/* Rows per page - right side */}
-        <div
-          style={{
-            display: "flex",
-            gap: "8px",
-            alignItems: "center",
-          }}
-        >
-          <Text type="secondary">Rows per page:</Text>
-          <Select
-            value={pageSize}
-            onChange={(value) => handlePageChange(1, value)}
-            style={{ width: "80px" }}
-          >
-            <Option value={5}>5</Option>
-            <Option value={10}>10</Option>
-            <Option value={15}>15</Option>
-            <Option value={20}>20</Option>
-          </Select>
-        </div>
-      </div>
+      
+      {/* Using the new TableControls component */}
+      <TableControls
+        selectedRowKeys={selectedRowKeys}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => handlePageChange(1, newSize)}
+        bulkActions={[
+          // Only include delete action if handleBulkDelete is provided
+          ...(handleBulkDelete ? [
+            createDeleteBulkAction(
+              selectedRowKeys.length,
+              deletingItems,
+              async () => {
+                setDeletingItems(true);
+                try {
+                  await handleBulkDelete(selectedRowKeys);
+                } finally {
+                  setDeletingItems(false);
+                }
+              },
+              selectedItemTypes.hasCompletedOrCancelled
+            )
+          ] : []),
+          // Only include restore action if handleBulkRestore is provided
+          ...(handleBulkRestore ? [
+            createRestoreBulkAction(
+              selectedRowKeys.length,
+              restoringItems,
+              async () => {
+                setRestoringItems(true);
+                try {
+                  await handleBulkRestore(selectedRowKeys);
+                } finally {
+                  setRestoringItems(false);
+                }
+              },
+              selectedItemTypes.hasSoftDeleted
+            )
+          ] : [])
+        ]}
+        maxRowsPerPage={100}
+        pageSizeOptions={[5, 10, 15, 20, 50, 100]}
+      />
 
       <Card className="shadow-sm" bodyStyle={{ padding: "16px" }}>
         <div style={{ overflowX: "auto" }}>
