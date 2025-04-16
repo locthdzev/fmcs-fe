@@ -20,6 +20,11 @@ import {
   ExclamationCircleOutlined,
   ArrowLeftOutlined,
   DownOutlined,
+  MedicineBoxOutlined,
+  DeleteOutlined,
+  CheckCircleOutlined,
+  StopOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import {
   Card,
@@ -39,6 +44,9 @@ import {
   Spin,
   message,
   Modal,
+  Popconfirm,
+  Button,
+  Form,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -62,11 +70,16 @@ import {
   SortDescriptor,
 } from "@heroui/react";
 import { CreateDrugForm } from "./CreateDrugForm";
-import { ConfirmDeleteDrugModal } from "./ConfirmDelete";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
 import DrugFilterModal from "./DrugFilterModal";
 import ExportConfigModal, { DrugExportConfigWithUI } from "./ExportConfigModal";
+
+// Import các component shared mới
+import PageContainer from "../shared/PageContainer";
+import ToolbarCard from "../shared/ToolbarCard";
+import TableControls, { createDeleteBulkAction } from "../shared/TableControls";
+import PaginationFooter from "../shared/PaginationFooter";
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -130,9 +143,17 @@ export function Drugs() {
   const [messageApi, contextHolder] = message.useMessage();
   const [totalItemsCount, setTotalItemsCount] = useState(0);
 
+  // Chỉnh sửa State để đồng bộ với TableControls
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [visibleColumns, setVisibleColumns] = useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
+  );
+  // Định nghĩa columnVisibility với dạng Record<string, boolean> cho phù hợp với TableControls
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >(
+    INITIAL_VISIBLE_COLUMNS.reduce((acc, col) => ({ ...acc, [col]: true }), {})
   );
   const [statusFilter, setStatusFilter] = useState<Selection>("all");
   const [pageSize, setPageSize] = useState(10);
@@ -148,6 +169,11 @@ export function Drugs() {
   const [drugNames, setDrugNames] = useState<string[]>([]);
   const [drugGroups, setDrugGroups] = useState<any[]>([]);
   const [manufacturers, setManufacturers] = useState<string[]>([]);
+
+  // Thêm state cho việc quản lý bulk actions
+  const [deletingItems, setDeletingItems] = useState<boolean>(false);
+  const [activatingItems, setActivatingItems] = useState<boolean>(false);
+  const [deactivatingItems, setDeactivatingItems] = useState<boolean>(false);
 
   // Filter states
   const [advancedFilters, setAdvancedFilters] = useState({
@@ -714,11 +740,12 @@ export function Drugs() {
     []
   );
 
-  const onSearchChange = React.useCallback((value?: string) => {
+  const onSearchChange = (value: string) => {
     setFilterValue(value || "");
-  }, []);
+    setPage(1); // Reset về trang đầu tiên khi tìm kiếm
+  };
 
-  const onClear = React.useCallback(() => {
+  const onClear = () => {
     setFilterValue("");
     setStatusFilter("all");
     setAdvancedFilters({
@@ -733,12 +760,8 @@ export function Drugs() {
       sortBy: "CreatedAt",
       ascending: false,
     });
-    setSortDescriptor({
-      column: "createdAt",
-      direction: "descending",
-    });
     setPage(1);
-  }, []);
+  };
 
   const handleOpenFilterModal = React.useCallback(() => {
     setIsFilterModalOpen(true);
@@ -874,6 +897,12 @@ export function Drugs() {
                           columns.length
                         }
                         onChange={(e) => {
+                          const newVisibility = { ...columnVisibility };
+                          columns.forEach((col) => {
+                            newVisibility[col.uid] = e.target.checked;
+                          });
+                          setColumnVisibility(newVisibility);
+
                           if (e.target.checked) {
                             setVisibleColumns(
                               new Set(columns.map((col) => col.uid))
@@ -906,23 +935,28 @@ export function Drugs() {
                             column.uid
                           )}
                           onChange={() => {
-                            const newVisibility = new Set(
+                            const newVisibility = { ...columnVisibility };
+                            newVisibility[column.uid] =
+                              !newVisibility[column.uid];
+                            setColumnVisibility(newVisibility);
+
+                            const newVisibilitySet = new Set(
                               visibleColumns as Set<string>
                             );
-                            if (newVisibility.has(column.uid)) {
+                            if (newVisibilitySet.has(column.uid)) {
                               // Kiểm tra nếu đây là cột cuối cùng
-                              if (newVisibility.size === 1) {
+                              if (newVisibilitySet.size === 1) {
                                 messageApi.warning(
                                   "Cannot hide the last visible column.",
                                   5
                                 );
                                 return;
                               }
-                              newVisibility.delete(column.uid);
+                              newVisibilitySet.delete(column.uid);
                             } else {
-                              newVisibility.add(column.uid);
+                              newVisibilitySet.add(column.uid);
                             }
-                            setVisibleColumns(newVisibility);
+                            setVisibleColumns(newVisibilitySet);
                           }}
                         >
                           <span
@@ -939,23 +973,27 @@ export function Drugs() {
                       <Checkbox
                         checked={(visibleColumns as Set<string>).has("actions")}
                         onChange={() => {
-                          const newVisibility = new Set(
+                          const newVisibility = { ...columnVisibility };
+                          newVisibility.actions = !newVisibility.actions;
+                          setColumnVisibility(newVisibility);
+
+                          const newVisibilitySet = new Set(
                             visibleColumns as Set<string>
                           );
-                          if (newVisibility.has("actions")) {
+                          if (newVisibilitySet.has("actions")) {
                             // Kiểm tra nếu đây là cột cuối cùng
-                            if (newVisibility.size === 1) {
+                            if (newVisibilitySet.size === 1) {
                               messageApi.warning(
                                 "Cannot hide the last visible column.",
                                 5
                               );
                               return;
                             }
-                            newVisibility.delete("actions");
+                            newVisibilitySet.delete("actions");
                           } else {
-                            newVisibility.add("actions");
+                            newVisibilitySet.add("actions");
                           }
-                          setVisibleColumns(newVisibility);
+                          setVisibleColumns(newVisibilitySet);
                         }}
                       >
                         <span
@@ -1209,9 +1247,15 @@ export function Drugs() {
 
   const onPageChange = (newPage: number, newPageSize?: number) => {
     setPage(newPage);
-    if (newPageSize && newPageSize !== pageSize) {
+    if (newPageSize) {
       setPageSize(newPageSize);
     }
+
+    // Cuộn lên đầu trang sau khi đổi trang
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   const bottomContent = React.useMemo(() => {
@@ -1274,71 +1318,6 @@ export function Drugs() {
       </div>
     );
   }, [page, pageSize, filteredAndSortedItems.length, isReady, totalItemsCount]);
-
-  // Hàm render phần thông tin selected items và các nút action
-  const renderSelectedInfo = () => {
-    if ((selectedKeys as Set<string>).size === 0) return null;
-
-    return (
-      <div className="flex items-center gap-4">
-        <span className="text-small">
-          {(selectedKeys as Set<string>).size} items selected
-        </span>
-        <HeroButton
-          size="sm"
-          variant="flat"
-          startContent={<UndoOutlined className="text-small" />}
-          onClick={() => setSelectedKeys(new Set([]))}
-        >
-          Restore
-        </HeroButton>
-
-        {showActivate && (
-          <HeroButton
-            size="sm"
-            className="bg-success-100 text-success-600"
-            variant="flat"
-            onClick={handleConfirmActivate}
-          >
-            Activate Selected
-          </HeroButton>
-        )}
-
-        {showDeactivate && (
-          <HeroButton
-            size="sm"
-            className="bg-danger-100 text-danger-600"
-            variant="flat"
-            onClick={handleConfirmDeactivate}
-          >
-            Deactivate Selected
-          </HeroButton>
-        )}
-      </div>
-    );
-  };
-
-  // Add the renderRowsPerPage function back
-  const renderRowsPerPage = () => {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="text-default-400 text-small">Rows per page:</span>
-        <Select
-          value={pageSize}
-          onChange={(value) => {
-            setPageSize(Number(value));
-            setPage(1);
-          }}
-          style={{ width: "80px" }}
-        >
-          <Option value={5}>5</Option>
-          <Option value={10}>10</Option>
-          <Option value={15}>15</Option>
-          <Option value={20}>20</Option>
-        </Select>
-      </div>
-    );
-  };
 
   // Update the handleApplyFilters function to handle sort direction
   const handleApplyFilters = (filters: any) => {
@@ -1553,771 +1532,673 @@ export function Drugs() {
     }
   };
 
+  // Hàm tạo danh sách cột cho bảng
+  const renderColumns = () => {
+    const visibleColumnsArray = Array.from(visibleColumns as Set<string>);
+
+    const tableColumns: ColumnsType<DrugResponse> = [
+      {
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            DRUG CODE
+          </span>
+        ),
+        dataIndex: "drugCode",
+        key: "drugCode",
+        sorter: (a, b) => a.drugCode.localeCompare(b.drugCode),
+        render: (text: string, record: DrugResponse) => (
+          <Button
+            type="link"
+            onClick={() => handleOpenDetails(record.id)}
+            style={{ padding: 0 }}
+          >
+            {text}
+          </Button>
+        ),
+        fixed:
+          visibleColumnsArray.indexOf("drugCode") === 0 ? "left" : undefined,
+      },
+      {
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            NAME
+          </span>
+        ),
+        dataIndex: "name",
+        key: "name",
+        sorter: (a, b) => a.name.localeCompare(b.name),
+        ellipsis: true,
+      },
+      {
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            DRUG GROUP
+          </span>
+        ),
+        dataIndex: "drugGroup",
+        key: "drugGroup",
+        render: (drugGroup: any) => drugGroup?.groupName || "-",
+        sorter: (a, b) => {
+          const groupA = a.drugGroup?.groupName || "";
+          const groupB = b.drugGroup?.groupName || "";
+          return groupA.localeCompare(groupB);
+        },
+      },
+      {
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            UNIT
+          </span>
+        ),
+        dataIndex: "unit",
+        key: "unit",
+      },
+      {
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            PRICE
+          </span>
+        ),
+        dataIndex: "price",
+        key: "price",
+        render: (price: number) => formatPrice(price),
+        sorter: (a, b) => a.price - b.price,
+      },
+      {
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            MANUFACTURER
+          </span>
+        ),
+        dataIndex: "manufacturer",
+        key: "manufacturer",
+        sorter: (a, b) => {
+          const mfrA = a.manufacturer || "";
+          const mfrB = b.manufacturer || "";
+          return mfrA.localeCompare(mfrB);
+        },
+      },
+      {
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            CREATED AT
+          </span>
+        ),
+        dataIndex: "createdAt",
+        key: "createdAt",
+        render: (date: string) => formatDate(date),
+        sorter: (a, b) => {
+          const dateA = dayjs(a.createdAt).unix();
+          const dateB = dayjs(b.createdAt).unix();
+          return dateA - dateB;
+        },
+      },
+      {
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            STATUS
+          </span>
+        ),
+        dataIndex: "status",
+        key: "status",
+        render: (status: string) => (
+          <Tag color={status === "Active" ? "success" : "error"}>{status}</Tag>
+        ),
+        align: "center",
+      },
+      {
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            ACTIONS
+          </span>
+        ),
+        key: "actions",
+        fixed:
+          visibleColumnsArray.indexOf("actions") ===
+          visibleColumnsArray.length - 1
+            ? "right"
+            : undefined,
+        width: 120,
+        render: (_, record: DrugResponse) => (
+          <div style={{ textAlign: "center" }}>
+            <AntDropdown
+              overlay={
+                <Menu>
+                  <Menu.Item
+                    key="view"
+                    icon={<EyeOutlined />}
+                    onClick={() => handleOpenDetails(record.id)}
+                  >
+                    View Details
+                  </Menu.Item>
+                  <Menu.Item
+                    key="edit"
+                    icon={<EditOutlined />}
+                    onClick={() => handleOpenEditModal(record.id)}
+                  >
+                    Edit
+                  </Menu.Item>
+                  {record.status === "Active" ? (
+                    <Menu.Item
+                      key="deactivate"
+                      icon={<StopOutlined />}
+                      onClick={() => {
+                        setSelectedDrugs([record]);
+                        setConfirmAction("deactivate");
+                        setIsConfirmModalOpen(true);
+                      }}
+                      danger
+                    >
+                      Deactivate
+                    </Menu.Item>
+                  ) : (
+                    <Menu.Item
+                      key="activate"
+                      icon={<CheckCircleOutlined />}
+                      onClick={() => {
+                        setSelectedDrugs([record]);
+                        setConfirmAction("activate");
+                        setIsConfirmModalOpen(true);
+                      }}
+                    >
+                      Activate
+                    </Menu.Item>
+                  )}
+                  <Menu.Item
+                    key="delete"
+                    icon={<DeleteOutlined />}
+                    danger
+                    onClick={() => handleOpenDeleteModal(record.id)}
+                  >
+                    Delete
+                  </Menu.Item>
+                </Menu>
+              }
+              placement="bottomRight"
+              trigger={["click"]}
+            >
+              <Button icon={<MoreOutlined />} size="small" />
+            </AntDropdown>
+          </div>
+        ),
+      },
+    ];
+
+    // Lọc các cột cần hiển thị dựa trên visibleColumns
+    return tableColumns.filter((col) => {
+      const key = col.key as string;
+      return visibleColumnsArray.includes(key);
+    });
+  };
+
   return (
-    <div className="history-container" style={{ padding: "20px" }}>
+    <PageContainer
+      title="Drug Management"
+      icon={<MedicineBoxOutlined style={{ fontSize: "24px" }} />}
+      onBack={() => router.back()}
+    >
       {contextHolder}
 
-      {!isReady ? (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "80vh",
-          }}
-        >
-          <Spin size="large" tip="Loading Drug Management..." />
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <AntButton
-                icon={<ArrowLeftOutlined />}
-                onClick={handleBack}
-                style={{ marginRight: "8px" }}
-              >
-                Back
-              </AntButton>
-              <DrugIcon />
-              <h3 className="text-xl font-bold">Drug Management</h3>
-            </div>
-          </div>
-
-          <Card
-            className="shadow mb-4 mx-4"
-            bodyStyle={{ padding: "16px" }}
-            title={
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "16px 0 0 0",
-                }}
-              >
-                <AppstoreOutlined />
-                <span>Toolbar</span>
-              </div>
-            }
-          >
-            <Spin spinning={loading} tip={loadingMessage}>
-              <div className="flex flex-col gap-4">
-                <div className="flex justify-between items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Select
-                      showSearch
-                      allowClear
-                      placeholder={
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                          <SearchOutlined style={{ marginRight: 8 }} />
-                          <span>Search by drug code, name, or group...</span>
-                        </div>
-                      }
-                      value={filterValue || undefined}
-                      onChange={(value) => onSearchChange(value)}
-                      style={{ width: "300px" }}
-                      filterOption={(input, option) =>
-                        (
-                          option?.label?.toString().toLowerCase() ?? ""
-                        ).includes(input.toLowerCase())
-                      }
-                      options={[...drugs]
-                        .sort((a, b) => {
-                          const dateA = dayjs(a.createdAt).unix();
-                          const dateB = dayjs(b.createdAt).unix();
-                          return dateB - dateA; // Sắp xếp giảm dần (mới nhất lên đầu)
-                        })
-                        .map((drug) => ({
-                          value: drug.drugCode,
-                          label: `${drug.drugCode} - ${drug.name}`,
-                        }))}
-                    />
-
-                    <Tooltip title="Advanced Filters">
-                      <AntButton
-                        icon={
-                          <FilterOutlined
-                            style={{
-                              color: isFiltersApplied() ? "#1890ff" : undefined,
-                            }}
-                          />
-                        }
-                        onClick={handleOpenFilterModal}
-                      >
-                        Filters
-                      </AntButton>
-                    </Tooltip>
-
-                    <Select
-                      allowClear
-                      style={{ width: "120px" }}
-                      placeholder={
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                          <TagOutlined style={{ marginRight: 8 }} />
-                          <span>Status</span>
-                        </div>
-                      }
-                      value={
-                        statusFilter !== "all"
-                          ? Array.from(statusFilter as Set<string>)[0]
-                          : undefined
-                      }
-                      onChange={(value) => {
-                        setStatusFilter(value ? new Set([value]) : "all");
-                      }}
-                      options={statusOptions.map((status) => ({
-                        value: status.uid,
-                        label: status.name,
-                      }))}
-                    />
-
-                    <Tooltip title="Reset All Filters">
-                      <AntButton
-                        icon={<UndoOutlined />}
-                        onClick={onClear}
-                        disabled={!isFiltersApplied()}
-                      >
-                        Reset
-                      </AntButton>
-                    </Tooltip>
-
-                    <AntDropdown
-                      menu={{
-                        items: [
-                          {
-                            key: "selectAll",
-                            label: (
-                              <Checkbox
-                                checked={
-                                  (visibleColumns as Set<string>).size ===
-                                  columns.length
-                                }
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setVisibleColumns(
-                                      new Set(columns.map((col) => col.uid))
-                                    );
-                                  } else {
-                                    // Khi bỏ tích, chỉ giữ lại cột đầu tiên
-                                    const firstColumn = columns[0].uid;
-                                    setVisibleColumns(new Set([firstColumn]));
-                                    messageApi.warning(
-                                      "At least one column must be visible.",
-                                      5
-                                    );
-                                  }
-                                }}
-                              >
-                                <strong>Toggle All</strong>
-                              </Checkbox>
-                            ),
-                          },
-                          {
-                            type: "divider",
-                          },
-                          ...columns
-                            .filter((col) => col.uid !== "actions")
-                            .map((column) => ({
-                              key: column.uid,
-                              label: (
-                                <Checkbox
-                                  checked={(visibleColumns as Set<string>).has(
-                                    column.uid
-                                  )}
-                                  onChange={() => {
-                                    const newVisibility = new Set(
-                                      visibleColumns as Set<string>
-                                    );
-                                    if (newVisibility.has(column.uid)) {
-                                      // Kiểm tra nếu đây là cột cuối cùng
-                                      if (newVisibility.size === 1) {
-                                        messageApi.warning(
-                                          "Cannot hide the last visible column.",
-                                          5
-                                        );
-                                        return;
-                                      }
-                                      newVisibility.delete(column.uid);
-                                    } else {
-                                      newVisibility.add(column.uid);
-                                    }
-                                    setVisibleColumns(newVisibility);
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      color: "dimgray",
-                                      fontWeight: "normal",
-                                    }}
-                                  >
-                                    {capitalize(column.name)}
-                                  </span>
-                                </Checkbox>
-                              ),
-                            })),
-                          {
-                            key: "actions",
-                            label: (
-                              <Checkbox
-                                checked={(visibleColumns as Set<string>).has(
-                                  "actions"
-                                )}
-                                onChange={() => {
-                                  const newVisibility = new Set(
-                                    visibleColumns as Set<string>
-                                  );
-                                  if (newVisibility.has("actions")) {
-                                    // Kiểm tra nếu đây là cột cuối cùng
-                                    if (newVisibility.size === 1) {
-                                      messageApi.warning(
-                                        "Cannot hide the last visible column.",
-                                        5
-                                      );
-                                      return;
-                                    }
-                                    newVisibility.delete("actions");
-                                  } else {
-                                    newVisibility.add("actions");
-                                  }
-                                  setVisibleColumns(newVisibility);
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    color: "dimgray",
-                                    fontWeight: "normal",
-                                  }}
-                                >
-                                  Actions
-                                </span>
-                              </Checkbox>
-                            ),
-                          },
-                        ],
-                        onClick: (e) => e.domEvent.stopPropagation(),
-                      }}
-                    >
-                      <Tooltip title="Column Settings">
-                        <AntButton icon={<SettingOutlined />}>
-                          Columns
-                        </AntButton>
-                      </Tooltip>
-                    </AntDropdown>
-
-                    <AntButton
-                      type="primary"
-                      onClick={() => setIsModalOpen(true)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                      className="bg-blue-500"
-                    >
-                      <PlusOutlined />
-                      <span>Create</span>
-                    </AntButton>
-                  </div>
-
-                  <div>
-                    <AntButton
-                      type="primary"
-                      icon={<FileExcelOutlined />}
-                      onClick={() => setExportModalVisible(true)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      Export to Excel
-                    </AntButton>
-                  </div>
+      {/* Search and Filters Toolbar */}
+      <ToolbarCard
+        leftContent={
+          <>
+            {/* Drug Code/Name Search */}
+            <Select
+              showSearch
+              allowClear
+              placeholder={
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <SearchOutlined style={{ marginRight: 8 }} />
+                  <span>Search by drug code, name, or group...</span>
                 </div>
-              </div>
-            </Spin>
-          </Card>
+              }
+              value={filterValue || undefined}
+              onChange={(value) => onSearchChange(value)}
+              style={{ width: "300px" }}
+              filterOption={(input, option) =>
+                (option?.label?.toString().toLowerCase() ?? "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={[...drugs]
+                .sort((a, b) => {
+                  const dateA = dayjs(a.createdAt).unix();
+                  const dateB = dayjs(b.createdAt).unix();
+                  return dateB - dateA; // Sắp xếp giảm dần (mới nhất lên đầu)
+                })
+                .map((drug) => ({
+                  value: drug.drugCode,
+                  label: `${drug.drugCode} - ${drug.name}`,
+                }))}
+            />
 
-          {isModalOpen && (
-            <Modal
-              className="max-w-3xl"
-              open={isModalOpen}
-              onCancel={() => setIsModalOpen(false)}
-              footer={null}
-              width={800}
-              title="Add New Drug"
-            >
-              <CreateDrugForm
-                onClose={() => {
-                  setIsModalOpen(false);
-                }}
-                onCreate={fetchDrugs}
+            {/* Advanced Filters */}
+            <Tooltip title="Advanced Filters">
+              <Button
+                icon={
+                  <FilterOutlined
+                    style={{
+                      color: isFiltersApplied() ? "#1890ff" : undefined,
+                    }}
+                  />
+                }
+                onClick={handleOpenFilterModal}
+              >
+                Filters
+              </Button>
+            </Tooltip>
+
+            {/* Status Filter */}
+            <Select
+              allowClear
+              style={{ width: "120px" }}
+              placeholder={
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <TagOutlined style={{ marginRight: 8 }} />
+                  <span>Status</span>
+                </div>
+              }
+              value={
+                statusFilter !== "all"
+                  ? Array.from(statusFilter as Set<string>)[0]
+                  : undefined
+              }
+              onChange={(value) => {
+                setStatusFilter(value ? new Set([value]) : "all");
+              }}
+              options={statusOptions.map((status) => ({
+                value: status.uid,
+                label: status.name,
+              }))}
+            />
+
+            {/* Reset Button */}
+            <Tooltip title="Reset All Filters">
+              <Button
+                icon={<UndoOutlined />}
+                onClick={onClear}
+                disabled={!isFiltersApplied()}
               />
-            </Modal>
-          )}
+            </Tooltip>
 
-          <ConfirmDeleteDrugModal
-            drug={deletingDrug}
-            isOpen={isDeleteModalOpen}
-            onClose={() => setIsDeleteModalOpen(false)}
-            onConfirmDelete={handleConfirmDelete}
-          />
+            {/* Column Settings Dropdown */}
+            <AntDropdown
+              menu={{
+                items: [
+                  {
+                    key: "selectAll",
+                    label: (
+                      <Checkbox
+                        checked={
+                          (visibleColumns as Set<string>).size ===
+                          columns.length
+                        }
+                        onChange={(e) => {
+                          const newVisibility = { ...columnVisibility };
+                          columns.forEach((col) => {
+                            newVisibility[col.uid] = e.target.checked;
+                          });
+                          setColumnVisibility(newVisibility);
 
-          <Modal
-            title={`Confirm ${
-              confirmAction === "activate" ? "Activation" : "Deactivation"
-            }`}
-            open={isConfirmModalOpen}
-            onCancel={() => setIsConfirmModalOpen(false)}
-            footer={[
-              <AntButton
-                key="cancel"
-                onClick={() => setIsConfirmModalOpen(false)}
-              >
-                Cancel
-              </AntButton>,
-              <AntButton
-                key="confirm"
-                type={confirmAction === "activate" ? "primary" : "primary"}
-                danger={confirmAction === "deactivate"}
-                onClick={handleConfirmAction}
-              >
-                Confirm
-              </AntButton>,
-            ]}
+                          if (e.target.checked) {
+                            setVisibleColumns(
+                              new Set(columns.map((col) => col.uid))
+                            );
+                          } else {
+                            // Khi bỏ tích, chỉ giữ lại cột đầu tiên
+                            const firstColumn = columns[0].uid;
+                            setVisibleColumns(new Set([firstColumn]));
+                            messageApi.warning(
+                              "At least one column must be visible.",
+                              5
+                            );
+                          }
+                        }}
+                      >
+                        Toggle All
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    type: "divider",
+                  },
+                  ...columns
+                    .filter((col) => col.uid !== "actions")
+                    .map((column) => ({
+                      key: column.uid,
+                      label: (
+                        <Checkbox
+                          checked={(visibleColumns as Set<string>).has(
+                            column.uid
+                          )}
+                          onChange={() => {
+                            const newVisibility = { ...columnVisibility };
+                            newVisibility[column.uid] =
+                              !newVisibility[column.uid];
+                            setColumnVisibility(newVisibility);
+
+                            const newVisibilitySet = new Set(
+                              visibleColumns as Set<string>
+                            );
+                            if (newVisibilitySet.has(column.uid)) {
+                              // Kiểm tra nếu đây là cột cuối cùng
+                              if (newVisibilitySet.size === 1) {
+                                messageApi.warning(
+                                  "Cannot hide the last visible column.",
+                                  5
+                                );
+                                return;
+                              }
+                              newVisibilitySet.delete(column.uid);
+                            } else {
+                              newVisibilitySet.add(column.uid);
+                            }
+                            setVisibleColumns(newVisibilitySet);
+                          }}
+                        >
+                          <span
+                            style={{ color: "dimgray", fontWeight: "normal" }}
+                          >
+                            {capitalize(column.name)}
+                          </span>
+                        </Checkbox>
+                      ),
+                    })),
+                  {
+                    key: "actions",
+                    label: (
+                      <Checkbox
+                        checked={(visibleColumns as Set<string>).has("actions")}
+                        onChange={() => {
+                          const newVisibility = { ...columnVisibility };
+                          newVisibility.actions = !newVisibility.actions;
+                          setColumnVisibility(newVisibility);
+
+                          const newVisibilitySet = new Set(
+                            visibleColumns as Set<string>
+                          );
+                          if (newVisibilitySet.has("actions")) {
+                            // Kiểm tra nếu đây là cột cuối cùng
+                            if (newVisibilitySet.size === 1) {
+                              messageApi.warning(
+                                "Cannot hide the last visible column.",
+                                5
+                              );
+                              return;
+                            }
+                            newVisibilitySet.delete("actions");
+                          } else {
+                            newVisibilitySet.add("actions");
+                          }
+                          setVisibleColumns(newVisibilitySet);
+                        }}
+                      >
+                        <span
+                          style={{ color: "dimgray", fontWeight: "normal" }}
+                        >
+                          Actions
+                        </span>
+                      </Checkbox>
+                    ),
+                  },
+                ],
+                onClick: (e) => e.domEvent.stopPropagation(),
+              }}
+            >
+              <Tooltip title="Column Settings">
+                <Button icon={<SettingOutlined />}>Columns</Button>
+              </Tooltip>
+            </AntDropdown>
+
+            {/* Create Button */}
+            <Button
+              type="primary"
+              onClick={() => setIsModalOpen(true)}
+              icon={<PlusOutlined />}
+            >
+              Create
+            </Button>
+          </>
+        }
+        rightContent={
+          <Button
+            type="primary"
+            icon={<FileExcelOutlined />}
+            onClick={() => setExportModalVisible(true)}
           >
-            <p>
-              Are you sure you want to{" "}
-              {confirmAction === "activate" ? "activate" : "deactivate"} the
-              selected drugs?
-            </p>
-          </Modal>
+            Export to Excel
+          </Button>
+        }
+      />
 
-          <DrugFilterModal
-            visible={isFilterModalOpen}
-            onCancel={() => setIsFilterModalOpen(false)}
-            onApply={handleApplyFilters}
-            onReset={handleResetFilters}
-            filters={advancedFilters}
-            drugGroups={drugGroups}
-            drugCodes={drugCodes}
-            drugNames={drugNames}
-            manufacturers={manufacturers}
-          />
-
-          <ExportConfigModal
-            visible={exportModalVisible}
-            onClose={() => setExportModalVisible(false)}
-            config={exportConfig}
-            onChange={handleExportConfigChange}
-            filters={{
-              filterValue,
-              statusFilter: Array.from(statusFilter as Set<string>),
-              advancedFilters,
-              currentPage: page,
-              pageSize: pageSize,
+      {isModalOpen && (
+        <Modal
+          className="max-w-3xl"
+          open={isModalOpen}
+          onCancel={() => setIsModalOpen(false)}
+          footer={null}
+          width={800}
+          title="Add New Drug"
+        >
+          <CreateDrugForm
+            onClose={() => {
+              setIsModalOpen(false);
             }}
-            drugs={drugs}
-            statusOptions={statusOptions.map((option) => ({
-              label: option.name,
-              value: option.uid,
-            }))}
+            onCreate={fetchDrugs}
           />
+        </Modal>
+      )}
 
-          {/* Container for selected info and rows per page */}
-          <div className="flex justify-between items-center mx-4 mb-4">
-            <div>{renderSelectedInfo()}</div>
-            <div>{renderRowsPerPage()}</div>
-          </div>
+      <Modal
+        title={`Confirm ${
+          confirmAction === "activate" ? "Activation" : "Deactivation"
+        }`}
+        open={isConfirmModalOpen}
+        onCancel={() => setIsConfirmModalOpen(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsConfirmModalOpen(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="confirm"
+            type={confirmAction === "activate" ? "primary" : "primary"}
+            danger={confirmAction === "deactivate"}
+            onClick={handleConfirmAction}
+          >
+            Confirm
+          </Button>,
+        ]}
+      >
+        <p>
+          Are you sure you want to{" "}
+          {confirmAction === "activate" ? "activate" : "deactivate"} the
+          selected drugs?
+        </p>
+      </Modal>
 
-          <Card className="shadow-sm mb-4 mx-4" bodyStyle={{ padding: 0 }}>
-            <style>
-              {`
-                .ant-table-thead > tr > th {
-                  padding-top: 16px !important;
-                  vertical-align: top !important;
-                }
-                .ant-table-selection-column {
-                  padding-top: 16px !important;
-                  vertical-align: top !important;
-                }
-              `}
-            </style>
+      <DrugFilterModal
+        visible={isFilterModalOpen}
+        onCancel={() => setIsFilterModalOpen(false)}
+        onApply={handleApplyFilters}
+        onReset={handleResetFilters}
+        filters={advancedFilters}
+        drugGroups={drugGroups}
+        drugCodes={drugCodes}
+        drugNames={drugNames}
+        manufacturers={manufacturers}
+      />
+
+      <ExportConfigModal
+        visible={exportModalVisible}
+        onClose={() => setExportModalVisible(false)}
+        config={exportConfig}
+        onChange={handleExportConfigChange}
+        filters={{
+          filterValue,
+          statusFilter: Array.from(statusFilter as Set<string>),
+          advancedFilters,
+          currentPage: page,
+          pageSize: pageSize,
+        }}
+        drugs={drugs}
+        statusOptions={statusOptions.map((option) => ({
+          label: option.name,
+          value: option.uid,
+        }))}
+      />
+
+      {/* Table Controls with Bulk Actions */}
+      <TableControls
+        selectedRowKeys={selectedRowKeys}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => onPageChange(page, newSize)}
+        bulkActions={[
+          // Delete action
+          createDeleteBulkAction(
+            selectedRowKeys.length,
+            deletingItems,
+            async () => {
+              setDeletingItems(true);
+              try {
+                // Gọi API xóa nhiều items
+                const ids = selectedRowKeys as string[];
+                await Promise.all(ids.map((id) => deleteDrug(id)));
+                messageApi.success(
+                  `${ids.length} drugs deleted successfully`,
+                  5
+                );
+                setSelectedRowKeys([]);
+                fetchDrugs();
+              } catch (error) {
+                messageApi.error("Failed to delete drugs", 5);
+                console.error("Error deleting drugs:", error);
+              } finally {
+                setDeletingItems(false);
+              }
+            },
+            true
+          ),
+          // Activate action
+          {
+            key: "activate",
+            title: "Activate selected drugs",
+            description: `Are you sure you want to activate ${selectedRowKeys.length} selected drugs?`,
+            icon: <CheckCircleOutlined />,
+            buttonText: "Activate",
+            buttonType: "primary",
+            tooltip: "Activate selected drugs",
+            isVisible: showActivate,
+            isLoading: activatingItems,
+            onConfirm: async () => {
+              setActivatingItems(true);
+              try {
+                await activateDrugs(selectedRowKeys as string[]);
+                messageApi.success(
+                  `Successfully activated ${selectedRowKeys.length} drugs`,
+                  5
+                );
+                setSelectedRowKeys([]);
+                fetchDrugs();
+              } catch (error) {
+                messageApi.error("Failed to activate drugs", 5);
+                console.error("Error activating drugs:", error);
+              } finally {
+                setActivatingItems(false);
+              }
+            },
+          },
+          // Deactivate action
+          {
+            key: "deactivate",
+            title: "Deactivate selected drugs",
+            description: `Are you sure you want to deactivate ${selectedRowKeys.length} selected drugs?`,
+            icon: <StopOutlined />,
+            buttonText: "Deactivate",
+            buttonType: "primary",
+            isDanger: true,
+            tooltip: "Deactivate selected drugs",
+            isVisible: showDeactivate,
+            isLoading: deactivatingItems,
+            onConfirm: async () => {
+              setDeactivatingItems(true);
+              try {
+                await deactivateDrugs(selectedRowKeys as string[]);
+                messageApi.success(
+                  `Successfully deactivated ${selectedRowKeys.length} drugs`,
+                  5
+                );
+                setSelectedRowKeys([]);
+                fetchDrugs();
+              } catch (error) {
+                messageApi.error("Failed to deactivate drugs", 5);
+                console.error("Error deactivating drugs:", error);
+              } finally {
+                setDeactivatingItems(false);
+              }
+            },
+          },
+        ]}
+        maxRowsPerPage={100}
+        pageSizeOptions={[5, 10, 15, 20, 50, 100]}
+      />
+
+      {/* Main Data Table */}
+      <Card className="shadow-sm" bodyStyle={{ padding: "16px" }}>
+        <div style={{ overflowX: "auto" }}>
+          {loading ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                padding: "40px",
+              }}
+            >
+              <Spin tip={loadingMessage} />
+            </div>
+          ) : (
             <AntTable
               rowKey="id"
               dataSource={paginatedItems}
+              columns={renderColumns()}
               pagination={false}
-              bordered
-              loading={loading}
               rowSelection={{
-                selectedRowKeys: Array.from(
-                  selectedKeys instanceof Set ? selectedKeys : []
-                ),
-                onChange: (keys) => {
-                  // Kiểm tra xem người dùng có đang cố gắng chọn cả Active và Inactive không
-                  if (keys.length > 0) {
-                    const selectedDrugList = paginatedItems.filter((drug) =>
-                      keys.includes(drug.id)
-                    );
-                    const hasActive = selectedDrugList.some(
-                      (drug) => drug.status === "Active"
-                    );
-                    const hasInactive = selectedDrugList.some(
-                      (drug) => drug.status === "Inactive"
-                    );
+                selectedRowKeys,
+                onChange: (selectedKeys) => {
+                  setSelectedRowKeys(selectedKeys as string[]);
 
-                    if (hasActive && hasInactive) {
-                      messageApi.warning(
-                        "Cannot select both Active and Inactive drugs at the same time.",
-                        5
-                      );
-                      return;
-                    }
-                  }
-
-                  setSelectedKeys(new Set(keys));
-                  setSelectedOption(null); // Reset selected option when manually selecting
-                },
-                columnTitle: () => {
-                  // Đếm thuốc theo trạng thái
-                  const activeCount = paginatedItems.filter(
-                    (drug) => drug.status === "Active"
-                  ).length;
-                  const inactiveCount = paginatedItems.filter(
-                    (drug) => drug.status === "Inactive"
-                  ).length;
-
-                  const isSelectAll = false; // Disabled
-                  const isIndeterminate = false; // Disabled
-
-                  // Tạo các mục cho dropdown
-                  const dropdownItems = [
-                    {
-                      key: "page-active",
-                      label: `Select all Active on this page (${activeCount})`,
-                    },
-                    {
-                      key: "all-active",
-                      label:
-                        isLoadingAllItems && selectedOption === "all-active" ? (
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                            }}
-                          >
-                            <Spin size="small" />
-                            <span>Loading all Active...</span>
-                          </div>
-                        ) : (
-                          "Select all Active (all pages)"
-                        ),
-                    },
-                    {
-                      key: "page-inactive",
-                      label: `Select all Inactive on this page (${inactiveCount})`,
-                    },
-                    {
-                      key: "all-inactive",
-                      label:
-                        isLoadingAllItems &&
-                        selectedOption === "all-inactive" ? (
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                            }}
-                          >
-                            <Spin size="small" />
-                            <span>Loading all Inactive...</span>
-                          </div>
-                        ) : (
-                          "Select all Inactive (all pages)"
-                        ),
-                    },
-                  ];
-
-                  return (
-                    <>
-                      <Checkbox
-                        checked={false}
-                        indeterminate={false}
-                        disabled={true}
-                      />
-
-                      {dropdownItems.length > 0 && (
-                        <AntDropdown
-                          menu={{
-                            items: dropdownItems,
-                            onClick: ({ key }) => handleSelectByStatus(key),
-                            selectedKeys: selectedOption
-                              ? [selectedOption]
-                              : [],
-                          }}
-                          placement="bottomLeft"
-                          trigger={["click"]}
-                        >
-                          <AntButton
-                            type="text"
-                            size="small"
-                            style={{
-                              marginLeft: 0,
-                              padding: "0 4px",
-                              position: "absolute",
-                              top: "50%",
-                              transform: "translateY(-50%)",
-                              left: "30px",
-                              right: "auto",
-                              zIndex: 10,
-                            }}
-                          >
-                            <DownOutlined />
-                          </AntButton>
-                        </AntDropdown>
-                      )}
-                    </>
+                  // Kiểm tra các items selected để hiển thị đúng bulk actions
+                  const selectedItems = drugs.filter((drug) =>
+                    selectedKeys.includes(drug.id)
                   );
+
+                  const hasActive = selectedItems.some(
+                    (item) => item.status === "Active"
+                  );
+                  const hasInactive = selectedItems.some(
+                    (item) => item.status === "Inactive"
+                  );
+
+                  setShowActivate(hasInactive);
+                  setShowDeactivate(hasActive);
                 },
               }}
               scroll={{ x: "max-content" }}
-              sticky
-              columns={[
-                {
-                  title: (
-                    <span
-                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
-                    >
-                      DRUG CODE
-                    </span>
-                  ),
-                  dataIndex: "drugCode",
-                  key: "drugCode",
-                  width: 180,
-                  sorter: (a: DrugResponse, b: DrugResponse) =>
-                    a.drugCode.localeCompare(b.drugCode),
-                  render: (text: string, record: DrugResponse) => (
-                    <div className="flex items-center gap-2">
-                      {record.imageUrl && (
-                        <img
-                          src={record.imageUrl}
-                          alt={record.name}
-                          className="w-8 h-8 object-cover rounded"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                      )}
-                      <span
-                        className="text-primary cursor-pointer hover:underline"
-                        onClick={() => handleOpenDetails(record.id)}
-                      >
-                        {text}
-                      </span>
-                    </div>
-                  ),
-                },
-                {
-                  title: (
-                    <span
-                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
-                    >
-                      NAME
-                    </span>
-                  ),
-                  dataIndex: "name",
-                  key: "name",
-                  sorter: (a: DrugResponse, b: DrugResponse) =>
-                    a.name.localeCompare(b.name),
-                  render: (text: string) => (
-                    <span className="capitalize">{text}</span>
-                  ),
-                },
-                {
-                  title: (
-                    <span
-                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
-                    >
-                      DRUG GROUP
-                    </span>
-                  ),
-                  dataIndex: "drugGroup",
-                  key: "drugGroup",
-                  sorter: (a: DrugResponse, b: DrugResponse) =>
-                    (a.drugGroup?.groupName || "").localeCompare(
-                      b.drugGroup?.groupName || ""
-                    ),
-                  render: (drugGroup: any) =>
-                    drugGroup ? drugGroup.groupName : "-",
-                },
-                {
-                  title: (
-                    <span
-                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
-                    >
-                      UNIT
-                    </span>
-                  ),
-                  dataIndex: "unit",
-                  key: "unit",
-                },
-                {
-                  title: (
-                    <span
-                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
-                    >
-                      PRICE
-                    </span>
-                  ),
-                  dataIndex: "price",
-                  key: "price",
-                  sorter: (a: DrugResponse, b: DrugResponse) => {
-                    const priceA =
-                      parseFloat(a.price as unknown as string) || 0;
-                    const priceB =
-                      parseFloat(b.price as unknown as string) || 0;
-                    return priceA - priceB;
-                  },
-                  render: (price: string | number) => formatPrice(price),
-                },
-                {
-                  title: (
-                    <span
-                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
-                    >
-                      MANUFACTURER
-                    </span>
-                  ),
-                  dataIndex: "manufacturer",
-                  key: "manufacturer",
-                },
-                {
-                  title: (
-                    <span
-                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
-                    >
-                      STATUS
-                    </span>
-                  ),
-                  dataIndex: "status",
-                  key: "status",
-                  align: "center" as const,
-                  sorter: (a: DrugResponse, b: DrugResponse) =>
-                    (a.status || "").localeCompare(b.status || ""),
-                  render: (status: string) => (
-                    <Tag color={status === "Active" ? "success" : "error"}>
-                      {status ? status.toUpperCase() : ""}
-                    </Tag>
-                  ),
-                },
-                {
-                  title: (
-                    <span
-                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
-                    >
-                      CREATED AT
-                    </span>
-                  ),
-                  dataIndex: "createdAt",
-                  key: "createdAt",
-                  sorter: (a: DrugResponse, b: DrugResponse) =>
-                    new Date(a.createdAt).getTime() -
-                    new Date(b.createdAt).getTime(),
-                  render: (date: string) => formatDate(date),
-                },
-                {
-                  title: (
-                    <span
-                      style={{ textTransform: "uppercase", fontWeight: "bold" }}
-                    >
-                      ACTIONS
-                    </span>
-                  ),
-                  key: "actions",
-                  width: 100,
-                  align: "center" as const,
-                  render: (_: any, record: DrugResponse) => (
-                    <Space
-                      size="small"
-                      style={{ display: "flex", justifyContent: "center" }}
-                    >
-                      <Tooltip title="Edit">
-                        <AntButton
-                          type="text"
-                          icon={<EditOutlined />}
-                          onClick={() => handleOpenEditModal(record.id)}
-                        />
-                      </Tooltip>
-                    </Space>
-                  ),
-                },
-              ].filter((col) => {
-                const key = col.key as string;
-                return visibleColumns instanceof Set && visibleColumns.has(key);
-              })}
+              bordered
             />
-            <Card className="mt-4 shadow-sm">
-              <Row justify="center" align="middle">
-                <Space size="large" align="center">
-                  <Text type="secondary">Total {totalItemsCount} items</Text>
-                  <Space align="center" size="large">
-                    <Pagination
-                      current={page}
-                      pageSize={pageSize}
-                      total={filteredAndSortedItems.length}
-                      onChange={(page) => onPageChange(page, pageSize)}
-                      showSizeChanger={false}
-                      showTotal={() => ""}
-                    />
-                    <Space align="center">
-                      <Text type="secondary">Go to page:</Text>
-                      <InputNumber
-                        min={1}
-                        max={Math.max(
-                          1,
-                          Math.ceil(filteredAndSortedItems.length / pageSize)
-                        )}
-                        value={page}
-                        onPressEnter={(
-                          e: React.KeyboardEvent<HTMLInputElement>
-                        ) => {
-                          const value = Number(
-                            (e.target as HTMLInputElement).value
-                          );
-                          if (
-                            value > 0 &&
-                            value <=
-                              Math.ceil(
-                                filteredAndSortedItems.length / pageSize
-                              )
-                          ) {
-                            onPageChange(value, pageSize);
-                          }
-                        }}
-                        onChange={(value) => {
-                          if (
-                            value &&
-                            Number(value) > 0 &&
-                            Number(value) <=
-                              Math.ceil(
-                                filteredAndSortedItems.length / pageSize
-                              )
-                          ) {
-                            onPageChange(Number(value), pageSize);
-                          }
-                        }}
-                        style={{ width: "60px" }}
-                      />
-                    </Space>
-                  </Space>
-                </Space>
-              </Row>
-            </Card>
-          </Card>
-        </>
-      )}
-    </div>
+          )}
+        </div>
+
+        {/* Pagination Footer */}
+        <PaginationFooter
+          current={page}
+          pageSize={pageSize}
+          total={totalItemsCount}
+          onChange={onPageChange}
+          showGoToPage={true}
+          showTotal={true}
+        />
+      </Card>
+    </PageContainer>
   );
 }
