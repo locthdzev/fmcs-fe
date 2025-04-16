@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Button, Table, Select, Input, DatePicker, Pagination } from "antd";
+import {
+  Button,
+  Table,
+  Select,
+  Input,
+  DatePicker,
+  Pagination,
+  message,
+} from "antd";
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import {
   getAllInventoryHistories,
@@ -11,7 +19,6 @@ import {
   setupInventoryHistoryRealTime,
 } from "@/api/inventoryhistory";
 import { exportToExcel } from "@/api/export";
-import { toast } from "react-toastify";
 
 const { Column } = Table;
 const { RangePicker } = DatePicker;
@@ -33,6 +40,7 @@ export function InventoryHistory() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize] = useState<number>(10);
   const [total, setTotal] = useState<number>(0);
+  const [messageApi, contextHolder] = message.useMessage();
 
   const fetchHistories = async () => {
     try {
@@ -109,7 +117,10 @@ export function InventoryHistory() {
         setTotal(result.totalRecords);
       }
     } catch (error) {
-      toast.error("Failed to load inventory history list.");
+      messageApi.error({
+        content: "Failed to load inventory history list.",
+        duration: 5,
+      });
     }
   };
 
@@ -144,11 +155,15 @@ export function InventoryHistory() {
       "/inventoryhistory-management/inventoryhistories/export",
       "inventory_history.xlsx"
     );
-    toast.success("Downloading Excel file...");
+    messageApi.success({
+      content: "Downloading Excel file...",
+      duration: 5,
+    });
   };
 
   return (
     <div className="p-6">
+      {contextHolder}
       <Card>
         <CardHeader className="flex justify-between items-center">
           <h3 className="text-2xl font-bold">Inventory History</h3>

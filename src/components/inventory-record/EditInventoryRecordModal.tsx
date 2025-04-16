@@ -1,10 +1,9 @@
 import React, { useEffect } from "react";
-import { Modal, Form, InputNumber, Button } from "antd";
+import { Modal, Form, InputNumber, Button, message } from "antd";
 import {
   InventoryRecordResponseDTO,
   updateInventoryRecord,
 } from "@/api/inventoryrecord";
-import { toast } from "react-toastify";
 
 interface EditInventoryRecordModalProps {
   visible: boolean;
@@ -20,6 +19,7 @@ const EditInventoryRecordModal: React.FC<EditInventoryRecordModalProps> = ({
   onSuccess,
 }) => {
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
 
   useEffect(() => {
     if (record) {
@@ -33,14 +33,23 @@ const EditInventoryRecordModal: React.FC<EditInventoryRecordModalProps> = ({
         reorderLevel: values.reorderLevel,
       });
       if (response.isSuccess) {
-        toast.success("Inventory record updated successfully!");
+        messageApi.success({
+          content: "Inventory record updated successfully!",
+          duration: 5,
+        });
         onSuccess();
         onClose();
       } else {
-        toast.error(response.message || "Failed to update inventory record");
+        messageApi.error({
+          content: response.message || "Failed to update inventory record",
+          duration: 5,
+        });
       }
     } catch {
-      toast.error("Failed to update inventory record");
+      messageApi.error({
+        content: "Failed to update inventory record",
+        duration: 5,
+      });
     }
   };
 
@@ -58,6 +67,7 @@ const EditInventoryRecordModal: React.FC<EditInventoryRecordModalProps> = ({
         </Button>,
       ]}
     >
+      {contextHolder}
       <Form form={form} onFinish={handleSubmit} layout="vertical">
         <Form.Item
           name="reorderLevel"

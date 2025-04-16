@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Table, Switch } from "antd";
+import { Button, Table, Switch, message } from "antd";
 import {
   Chip,
   Modal,
@@ -17,7 +17,6 @@ import {
   setupInventoryRecordRealTime,
 } from "@/api/inventoryrecord";
 import { exportToExcel } from "@/api/export";
-import { toast } from "react-toastify";
 import EditInventoryRecordModal from "./EditInventoryRecordModal";
 import {
   PencilSquareIcon,
@@ -37,6 +36,7 @@ export function InventoryRecordManagement() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize] = useState<number>(10);
   const [total, setTotal] = useState<number>(0);
+  const [messageApi, contextHolder] = message.useMessage();
 
   const fetchRecords = async () => {
     try {
@@ -51,7 +51,10 @@ export function InventoryRecordManagement() {
       setRecords(sortedRecords);
       setTotal(result.totalRecords);
     } catch (error) {
-      toast.error("Unable to load inventory records list.");
+      messageApi.error({
+        content: "Unable to load inventory records list.",
+        duration: 5,
+      });
     }
   };
 
@@ -85,6 +88,7 @@ export function InventoryRecordManagement() {
 
   return (
     <div>
+      {contextHolder}
       <Card className="m-4">
         <CardHeader className="flex items-center justify-between">
           <div className="flex items-center gap-2">
