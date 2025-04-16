@@ -29,10 +29,16 @@ import {
   UndoOutlined,
   CloseCircleOutlined,
   DownOutlined,
+  ExclamationCircleOutlined,
+  FilterOutlined,
+  EyeOutlined,
+  StopOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
 import { TreatmentPlanResponseDTO } from "@/api/treatment-plan";
+import PaginationFooter from "../shared/PaginationFooter";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -899,42 +905,15 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
           />
         </div>
 
-        {/* Enhanced pagination with "Go to page" input */}
-        <Card className="mt-4 shadow-sm">
-          <Row justify="center" align="middle">
-            <Space size="large" align="center">
-              <Text type="secondary">Total {totalItems} items</Text>
-              <Space align="center" size="large">
-                <Pagination
-                  current={currentPage}
-                  pageSize={pageSize}
-                  total={totalItems}
-                  onChange={handlePageChange}
-                  showSizeChanger={false}
-                  showTotal={() => ""}
-                />
-                <Space align="center">
-                  <Text type="secondary">Go to page:</Text>
-                  <InputNumber
-                    min={1}
-                    max={Math.ceil(totalItems / pageSize)}
-                    value={currentPage}
-                    onChange={(value) => {
-                      if (
-                        value &&
-                        Number(value) > 0 &&
-                        Number(value) <= Math.ceil(totalItems / pageSize)
-                      ) {
-                        handlePageChange(Number(value), pageSize);
-                      }
-                    }}
-                    style={{ width: "60px" }}
-                  />
-                </Space>
-              </Space>
-            </Space>
-          </Row>
-        </Card>
+        {/* Using the reusable PaginationFooter component */}
+        <PaginationFooter
+          current={currentPage}
+          pageSize={pageSize}
+          total={totalItems}
+          onChange={handlePageChange}
+          showGoToPage={true}
+          showTotal={true}
+        />
       </Card>
     </>
   );

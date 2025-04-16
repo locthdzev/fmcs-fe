@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Collapse, Descriptions, Tag, Typography, Spin, Pagination, Empty, Divider, List, Tabs, Badge } from 'antd';
+import { Card, Collapse, Descriptions, Tag, Typography, Spin, Empty, Divider, List, Tabs, Badge } from 'antd';
 import { getCurrentUserHealthCheckResults, getHealthCheckResultById, HealthCheckResultsResponseDTO, HealthCheckResultsIdResponseDTO } from '@/api/healthcheckresult';
 import moment from 'moment';
-import { PageHeader } from '@/components/shared/PageHeader';
 import { CaretRightOutlined, FileTextOutlined, MedicineBoxOutlined, AlertOutlined } from '@ant-design/icons';
+import PageContainer from '@/components/shared/PageContainer';
+import PaginationFooter from '@/components/shared/PaginationFooter';
+import { useRouter } from 'next/router';
 
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -30,6 +32,7 @@ const formatStatus = (status: string) => {
 };
 
 const MyHealthCheckResults: React.FC = () => {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<HealthCheckResultsResponseDTO[]>([]);
   const [detailsMap, setDetailsMap] = useState<Record<string, HealthCheckResultsIdResponseDTO>>({});
@@ -104,6 +107,17 @@ const MyHealthCheckResults: React.FC = () => {
         await fetchResultDetails(key);
       }
     }
+  };
+
+  const handlePageChange = (newPage: number, newPageSize?: number) => {
+    setPage(newPage);
+    if (newPageSize) {
+      setPageSize(newPageSize);
+    }
+  };
+
+  const handleBack = () => {
+    router.back();
   };
 
   const renderHealthCheckResultDetails = (resultId: string) => {
@@ -314,9 +328,11 @@ const MyHealthCheckResults: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <PageHeader title="My Health Check Results" subtitle="View your health examination history and details" />
-      
+    <PageContainer
+      title="My Health Check Results"
+      icon={<MedicineBoxOutlined style={{ fontSize: "24px" }} />}
+      onBack={handleBack}
+    >
       <Card className="mt-4 shadow">
         {loading ? (
           <div className="flex justify-center items-center py-8">
@@ -369,24 +385,19 @@ const MyHealthCheckResults: React.FC = () => {
               ))}
             </Collapse>
             
-            <div className="flex justify-end mt-4">
-              <Pagination
-                current={page}
-                pageSize={pageSize}
-                total={total}
-                showSizeChanger
-                onChange={(newPage) => setPage(newPage)}
-                onShowSizeChange={(_, newSize) => {
-                  setPageSize(newSize);
-                  setPage(1);
-                }}
-                showTotal={(total) => `Total ${total} items`}
-              />
-            </div>
+            <PaginationFooter
+              current={page}
+              pageSize={pageSize}
+              total={total}
+              onChange={handlePageChange}
+              showSizeChanger={true}
+              showGoToPage={true}
+              showTotal={true}
+            />
           </>
         )}
       </Card>
-    </div>
+    </PageContainer>
   );
 };
 
