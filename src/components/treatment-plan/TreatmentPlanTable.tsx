@@ -34,12 +34,16 @@ import {
   EyeOutlined,
   StopOutlined,
   MoreOutlined,
+  FormOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
 import { TreatmentPlanResponseDTO } from "@/api/treatment-plan";
 import PaginationFooter from "../shared/PaginationFooter";
-import TableControls, { createDeleteBulkAction, createRestoreBulkAction } from "../shared/TableControls";
+import TableControls, {
+  createDeleteBulkAction,
+  createRestoreBulkAction,
+} from "../shared/TableControls";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -103,6 +107,12 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
 
   // State to track cancellation reason
   const [cancellationReason, setCancellationReason] = useState<string>("");
+
+  // Add a new state for cancel modal visibility
+  const [cancelModalVisible, setCancelModalVisible] = useState<boolean>(false);
+  const [currentRecord, setCurrentRecord] =
+    useState<TreatmentPlanResponseDTO | null>(null);
+  const [form] = Form.useForm();
 
   // Update selected item types when selectedRowKeys changes
   useEffect(() => {
@@ -448,114 +458,73 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
 
   const renderActionButtons = (record: TreatmentPlanResponseDTO) => {
     return (
-      <Space style={{ display: "flex", justifyContent: "center" }}>
-        {canEditTreatmentPlan(record.status) && (
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => router.push(`/treatment-plan/${record.id}`)}
-            />
-          </Tooltip>
-        )}
+      <div style={{ textAlign: "center" }}>
+        <Dropdown
+          overlay={
+            <Menu>
+              {canEditTreatmentPlan(record.status) && (
+                <Menu.Item
+                  key="edit"
+                  icon={<FormOutlined />}
+                  onClick={() => router.push(`/treatment-plan/${record.id}`)}
+                >
+                  Edit
+                </Menu.Item>
+              )}
 
-        {canCancelTreatmentPlan(record.status) && (
-          <Tooltip title="Cancel">
-            <Popconfirm
-              title={
-                <div style={{ padding: "0 10px" }}>Cancel Treatment Plan</div>
-              }
-              description={
-                <>
-                  <p style={{ padding: "10px 40px 10px 18px" }}>
-                    Are you sure you want to cancel this treatment plan?
-                  </p>
-                  <p
-                    style={{
-                      marginTop: "8px",
-                      marginBottom: "4px",
-                      padding: "0 40px 0 18px",
-                    }}
+              {canCancelTreatmentPlan(record.status) && (
+                <Menu.Item
+                  key="cancel"
+                  icon={<CloseCircleOutlined />}
+                  danger
+                  onClick={() => {
+                    // Set the current record and open the modal
+                    setCurrentRecord(record);
+                    setCancelModalVisible(true);
+                    // Reset form
+                    form.resetFields();
+                  }}
+                >
+                  Cancel
+                </Menu.Item>
+              )}
+
+              {canSoftDeleteTreatmentPlan(record.status) && (
+                <Menu.Item key="delete" icon={<DeleteOutlined />} danger>
+                  <Popconfirm
+                    title="Soft Delete Treatment Plan"
+                    description="Are you sure you want to soft delete this treatment plan?"
+                    onConfirm={() => handleSoftDelete(record.id)}
+                    okText="Yes"
+                    cancelText="No"
+                    placement="topLeft"
                   >
-                    Reason for cancellation:
-                  </p>
-                  <Input.TextArea
-                    rows={3}
-                    value={cancellationReason}
-                    onChange={(e) => setCancellationReason(e.target.value)}
-                    placeholder="Please enter reason for cancellation"
-                    style={{
-                      margin: "0 40px 0 18px",
-                      width: "calc(100% - 58px)",
-                    }}
-                  />
-                </>
-              }
-              onConfirm={() => {
-                if (!cancellationReason || cancellationReason.trim() === "") {
-                  messageApi.error("Please enter a reason for cancellation", 5);
-                  return Promise.reject("Reason is required");
-                }
+                    <div style={{ width: "100%" }}>Soft Delete</div>
+                  </Popconfirm>
+                </Menu.Item>
+              )}
 
-                // Cast result to Promise before calling finally
-                const result = handleCancel(record.id, cancellationReason);
-                // Clean up cancellation reason regardless of result
-                setCancellationReason("");
-                return result;
-              }}
-              onCancel={() => {
-                // Reset reason if cancelled
-                setCancellationReason("");
-              }}
-              okText="Cancel Plan"
-              cancelText="No"
-              placement="topLeft"
-            >
-              <Button type="text" danger icon={<CloseCircleOutlined />} />
-            </Popconfirm>
-          </Tooltip>
-        )}
-
-        {canSoftDeleteTreatmentPlan(record.status) && (
-          <Tooltip title="Soft Delete">
-            <Popconfirm
-              title={
-                <div style={{ padding: "0 10px" }}>
-                  Soft Delete Treatment Plan
-                </div>
-              }
-              description={
-                <p style={{ padding: "10px 40px 10px 18px" }}>
-                  Are you sure you want to soft delete this treatment plan?
-                </p>
-              }
-              onConfirm={() => handleSoftDelete(record.id)}
-              placement="topLeft"
-            >
-              <Button type="text" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Tooltip>
-        )}
-
-        {canRestoreTreatmentPlan(record.status) && (
-          <Tooltip title="Restore">
-            <Popconfirm
-              title={
-                <div style={{ padding: "0 10px" }}>Restore Treatment Plan</div>
-              }
-              description={
-                <p style={{ padding: "10px 40px 10px 18px" }}>
-                  Are you sure you want to restore this treatment plan?
-                </p>
-              }
-              onConfirm={() => handleRestore(record.id)}
-              placement="topLeft"
-            >
-              <Button type="text" icon={<UndoOutlined />} />
-            </Popconfirm>
-          </Tooltip>
-        )}
-      </Space>
+              {canRestoreTreatmentPlan(record.status) && (
+                <Menu.Item key="restore" icon={<UndoOutlined />}>
+                  <Popconfirm
+                    title="Restore Treatment Plan"
+                    description="Are you sure you want to restore this treatment plan?"
+                    onConfirm={() => handleRestore(record.id)}
+                    okText="Yes"
+                    cancelText="No"
+                    placement="topLeft"
+                  >
+                    <div style={{ width: "100%" }}>Restore</div>
+                  </Popconfirm>
+                </Menu.Item>
+              )}
+            </Menu>
+          }
+          placement="bottomCenter"
+        >
+          <Button icon={<MoreOutlined />} size="small" />
+        </Dropdown>
+      </div>
     );
   };
 
@@ -783,7 +752,7 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
   return (
     <>
       {contextHolder}
-      
+
       {/* Using the new TableControls component */}
       <TableControls
         selectedRowKeys={selectedRowKeys}
@@ -791,37 +760,41 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
         onPageSizeChange={(newSize) => handlePageChange(1, newSize)}
         bulkActions={[
           // Only include delete action if handleBulkDelete is provided
-          ...(handleBulkDelete ? [
-            createDeleteBulkAction(
-              selectedRowKeys.length,
-              deletingItems,
-              async () => {
-                setDeletingItems(true);
-                try {
-                  await handleBulkDelete(selectedRowKeys);
-                } finally {
-                  setDeletingItems(false);
-                }
-              },
-              selectedItemTypes.hasCompletedOrCancelled
-            )
-          ] : []),
+          ...(handleBulkDelete
+            ? [
+                createDeleteBulkAction(
+                  selectedRowKeys.length,
+                  deletingItems,
+                  async () => {
+                    setDeletingItems(true);
+                    try {
+                      await handleBulkDelete(selectedRowKeys);
+                    } finally {
+                      setDeletingItems(false);
+                    }
+                  },
+                  selectedItemTypes.hasCompletedOrCancelled
+                ),
+              ]
+            : []),
           // Only include restore action if handleBulkRestore is provided
-          ...(handleBulkRestore ? [
-            createRestoreBulkAction(
-              selectedRowKeys.length,
-              restoringItems,
-              async () => {
-                setRestoringItems(true);
-                try {
-                  await handleBulkRestore(selectedRowKeys);
-                } finally {
-                  setRestoringItems(false);
-                }
-              },
-              selectedItemTypes.hasSoftDeleted
-            )
-          ] : [])
+          ...(handleBulkRestore
+            ? [
+                createRestoreBulkAction(
+                  selectedRowKeys.length,
+                  restoringItems,
+                  async () => {
+                    setRestoringItems(true);
+                    try {
+                      await handleBulkRestore(selectedRowKeys);
+                    } finally {
+                      setRestoringItems(false);
+                    }
+                  },
+                  selectedItemTypes.hasSoftDeleted
+                ),
+              ]
+            : []),
         ]}
         maxRowsPerPage={100}
         pageSizeOptions={[5, 10, 15, 20, 50, 100]}
@@ -851,6 +824,67 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
           showTotal={true}
         />
       </Card>
+
+      {/* Custom Cancel Modal */}
+      <Modal
+        title="Cancel Treatment Plan"
+        open={cancelModalVisible}
+        onCancel={() => setCancelModalVisible(false)}
+        footer={[
+          <Button key="back" onClick={() => setCancelModalVisible(false)}>
+            No
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            danger
+            onClick={() => {
+              form.validateFields().then((values) => {
+                if (currentRecord) {
+                  // Invoke handleCancel which returns a Promise
+                  // Create a Promise wrapper to ensure proper handling
+                  const cancelPromise = async () => {
+                    try {
+                      await handleCancel(currentRecord.id, values.cancelReason);
+                      setCancelModalVisible(false);
+                      form.resetFields();
+                      setCurrentRecord(null);
+                    } catch (error: unknown) {
+                      console.error("Error cancelling treatment plan:", error);
+                    }
+                  };
+
+                  // Execute the promise function
+                  cancelPromise();
+                }
+              });
+            }}
+          >
+            Cancel Plan
+          </Button>,
+        ]}
+      >
+        <p style={{ marginBottom: "16px" }}>
+          Are you sure you want to cancel this treatment plan?
+        </p>
+        <Form form={form}>
+          <Form.Item
+            name="cancelReason"
+            rules={[
+              {
+                required: true,
+                message: "Please enter a reason for cancellation",
+              },
+              { min: 5, message: "Reason must be at least 5 characters" },
+            ]}
+          >
+            <Input.TextArea
+              rows={4}
+              placeholder="Please enter reason for cancellation"
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 };
