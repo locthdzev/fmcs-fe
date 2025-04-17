@@ -7,6 +7,7 @@ import {
   Tooltip,
   Card,
   Input,
+  Space,
 } from "antd";
 import {
   DatabaseOutlined,
@@ -14,6 +15,7 @@ import {
   FilterOutlined,
   UndoOutlined,
   TagOutlined,
+  ArrowLeftOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -22,6 +24,7 @@ import EditInventoryRecordModal from "./EditInventoryRecordModal";
 import InventoryRecordFilterModal from "./InventoryRecordFilterModal";
 import PageContainer from "../shared/PageContainer";
 import ToolbarCard from "../shared/ToolbarCard";
+import TableControls from "../shared/TableControls";
 
 import {
   getAllInventoryRecords,
@@ -305,10 +308,15 @@ export function InventoryRecordManagement() {
     setFilterModalVisible(false);
   };
 
+  const handleBack = () => {
+    router.back();
+  };
+
   return (
     <PageContainer
       title="Inventory Record Management"
       icon={<DatabaseOutlined style={{ fontSize: "24px" }} />}
+      onBack={handleBack}
     >
       {contextHolder}
 
@@ -430,6 +438,16 @@ export function InventoryRecordManagement() {
         }
       />
 
+      {/* TableControls - Di chuyển ra ngoài Card */}
+      <TableControls
+        selectedRowKeys={selectedRowKeys}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => handlePageChange(1, newSize)}
+        bulkActions={[]}
+        maxRowsPerPage={100}
+        pageSizeOptions={[5, 10, 15, 20, 50, 100]}
+      />
+
       {/* Inventory Records Table */}
       <Card className="shadow-sm" bodyStyle={{ padding: "16px" }}>
         <InventoryRecordTable
@@ -442,6 +460,7 @@ export function InventoryRecordManagement() {
           selectedRowKeys={selectedRowKeys}
           setSelectedRowKeys={setSelectedRowKeys}
           onEdit={handleShowEditModal}
+          bordered={true}
         />
       </Card>
 

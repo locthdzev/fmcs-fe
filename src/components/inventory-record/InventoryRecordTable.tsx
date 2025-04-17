@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import {
-  Table,
-  Tag,
-  Button,
-  Tooltip,
-  Typography,
-  message,
-  Form,
-} from "antd";
+import { Table, Tag, Button, Tooltip, Typography, message, Form } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { EditOutlined } from "@ant-design/icons";
 import { useRouter } from "next/router";
@@ -27,6 +19,7 @@ interface InventoryRecordTableProps {
   selectedRowKeys: string[];
   setSelectedRowKeys: (keys: string[]) => void;
   onEdit: (record: InventoryRecordResponseDTO) => void;
+  bordered?: boolean;
 }
 
 const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
@@ -39,6 +32,7 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
   selectedRowKeys,
   setSelectedRowKeys,
   onEdit,
+  bordered = false,
 }) => {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
@@ -161,15 +155,6 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
   return (
     <>
       {contextHolder}
-      
-      <TableControls
-        selectedRowKeys={selectedRowKeys}
-        pageSize={pageSize}
-        onPageSizeChange={(newSize) => handlePageChange(1, newSize)}
-        bulkActions={[]}
-        maxRowsPerPage={100}
-        pageSizeOptions={[5, 10, 15, 20, 50, 100]}
-      />
 
       <Table
         dataSource={records}
@@ -177,6 +162,7 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
         rowKey="id"
         loading={loading}
         pagination={false}
+        bordered={bordered}
         onRow={(record) => ({
           onClick: () => router.push(`/inventoryrecord/detail?id=${record.id}`),
         })}
@@ -194,4 +180,4 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
   );
 };
 
-export default InventoryRecordTable; 
+export default InventoryRecordTable;
