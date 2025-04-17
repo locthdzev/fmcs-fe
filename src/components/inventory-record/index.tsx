@@ -1,5 +1,3 @@
-import InventoryRecordManagement from './InventoryRecordManagement';
-
-// Export both as named export and default export for backward compatibility
-export { InventoryRecordManagement };
-export default InventoryRecordManagement;
+// Re-export the InventoryRecordManagement component
+export { default as InventoryRecordManagement } from './InventoryRecordManagement';
+export { default } from './InventoryRecordManagement';

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Table, Tag, Button, Tooltip, Typography, message, Form } from "antd";
+import { Table, Tag, Button, Tooltip, Typography, message, Form, Space } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { EditOutlined } from "@ant-design/icons";
+import { EditOutlined, EyeOutlined } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import { InventoryRecordResponseDTO } from "@/api/inventoryrecord";
 import PaginationFooter from "../shared/PaginationFooter";
@@ -75,10 +75,10 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
       render: (text, record) => (
         <Button
           type="link"
-          onClick={() => router.push(`/inventoryrecord/detail?id=${record.id}`)}
+          onClick={() => router.push(`/inventory-record/${record.id}`)}
           style={{ padding: 0 }}
         >
-          <Text>{text}</Text>
+          <Text strong>{text}</Text>
         </Button>
       ),
     },
@@ -148,16 +148,28 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
       key: "actions",
       align: "center",
       render: (_, record) => (
-        <Tooltip title="Edit Reorder Level">
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(record);
-            }}
-          />
-        </Tooltip>
+        <Space size="small">
+          <Tooltip title="View Details">
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/inventory-record/${record.id}`);
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="Edit Reorder Level">
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(record);
+              }}
+            />
+          </Tooltip>
+        </Space>
       ),
     },
   ];
@@ -178,6 +190,10 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
         loading={loading}
         pagination={false}
         bordered={bordered}
+        onRow={(record) => ({
+          onClick: () => router.push(`/inventory-record/${record.id}`),
+          style: { cursor: 'pointer' }
+        })}
       />
 
       <PaginationFooter
