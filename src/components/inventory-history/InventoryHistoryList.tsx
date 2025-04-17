@@ -42,8 +42,12 @@ import {
   UndoOutlined,
   DatabaseOutlined,
   ReloadOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
-import InventoryHistoryFilterModal from "./InventoryHistoryFilterModal";
+import InventoryHistoryFilterModal from "../inventory-history/InventoryHistoryFilterModal";
+import ToolbarCard from "../shared/ToolbarCard";
+import PageContainer from "../shared/PageContainer";
+import PaginationFooter from "../shared/PaginationFooter";
 
 const { Option } = Select;
 const { Title, Text } = Typography;
@@ -411,115 +415,110 @@ export function InventoryHistoryList() {
   ]);
 
   return (
-    <div className="history-container" style={{ padding: "20px" }}>
+    <PageContainer
+      title="Inventory History"
+      icon={<HistoryOutlined style={{ fontSize: "24px" }} />}
+      onBack={() => router.back()}
+    >
       {contextHolder}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() => router.back()}
-            style={{ marginRight: "8px" }}
-          >
-            Back
-          </Button>
-          <HistoryOutlined style={{ fontSize: "24px" }} />
-          <h3 className="text-xl font-bold">Inventory History</h3>
-        </div>
-      </div>
-
+      
       {/* Filter Controls */}
-      <Card className="shadow-sm mb-4">
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={12} md={6} lg={5} xl={4}>
-            <Input.Search
-              placeholder="Search by batch code"
-              allowClear
-              value={batchCodeSearch}
-              onChange={(e) => setBatchCodeSearch(e.target.value)}
-              onSearch={handleBatchCodeSearch}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6} lg={5} xl={4}>
-            <Input.Search
-              placeholder="Search by drug name"
-              allowClear
-              value={drugNameSearch}
-              onChange={(e) => setDrugNameSearch(e.target.value)}
-              onSearch={handleSearch}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6} lg={5} xl={4}>
-            <Input.Search
-              placeholder="Search by user name/email"
-              allowClear
-              value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
-              onSearch={handleUserSearch}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6} lg={5} xl={4}>
-            <RangePicker
-              style={{ width: "100%" }}
-              value={changeDateRange}
-              onChange={(dates) =>
-                setChangeDateRange(dates as [dayjs.Dayjs | null, dayjs.Dayjs | null])
-              }
-              placeholder={["Start Date", "End Date"]}
-              allowClear
-            />
-          </Col>
-          <Col xs={24} sm={24} md={24} lg={4} xl={4}>
-            <Space>
-              <Button
-                type="primary"
-                icon={<FilterOutlined />}
-                onClick={handleFilterModalOpen}
-              >
-                Advanced Filters
-              </Button>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={handleClearFilters}
-              >
-                Clear
-              </Button>
-            </Space>
+      <Card
+        className="shadow mb-4"
+        bodyStyle={{ padding: "16px" }}
+        style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+      >
+        <Row align="middle" gutter={[16, 16]}>
+          <Col span={24}>
+            <Title level={4} style={{ margin: 0 }}>
+              <AppstoreOutlined
+                style={{ marginRight: "8px", fontSize: "20px" }}
+              />
+              Toolbar
+            </Title>
           </Col>
         </Row>
-      </Card>
 
-      {/* Results Section */}
-      <Row gutter={[16, 16]}>
-        <Col span={24}>
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <Text>
-                Showing{" "}
-                <Text strong>
-                  {resultGroups.length > 0
-                    ? (currentPage - 1) * pageSize + 1
-                    : 0}
-                  -
-                  {Math.min(currentPage * pageSize, total)}
-                </Text>{" "}
-                of <Text strong>{total}</Text> inventory records
-              </Text>
-            </div>
-            <div>
-              <Space>
-                <Select
-                  value={ascending ? "oldest" : "newest"}
-                  onChange={(value) => handleSortOrderChange(value === "oldest")}
-                  style={{ width: 130 }}
-                >
-                  <Option value="newest">Newest first</Option>
-                  <Option value="oldest">Oldest first</Option>
-                </Select>
-              </Space>
-            </div>
+        <Divider style={{ margin: "16px 0" }} />
+
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Select
+              showSearch
+              placeholder="Search Batch Code"
+              value={batchCodeSearch || undefined}
+              onChange={(value) => {
+                setBatchCodeSearch(value || "");
+                setCurrentPage(1);
+                setLoading(true);
+              }}
+              style={{ width: "320px" }}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.value?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={uniqueBatchCodes.map((code) => ({
+                value: code,
+                label: code,
+              }))}
+              dropdownStyle={{ minWidth: "320px" }}
+            />
+
+            <Tooltip title="Advanced Filters">
+              <Button
+                icon={
+                  <FilterOutlined
+                    style={{
+                      color:
+                        drugNameSearch ||
+                        userSearch ||
+                        (changeDateRange &&
+                          (changeDateRange[0] || changeDateRange[1]))
+                          ? "#1890ff"
+                          : undefined,
+                    }}
+                  />
+                }
+                onClick={handleFilterModalOpen}
+              >
+                Filters
+              </Button>
+            </Tooltip>
+
+            <Tooltip title="Reset All Filters">
+              <Button
+                icon={<UndoOutlined />}
+                onClick={handleClearFilters}
+                disabled={
+                  !(
+                    batchCodeSearch ||
+                    drugNameSearch ||
+                    userSearch ||
+                    changeDateRange[0] ||
+                    changeDateRange[1]
+                  )
+                }
+              />
+            </Tooltip>
           </div>
-        </Col>
-      </Row>
+
+          <div>
+            <Button
+              type="primary"
+              icon={<FileExcelOutlined />}
+              onClick={() => {
+                // URL đến API endpoint export trong backend
+                const exportUrl = "/api/inventoryhistory-management/inventoryhistories/export";
+                window.open(exportUrl, "_blank");
+              }}
+            >
+              Export to Excel
+            </Button>
+          </div>
+        </div>
+      </Card>
 
       {/* Loading State */}
       {loading ? (
@@ -542,6 +541,47 @@ export function InventoryHistoryList() {
       ) : (
         // Inventory Record Groups
         <>
+          {/* Items per page selector */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginBottom: "16px",
+              gap: "16px",
+              alignItems: "center",
+            }}
+          >
+            <Space>
+              <Text type="secondary">Sort by:</Text>
+              <Select
+                value={ascending ? "oldest" : "newest"}
+                onChange={(value) => handleSortOrderChange(value === "oldest")}
+                style={{ width: "130px" }}
+              >
+                <Option value="newest">Newest first</Option>
+                <Option value="oldest">Oldest first</Option>
+              </Select>
+            </Space>
+            
+            <Space>
+              <Text type="secondary">Records per page:</Text>
+              <Select
+                value={pageSize}
+                onChange={(value) => {
+                  setPageSize(value);
+                  setCurrentPage(1);
+                  setLoading(true);
+                }}
+                style={{ width: "80px" }}
+              >
+                <Option value={5}>5</Option>
+                <Option value={10}>10</Option>
+                <Option value={15}>15</Option>
+                <Option value={20}>20</Option>
+              </Select>
+            </Space>
+          </div>
+
           {resultGroups.map((group) => (
             <Card key={group.inventoryRecordId} className="shadow mb-4">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2">
@@ -734,30 +774,27 @@ export function InventoryHistoryList() {
           ))}
 
           {/* Pagination */}
-          <div className="flex justify-center my-4">
-            <Pagination
-              current={currentPage}
-              pageSize={pageSize}
-              total={total}
-              onChange={handlePageChange}
-              showSizeChanger
-              showQuickJumper
-              showTotal={(total) => `Total ${total} items`}
-            />
-          </div>
+          <PaginationFooter
+            current={currentPage}
+            pageSize={pageSize}
+            total={total}
+            onChange={handlePageChange}
+            showGoToPage={true}
+            showTotal={true}
+          />
+          
+          {/* Filter Modal */}
+          <InventoryHistoryFilterModal
+            visible={showFilterModal}
+            initialValues={filterState}
+            onCancel={handleFilterModalCancel}
+            onApply={handleFilterModalApply}
+            uniqueBatchCodes={uniqueBatchCodes}
+            uniqueDrugNames={uniqueDrugNames}
+            uniqueUsers={uniqueUsers}
+          />
         </>
       )}
-
-      {/* Filter Modal */}
-      <InventoryHistoryFilterModal
-        visible={showFilterModal}
-        initialValues={filterState}
-        onCancel={handleFilterModalCancel}
-        onApply={handleFilterModalApply}
-        uniqueBatchCodes={uniqueBatchCodes}
-        uniqueDrugNames={uniqueDrugNames}
-        uniqueUsers={uniqueUsers}
-      />
-    </div>
+    </PageContainer>
   );
 } 

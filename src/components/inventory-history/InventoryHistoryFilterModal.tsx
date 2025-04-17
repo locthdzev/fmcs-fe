@@ -1,7 +1,23 @@
-import React, { useEffect } from "react";
-import { Modal, Form, Input, Select, Button, DatePicker, Space, Switch, Row, Col } from "antd";
+import React from "react";
+import {
+  Modal,
+  Button,
+  Space,
+  Typography,
+  Select,
+  DatePicker,
+  Radio,
+  Divider,
+} from "antd";
+import {
+  UndoOutlined,
+  CheckCircleOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 
+const { Title } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
@@ -30,17 +46,41 @@ const InventoryHistoryFilterModal: React.FC<InventoryHistoryFilterModalProps> = 
   uniqueDrugNames,
   uniqueUsers,
 }) => {
-  const [form] = Form.useForm();
+  // Create a local state to track changes while modal is open
+  const [filterState, setFilterState] = React.useState({
+    userSearch: initialValues.userSearch || "",
+    batchCodeSearch: initialValues.batchCodeSearch || "",
+    drugNameSearch: initialValues.drugNameSearch || "",
+    changeDateRange: initialValues.changeDateRange || [null, null],
+    ascending: initialValues.ascending,
+  });
 
-  useEffect(() => {
+  // Update local state when initialValues change
+  React.useEffect(() => {
     if (visible) {
-      form.setFieldsValue(initialValues);
+      setFilterState({
+        userSearch: initialValues.userSearch || "",
+        batchCodeSearch: initialValues.batchCodeSearch || "",
+        drugNameSearch: initialValues.drugNameSearch || "",
+        changeDateRange: initialValues.changeDateRange || [null, null],
+        ascending: initialValues.ascending,
+      });
     }
-  }, [visible, initialValues, form]);
+  }, [visible, initialValues]);
 
+  // Handle apply filters
   const handleApply = () => {
-    form.validateFields().then((values) => {
-      onApply(values);
+    onApply(filterState);
+  };
+
+  // Handle reset filters
+  const handleReset = () => {
+    setFilterState({
+      userSearch: "",
+      batchCodeSearch: "",
+      drugNameSearch: "",
+      changeDateRange: [null, null],
+      ascending: false,
     });
   };
 
@@ -51,130 +91,221 @@ const InventoryHistoryFilterModal: React.FC<InventoryHistoryFilterModalProps> = 
       onCancel={onCancel}
       width={600}
       footer={[
-        <Button key="cancel" onClick={onCancel}>
-          Cancel
+        <Button key="reset" onClick={handleReset} icon={<UndoOutlined />}>
+          Reset
         </Button>,
-        <Button key="clear" onClick={() => form.resetFields()}>
-          Clear Filters
-        </Button>,
-        <Button key="apply" type="primary" onClick={handleApply}>
-          Apply Filters
+        <Button
+          key="apply"
+          type="primary"
+          onClick={handleApply}
+          icon={<CheckCircleOutlined />}
+        >
+          Apply
         </Button>,
       ]}
     >
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={initialValues}
-      >
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="batchCodeSearch"
-              label="Batch Code"
+      <Space direction="vertical" style={{ width: "100%" }}>
+        {/* Search Criteria */}
+        <Divider orientation="left">Search Criteria</Divider>
+        <div>
+          <div className="filter-item" style={{ marginBottom: "16px" }}>
+            <div
+              className="filter-label"
+              style={{ marginBottom: "8px", color: "#666666" }}
             >
-              <Select
-                allowClear
-                showSearch
-                placeholder="Select batch code"
-                optionFilterProp="children"
-              >
-                {uniqueBatchCodes.map((code) => (
-                  <Option key={code} value={code}>
-                    {code}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              name="drugNameSearch"
-              label="Drug Name/Code"
-            >
-              <Select
-                allowClear
-                showSearch
-                placeholder="Select drug"
-                optionFilterProp="children"
-              >
-                {uniqueDrugNames.map((name) => (
-                  <Option key={name} value={name}>
-                    {name}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
+              Batch Code
+            </div>
+            <Select
+              showSearch
+              placeholder="Select Batch Code"
+              value={filterState.batchCodeSearch || undefined}
+              onChange={(value) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  batchCodeSearch: value || "",
+                }))
+              }
+              style={{ width: "100%" }}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.label?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={uniqueBatchCodes.map((code) => ({
+                value: code,
+                label: code,
+              }))}
+            />
+          </div>
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="userSearch"
-              label="Performed By"
+          <div className="filter-item" style={{ marginBottom: "16px" }}>
+            <div
+              className="filter-label"
+              style={{ marginBottom: "8px", color: "#666666" }}
             >
-              <Select
-                allowClear
-                showSearch
-                placeholder="Select user"
-                optionFilterProp="children"
-                filterOption={(input, option) =>
-                  (option?.children?.toString().toLowerCase().indexOf(input.toLowerCase()) ?? -1) >= 0
-                }
-              >
-                {uniqueUsers.map((user) => (
-                  <Option key={user.id} value={user.name}>
-                    <div>
-                      <div style={{ fontWeight: 500 }}>{user.name}</div>
-                      {user.email && (
-                        <div style={{ fontSize: '12px', color: '#888' }}>
-                          {user.email}
-                        </div>
-                      )}
-                    </div>
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              name="ascending"
-              label="Sort Order"
-              valuePropName="checked"
-            >
-              <Switch
-                checkedChildren="Oldest First"
-                unCheckedChildren="Newest First"
-              />
-            </Form.Item>
-          </Col>
-        </Row>
+              Drug Name/Code
+            </div>
+            <Select
+              showSearch
+              placeholder="Select Drug"
+              value={filterState.drugNameSearch || undefined}
+              onChange={(value) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  drugNameSearch: value || "",
+                }))
+              }
+              style={{ width: "100%" }}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.label?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={uniqueDrugNames.map((name) => ({
+                value: name,
+                label: name,
+              }))}
+            />
+          </div>
 
-        <Form.Item
-          name="changeDateRange"
-          label="Date Range"
-        >
-          <RangePicker
-            style={{ width: "100%" }}
-            format="DD/MM/YYYY"
-            allowClear
-            ranges={{
-              "Last 7 Days": [dayjs().subtract(6, "days"), dayjs()],
-              "Last 30 Days": [dayjs().subtract(29, "days"), dayjs()],
-              "This Month": [
-                dayjs().startOf("month"),
-                dayjs().endOf("month"),
-              ],
-              "All Time": [
-                dayjs("2020-01-01"),
-                dayjs("2030-12-31"),
-              ],
-            }}
-          />
-        </Form.Item>
-      </Form>
+          <div className="filter-item">
+            <div
+              className="filter-label"
+              style={{ marginBottom: "8px", color: "#666666" }}
+            >
+              Performed by
+            </div>
+            <Select
+              showSearch
+              placeholder="Select User"
+              value={filterState.userSearch || undefined}
+              onChange={(value) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  userSearch: value || "",
+                }))
+              }
+              style={{ width: "100%" }}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.label?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              optionLabelProp="label"
+              options={uniqueUsers.map((user) => ({
+                value: user.name,
+                label: `${user.name} ${user.email ? `(${user.email})` : ''}`,
+                email: user.email,
+              }))}
+            />
+          </div>
+        </div>
+
+        {/* Date & Sorting */}
+        <Divider orientation="left">Date & Sorting</Divider>
+        <div>
+          <div className="filter-item" style={{ marginBottom: "16px" }}>
+            <div
+              className="filter-label"
+              style={{ marginBottom: "8px", color: "#666666" }}
+            >
+              Change date range
+            </div>
+            <RangePicker
+              style={{ width: "100%" }}
+              placeholder={["From date", "To date"]}
+              value={filterState.changeDateRange}
+              onChange={(dates) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  changeDateRange: dates as [
+                    dayjs.Dayjs | null,
+                    dayjs.Dayjs | null
+                  ],
+                }))
+              }
+              format="DD/MM/YYYY"
+              allowClear
+              ranges={{
+                "Last 7 Days": [dayjs().subtract(6, "days"), dayjs()],
+                "Last 30 Days": [dayjs().subtract(29, "days"), dayjs()],
+                "This Month": [
+                  dayjs().startOf("month"),
+                  dayjs().endOf("month"),
+                ],
+                "All Time (includes 2025)": [
+                  dayjs("2020-01-01"),
+                  dayjs("2030-12-31"),
+                ],
+              }}
+            />
+          </div>
+
+          <div className="filter-item">
+            <div
+              className="filter-label"
+              style={{
+                marginBottom: "8px",
+                color: "#666666",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              <SortAscendingOutlined />
+              <span>Sort direction</span>
+            </div>
+            <Radio.Group
+              value={filterState.ascending ? "asc" : "desc"}
+              onChange={(e) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  ascending: e.target.value === "asc",
+                }))
+              }
+              optionType="button"
+              buttonStyle="solid"
+              style={{ width: "100%" }}
+            >
+              <Radio.Button
+                value="asc"
+                style={{ width: "50%", textAlign: "center" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <SortAscendingOutlined />
+                  <span>Oldest First</span>
+                </div>
+              </Radio.Button>
+              <Radio.Button
+                value="desc"
+                style={{ width: "50%", textAlign: "center" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <SortDescendingOutlined />
+                  <span>Newest First</span>
+                </div>
+              </Radio.Button>
+            </Radio.Group>
+          </div>
+        </div>
+      </Space>
     </Modal>
   );
 };
