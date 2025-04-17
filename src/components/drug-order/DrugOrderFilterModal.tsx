@@ -63,10 +63,10 @@ const statusOptions = [
 
 // Sort by options
 const sortByOptions = [
-  { label: "Created Date", value: "createdAt" },
-  { label: "Order Date", value: "orderDate" },
-  { label: "Total Price", value: "totalPrice" },
-  { label: "Total Quantity", value: "totalQuantity" },
+  { label: "Created Date", value: "CreatedAt" },
+  { label: "Order Date", value: "OrderDate" },
+  { label: "Total Price", value: "TotalPrice" },
+  { label: "Total Quantity", value: "TotalQuantity" },
 ];
 
 // Define date presets with correct type
@@ -132,7 +132,7 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
       const response = await getDrugOrders({
         page: 1,
         pageSize: 1000, // Large enough to get a good sample
-        sortBy: "totalPrice",
+        sortBy: "TotalPrice",
         ascending: true, // Get from lowest to highest
       });
 
