@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Table, Tag, Button, Tooltip, Typography, message, Form, Space } from "antd";
+import { Table, Tag, Button, Tooltip, Typography, message, Form, Space, Dropdown, Menu } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { EditOutlined, EyeOutlined } from "@ant-design/icons";
+import { EditOutlined, EyeOutlined, MoreOutlined } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import { InventoryRecordResponseDTO } from "@/api/inventoryrecord";
 import PaginationFooter from "../shared/PaginationFooter";
 import TableControls from "../shared/TableControls";
+import dayjs from "dayjs";
 
 const { Text } = Typography;
 
@@ -65,6 +66,50 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
     );
   };
 
+  // Format date as dd/mm/yyyy hh:mm:ss
+  const formatDateTime = (dateString: string) => {
+    return dayjs(dateString).format("DD/MM/YYYY HH:mm:ss");
+  };
+
+  // Render action buttons with dropdown
+  const renderActionButtons = (record: InventoryRecordResponseDTO) => {
+    return (
+      <div style={{ textAlign: "center" }}>
+        <Dropdown
+          overlay={
+            <Menu>
+              <Menu.Item
+                key="view"
+                icon={<EyeOutlined />}
+                onClick={() => router.push(`/inventory-record/${record.id}`)}
+              >
+                View Details
+              </Menu.Item>
+              <Menu.Item
+                key="edit"
+                icon={<EditOutlined />}
+                onClick={(e) => {
+                  e.domEvent.stopPropagation();
+                  onEdit(record);
+                }}
+              >
+                Edit Reorder Level
+              </Menu.Item>
+            </Menu>
+          }
+          placement="bottomCenter"
+          trigger={["click"]}
+        >
+          <Button 
+            icon={<MoreOutlined />} 
+            size="small" 
+            onClick={(e) => e.stopPropagation()}
+          />
+        </Dropdown>
+      </div>
+    );
+  };
+
   // Define table columns
   const columns: ColumnsType<InventoryRecordResponseDTO> = [
     {
@@ -110,10 +155,9 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
       dataIndex: "lastUpdated",
       key: "lastUpdated",
       render: (lastUpdated, record) => {
-        const date = lastUpdated
-          ? new Date(lastUpdated)
-          : new Date(record.createdAt);
-        return date.toLocaleString();
+        return lastUpdated 
+          ? formatDateTime(lastUpdated)
+          : formatDateTime(record.createdAt);
       },
       sorter: (a, b) => {
         const dateA = a.lastUpdated
@@ -129,7 +173,7 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
       title: "CREATED AT",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (createdAt) => new Date(createdAt).toLocaleString(),
+      render: (createdAt) => formatDateTime(createdAt),
       sorter: (a, b) => {
         const dateA = new Date(a.createdAt);
         const dateB = new Date(b.createdAt);
@@ -140,37 +184,19 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
       title: "STATUS",
       dataIndex: "status",
       key: "status",
-      render: (status) => renderStatusTag(status),
+      align: "center",
+      render: (status) => (
+        <div style={{ textAlign: "center" }}>
+          {renderStatusTag(status)}
+        </div>
+      ),
       sorter: (a, b) => (a.status || "").localeCompare(b.status || ""),
     },
     {
       title: "ACTIONS",
       key: "actions",
       align: "center",
-      render: (_, record) => (
-        <Space size="small">
-          <Tooltip title="View Details">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/inventory-record/${record.id}`);
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="Edit Reorder Level">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(record);
-              }}
-            />
-          </Tooltip>
-        </Space>
-      ),
+      render: (_, record) => renderActionButtons(record),
     },
   ];
 
@@ -191,7 +217,15 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
         pagination={false}
         bordered={bordered}
         onRow={(record) => ({
-          onClick: () => router.push(`/inventory-record/${record.id}`),
+          onClick: (e) => {
+            const target = e.target as HTMLElement;
+            const actionCell = target.closest('.ant-table-cell-with-append') || 
+                               target.closest('.ant-dropdown-menu') ||
+                               target.closest('.ant-dropdown');
+            if (!actionCell) {
+              router.push(`/inventory-record/${record.id}`);
+            }
+          },
           style: { cursor: 'pointer' }
         })}
       />
