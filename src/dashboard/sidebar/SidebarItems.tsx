@@ -61,13 +61,36 @@ export function SidebarItems() {
     if (groupTitle === "Main" && item.title === "My Schedule") {
       return isHealthcareStaff;
     }
+
+    // Show My Survey only for normal users
+    if (groupTitle === "Main" && item.title === "My Survey") {
+      // Check if user only has the User role and no other roles
+      const isOnlyUser = Array.isArray(userRoles) 
+        ? userRoles.length === 1 && userRoles.includes("User") 
+        : userRoles === "User";
+      return isOnlyUser;
+    }
+    
+    // Show Staff's Survey only for healthcare staff
+    if (groupTitle === "Main" && item.title === "Staff's Survey") {
+      return isHealthcareStaff;
+    }
     
     // Always show items in Others group
     if (groupTitle === "Others") {
       return true;
     }
     
-    // For Management group and other items, only show to admin
+    // Show Survey Management only for admin in Management group
+    if (groupTitle === "Management" && item.title === "Survey Management") {
+      return isAdmin;
+    }
+    
+    // For other Management group items, only show to admin
+    if (groupTitle === "Management") {
+      return isAdmin;
+    }
+    
     return isAdmin;
   };
 

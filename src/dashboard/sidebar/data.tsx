@@ -27,7 +27,9 @@ import { AppointmentIcon } from "./icons/AppointmentIcon";
 import { HealthIcon } from "./icons/HealthIcon";
 import { SurveyManagementIcon } from "./icons/SurveyManagementIcon";
 import { SurveyForUserIcon } from "./icons/SurveyForUserIcon";
-import { SurveyIcon } from "./icons/SurveyIcon";
+import { SurveyStatisticsIcon } from "./icons/SurveyStatisticsIcon";
+import { StatisticsofalldrugsIcon } from "./icons/Statisticsofalldrugs";
+import { SurveyForStaffIcon } from "./icons/SurveyForStaffIcon";
 
 export const data = [
   {
@@ -53,6 +55,16 @@ export const data = [
             icon: <StatusIcon />,
             link: "/statitics/treatment-plan-statitics",
           },
+          {
+            title: "Medicines",
+            icon: <StatisticsofalldrugsIcon />,
+            link: "/statitics/medicines-statitics",
+          },
+          {
+            title: "Survey Statistics",
+            icon: <SurveyStatisticsIcon />,
+            link: "/statitics/survey-statistics",
+          },
         ],
       },
       {
@@ -64,6 +76,16 @@ export const data = [
         title: "My Health Check Results",
         icon: <PeriodicHealthCheckupsIcon />,
         link: "/my-health-check",
+      },
+      {
+        title: "My Survey",
+        icon: <SurveyForUserIcon />,
+        link: "/survey/MySurvey",
+      },
+      {
+        title: "Staff's Survey",
+        icon: <SurveyForStaffIcon />,
+        link: "/survey/StaffSurvey",
       },
     ],
   },
@@ -209,20 +231,9 @@ export const data = [
         link: "/notification/management",
       },
       {
-        title: "Surveys",
-        icon: <SurveyIcon />,
-        submenu: [
-          {
-            title: "Survey Management",
-            icon: <SurveyManagementIcon />,
-            link: "/survey/management",
-          },
-          {
-            title: "Survey For User",
-            icon: <SurveyForUserIcon />,
-            link: "/survey/surveyUser",
-          },
-        ],
+        title: "Survey Management",
+        icon: <SurveyManagementIcon />,
+        link: "/survey/management",
       },
       {
         title: "HealthInsurances",
