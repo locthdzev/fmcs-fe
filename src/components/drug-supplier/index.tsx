@@ -46,9 +46,8 @@ import {
   activateDrugSuppliers,
   deactivateDrugSuppliers,
   getDrugSupplierById,
-} from "@/api/drugsupplier";
+} from "../../api/drugsupplier";
 import { CreateDrugSupplierForm } from "./DrugSupplierCreateForm";
-import { EditDrugSupplierForm } from "./DrugSupplierEditForm";
 import DrugSupplierFilterModal, {
   DrugSupplierAdvancedFilters,
 } from "./DrugSupplierFilterModal";
@@ -81,6 +80,7 @@ const staticColumns = [
     sorter: (a: DrugSupplierResponse, b: DrugSupplierResponse) =>
       a.supplierName.localeCompare(b.supplierName),
     sortDirections: ["ascend", "descend"] as ("ascend" | "descend")[],
+    fixed: "left" as const,
   },
   {
     title: (
@@ -139,6 +139,7 @@ const staticColumns = [
     ),
     key: "actions",
     align: "center" as const,
+    fixed: "right" as const,
   },
 ];
 
@@ -412,8 +413,7 @@ export function DrugSuppliers() {
   };
 
   const handleOpenEditModal = (id: string) => {
-    setEditingSupplierId(id);
-    setIsEditModalOpen(true);
+    router.push(`/drug-supplier/${id}?edit=true`);
   };
 
   const handleCreateSuccess = () => {
@@ -572,6 +572,8 @@ export function DrugSuppliers() {
       ),
       key: "actions",
       align: "center" as const,
+      fixed: "right" as const,
+      width: 100,
       render: (_: any, record: DrugSupplierResponse) => (
         <Space
           size="small"
@@ -599,6 +601,8 @@ export function DrugSuppliers() {
         if (col.key === "supplierName") {
           return {
             ...col,
+            fixed: "left" as const,
+            width: 200,
             render: (text: string, record: DrugSupplierResponse) => (
               <span
                 className="text-primary cursor-pointer hover:underline"
@@ -1204,7 +1208,7 @@ export function DrugSuppliers() {
                   rowSelection={rowSelection}
                   pagination={false}
                   onChange={handleTableChange}
-                  scroll={{ x: "max-content" }}
+                  scroll={{ x: "max-content", y: 500 }}
                   bordered
                 />
               </div>
@@ -1286,23 +1290,6 @@ export function DrugSuppliers() {
           onClose={() => setIsModalOpen(false)}
           onCreate={handleCreateSuccess}
         />
-      </Modal>
-
-      <Modal
-        title="Edit Drug Supplier"
-        open={isEditModalOpen}
-        onCancel={() => setIsEditModalOpen(false)}
-        footer={null}
-        destroyOnClose
-        width={500}
-      >
-        {editingSupplierId && (
-          <EditDrugSupplierForm
-            drugSupplierId={editingSupplierId}
-            onClose={() => setIsEditModalOpen(false)}
-            onUpdate={handleUpdateSuccess}
-          />
-        )}
       </Modal>
 
       <DrugSupplierFilterModal
