@@ -1378,7 +1378,11 @@ export const HealthCheckResultHistory: React.FC = () => {
 
         {/* Export Config Modal - Keep existing implementation */}
         <Modal
-          title="Export Configuration"
+          title={
+            <Title level={4} style={{ margin: 0 }}>
+              Export Configuration
+            </Title>
+          }
           open={showExportConfigModal}
           onCancel={closeConfigModal}
           width={800}
