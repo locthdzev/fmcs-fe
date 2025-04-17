@@ -47,6 +47,7 @@ import {
   Popconfirm,
   Button,
   Form,
+  Image,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -93,6 +94,7 @@ const columns = [
   { name: "NAME", uid: "name", sortable: true },
   { name: "DRUG GROUP", uid: "drugGroup", sortable: true },
   { name: "UNIT", uid: "unit" },
+  { name: "DESCRIPTION", uid: "description" },
   { name: "PRICE", uid: "price", sortable: true },
   { name: "MANUFACTURER", uid: "manufacturer", sortable: true },
   { name: "CREATED AT", uid: "createdAt", sortable: true },
@@ -445,22 +447,6 @@ export function Drugs() {
       );
     }
 
-    // Apply drug code filter
-    if (advancedFilters.drugCode) {
-      processedDrugs = processedDrugs.filter((d) =>
-        d.drugCode
-          .toLowerCase()
-          .includes(advancedFilters.drugCode.toLowerCase())
-      );
-    }
-
-    // Apply drug name filter
-    if (advancedFilters.drugName) {
-      processedDrugs = processedDrugs.filter((d) =>
-        d.name.toLowerCase().includes(advancedFilters.drugName.toLowerCase())
-      );
-    }
-
     // Apply sorting
     const sortField = sortDescriptor.column as keyof DrugResponse;
     const sortDirection = sortDescriptor.direction;
@@ -623,7 +609,7 @@ export function Drugs() {
   };
 
   const handleOpenEditModal = (id: string) => {
-    router.push(`/drug/edit/${id}`);
+    router.push(`/drug/${id}?edit=true`);
   };
 
   const handleBack = () => {
@@ -667,6 +653,12 @@ export function Drugs() {
               {cellValue as string}
             </Chip>
           );
+        case "description":
+          return cellValue ? (
+            <span title={cellValue as string} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "150px", display: "inline-block" }}>
+              {cellValue as string}
+            </span>
+          ) : "-";
         case "createdAt":
           return cellValue ? formatDate(cellValue as string) : "-";
         case "drugGroup":
@@ -771,8 +763,6 @@ export function Drugs() {
     return (
       filterValue !== "" ||
       statusFilter !== "all" ||
-      advancedFilters.drugCode !== "" ||
-      advancedFilters.drugName !== "" ||
       advancedFilters.drugGroupId !== "" ||
       advancedFilters.manufacturer !== "" ||
       advancedFilters.priceRange[0] !== null ||
@@ -1081,28 +1071,6 @@ export function Drugs() {
               </Tag>
             ))}
 
-          {advancedFilters.drugCode && (
-            <Tag
-              closable
-              onClose={() =>
-                setAdvancedFilters((prev) => ({ ...prev, drugCode: "" }))
-              }
-            >
-              Code: {advancedFilters.drugCode}
-            </Tag>
-          )}
-
-          {advancedFilters.drugName && (
-            <Tag
-              closable
-              onClose={() =>
-                setAdvancedFilters((prev) => ({ ...prev, drugName: "" }))
-              }
-            >
-              Name: {advancedFilters.drugName}
-            </Tag>
-          )}
-
           {advancedFilters.drugGroupId && (
             <Tag
               closable
@@ -1266,7 +1234,7 @@ export function Drugs() {
 
           <div className="flex justify-between items-center mt-2">
             <span className="text-small text-default-400">
-              Total {totalItemsCount} items
+              Total {filteredAndSortedItems.length} items
             </span>
             <div className="flex items-center gap-4">
               {isReady && (
@@ -1328,11 +1296,6 @@ export function Drugs() {
 
     // Cập nhật sort direction
     handleSortDirectionChange(filters.ascending);
-
-    // Cập nhật các bộ lọc khác nếu cần
-    if (filters.drugName) {
-      setFilterValue(filters.drugName);
-    }
 
     // Đặt lại trang về 1 khi thay đổi bộ lọc
     setPage(1);
@@ -1568,6 +1531,40 @@ export function Drugs() {
         key: "name",
         sorter: (a, b) => a.name.localeCompare(b.name),
         ellipsis: true,
+        render: (text: string, record: DrugResponse) => (
+          <Space>
+            {record.imageUrl ? (
+              <div style={{ cursor: 'pointer' }}>
+                <Image 
+                  src={record.imageUrl} 
+                  alt={text}
+                  width={40}
+                  height={40}
+                  style={{ objectFit: 'cover', borderRadius: '4px' }}
+                  preview={{
+                    mask: null,
+                    maskClassName: "ant-image-mask-custom"
+                  }}
+                />
+              </div>
+            ) : (
+              <div 
+                style={{ 
+                  width: 40, 
+                  height: 40, 
+                  backgroundColor: '#f0f0f0', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  borderRadius: '4px'
+                }}
+              >
+                <MedicineBoxOutlined style={{ fontSize: '20px', color: '#bfbfbf' }} />
+              </div>
+            )}
+            <span>{text}</span>
+          </Space>
+        ),
       },
       {
         title: (
@@ -1592,6 +1589,17 @@ export function Drugs() {
         ),
         dataIndex: "unit",
         key: "unit",
+      },
+      {
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            DESCRIPTION
+          </span>
+        ),
+        dataIndex: "description",
+        key: "description",
+        ellipsis: true,
+        render: (text: string) => text || "-",
       },
       {
         title: (
@@ -2193,7 +2201,7 @@ export function Drugs() {
         <PaginationFooter
           current={page}
           pageSize={pageSize}
-          total={totalItemsCount}
+          total={filteredAndSortedItems.length}
           onChange={onPageChange}
           showGoToPage={true}
           showTotal={true}

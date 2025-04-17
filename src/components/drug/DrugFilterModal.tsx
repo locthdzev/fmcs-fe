@@ -166,60 +166,6 @@ const DrugFilterModal: React.FC<DrugFilterModalProps> = ({
         {/* Search Criteria Section */}
         <Divider orientation="left">Search Criteria</Divider>
         <Row gutter={16}>
-          {/* Drug Code */}
-          <Col span={12}>
-            <div className="filter-item" style={filterItemStyle}>
-              <div className="filter-label" style={filterLabelStyle}>
-                Drug Code
-              </div>
-              <Select
-                showSearch
-                allowClear
-                placeholder="Select Drug Code"
-                value={localFilters.drugCode || undefined}
-                onChange={(value) => updateFilter("drugCode", value)}
-                style={{ width: "100%" }}
-                filterOption={(input, option) =>
-                  (option?.label as string)
-                    .toLowerCase()
-                    .indexOf(input.toLowerCase()) >= 0
-                }
-                options={drugCodes.map((code) => ({
-                  value: code,
-                  label: code,
-                }))}
-              />
-            </div>
-          </Col>
-
-          {/* Drug Name */}
-          <Col span={12}>
-            <div className="filter-item" style={filterItemStyle}>
-              <div className="filter-label" style={filterLabelStyle}>
-                Drug Name
-              </div>
-              <Select
-                showSearch
-                allowClear
-                placeholder="Select Drug Name"
-                value={localFilters.drugName || undefined}
-                onChange={(value) => updateFilter("drugName", value)}
-                style={{ width: "100%" }}
-                filterOption={(input, option) =>
-                  (option?.label as string)
-                    .toLowerCase()
-                    .indexOf(input.toLowerCase()) >= 0
-                }
-                options={drugNames.map((name) => ({
-                  value: name,
-                  label: name,
-                }))}
-              />
-            </div>
-          </Col>
-        </Row>
-
-        <Row gutter={16}>
           {/* Drug Group */}
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
@@ -264,9 +210,9 @@ const DrugFilterModal: React.FC<DrugFilterModalProps> = ({
                     .toLowerCase()
                     .indexOf(input.toLowerCase()) >= 0
                 }
-                options={manufacturers.map((manufacturer) => ({
-                  value: manufacturer,
-                  label: manufacturer,
+                options={manufacturers.map((mfr) => ({
+                  value: mfr,
+                  label: mfr,
                 }))}
               />
             </div>
