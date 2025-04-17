@@ -18,7 +18,7 @@ import {
   SortDescendingOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import type { RangePickerProps } from 'antd/es/date-picker';
+import type { RangePickerProps } from "antd/es/date-picker";
 
 const { RangePicker } = DatePicker;
 const { Title } = Typography;
@@ -39,16 +39,33 @@ interface DrugSupplierFilterModalProps {
 }
 
 // Define date presets with correct type
-const datePresets: RangePickerProps['presets'] = [
-    { label: "Today", value: [dayjs().startOf('day'), dayjs().endOf('day')] },
-    { label: "Last 7 Days", value: [dayjs().subtract(6, 'day').startOf('day'), dayjs().endOf('day')] },
-    { label: "Last 30 Days", value: [dayjs().subtract(29, 'day').startOf('day'), dayjs().endOf('day')] },
-    { label: "This Month", value: [dayjs().startOf('month'), dayjs().endOf('month')] },
-    { label: "Last Month", value: [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month')] },
-    { label: "This Year", value: [dayjs().startOf('year'), dayjs().endOf('year')] },
-    // Add more presets if needed
+const datePresets: RangePickerProps["presets"] = [
+  { label: "Today", value: [dayjs().startOf("day"), dayjs().endOf("day")] },
+  {
+    label: "Last 7 Days",
+    value: [dayjs().subtract(6, "day").startOf("day"), dayjs().endOf("day")],
+  },
+  {
+    label: "Last 30 Days",
+    value: [dayjs().subtract(29, "day").startOf("day"), dayjs().endOf("day")],
+  },
+  {
+    label: "This Month",
+    value: [dayjs().startOf("month"), dayjs().endOf("month")],
+  },
+  {
+    label: "Last Month",
+    value: [
+      dayjs().subtract(1, "month").startOf("month"),
+      dayjs().subtract(1, "month").endOf("month"),
+    ],
+  },
+  {
+    label: "This Year",
+    value: [dayjs().startOf("year"), dayjs().endOf("year")],
+  },
+  // Add more presets if needed
 ];
-
 
 const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
   visible,
@@ -57,7 +74,8 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
   onReset,
   initialFilters,
 }) => {
-  const [localFilters, setLocalFilters] = useState<DrugSupplierAdvancedFilters>(initialFilters);
+  const [localFilters, setLocalFilters] =
+    useState<DrugSupplierAdvancedFilters>(initialFilters);
   const [loading, setLoading] = useState(false);
 
   // Reset localFilters when modal is opened or initialFilters change
@@ -70,7 +88,7 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
   const handleApply = () => {
     // Show loading indicator when applying filters
     setLoading(true);
-    
+
     // Simulate a delay to show the loading state (remove this in production)
     setTimeout(() => {
       // Pass the local state directly
@@ -80,11 +98,11 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
   };
 
   const handleReset = () => {
-     setLoading(true);
-     setTimeout(() => {
-       onReset(); // Call the parent's reset logic
-       setLoading(false);
-     }, 300);
+    setLoading(true);
+    setTimeout(() => {
+      onReset(); // Call the parent's reset logic
+      setLoading(false);
+    }, 300);
   };
 
   // Common styles
@@ -93,13 +111,22 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
 
   return (
     <Modal
-      title="Advanced Filters"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Advanced Filters
+        </Title>
+      }
       open={visible}
       onCancel={onCancel}
       width={600} // Adjusted width
       footer={[
-        <Button key="reset" onClick={handleReset} icon={<UndoOutlined />} disabled={loading}>
-          Reset 
+        <Button
+          key="reset"
+          onClick={handleReset}
+          icon={<UndoOutlined />}
+          disabled={loading}
+        >
+          Reset
         </Button>,
         <Button
           key="apply"
@@ -131,7 +158,10 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
                   onChange={(dates) =>
                     setLocalFilters((prev) => ({
                       ...prev,
-                      createdDateRange: dates as [dayjs.Dayjs | null, dayjs.Dayjs | null] || [null, null],
+                      createdDateRange: (dates as [
+                        dayjs.Dayjs | null,
+                        dayjs.Dayjs | null
+                      ]) || [null, null],
                     }))
                   }
                   presets={datePresets} // <-- Added presets
@@ -154,7 +184,10 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
                   onChange={(dates) =>
                     setLocalFilters((prev) => ({
                       ...prev,
-                      updatedDateRange: dates as [dayjs.Dayjs | null, dayjs.Dayjs | null] || [null, null],
+                      updatedDateRange: (dates as [
+                        dayjs.Dayjs | null,
+                        dayjs.Dayjs | null
+                      ]) || [null, null],
                     }))
                   }
                   presets={datePresets} // <-- Added presets
@@ -165,8 +198,10 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
 
           <Divider orientation="left">Sorting</Divider>
           <Row gutter={16}>
-             {/* Sort Direction */}
-             <Col span={24}> {/* Full width for sorting */}
+            {/* Sort Direction */}
+            <Col span={24}>
+              {" "}
+              {/* Full width for sorting */}
               <div className="filter-item">
                 <div className="filter-label" style={filterLabelStyle}>
                   Sort by Created Date
@@ -174,7 +209,10 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
                 <Radio.Group
                   value={localFilters.ascending ? "asc" : "desc"}
                   onChange={(e) =>
-                     setLocalFilters(prev => ({...prev, ascending: e.target.value === "asc"}))
+                    setLocalFilters((prev) => ({
+                      ...prev,
+                      ascending: e.target.value === "asc",
+                    }))
                   }
                   optionType="button"
                   buttonStyle="solid"
@@ -184,7 +222,14 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
                     value="asc"
                     style={{ width: "50%", textAlign: "center" }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                      }}
+                    >
                       <SortAscendingOutlined />
                       <span>Oldest First</span>
                     </div>
@@ -193,7 +238,14 @@ const DrugSupplierFilterModal: React.FC<DrugSupplierFilterModalProps> = ({
                     value="desc"
                     style={{ width: "50%", textAlign: "center" }}
                   >
-                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                      }}
+                    >
                       <SortDescendingOutlined />
                       <span>Newest First</span>
                     </div>

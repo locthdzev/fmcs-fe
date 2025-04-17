@@ -27,6 +27,7 @@ import {
   InventoryHistoryResponseDTO,
   getGroupedInventoryHistories,
 } from "@/api/inventoryhistory";
+import { exportToExcel } from "@/api/export";
 import { useRouter } from "next/router";
 import {
   SearchOutlined,
@@ -288,6 +289,14 @@ export function InventoryHistoryList() {
     });
   };
 
+  const handleExportExcel = () => {
+    exportToExcel(
+      "/inventoryhistory-management/inventoryhistories/export",
+      "inventory_history.xlsx"
+    );
+    messageApi.success("Downloading Excel file...");
+  };
+
   const formatDateTime = (dateTime: string) => {
     return dayjs(dateTime).format("DD/MM/YYYY HH:mm:ss");
   };
@@ -521,12 +530,7 @@ export function InventoryHistoryList() {
             <Button
               type="primary"
               icon={<FileExcelOutlined />}
-              onClick={() => {
-                // URL đến API endpoint export trong backend
-                const exportUrl =
-                  "/api/inventoryhistory-management/inventoryhistories/export";
-                window.open(exportUrl, "_blank");
-              }}
+              onClick={handleExportExcel}
             >
               Export to Excel
             </Button>
@@ -565,18 +569,6 @@ export function InventoryHistoryList() {
               alignItems: "center",
             }}
           >
-            <Space>
-              <Text type="secondary">Sort by:</Text>
-              <Select
-                value={ascending ? "oldest" : "newest"}
-                onChange={(value) => handleSortOrderChange(value === "oldest")}
-                style={{ width: "130px" }}
-              >
-                <Option value="newest">Newest first</Option>
-                <Option value="oldest">Oldest first</Option>
-              </Select>
-            </Space>
-
             <Space>
               <Text type="secondary">Records per page:</Text>
               <Select

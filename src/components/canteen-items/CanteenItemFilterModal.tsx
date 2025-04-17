@@ -13,10 +13,7 @@ import {
   InputNumber,
   Checkbox,
 } from "antd";
-import {
-  UndoOutlined,
-  CheckCircleOutlined,
-} from "@ant-design/icons";
+import { UndoOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 const { RangePicker } = DatePicker;
@@ -60,7 +57,7 @@ const CanteenItemFilterModal: React.FC<CanteenItemFilterModalProps> = ({
   // Thêm hàm handleReset để xử lý khi bấm nút Reset
   const handleReset = () => {
     console.log("Reset clicked in modal, resetting all filters");
-    
+
     // Reset localFilters về giá trị mặc định trước
     setLocalFilters({
       itemName: "",
@@ -72,7 +69,7 @@ const CanteenItemFilterModal: React.FC<CanteenItemFilterModalProps> = ({
       sortBy: "CreatedAt",
       ascending: false,
     });
-    
+
     // Gọi onReset callback từ component cha để xóa tất cả filter và tải lại dữ liệu
     onReset();
   };
@@ -81,7 +78,7 @@ const CanteenItemFilterModal: React.FC<CanteenItemFilterModalProps> = ({
   const handleApply = () => {
     // Log giá trị của filter trước khi xử lý để debug
     console.log("Local filters before processing:", localFilters);
-    
+
     // Create processed filters object with proper handling of undefined values
     const processedFilters = {
       itemName: localFilters.itemName || "",
@@ -97,10 +94,10 @@ const CanteenItemFilterModal: React.FC<CanteenItemFilterModalProps> = ({
       sortBy: localFilters.sortBy || "CreatedAt",
       ascending: false, // Always use false (newest first) as we've removed the control
     };
-    
+
     // Log processed filters trước khi gửi đi
     console.log("Processed filters:", processedFilters);
-    
+
     // Gọi callback onApply với filters đã được xử lý
     onApply(processedFilters);
   };
@@ -112,14 +109,14 @@ const CanteenItemFilterModal: React.FC<CanteenItemFilterModalProps> = ({
   // Function to update filter state
   const updateFilter = (field: string, value: any) => {
     console.log(`Updating filter ${field} with value:`, value);
-    
-    if (field.includes('Range')) {
+
+    if (field.includes("Range")) {
       // Xử lý riêng cho các trường range
-      setLocalFilters((prev) => ({ 
-        ...prev, 
-        [field]: value === undefined || value === null ? [null, null] : value 
+      setLocalFilters((prev) => ({
+        ...prev,
+        [field]: value === undefined || value === null ? [null, null] : value,
       }));
-    } else if (field === 'ascending') {
+    } else if (field === "ascending") {
       // Xử lý riêng cho trường boolean
       setLocalFilters((prev) => ({ ...prev, [field]: value }));
     } else {
@@ -130,7 +127,11 @@ const CanteenItemFilterModal: React.FC<CanteenItemFilterModalProps> = ({
 
   return (
     <Modal
-      title="Advanced Filters"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Advanced Filters
+        </Title>
+      }
       open={visible}
       onCancel={onCancel}
       width={800}
@@ -190,7 +191,9 @@ const CanteenItemFilterModal: React.FC<CanteenItemFilterModalProps> = ({
                   placeholder="Min Price"
                   value={localFilters.priceRange?.[0] || undefined}
                   onChange={(value) => {
-                    const newRange = [...(localFilters.priceRange || [null, null])];
+                    const newRange = [
+                      ...(localFilters.priceRange || [null, null]),
+                    ];
                     newRange[0] = value;
                     updateFilter("priceRange", newRange);
                   }}
@@ -202,7 +205,9 @@ const CanteenItemFilterModal: React.FC<CanteenItemFilterModalProps> = ({
                   placeholder="Max Price"
                   value={localFilters.priceRange?.[1] || undefined}
                   onChange={(value) => {
-                    const newRange = [...(localFilters.priceRange || [null, null])];
+                    const newRange = [
+                      ...(localFilters.priceRange || [null, null]),
+                    ];
                     newRange[1] = value;
                     updateFilter("priceRange", newRange);
                   }}
@@ -265,17 +270,37 @@ const CanteenItemFilterModal: React.FC<CanteenItemFilterModalProps> = ({
                 Created Date Range
               </div>
               <RangePicker
-                value={localFilters.createdDateRange as [dayjs.Dayjs, dayjs.Dayjs]}
+                value={
+                  localFilters.createdDateRange as [dayjs.Dayjs, dayjs.Dayjs]
+                }
                 onChange={(dates) => updateFilter("createdDateRange", dates)}
                 style={{ width: "100%" }}
                 placeholder={["Start Date", "End Date"]}
                 presets={[
-                  { label: 'Today', value: [dayjs(), dayjs()] },
-                  { label: 'Last 7 Days', value: [dayjs().subtract(6, 'days'), dayjs()] },
-                  { label: 'Last 30 Days', value: [dayjs().subtract(29, 'days'), dayjs()] },
-                  { label: 'This Month', value: [dayjs().startOf('month'), dayjs().endOf('month')] },
-                  { label: 'Last Month', value: [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month')] },
-                  { label: 'This Year', value: [dayjs().startOf('year'), dayjs().endOf('year')] },
+                  { label: "Today", value: [dayjs(), dayjs()] },
+                  {
+                    label: "Last 7 Days",
+                    value: [dayjs().subtract(6, "days"), dayjs()],
+                  },
+                  {
+                    label: "Last 30 Days",
+                    value: [dayjs().subtract(29, "days"), dayjs()],
+                  },
+                  {
+                    label: "This Month",
+                    value: [dayjs().startOf("month"), dayjs().endOf("month")],
+                  },
+                  {
+                    label: "Last Month",
+                    value: [
+                      dayjs().subtract(1, "month").startOf("month"),
+                      dayjs().subtract(1, "month").endOf("month"),
+                    ],
+                  },
+                  {
+                    label: "This Year",
+                    value: [dayjs().startOf("year"), dayjs().endOf("year")],
+                  },
                 ]}
               />
             </div>
@@ -288,17 +313,37 @@ const CanteenItemFilterModal: React.FC<CanteenItemFilterModalProps> = ({
                 Updated Date Range
               </div>
               <RangePicker
-                value={localFilters.updatedDateRange as [dayjs.Dayjs, dayjs.Dayjs]}
+                value={
+                  localFilters.updatedDateRange as [dayjs.Dayjs, dayjs.Dayjs]
+                }
                 onChange={(dates) => updateFilter("updatedDateRange", dates)}
                 style={{ width: "100%" }}
                 placeholder={["Start Date", "End Date"]}
                 presets={[
-                  { label: 'Today', value: [dayjs(), dayjs()] },
-                  { label: 'Last 7 Days', value: [dayjs().subtract(6, 'days'), dayjs()] },
-                  { label: 'Last 30 Days', value: [dayjs().subtract(29, 'days'), dayjs()] },
-                  { label: 'This Month', value: [dayjs().startOf('month'), dayjs().endOf('month')] },
-                  { label: 'Last Month', value: [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month')] },
-                  { label: 'This Year', value: [dayjs().startOf('year'), dayjs().endOf('year')] },
+                  { label: "Today", value: [dayjs(), dayjs()] },
+                  {
+                    label: "Last 7 Days",
+                    value: [dayjs().subtract(6, "days"), dayjs()],
+                  },
+                  {
+                    label: "Last 30 Days",
+                    value: [dayjs().subtract(29, "days"), dayjs()],
+                  },
+                  {
+                    label: "This Month",
+                    value: [dayjs().startOf("month"), dayjs().endOf("month")],
+                  },
+                  {
+                    label: "Last Month",
+                    value: [
+                      dayjs().subtract(1, "month").startOf("month"),
+                      dayjs().subtract(1, "month").endOf("month"),
+                    ],
+                  },
+                  {
+                    label: "This Year",
+                    value: [dayjs().startOf("year"), dayjs().endOf("year")],
+                  },
                 ]}
               />
             </div>

@@ -30,10 +30,10 @@ import {
   getAllHealthCheckResults,
   HealthCheckResultsResponseDTO,
   completeHealthCheckResult,
-  cancelCompletelyHealthCheckResult
+  cancelCompletelyHealthCheckResult,
 } from "@/api/healthcheckresult";
-import { 
-  SearchOutlined, 
+import {
+  SearchOutlined,
   SettingOutlined,
   EyeOutlined,
   CheckCircleOutlined,
@@ -43,40 +43,40 @@ import {
   UndoOutlined,
   AppstoreOutlined,
 } from "@ant-design/icons";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
 
 const formatDate = (date: string | undefined) => {
-  if (!date) return '';
-  return moment(date).format('DD/MM/YYYY');
+  if (!date) return "";
+  return moment(date).format("DD/MM/YYYY");
 };
 
 const formatDateTime = (datetime: string | undefined) => {
-  if (!datetime) return '';
-  return moment(datetime).format('DD/MM/YYYY HH:mm:ss');
+  if (!datetime) return "";
+  return moment(datetime).format("DD/MM/YYYY HH:mm:ss");
 };
 
 const getStatusColor = (status: string | undefined) => {
   switch (status) {
-    case 'Completed':
-      return 'success';
-    case 'Approved':
-      return 'processing';
-    case 'Pending':
-      return 'warning';
-    case 'Cancelled':
-      return 'error';
-    case 'CancelledForAdjustment':
-      return 'orange';
-    case 'SoftDeleted':
-      return 'default';
-    case 'NoFollowUpRequired':
-      return 'green';
+    case "Completed":
+      return "success";
+    case "Approved":
+      return "processing";
+    case "Pending":
+      return "warning";
+    case "Cancelled":
+      return "error";
+    case "CancelledForAdjustment":
+      return "orange";
+    case "SoftDeleted":
+      return "default";
+    case "NoFollowUpRequired":
+      return "green";
     default:
-      return 'default';
+      return "default";
   }
 };
 
@@ -93,13 +93,7 @@ const FilterModal: React.FC<{
     sortBy: string;
     ascending: boolean;
   };
-}> = ({
-  visible,
-  onCancel,
-  onApply,
-  onReset,
-  filters,
-}) => {
+}> = ({ visible, onCancel, onApply, onReset, filters }) => {
   const [localFilters, setLocalFilters] = useState(filters);
 
   // Reset localFilters when modal is opened with new filters
@@ -125,7 +119,11 @@ const FilterModal: React.FC<{
 
   return (
     <Modal
-      title="Advanced Filters"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Advanced Filters
+        </Title>
+      }
       open={visible}
       onCancel={onCancel}
       width={700}
@@ -160,7 +158,7 @@ const FilterModal: React.FC<{
               />
             </div>
           </Col>
-          
+
           {/* Staff Search */}
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
@@ -191,14 +189,12 @@ const FilterModal: React.FC<{
                 format="DD/MM/YYYY"
                 allowClear
                 value={localFilters.checkupDateRange as any}
-                onChange={(dates) =>
-                  updateFilter("checkupDateRange", dates)
-                }
+                onChange={(dates) => updateFilter("checkupDateRange", dates)}
               />
             </div>
           </Col>
         </Row>
-        
+
         <Row gutter={16}>
           {/* Sort By */}
           <Col span={12}>
@@ -218,7 +214,7 @@ const FilterModal: React.FC<{
               </Select>
             </div>
           </Col>
-          
+
           {/* Order */}
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
@@ -244,23 +240,29 @@ const FilterModal: React.FC<{
 
 export const HealthCheckResultNoFollowUpList: React.FC = () => {
   const router = useRouter();
-  const [healthCheckResults, setHealthCheckResults] = useState<HealthCheckResultsResponseDTO[]>([]);
+  const [healthCheckResults, setHealthCheckResults] = useState<
+    HealthCheckResultsResponseDTO[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [userSearch, setUserSearch] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
-  const [checkupDateRange, setCheckupDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
+  const [checkupDateRange, setCheckupDateRange] = useState<
+    [moment.Moment | null, moment.Moment | null]
+  >([null, null]);
   const [sortBy, setSortBy] = useState("CheckupDate");
   const [ascending, setAscending] = useState(false);
   const [codeSearch, setCodeSearch] = useState("");
-  
+
   // Filter modal state
   const [filterModalVisible, setFilterModalVisible] = useState(false);
-  
+
   // Add new state for column visibility
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
     code: true,
     patient: true,
     checkupDate: true,
@@ -274,8 +276,12 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
   const fetchHealthCheckResults = useCallback(async () => {
     setLoading(true);
     try {
-      const checkupStartDate = checkupDateRange[0] ? checkupDateRange[0].format('YYYY-MM-DD') : undefined;
-      const checkupEndDate = checkupDateRange[1] ? checkupDateRange[1].format('YYYY-MM-DD') : undefined;
+      const checkupStartDate = checkupDateRange[0]
+        ? checkupDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const checkupEndDate = checkupDateRange[1]
+        ? checkupDateRange[1].format("YYYY-MM-DD")
+        : undefined;
 
       const response = await getAllHealthCheckResults(
         currentPage,
@@ -295,10 +301,15 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
         setHealthCheckResults(response.data);
         setTotal(response.totalRecords);
       } else {
-        toast.error(response.message || "Failed to load health check results with no follow-up required");
+        toast.error(
+          response.message ||
+            "Failed to load health check results with no follow-up required"
+        );
       }
     } catch (error) {
-      toast.error("Failed to load health check results with no follow-up required");
+      toast.error(
+        "Failed to load health check results with no follow-up required"
+      );
     } finally {
       setLoading(false);
     }
@@ -316,7 +327,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
   useEffect(() => {
     fetchHealthCheckResults();
   }, [fetchHealthCheckResults]);
-  
+
   const handleComplete = async (id: string) => {
     try {
       const response = await completeHealthCheckResult(id);
@@ -324,14 +335,19 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
         toast.success("Health check result has been completed!");
         fetchHealthCheckResults();
       } else {
-        toast.error(response.message || "Failed to complete health check result");
+        toast.error(
+          response.message || "Failed to complete health check result"
+        );
       }
     } catch (error) {
       toast.error("Failed to complete health check result");
     }
   };
-  
-  const handleCancel = async (id: string, reason: string = "Cancelled by user") => {
+
+  const handleCancel = async (
+    id: string,
+    reason: string = "Cancelled by user"
+  ) => {
     try {
       const response = await cancelCompletelyHealthCheckResult(id, reason);
       if (response.isSuccess) {
@@ -406,7 +422,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
 
   // Handle back navigation
   const handleBack = () => {
-    router.push('/health-check-result/management');
+    router.push("/health-check-result/management");
   };
 
   // Update columns definition to use columnVisibility
@@ -434,64 +450,70 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
         <div>
           <Text strong>{record.user?.fullName}</Text>
           <div>
-            <Text type="secondary" className="text-sm">{record.user?.email}</Text>
+            <Text type="secondary" className="text-sm">
+              {record.user?.email}
+            </Text>
           </div>
         </div>
       ),
       visible: columnVisibility.patient,
     },
-    { 
-      key: "checkupDate", 
+    {
+      key: "checkupDate",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
           CHECKUP DATE
         </span>
-      ), 
+      ),
       render: (record: HealthCheckResultsResponseDTO) => (
         <Tooltip title="Click to view details">
-          <Typography.Link onClick={() => router.push(`/health-check-result/${record.id}`)}>
+          <Typography.Link
+            onClick={() => router.push(`/health-check-result/${record.id}`)}
+          >
             {formatDate(record.checkupDate)}
           </Typography.Link>
         </Tooltip>
       ),
       visible: columnVisibility.checkupDate,
     },
-    { 
-      key: "staff", 
+    {
+      key: "staff",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
           DOCTOR / NURSE
         </span>
-      ), 
+      ),
       render: (record: HealthCheckResultsResponseDTO) => (
         <div>
           <Text>{record.staff?.fullName}</Text>
           <div>
-            <Text type="secondary" className="text-sm">{record.staff?.email}</Text>
+            <Text type="secondary" className="text-sm">
+              {record.staff?.email}
+            </Text>
           </div>
         </div>
       ),
       visible: columnVisibility.staff,
     },
-    { 
-      key: "approvedDate", 
+    {
+      key: "approvedDate",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
           APPROVAL DATE
         </span>
-      ), 
+      ),
       render: (record: HealthCheckResultsResponseDTO) => (
         <span>{formatDateTime(record.approvedDate)}</span>
       ),
       visible: columnVisibility.approvedDate,
     },
-    { 
-      key: "status", 
+    {
+      key: "status",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
           STATUS
         </span>
-      ), 
+      ),
       render: (record: HealthCheckResultsResponseDTO) => (
         <Tag color={getStatusColor("NoFollowUpRequired")}>
           No Follow-up Required
@@ -515,7 +537,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
               onClick={() => router.push(`/health-check-result/${record.id}`)}
             />
           </Tooltip>
-          
+
           <Tooltip title="Complete">
             <Button
               type="text"
@@ -524,12 +546,12 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
               className="text-green-600"
             />
           </Tooltip>
-          
+
           <Tooltip title="Cancel">
             <Popconfirm
               title="Enter cancellation reason"
               description={
-                <Input.TextArea 
+                <Input.TextArea
                   placeholder="Cancellation reason"
                   onChange={(e) => {
                     (e.target as any).reason = e.target.value;
@@ -558,12 +580,18 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
     },
   ];
 
-  const columns = ALL_COLUMNS.filter(col => col.visible);
+  const columns = ALL_COLUMNS.filter((col) => col.visible);
 
   // Function to determine if any filters are active
   const hasActiveFilters = () => {
-    return userSearch || staffSearch || checkupDateRange[0] || checkupDateRange[1] || 
-           sortBy !== "CheckupDate" || ascending !== false;
+    return (
+      userSearch ||
+      staffSearch ||
+      checkupDateRange[0] ||
+      checkupDateRange[1] ||
+      sortBy !== "CheckupDate" ||
+      ascending !== false
+    );
   };
 
   return (
@@ -577,7 +605,9 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
           >
             Back
           </Button>
-          <h3 className="text-xl font-bold">Health Check Results - No Follow-up Required</h3>
+          <h3 className="text-xl font-bold">
+            Health Check Results - No Follow-up Required
+          </h3>
         </div>
       </div>
 
@@ -651,7 +681,9 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.patient}
-                          onChange={() => handleColumnVisibilityChange("patient")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("patient")
+                          }
                         >
                           Patient
                         </Checkbox>
@@ -664,7 +696,9 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.checkupDate}
-                          onChange={() => handleColumnVisibilityChange("checkupDate")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("checkupDate")
+                          }
                         >
                           Checkup Date
                         </Checkbox>
@@ -690,7 +724,9 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.approvedDate}
-                          onChange={() => handleColumnVisibilityChange("approvedDate")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("approvedDate")
+                          }
                         >
                           Approval Date
                         </Checkbox>
@@ -703,7 +739,9 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.status}
-                          onChange={() => handleColumnVisibilityChange("status")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("status")
+                          }
                         >
                           Status
                         </Checkbox>
@@ -716,7 +754,9 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.actions}
-                          onChange={() => handleColumnVisibilityChange("actions")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("actions")
+                          }
                         >
                           Actions
                         </Checkbox>
@@ -745,11 +785,13 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
             {/* Filter Button */}
             <Tooltip title="Advanced Filters">
               <Button
-                icon={<FilterOutlined 
-                  style={{
-                    color: hasActiveFilters() ? "#1890ff" : undefined,
-                  }}
-                />}
+                icon={
+                  <FilterOutlined
+                    style={{
+                      color: hasActiveFilters() ? "#1890ff" : undefined,
+                    }}
+                  />
+                }
                 onClick={handleOpenFilterModal}
               >
                 Filters
@@ -807,16 +849,20 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
           pagination={false}
           rowKey="id"
           locale={{
-            emptyText: <Empty description="No health check results without follow-up required found" />,
+            emptyText: (
+              <Empty description="No health check results without follow-up required found" />
+            ),
           }}
           className="border rounded-lg"
         />
-        
+
         {/* Pagination */}
         <Card className="mt-4 shadow-sm">
           <Row justify="center" align="middle">
             <Space size="large" align="center">
-              <Typography.Text type="secondary">Total {total} health check results without follow-up required</Typography.Text>
+              <Typography.Text type="secondary">
+                Total {total} health check results without follow-up required
+              </Typography.Text>
               <Space align="center" size="large">
                 <Pagination
                   current={currentPage}
@@ -829,7 +875,9 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                   showTotal={() => ""}
                 />
                 <Space align="center">
-                  <Typography.Text type="secondary">Go to page:</Typography.Text>
+                  <Typography.Text type="secondary">
+                    Go to page:
+                  </Typography.Text>
                   <InputNumber
                     min={1}
                     max={Math.ceil(total / pageSize)}
@@ -863,9 +911,9 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
           staffSearch,
           checkupDateRange,
           sortBy,
-          ascending
+          ascending,
         }}
       />
     </div>
   );
-}; 
+};
