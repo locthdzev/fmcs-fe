@@ -625,3 +625,40 @@ export const exportHealthCheckResultHistoriesByResultIdToExcel = async (id: stri
 
   return response.data;
 };
+
+/**
+ * Get health check results for the currently logged-in user
+ */
+export const getCurrentUserHealthCheckResults = async (
+  page: number = 1,
+  pageSize: number = 10,
+  sortBy: string = "CheckupDate",
+  ascending: boolean = false,
+  status?: string
+) => {
+  try {
+    // Get the user ID from the JWT token through the context
+    // Instead of passing userId directly, we'll rely on the backend to identify the user from the token
+    const response = await api.get(
+      "/healthcheckresult-management/healthcheckresults/current-user",
+      {
+        params: {
+          page,
+          pageSize,
+          sortBy,
+          ascending,
+          status,
+        },
+      }
+    );
+    const data = response.data;
+    // Map isSuccess to success for consistency
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching current user health check results:", error);
+    throw error;
+  }
+};

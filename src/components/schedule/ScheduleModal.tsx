@@ -9,11 +9,11 @@ import {
   Input,
   Switch,
   Popover,
+  message,
 } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import { ScheduleCreateRequest } from "@/api/schedule";
-import { toast } from "react-toastify";
 import { ShiftResponse } from "@/api/shift";
 import { UserProfile } from "@/api/user";
 import CreateShiftModal from "../shift/CreateShiftModal";
@@ -54,6 +54,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   const [isRecurring, setIsRecurring] = useState(false);
   const [isCreateShiftModalVisible, setIsCreateShiftModalVisible] =
     useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
 
   useEffect(() => {
     if (!visible) form.resetFields();
@@ -70,13 +71,22 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             recurringDays: values.recurringDays?.map(Number),
           };
           onSubmit(processedValues);
-          toast.success("Schedule created successfully");
+          messageApi.success({
+            content: "Schedule created successfully",
+            duration: 5,
+          });
         } catch (error) {
-          toast.error("Failed to create schedule");
+          messageApi.error({
+            content: "Failed to create schedule",
+            duration: 5,
+          });
         }
       })
       .catch(() => {
-        toast.error("Please fill in all required fields");
+        messageApi.error({
+          content: "Please fill in all required fields",
+          duration: 5,
+        });
       });
   };
 
@@ -118,6 +128,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         </Button>,
       ]}
     >
+      {contextHolder}
       <div style={{ marginBottom: "15px" }}>
         {viewMode === "staff" && fullName && (
           <p>
@@ -151,11 +162,10 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             showSearch
             optionFilterProp="label"
             options={options
-              .filter(
-                (option) =>
-                  viewMode === "staff"
-                    ? (option as ShiftResponse).status === "Active" // Chỉ lấy shift "Active"
-                    : (option as UserProfile).status === "Active" // Chỉ lấy staff "Active"
+              .filter((option) =>
+                viewMode === "staff"
+                  ? (option as ShiftResponse).status === "Active"
+                  : (option as UserProfile).status === "Active"
               )
               .map((option) => ({
                 value: option.id,
@@ -235,7 +245,6 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         onClose={() => setIsCreateShiftModalVisible(false)}
         onSuccess={() => {
           setIsCreateShiftModalVisible(false);
-          // Refresh shifts list
         }}
       />
     </Modal>

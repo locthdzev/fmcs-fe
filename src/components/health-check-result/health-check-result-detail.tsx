@@ -47,7 +47,7 @@ import {
   CalendarOutlined,
   CloseCircleOutlined,
   HistoryOutlined,
-  EditOutlined,
+  FormOutlined,
   FileTextOutlined,
   MedicineBoxOutlined,
   CheckSquareOutlined,
@@ -64,11 +64,16 @@ interface HealthCheckResultDetailProps {
   id: string;
 }
 
-export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = ({ id }) => {
+export const HealthCheckResultDetail: React.FC<
+  HealthCheckResultDetailProps
+> = ({ id }) => {
   const router = useRouter();
-  const [healthCheckResult, setHealthCheckResult] = useState<HealthCheckResultsIdResponseDTO | null>(null);
+  const [healthCheckResult, setHealthCheckResult] =
+    useState<HealthCheckResultsIdResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
-  const [histories, setHistories] = useState<HealthCheckResultHistoryResponseDTO[]>([]);
+  const [histories, setHistories] = useState<
+    HealthCheckResultHistoryResponseDTO[]
+  >([]);
   const [historiesLoading, setHistoriesLoading] = useState(false);
   const [followUpDate, setFollowUpDate] = useState<string>("");
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
@@ -81,10 +86,12 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
       if (response.isSuccess) {
         setHealthCheckResult(response.data);
       } else {
-        toast.error(response.message || "Không thể tải thông tin kết quả khám");
+        toast.error(
+          response.message || "Unable to load health check result information"
+        );
       }
     } catch (error) {
-      toast.error("Không thể tải thông tin kết quả khám");
+      toast.error("Unable to load health check result information");
     } finally {
       setLoading(false);
     }
@@ -98,10 +105,12 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
       if (response.isSuccess) {
         setHistories(response.data);
       } else {
-        toast.error(response.message || "Không thể tải lịch sử kết quả khám");
+        toast.error(
+          response.message || "Unable to load health check result history"
+        );
       }
     } catch (error) {
-      toast.error("Không thể tải lịch sử kết quả khám");
+      toast.error("Unable to load health check result history");
     } finally {
       setHistoriesLoading(false);
     }
@@ -118,9 +127,9 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
     if (!id) return;
     try {
       await exportHealthCheckResultToPDF(id);
-      toast.success("Xuất PDF thành công!");
+      toast.success("PDF export successful!");
     } catch (error) {
-      toast.error("Không thể xuất file PDF");
+      toast.error("Unable to export PDF file");
     }
   };
 
@@ -129,14 +138,16 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
     try {
       const response = await approveHealthCheckResult(id);
       if (response.isSuccess) {
-        toast.success("Phê duyệt kết quả khám thành công!");
+        toast.success("Health check result approved successfully!");
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(response.message || "Không thể phê duyệt kết quả khám");
+        toast.error(
+          response.message || "Unable to approve health check result"
+        );
       }
     } catch (error) {
-      toast.error("Không thể phê duyệt kết quả khám");
+      toast.error("Unable to approve health check result");
     }
   };
 
@@ -145,14 +156,16 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
     try {
       const response = await completeHealthCheckResult(id);
       if (response.isSuccess) {
-        toast.success("Hoàn thành kết quả khám thành công!");
+        toast.success("Health check result completed successfully!");
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(response.message || "Không thể hoàn thành kết quả khám");
+        toast.error(
+          response.message || "Unable to complete health check result"
+        );
       }
     } catch (error) {
-      toast.error("Không thể hoàn thành kết quả khám");
+      toast.error("Unable to complete health check result");
     }
   };
 
@@ -161,14 +174,14 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
     try {
       const response = await cancelCompletelyHealthCheckResult(id, reason);
       if (response.isSuccess) {
-        toast.success("Hủy kết quả khám thành công!");
+        toast.success("Health check result cancelled successfully!");
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(response.message || "Không thể hủy kết quả khám");
+        toast.error(response.message || "Unable to cancel health check result");
       }
     } catch (error) {
-      toast.error("Không thể hủy kết quả khám");
+      toast.error("Unable to cancel health check result");
     }
   };
 
@@ -177,14 +190,19 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
     try {
       const response = await cancelForAdjustmentHealthCheckResult(id, reason);
       if (response.isSuccess) {
-        toast.success("Hủy kết quả khám để điều chỉnh thành công!");
+        toast.success(
+          "Health check result cancelled for adjustment successfully!"
+        );
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(response.message || "Không thể hủy kết quả khám để điều chỉnh");
+        toast.error(
+          response.message ||
+            "Unable to cancel health check result for adjustment"
+        );
       }
     } catch (error) {
-      toast.error("Không thể hủy kết quả khám để điều chỉnh");
+      toast.error("Unable to cancel health check result for adjustment");
     }
   };
 
@@ -194,15 +212,15 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
       const dateStr = moment(followUpDate).format("YYYY-MM-DD");
       const response = await scheduleFollowUp(id, dateStr);
       if (response.isSuccess) {
-        toast.success("Lên lịch tái khám thành công!");
+        toast.success("Follow-up scheduled successfully!");
         setShowFollowUpModal(false);
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(response.message || "Không thể lên lịch tái khám");
+        toast.error(response.message || "Unable to schedule follow-up");
       }
     } catch (error) {
-      toast.error("Không thể lên lịch tái khám");
+      toast.error("Unable to schedule follow-up");
     }
   };
 
@@ -211,14 +229,14 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
     try {
       const response = await cancelFollowUp(id);
       if (response.isSuccess) {
-        toast.success("Hủy lịch tái khám thành công!");
+        toast.success("Follow-up cancelled successfully!");
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(response.message || "Không thể hủy lịch tái khám");
+        toast.error(response.message || "Unable to cancel follow-up");
       }
     } catch (error) {
-      toast.error("Không thể hủy lịch tái khám");
+      toast.error("Unable to cancel follow-up");
     }
   };
 
@@ -226,46 +244,50 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
     if (!id) return;
     try {
       await exportHealthCheckResultHistoriesByResultIdToExcel(id);
-      toast.success("Xuất lịch sử kết quả khám ra Excel thành công!");
+      toast.success(
+        "Health check result history exported to Excel successfully!"
+      );
     } catch (error) {
-      toast.error("Không thể xuất lịch sử ra file Excel");
+      toast.error("Unable to export history to Excel file");
     }
   };
 
   const formatDate = (date: string | undefined) => {
-    if (!date) return '';
-    return moment(date).format('DD/MM/YYYY');
+    if (!date) return "";
+    return moment(date).format("DD/MM/YYYY");
   };
 
   const formatDateTime = (datetime: string | undefined) => {
-    if (!datetime) return '';
-    return moment(datetime).format('DD/MM/YYYY HH:mm:ss');
+    if (!datetime) return "";
+    return moment(datetime).format("DD/MM/YYYY HH:mm:ss");
   };
 
   const getStatusColor = (status: string | undefined) => {
     switch (status) {
-      case 'Completed':
-        return 'success';
-      case 'Approved':
-        return 'processing';
-      case 'Pending':
-        return 'warning';
-      case 'Cancelled':
-        return 'error';
-      case 'CancelledForAdjustment':
-        return 'orange';
-      case 'SoftDeleted':
-        return 'default';
+      case "Completed":
+        return "success";
+      case "Approved":
+        return "processing";
+      case "Pending":
+        return "warning";
+      case "Cancelled":
+        return "error";
+      case "CancelledForAdjustment":
+        return "orange";
+      case "SoftDeleted":
+        return "default";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const getActionColor = (action: string): string => {
-    if (action.includes('Created')) return 'green';
-    if (action.includes('Updated') || action.includes('Approved')) return 'blue';
-    if (action.includes('Cancelled') || action.includes('Rejected')) return 'red';
-    return 'gray';
+    if (action.includes("Created")) return "green";
+    if (action.includes("Updated") || action.includes("Approved"))
+      return "blue";
+    if (action.includes("Cancelled") || action.includes("Rejected"))
+      return "red";
+    return "gray";
   };
 
   const renderActionButtons = () => {
@@ -273,32 +295,33 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
 
     return (
       <Space wrap>
-        {healthCheckResult.status === 'Pending' && (
+        {healthCheckResult.status === "Pending" && (
           <Button
             type="primary"
             icon={<CheckCircleOutlined />}
             onClick={handleApprove}
           >
-            Phê duyệt
+            Approve
           </Button>
         )}
 
-        {healthCheckResult.status === 'Approved' && (
+        {healthCheckResult.status === "Approved" && (
           <Button
             type="primary"
             icon={<CheckSquareOutlined />}
             onClick={handleComplete}
           >
-            Hoàn thành
+            Complete
           </Button>
         )}
 
-        {(healthCheckResult.status === 'Pending' || healthCheckResult.status === 'Approved') && (
+        {(healthCheckResult.status === "Pending" ||
+          healthCheckResult.status === "Approved") && (
           <Popconfirm
-            title="Nhập lý do hủy"
+            title="Enter cancellation reason"
             description={
               <TextArea
-                placeholder="Lý do hủy"
+                placeholder="Cancellation reason"
                 onChange={(e) => {
                   (e.target as any).reason = e.target.value;
                 }}
@@ -307,24 +330,25 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
             }
             onConfirm={(e) => {
               const target = e?.target as any;
-              const reason = target?.reason || "Không có lý do";
+              const reason = target?.reason || "No reason provided";
               handleCancel(reason);
             }}
-            okText="Xác nhận"
-            cancelText="Hủy"
+            okText="Confirm"
+            cancelText="Cancel"
           >
             <Button danger icon={<CloseCircleOutlined />}>
-              Hủy
+              Cancel
             </Button>
           </Popconfirm>
         )}
 
-        {(healthCheckResult.status === 'Pending' || healthCheckResult.status === 'Approved') && (
+        {(healthCheckResult.status === "Pending" ||
+          healthCheckResult.status === "Approved") && (
           <Popconfirm
-            title="Nhập lý do hủy để điều chỉnh"
+            title="Enter reason for cancellation for adjustment"
             description={
               <TextArea
-                placeholder="Lý do hủy để điều chỉnh"
+                placeholder="Reason for cancellation for adjustment"
                 onChange={(e) => {
                   (e.target as any).reason = e.target.value;
                 }}
@@ -333,38 +357,40 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
             }
             onConfirm={(e) => {
               const target = e?.target as any;
-              const reason = target?.reason || "Không có lý do";
+              const reason = target?.reason || "No reason provided";
               handleCancelForAdjustment(reason);
             }}
-            okText="Xác nhận"
-            cancelText="Hủy"
+            okText="Confirm"
+            cancelText="Cancel"
           >
             <Button
               style={{ backgroundColor: "#FA8C16", color: "white" }}
               icon={<CloseSquareOutlined />}
             >
-              Hủy để điều chỉnh
+              Cancel for Adjustment
             </Button>
           </Popconfirm>
         )}
 
-        {(healthCheckResult.status === 'Approved' || healthCheckResult.status === 'Completed') && (
+        {(healthCheckResult.status === "Approved" ||
+          healthCheckResult.status === "Completed") && (
           <>
-            {healthCheckResult.followUpRequired && healthCheckResult.followUpDate ? (
-              <Button 
-                danger 
+            {healthCheckResult.followUpRequired &&
+            healthCheckResult.followUpDate ? (
+              <Button
+                danger
                 icon={<CalendarOutlined />}
                 onClick={handleCancelFollowUp}
               >
-                Hủy tái khám
+                Cancel Follow-up
               </Button>
             ) : (
-              <Button 
-                type="default" 
+              <Button
+                type="default"
                 icon={<CalendarOutlined />}
                 onClick={() => setShowFollowUpModal(true)}
               >
-                Lên lịch tái khám
+                Schedule Follow-up
               </Button>
             )}
           </>
@@ -375,7 +401,7 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
           icon={<FilePdfOutlined />}
           onClick={handleExportPDF}
         >
-          Xuất PDF
+          Export PDF
         </Button>
       </Space>
     );
@@ -395,14 +421,14 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
     return (
       <div className="p-6">
         <Card>
-          <Empty description="Không tìm thấy kết quả khám" />
+          <Empty description="Health check result not found" />
           <div className="text-center mt-4">
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               icon={<ArrowLeftOutlined />}
-              onClick={() => router.push('/health-check-result/management')}
+              onClick={() => router.push("/health-check-result/management")}
             >
-              Quay lại
+              Back
             </Button>
           </div>
         </Card>
@@ -416,16 +442,20 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
         <Row gutter={[16, 16]}>
           <Col span={24}>
             <Space align="center">
-              <Button 
-                icon={<ArrowLeftOutlined />} 
-                onClick={() => router.push('/health-check-result/management')}
+              <Button
+                icon={<ArrowLeftOutlined />}
+                onClick={() => router.push("/health-check-result/management")}
               >
-                Quay lại
+                Back
               </Button>
               <Title level={4} style={{ margin: 0 }}>
-                Chi tiết kết quả khám - {healthCheckResult.healthCheckResultCode}
+                Health Check Result Details -{" "}
+                {healthCheckResult.healthCheckResultCode}
               </Title>
-              <Tag color={getStatusColor(healthCheckResult.status)} className="ml-2">
+              <Tag
+                color={getStatusColor(healthCheckResult.status)}
+                className="ml-2"
+              >
                 {healthCheckResult.status}
               </Tag>
             </Space>
@@ -434,62 +464,74 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
             <Divider />
           </Col>
           <Col xs={24} md={12}>
-            <Descriptions title="Thông tin bệnh nhân" bordered column={1} size="small">
-              <Descriptions.Item label="Họ tên">
+            <Descriptions
+              title="Patient Information"
+              bordered
+              column={1}
+              size="small"
+            >
+              <Descriptions.Item label="Full Name">
                 {healthCheckResult.user.fullName}
               </Descriptions.Item>
               <Descriptions.Item label="Email">
                 {healthCheckResult.user.email}
               </Descriptions.Item>
-              <Descriptions.Item label="Giới tính">
-                {healthCheckResult.user.gender || "Không có thông tin"}
+              <Descriptions.Item label="Gender">
+                {healthCheckResult.user.gender || "No information"}
               </Descriptions.Item>
-              <Descriptions.Item label="Ngày sinh">
-                {healthCheckResult.user.dob ? formatDate(healthCheckResult.user.dob) : "Không có thông tin"}
+              <Descriptions.Item label="Date of Birth">
+                {healthCheckResult.user.dob
+                  ? formatDate(healthCheckResult.user.dob)
+                  : "No information"}
               </Descriptions.Item>
-              <Descriptions.Item label="Địa chỉ">
-                {healthCheckResult.user.address || "Không có thông tin"}
+              <Descriptions.Item label="Address">
+                {healthCheckResult.user.address || "No information"}
               </Descriptions.Item>
-              <Descriptions.Item label="Điện thoại">
-                {healthCheckResult.user.phone || "Không có thông tin"}
+              <Descriptions.Item label="Phone">
+                {healthCheckResult.user.phone || "No information"}
               </Descriptions.Item>
             </Descriptions>
           </Col>
           <Col xs={24} md={12}>
-            <Descriptions title="Thông tin khám" bordered column={1} size="small">
-              <Descriptions.Item label="Mã kết quả khám">
+            <Descriptions
+              title="Health Check Information"
+              bordered
+              column={1}
+              size="small"
+            >
+              <Descriptions.Item label="Health Check Result Code">
                 {healthCheckResult.healthCheckResultCode}
               </Descriptions.Item>
-              <Descriptions.Item label="Ngày khám">
+              <Descriptions.Item label="Checkup Date">
                 {formatDate(healthCheckResult.checkupDate)}
               </Descriptions.Item>
-              <Descriptions.Item label="Bác sĩ/Y tá phụ trách">
+              <Descriptions.Item label="Doctor/Nurse In Charge">
                 {healthCheckResult.staff.fullName}
               </Descriptions.Item>
-              <Descriptions.Item label="Tái khám">
+              <Descriptions.Item label="Follow-Up">
                 {healthCheckResult.followUpRequired ? (
                   <Space>
-                    <Badge status="processing" text="Yêu cầu tái khám" />
+                    <Badge status="processing" text="Follow-up required" />
                     {healthCheckResult.followUpDate
                       ? formatDate(healthCheckResult.followUpDate)
-                      : "Chưa lên lịch"}
+                      : "Not scheduled yet"}
                   </Space>
                 ) : (
-                  <Badge status="default" text="Không yêu cầu tái khám" />
+                  <Badge status="default" text="No follow-up required" />
                 )}
               </Descriptions.Item>
-              <Descriptions.Item label="Ngày tạo">
+              <Descriptions.Item label="Created Date">
                 {formatDateTime(healthCheckResult.createdAt)}
               </Descriptions.Item>
-              <Descriptions.Item label="Cập nhật lần cuối">
+              <Descriptions.Item label="Last Updated">
                 {healthCheckResult.updatedAt
                   ? formatDateTime(healthCheckResult.updatedAt)
-                  : "Chưa cập nhật"}
+                  : "Not updated yet"}
               </Descriptions.Item>
-              <Descriptions.Item label="Người cập nhật">
+              <Descriptions.Item label="Updated By">
                 {healthCheckResult.updatedByUser
                   ? healthCheckResult.updatedByUser.fullName
-                  : "Không có thông tin"}
+                  : "No information"}
               </Descriptions.Item>
             </Descriptions>
           </Col>
@@ -504,37 +546,46 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
         <TabPane
           tab={
             <span>
-              <FileTextOutlined /> Chi tiết kết quả khám
+              <FileTextOutlined /> Health Check Details
             </span>
           }
           key="details"
         >
           <Card>
             {healthCheckResult.healthCheckResultDetails.length > 0 ? (
-              healthCheckResult.healthCheckResultDetails.map((detail, index) => (
-                <div key={detail.id} className="mb-4">
-                  <Title level={5}>Chi tiết #{index + 1}</Title>
-                  <Descriptions bordered column={{ xs: 1, sm: 2 }} size="small">
-                    <Descriptions.Item label="Tóm tắt kết quả" span={2}>
-                      {detail.resultSummary}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Chẩn đoán" span={2}>
-                      {detail.diagnosis}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Khuyến nghị" span={2}>
-                      {detail.recommendations}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Trạng thái">
-                      <Tag color={getStatusColor(detail.status)}>{detail.status}</Tag>
-                    </Descriptions.Item>
-                  </Descriptions>
-                  {index < healthCheckResult.healthCheckResultDetails.length - 1 && (
-                    <Divider />
-                  )}
-                </div>
-              ))
+              healthCheckResult.healthCheckResultDetails.map(
+                (detail, index) => (
+                  <div key={detail.id} className="mb-4">
+                    <Title level={5}>Detail #{index + 1}</Title>
+                    <Descriptions
+                      bordered
+                      column={{ xs: 1, sm: 2 }}
+                      size="small"
+                    >
+                      <Descriptions.Item label="Result Summary" span={2}>
+                        {detail.resultSummary}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Diagnosis" span={2}>
+                        {detail.diagnosis}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Recommendations" span={2}>
+                        {detail.recommendations}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Status">
+                        <Tag color={getStatusColor(detail.status)}>
+                          {detail.status}
+                        </Tag>
+                      </Descriptions.Item>
+                    </Descriptions>
+                    {index <
+                      healthCheckResult.healthCheckResultDetails.length - 1 && (
+                      <Divider />
+                    )}
+                  </div>
+                )
+              )
             ) : (
-              <Empty description="Không có chi tiết kết quả khám" />
+              <Empty description="No health check details available" />
             )}
           </Card>
         </TabPane>
@@ -542,7 +593,7 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
         <TabPane
           tab={
             <span>
-              <MedicineBoxOutlined /> Đơn thuốc
+              <MedicineBoxOutlined /> Prescriptions
             </span>
           }
           key="prescriptions"
@@ -558,19 +609,27 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
                       <Button
                         key="view"
                         type="link"
-                        onClick={() => message.info("Chức năng chưa được triển khai")}
+                        onClick={() =>
+                          message.info("This feature is not yet implemented")
+                        }
                       >
-                        Xem chi tiết
+                        View Details
                       </Button>,
                     ]}
                   >
                     <List.Item.Meta
                       avatar={<MedicineBoxOutlined style={{ fontSize: 24 }} />}
-                      title={`Đơn thuốc ngày ${formatDate(item.prescriptionDate)}`}
+                      title={`Prescription date ${formatDate(
+                        item.prescriptionDate
+                      )}`}
                       description={
                         <Space direction="vertical">
-                          <Text>Số lượng thuốc: {item.totalMedicines}</Text>
-                          <Tag color={getStatusColor(item.status)}>{item.status}</Tag>
+                          <Text>
+                            Number of medicines: {item.totalMedicines}
+                          </Text>
+                          <Tag color={getStatusColor(item.status)}>
+                            {item.status}
+                          </Tag>
                         </Space>
                       }
                     />
@@ -578,7 +637,7 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
                 )}
               />
             ) : (
-              <Empty description="Không có đơn thuốc" />
+              <Empty description="No prescriptions available" />
             )}
           </Card>
         </TabPane>
@@ -586,7 +645,7 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
         <TabPane
           tab={
             <span>
-              <ClockCircleOutlined /> Kế hoạch điều trị
+              <ClockCircleOutlined /> Treatment Plans
             </span>
           }
           key="treatments"
@@ -602,15 +661,19 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
                       <Button
                         key="view"
                         type="link"
-                        onClick={() => message.info("Chức năng chưa được triển khai")}
+                        onClick={() =>
+                          message.info("This feature is not yet implemented")
+                        }
                       >
-                        Xem chi tiết
+                        View Details
                       </Button>,
                     ]}
                   >
                     <List.Item.Meta
                       avatar={<ClockCircleOutlined style={{ fontSize: 24 }} />}
-                      title={`Kế hoạch từ ${formatDate(item.startDate)} đến ${formatDate(item.endDate)}`}
+                      title={`Plan from ${formatDate(
+                        item.startDate
+                      )} to ${formatDate(item.endDate)}`}
                       description={
                         <Space direction="vertical">
                           <Text>{item.treatmentDescription}</Text>
@@ -620,8 +683,8 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
                             </Tag>
                             <Text type="secondary">
                               {item.daysRemaining > 0
-                                ? `Còn ${item.daysRemaining} ngày`
-                                : "Đã kết thúc"}
+                                ? `${item.daysRemaining} days remaining`
+                                : "Completed"}
                             </Text>
                           </Space>
                         </Space>
@@ -631,7 +694,7 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
                 )}
               />
             ) : (
-              <Empty description="Không có kế hoạch điều trị" />
+              <Empty description="No treatment plans available" />
             )}
           </Card>
         </TabPane>
@@ -639,7 +702,7 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
         <TabPane
           tab={
             <span>
-              <HistoryOutlined /> Lịch sử
+              <HistoryOutlined /> History
             </span>
           }
           key="history"
@@ -647,64 +710,70 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
           <Card className="shadow-sm">
             <Row justify="space-between" align="middle" className="mb-4">
               <Col>
-                <Title level={5}>Lịch sử kết quả khám</Title>
+                <Title level={5}>Health Check Result History</Title>
               </Col>
               <Col>
-                <Button 
-                  type="primary" 
-                  icon={<FileExcelOutlined />} 
+                <Button
+                  type="primary"
+                  icon={<FileExcelOutlined />}
                   onClick={handleExportHistoryToExcel}
                 >
-                  Xuất Excel
+                  Export to Excel
                 </Button>
               </Col>
             </Row>
-            
+
             {historiesLoading ? (
               <Skeleton active paragraph={{ rows: 6 }} />
             ) : histories.length > 0 ? (
               <Timeline>
                 {histories.map((history) => (
-                  <Timeline.Item 
+                  <Timeline.Item
                     key={history.id}
                     color={getActionColor(history.action)}
                   >
                     <div className="flex flex-col">
                       <Text strong>{history.action}</Text>
                       <Text type="secondary">
-                        {formatDateTime(history.actionDate)} bởi {history.performedBy?.fullName}
+                        {formatDateTime(history.actionDate)} by{" "}
+                        {history.performedBy?.fullName}
                       </Text>
                       {history.previousStatus && history.newStatus && (
                         <Text>
-                          Trạng thái: <Tag color={getStatusColor(history.previousStatus)}>{history.previousStatus}</Tag>
+                          Status:{" "}
+                          <Tag color={getStatusColor(history.previousStatus)}>
+                            {history.previousStatus}
+                          </Tag>
                           {" → "}
-                          <Tag color={getStatusColor(history.newStatus)}>{history.newStatus}</Tag>
+                          <Tag color={getStatusColor(history.newStatus)}>
+                            {history.newStatus}
+                          </Tag>
                         </Text>
                       )}
                       {history.rejectionReason && (
-                        <Text>Lý do: {history.rejectionReason}</Text>
+                        <Text>Reason: {history.rejectionReason}</Text>
                       )}
                       {history.changeDetails && (
-                        <Text>Chi tiết: {history.changeDetails}</Text>
+                        <Text>Details: {history.changeDetails}</Text>
                       )}
                     </div>
                   </Timeline.Item>
                 ))}
               </Timeline>
             ) : (
-              <Empty description="Không có lịch sử" />
+              <Empty description="No history available" />
             )}
           </Card>
         </TabPane>
       </Tabs>
 
       <Modal
-        title="Lên lịch tái khám"
+        title="Schedule Follow-up"
         open={showFollowUpModal}
         onCancel={() => setShowFollowUpModal(false)}
         onOk={handleScheduleFollowUp}
-        okText="Xác nhận"
-        cancelText="Hủy"
+        okText="Confirm"
+        cancelText="Cancel"
       >
         <div className="mt-4">
           <Input
@@ -717,4 +786,4 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
       </Modal>
     </div>
   );
-}; 
+};

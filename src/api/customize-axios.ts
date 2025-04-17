@@ -14,6 +14,41 @@ interface ErrorResponse {
   headers?: any;
 }
 
+// Helper function to extract useful error messages from API responses
+function extractErrorMessage(error: any): string {
+  let errorMessage = "An error occurred";
+  
+  if (!error.response || !error.response.data) {
+    return error.message || errorMessage;
+  }
+  
+  const responseData = error.response.data;
+  
+  // Handle different error response formats
+  if (typeof responseData === 'string') {
+    errorMessage = responseData;
+  } 
+  else if (responseData.message) {
+    errorMessage = responseData.message;
+  }
+  else if (responseData.error) {
+    errorMessage = responseData.error;
+  }
+  else if (responseData.detail) {
+    errorMessage = responseData.detail;
+  }
+  else if (responseData.errors && Array.isArray(responseData.errors)) {
+    errorMessage = responseData.errors.map((e: any) => 
+      e.message || e.error || e
+    ).join(', ');
+  }
+  else if (responseData.responseStatus && responseData.responseFailed) {
+    errorMessage = responseData.responseFailed;
+  }
+  
+  return errorMessage;
+}
+
 instance.interceptors.request.use(
   (config) => {
     const token = Cookies.get("token");
@@ -61,6 +96,18 @@ instance.interceptors.response.use(
       console.error("Error Response Status:", error.response.status);
       console.error("Error Response Data:", error.response.data);
       console.error('Response data:', error.response?.data);
+      
+      // Create a sanitized error object for all API errors
+      // This prevents them from becoming unhandled exceptions in React
+      const sanitizedError = {
+        ...error,
+        isHandled: true,
+        // Extract a user-friendly message
+        message: extractErrorMessage(error)
+      };
+      
+      // Return the sanitized error object
+      return Promise.reject(sanitizedError);
     } else if (error.request) {
       console.error("Error Request (No Response):", error.request);
     } else {
@@ -82,8 +129,19 @@ export const setupSignalRConnection = (
 ): HubConnection => {
   const token = Cookies.get("token");
   if (!token) {
-    console.error("No token available for SignalR connection.");
-    throw new Error("Authentication token is missing.");
+    console.warn("No token available for SignalR connection. Returning a dummy connection.");
+    // Trả về một đối tượng giả với các phương thức cần thiết
+    return {
+      on: () => {},
+      off: () => {},
+      start: () => Promise.resolve(),
+      stop: () => Promise.resolve(),
+      state: {},
+      onreconnecting: () => {},
+      onreconnected: () => {},
+      onclose: () => {},
+      invoke: () => Promise.resolve(),
+    } as unknown as HubConnection;
   }
 
   const connection = new HubConnectionBuilder()

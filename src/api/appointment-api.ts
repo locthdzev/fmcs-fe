@@ -1202,7 +1202,7 @@ import { Typography } from "antd";
         try {
           await connection.start();
           console.log("SignalR: Connected to /appointmentHub");
-          if (role === "HealthcareStaff" || role === "ADMIN") {
+          if (role === "Healthcare Staff" || role === "Admin") {
             const staffId = userId;
             await connection.invoke("SubscribeToStaffUpdates", staffId);
             console.log(`SignalR: Subscribed to Staff_${staffId} group`);

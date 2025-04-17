@@ -30,6 +30,19 @@ export interface UpdateCanteenItemsDTO {
     status?: string;
 }
 
+export interface CanteenItemExportConfigDTO {
+    includeId: boolean;
+    includeItemName: boolean;
+    includeDescription: boolean;
+    includeUnitPrice: boolean;
+    includeAvailable: boolean;
+    includeImageUrl: boolean;
+    includeCreatedAt: boolean;
+    includeUpdatedAt: boolean;
+    includeStatus: boolean;
+    fileName?: string;
+}
+
 export const getAllCanteenItems = async () => {
     try {
         const response = await api.get('/canteen-items-management/canteen-items');
@@ -141,6 +154,19 @@ export const deactivateCanteenItems = async (canteenItemIds: string[]) => {
         );
         return response.data;
     } catch (error) {
+        throw error;
+    }
+};
+
+export const exportCanteenItemsToExcel = async (config: CanteenItemExportConfigDTO) => {
+    try {
+        const response = await api.post(
+            "/canteen-items-management/canteen-items/export-excel",
+            config
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error exporting canteen items to Excel:", error);
         throw error;
     }
 };

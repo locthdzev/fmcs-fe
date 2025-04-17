@@ -28,7 +28,7 @@ import {
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
-import { Pie, Bar } from 'react-chartjs-2';
+import { Pie, Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -40,7 +40,7 @@ import {
   LineElement,
   BarElement,
   Title as ChartTitle,
-} from 'chart.js';
+} from "chart.js";
 import {
   getAllPrescriptions,
   getPrescriptionStatistics,
@@ -53,17 +53,17 @@ import {
 } from "@/api/prescription";
 import { getUsers, UserProfile } from "@/api/user";
 import { getDrugs, DrugResponse } from "@/api/drug";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
 import CreateModal from "./CreateModal";
 import ExportConfigModal from "./ExportConfigModal";
-import { 
-  DownOutlined, 
-  SearchOutlined, 
+import {
+  DownOutlined,
+  SearchOutlined,
   SettingOutlined,
   PlusOutlined,
   ExportOutlined,
   EyeOutlined,
-  EditOutlined,
+  FormOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   DeleteOutlined,
@@ -109,13 +109,13 @@ const PRESCRIPTION_STATUS = {
 
 // Helper functions
 const formatDate = (date: string | undefined) => {
-  if (!date) return '';
-  return moment(date).format('DD/MM/YYYY');
+  if (!date) return "";
+  return moment(date).format("DD/MM/YYYY");
 };
 
 const formatDateTime = (datetime: string | undefined) => {
-  if (!datetime) return '';
-  return moment(datetime).format('DD/MM/YYYY HH:mm:ss');
+  if (!datetime) return "";
+  return moment(datetime).format("DD/MM/YYYY HH:mm:ss");
 };
 
 const DEFAULT_VISIBLE_COLUMNS = [
@@ -148,29 +148,32 @@ const DEFAULT_EXPORT_CONFIG = {
 const getStatusColor = (status: string | undefined) => {
   switch (status) {
     case PRESCRIPTION_STATUS.DISPENSED:
-      return 'processing';
+      return "processing";
     case PRESCRIPTION_STATUS.UPDATED:
-      return 'warning';
+      return "warning";
     case PRESCRIPTION_STATUS.USED:
-      return 'success';
+      return "success";
     case PRESCRIPTION_STATUS.UPDATED_AND_USED:
-      return 'success';
+      return "success";
     case PRESCRIPTION_STATUS.INACTIVE:
-      return 'default';
+      return "default";
     case PRESCRIPTION_STATUS.CANCELLED:
-      return 'error';
+      return "error";
     case PRESCRIPTION_STATUS.SOFT_DELETED:
-      return 'default';
+      return "default";
     default:
-      return 'default';
+      return "default";
   }
 };
 
 // Component definition
 export function PrescriptionManagement() {
   const router = useRouter();
-  const [prescriptions, setPrescriptions] = useState<PrescriptionResponseDTO[]>([]);
-  const [statistics, setStatistics] = useState<PrescriptionStatisticsDTO | null>(null);
+  const [prescriptions, setPrescriptions] = useState<PrescriptionResponseDTO[]>(
+    []
+  );
+  const [statistics, setStatistics] =
+    useState<PrescriptionStatisticsDTO | null>(null);
   const [loading, setLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
@@ -178,21 +181,36 @@ export function PrescriptionManagement() {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [prescriptionCodeSearch, setPrescriptionCodeSearch] = useState("");
-  const [healthCheckResultCodeSearch, setHealthCheckResultCodeSearch] = useState("");
+  const [healthCheckResultCodeSearch, setHealthCheckResultCodeSearch] =
+    useState("");
   const [userSearch, setUserSearch] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
   const [drugSearch, setDrugSearch] = useState("");
   const [updatedBySearch, setUpdatedBySearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(
+    undefined
+  );
   const [sortBy, setSortBy] = useState("PrescriptionDate");
   const [ascending, setAscending] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(DEFAULT_VISIBLE_COLUMNS);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(
+    DEFAULT_VISIBLE_COLUMNS
+  );
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [prescriptionDateRange, setPrescriptionDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
-  const [createdDateRange, setCreatedDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
-  const [updatedDateRange, setUpdatedDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
-  const [userOptions, setUserOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
-  const [staffOptions, setStaffOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
+  const [prescriptionDateRange, setPrescriptionDateRange] = useState<
+    [moment.Moment | null, moment.Moment | null]
+  >([null, null]);
+  const [createdDateRange, setCreatedDateRange] = useState<
+    [moment.Moment | null, moment.Moment | null]
+  >([null, null]);
+  const [updatedDateRange, setUpdatedDateRange] = useState<
+    [moment.Moment | null, moment.Moment | null]
+  >([null, null]);
+  const [userOptions, setUserOptions] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
+  const [staffOptions, setStaffOptions] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
   const [drugOptions, setDrugOptions] = useState<DrugResponse[]>([]);
   const [showExportConfigModal, setShowExportConfigModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
@@ -203,12 +221,14 @@ export function PrescriptionManagement() {
   const fetchPrescriptions = useCallback(async () => {
     setLoading(true);
     try {
-      const prescriptionStartDate = prescriptionDateRange[0]?.format('YYYY-MM-DD');
-      const prescriptionEndDate = prescriptionDateRange[1]?.format('YYYY-MM-DD');
-      const createdStartDate = createdDateRange[0]?.format('YYYY-MM-DD');
-      const createdEndDate = createdDateRange[1]?.format('YYYY-MM-DD');
-      const updatedStartDate = updatedDateRange[0]?.format('YYYY-MM-DD');
-      const updatedEndDate = updatedDateRange[1]?.format('YYYY-MM-DD');
+      const prescriptionStartDate =
+        prescriptionDateRange[0]?.format("YYYY-MM-DD");
+      const prescriptionEndDate =
+        prescriptionDateRange[1]?.format("YYYY-MM-DD");
+      const createdStartDate = createdDateRange[0]?.format("YYYY-MM-DD");
+      const createdEndDate = createdDateRange[1]?.format("YYYY-MM-DD");
+      const updatedStartDate = updatedDateRange[0]?.format("YYYY-MM-DD");
+      const updatedEndDate = updatedDateRange[1]?.format("YYYY-MM-DD");
 
       const response = await getAllPrescriptions(
         currentPage,
@@ -230,10 +250,10 @@ export function PrescriptionManagement() {
         updatedEndDate
       );
 
-      console.log('API Response:', response); // Debug
+      console.log("API Response:", response); // Debug
 
       if (response.success) {
-        console.log('Setting prescriptions:', response.data); // Debug
+        console.log("Setting prescriptions:", response.data); // Debug
         setPrescriptions(response.data.items || response.data);
         setTotal(response.data.totalCount || response.data.length || 0);
       } else {
@@ -291,10 +311,12 @@ export function PrescriptionManagement() {
             email: user.email,
           }))
       );
-      
+
       setStaffOptions(
         users
-          .filter((user: UserProfile) => user.roles.includes("Healthcare Staff"))
+          .filter((user: UserProfile) =>
+            user.roles.includes("Healthcare Staff")
+          )
           .map((user: UserProfile) => ({
             id: user.id,
             fullName: user.fullName,
@@ -326,13 +348,7 @@ export function PrescriptionManagement() {
 
   useEffect(() => {
     fetchPrescriptions();
-  }, [
-    currentPage,
-    pageSize,
-    sortBy,
-    ascending,
-    statusFilter,
-  ]);
+  }, [currentPage, pageSize, sortBy, ascending, statusFilter]);
 
   // Display functions
   const handleSearch = () => {
@@ -425,7 +441,9 @@ export function PrescriptionManagement() {
 
   const handleBulkDelete = async () => {
     try {
-      const response = await softDeletePrescriptions(selectedRowKeys as string[]);
+      const response = await softDeletePrescriptions(
+        selectedRowKeys as string[]
+      );
       if (response.success) {
         toast.success("Selected prescriptions soft deleted successfully");
         setSelectedRowKeys([]);
@@ -442,7 +460,9 @@ export function PrescriptionManagement() {
 
   const handleBulkRestore = async () => {
     try {
-      const response = await restoreSoftDeletedPrescriptions(selectedRowKeys as string[]);
+      const response = await restoreSoftDeletedPrescriptions(
+        selectedRowKeys as string[]
+      );
       if (response.success) {
         toast.success("Selected prescriptions restored successfully");
         setSelectedRowKeys([]);
@@ -478,7 +498,10 @@ export function PrescriptionManagement() {
   };
 
   const canSoftDeletePrescription = (status: string | undefined) => {
-    return status === PRESCRIPTION_STATUS.USED || status === PRESCRIPTION_STATUS.UPDATED_AND_USED;
+    return (
+      status === PRESCRIPTION_STATUS.USED ||
+      status === PRESCRIPTION_STATUS.UPDATED_AND_USED
+    );
   };
 
   const canRestorePrescription = (status: string | undefined) => {
@@ -488,9 +511,7 @@ export function PrescriptionManagement() {
   // Render functions for tables and charts
   const renderStatusTag = (status: string | undefined) => {
     if (!status) return null;
-    return (
-      <Tag color={getStatusColor(status)}>{status}</Tag>
-    );
+    return <Tag color={getStatusColor(status)}>{status}</Tag>;
   };
 
   const renderMedicineUser = (healthCheckResult: any) => {
@@ -498,7 +519,9 @@ export function PrescriptionManagement() {
     const user = healthCheckResult.user;
     return (
       <div>
-        <div><strong>{user.fullName}</strong></div>
+        <div>
+          <strong>{user.fullName}</strong>
+        </div>
         <div>{user.email}</div>
       </div>
     );
@@ -508,7 +531,9 @@ export function PrescriptionManagement() {
     if (!staff) return "N/A";
     return (
       <div>
-        <div><strong>{staff.fullName}</strong></div>
+        <div>
+          <strong>{staff.fullName}</strong>
+        </div>
         <div>{staff.email}</div>
       </div>
     );
@@ -517,29 +542,29 @@ export function PrescriptionManagement() {
   const renderActionButtons = (record: PrescriptionResponseDTO) => {
     return (
       <Space size="small">
-        <Button 
-          type="text" 
-          icon={<EyeOutlined />} 
+        <Button
+          type="text"
+          icon={<EyeOutlined />}
           onClick={() => router.push(`/prescription/${record.id}`)}
-          title="View Details" 
+          title="View Details"
         />
-        
+
         {canEditPrescription(record.status) && (
-          <Button 
-            type="text" 
-            icon={<EditOutlined />} 
+          <Button
+            type="text"
+            icon={<FormOutlined />}
             onClick={() => router.push(`/prescription/${record.id}?edit=true`)}
-            title="Edit Prescription" 
+            title="Edit Prescription"
           />
         )}
-        
+
         {canCancelPrescription(record.status) && (
           <Popconfirm
             title="Cancel Prescription"
             description={
               <div>
                 <p>Are you sure you want to cancel this prescription?</p>
-                <Input.TextArea 
+                <Input.TextArea
                   placeholder="Reason for cancellation"
                   id={`cancel-reason-${record.id}`}
                   rows={3}
@@ -549,7 +574,9 @@ export function PrescriptionManagement() {
             okText="Yes"
             cancelText="No"
             onConfirm={() => {
-              const reasonElement = document.getElementById(`cancel-reason-${record.id}`) as HTMLTextAreaElement;
+              const reasonElement = document.getElementById(
+                `cancel-reason-${record.id}`
+              ) as HTMLTextAreaElement;
               if (reasonElement && reasonElement.value) {
                 handleCancel(record.id, reasonElement.value);
               } else {
@@ -557,15 +584,15 @@ export function PrescriptionManagement() {
               }
             }}
           >
-            <Button 
-              type="text" 
-              danger 
-              icon={<CloseCircleOutlined />} 
-              title="Cancel Prescription" 
+            <Button
+              type="text"
+              danger
+              icon={<CloseCircleOutlined />}
+              title="Cancel Prescription"
             />
           </Popconfirm>
         )}
-        
+
         {canSoftDeletePrescription(record.status) && (
           <Popconfirm
             title="Soft Delete Prescription"
@@ -574,15 +601,15 @@ export function PrescriptionManagement() {
             cancelText="No"
             onConfirm={() => handleSoftDelete(record.id)}
           >
-            <Button 
-              type="text" 
-              danger 
-              icon={<DeleteOutlined />} 
-              title="Soft Delete" 
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              title="Soft Delete"
             />
           </Popconfirm>
         )}
-        
+
         {canRestorePrescription(record.status) && (
           <Popconfirm
             title="Restore Prescription"
@@ -591,11 +618,7 @@ export function PrescriptionManagement() {
             cancelText="No"
             onConfirm={() => handleRestore(record.id)}
           >
-            <Button 
-              type="text" 
-              icon={<UndoOutlined />} 
-              title="Restore" 
-            />
+            <Button type="text" icon={<UndoOutlined />} title="Restore" />
           </Popconfirm>
         )}
       </Space>
@@ -609,8 +632,8 @@ export function PrescriptionManagement() {
       dataIndex: "prescriptionCode",
       key: "prescriptionCode",
       render: (text: string, record: PrescriptionResponseDTO) => (
-        <Button 
-          type="link" 
+        <Button
+          type="link"
           onClick={() => router.push(`/prescription/${record.id}`)}
         >
           {text}
@@ -622,23 +645,29 @@ export function PrescriptionManagement() {
       title: "Health Check Code",
       dataIndex: ["healthCheckResult", "healthCheckResultCode"],
       key: "healthCheckResultCode",
-      render: (text: string, record: PrescriptionResponseDTO) => (
+      render: (text: string, record: PrescriptionResponseDTO) =>
         record.healthCheckResult ? (
-          <Button 
-            type="link" 
-            onClick={() => router.push(`/health-check-result/${record.healthCheckResult?.id}`)}
+          <Button
+            type="link"
+            onClick={() =>
+              router.push(
+                `/health-check-result/${record.healthCheckResult?.id}`
+              )
+            }
           >
             {text}
           </Button>
-        ) : "N/A"
-      ),
+        ) : (
+          "N/A"
+        ),
       visible: visibleColumns.includes("healthCheckResultCode"),
     },
     {
       title: "Medicine User",
       dataIndex: ["healthCheckResult", "user"],
       key: "user",
-      render: (_: any, record: PrescriptionResponseDTO) => renderMedicineUser(record.healthCheckResult),
+      render: (_: any, record: PrescriptionResponseDTO) =>
+        renderMedicineUser(record.healthCheckResult),
       visible: visibleColumns.includes("user"),
     },
     {
@@ -673,7 +702,7 @@ export function PrescriptionManagement() {
       title: "Updated By",
       dataIndex: "updatedBy",
       key: "updatedBy",
-      render: (updatedBy: any) => updatedBy ? renderStaff(updatedBy) : "N/A",
+      render: (updatedBy: any) => (updatedBy ? renderStaff(updatedBy) : "N/A"),
       visible: visibleColumns.includes("updatedBy"),
     },
     {
@@ -686,7 +715,8 @@ export function PrescriptionManagement() {
     {
       title: "Actions",
       key: "actions",
-      render: (_: any, record: PrescriptionResponseDTO) => renderActionButtons(record),
+      render: (_: any, record: PrescriptionResponseDTO) =>
+        renderActionButtons(record),
       visible: visibleColumns.includes("actions"),
     },
   ].filter((column) => column.visible);
@@ -702,9 +732,7 @@ export function PrescriptionManagement() {
     }
 
     if (!statistics) {
-      return (
-        <Empty description="No statistics available" />
-      );
+      return <Empty description="No statistics available" />;
     }
 
     return (
@@ -750,12 +778,13 @@ export function PrescriptionManagement() {
         </Row>
 
         <Divider />
-        
+
         <Row gutter={[16, 16]}>
           <Col xs={24} md={12}>
             <Card title="Prescriptions by Status">
               <div style={{ height: 300 }}>
-                {statistics.prescriptionsByStatus && Object.keys(statistics.prescriptionsByStatus).length > 0 ? (
+                {statistics.prescriptionsByStatus &&
+                Object.keys(statistics.prescriptionsByStatus).length > 0 ? (
                   <Pie
                     data={{
                       labels: Object.keys(statistics.prescriptionsByStatus),
@@ -763,13 +792,13 @@ export function PrescriptionManagement() {
                         {
                           data: Object.values(statistics.prescriptionsByStatus),
                           backgroundColor: [
-                            '#36A2EB',
-                            '#FFCE56',
-                            '#4BC0C0',
-                            '#FF6384',
-                            '#9966FF',
-                            '#FF9F40',
-                            '#C9CBCF',
+                            "#36A2EB",
+                            "#FFCE56",
+                            "#4BC0C0",
+                            "#FF6384",
+                            "#9966FF",
+                            "#FF9F40",
+                            "#C9CBCF",
                           ],
                         },
                       ],
@@ -788,15 +817,16 @@ export function PrescriptionManagement() {
           <Col xs={24} md={12}>
             <Card title="Prescriptions by Month">
               <div style={{ height: 300 }}>
-                {statistics.prescriptionsByMonth && Object.keys(statistics.prescriptionsByMonth).length > 0 ? (
+                {statistics.prescriptionsByMonth &&
+                Object.keys(statistics.prescriptionsByMonth).length > 0 ? (
                   <Bar
                     data={{
                       labels: Object.keys(statistics.prescriptionsByMonth),
                       datasets: [
                         {
-                          label: 'Prescriptions',
+                          label: "Prescriptions",
                           data: Object.values(statistics.prescriptionsByMonth),
-                          backgroundColor: '#36A2EB',
+                          backgroundColor: "#36A2EB",
                         },
                       ],
                     }}
@@ -820,26 +850,26 @@ export function PrescriptionManagement() {
   return (
     <div className="p-4">
       <Title level={2}>Prescription Management</Title>
-      
+
       {/* Statistics Section */}
       <div className="mb-8">
         <Title level={4}>Statistics</Title>
         {renderStatistics()}
       </div>
-      
+
       <Divider />
-      
+
       {/* Toolbar Section */}
       <div className="flex flex-wrap justify-between mb-4">
         <div className="flex flex-wrap gap-2 mb-4">
-          <Button 
-            type="primary" 
+          <Button
+            type="primary"
             icon={<PlusOutlined />}
             onClick={() => setIsCreateModalVisible(true)}
           >
             Create New Prescription
           </Button>
-          
+
           {selectedRowKeys.length > 0 && (
             <>
               <Popconfirm
@@ -853,7 +883,7 @@ export function PrescriptionManagement() {
                   Soft Delete Selected ({selectedRowKeys.length})
                 </Button>
               </Popconfirm>
-              
+
               <Popconfirm
                 title="Restore Selected Prescriptions"
                 description={`Are you sure you want to restore ${selectedRowKeys.length} selected prescriptions?`}
@@ -867,14 +897,11 @@ export function PrescriptionManagement() {
               </Popconfirm>
             </>
           )}
-          
-          <Button 
-            icon={<ExportOutlined />}
-            onClick={handleOpenExportConfig}
-          >
+
+          <Button icon={<ExportOutlined />} onClick={handleOpenExportConfig}>
             Export to Excel
           </Button>
-          
+
           <Dropdown
             overlay={
               <Menu>
@@ -909,7 +936,7 @@ export function PrescriptionManagement() {
           </Dropdown>
         </div>
       </div>
-      
+
       {/* Filters Section */}
       <div className="mb-6 bg-gray-50 p-4 rounded">
         <Title level={5}>Search & Filters</Title>
@@ -923,7 +950,7 @@ export function PrescriptionManagement() {
               allowClear
             />
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <Input
               placeholder="Search by Health Check Code"
@@ -933,7 +960,7 @@ export function PrescriptionManagement() {
               allowClear
             />
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <Select
               showSearch
@@ -949,7 +976,7 @@ export function PrescriptionManagement() {
               }))}
             />
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <Select
               showSearch
@@ -965,7 +992,7 @@ export function PrescriptionManagement() {
               }))}
             />
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <Select
               showSearch
@@ -981,7 +1008,7 @@ export function PrescriptionManagement() {
               }))}
             />
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <Select
               showSearch
@@ -997,7 +1024,7 @@ export function PrescriptionManagement() {
               }))}
             />
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <Select
               placeholder="Filter by Status"
@@ -1013,39 +1040,55 @@ export function PrescriptionManagement() {
               ))}
             </Select>
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <RangePicker
               placeholder={["Prescription Start Date", "Prescription End Date"]}
               value={prescriptionDateRange as any}
-              onChange={(dates) => setPrescriptionDateRange(dates as [moment.Moment | null, moment.Moment | null])}
+              onChange={(dates) =>
+                setPrescriptionDateRange(
+                  dates as [moment.Moment | null, moment.Moment | null]
+                )
+              }
               style={{ width: "100%" }}
             />
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <RangePicker
               placeholder={["Created Start Date", "Created End Date"]}
               value={createdDateRange as any}
-              onChange={(dates) => setCreatedDateRange(dates as [moment.Moment | null, moment.Moment | null])}
+              onChange={(dates) =>
+                setCreatedDateRange(
+                  dates as [moment.Moment | null, moment.Moment | null]
+                )
+              }
               showTime
               style={{ width: "100%" }}
             />
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <RangePicker
               placeholder={["Updated Start Date", "Updated End Date"]}
               value={updatedDateRange as any}
-              onChange={(dates) => setUpdatedDateRange(dates as [moment.Moment | null, moment.Moment | null])}
+              onChange={(dates) =>
+                setUpdatedDateRange(
+                  dates as [moment.Moment | null, moment.Moment | null]
+                )
+              }
               showTime
               style={{ width: "100%" }}
             />
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <Space>
-              <Button type="primary" onClick={handleSearch} icon={<SearchOutlined />}>
+              <Button
+                type="primary"
+                onClick={handleSearch}
+                icon={<SearchOutlined />}
+              >
                 Search
               </Button>
               <Button onClick={handleReset}>Reset</Button>
@@ -1053,7 +1096,7 @@ export function PrescriptionManagement() {
           </Col>
         </Row>
       </div>
-      
+
       {/* Table Section */}
       <div className="mb-4">
         <Table
@@ -1067,7 +1110,7 @@ export function PrescriptionManagement() {
             onChange: (keys) => setSelectedRowKeys(keys),
           }}
         />
-        
+
         <div className="mt-4 flex justify-end">
           <Pagination
             current={currentPage}
@@ -1080,7 +1123,7 @@ export function PrescriptionManagement() {
           />
         </div>
       </div>
-      
+
       {/* Modals */}
       <CreateModal
         visible={isCreateModalVisible}
@@ -1089,7 +1132,7 @@ export function PrescriptionManagement() {
         userOptions={userOptions}
         drugOptions={drugOptions}
       />
-      
+
       <ExportConfigModal
         visible={showExportConfigModal}
         onClose={closeExportConfigModal}
@@ -1116,5 +1159,5 @@ export function PrescriptionManagement() {
   );
 }
 
-export { PrescriptionDetail } from './prescription-detail';
-export { PrescriptionHistoryList } from './prescription-history-list'; 
+export { PrescriptionDetail } from "./prescription-detail";
+export { PrescriptionHistoryList } from "./prescription-history-list";

@@ -34,27 +34,63 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
     try {
       const values = await form.validateFields();
       setLoading(true);
+      
+      // Log debugging information
+      console.log("File list:", fileList);
+      console.log("File list length:", fileList.length);
+      if (fileList.length > 0) {
+        console.log("File object:", fileList[0]);
+        console.log("originFileObj exists:", !!fileList[0].originFileObj);
+      }
 
+      // Create FormData for the request
       const formDataToSend = new FormData();
+      
+      // Add all form values except imageFile (handled separately)
       Object.entries(values).forEach(([key, value]) => {
         if (value !== undefined && value !== null && key !== 'imageFile') {
           formDataToSend.append(key, value as string);
         }
       });
 
-      formDataToSend.append("status", "Active");
+      // Add standard fields
       formDataToSend.append("createdAt", new Date().toISOString());
+      formDataToSend.append("status", "Active");
+      
+      // Important: Always append truckImage field with empty string
+      formDataToSend.append("truckImage", "");
 
       // Append the image file if it exists
       if (fileList.length > 0 && fileList[0].originFileObj) {
         formDataToSend.append("imageFile", fileList[0].originFileObj);
+        console.log("Uploading file:", fileList[0].name);
+        console.log("File type:", fileList[0].type);
+        console.log("File size:", fileList[0].size, "bytes");
+      } else {
+        console.log("No file selected for upload or originFileObj is undefined");
+        console.log("fileList details:", JSON.stringify(fileList, null, 2));
       }
 
+      // Log the FormData content
+      let formDataContent = "";
+      for (const [key, value] of formDataToSend.entries()) {
+        formDataContent += `${key}: ${value instanceof File ? `File (${value.name}, ${value.size} bytes)` : value}\n`;
+      }
+      console.log("FormData contents:\n", formDataContent);
+      console.log("FormData contains imageFile:", formDataToSend.has("imageFile"));
+
+      // Create the truck with the FormData
       try {
         const response = await createTruck(formDataToSend);
         messageApi.success("Truck created successfully", 5);
-        onCreate();
-        onClose();
+        form.resetFields();
+        setFileList([]);
+        if (typeof onCreate === 'function') {
+          onCreate();
+        }
+        if (typeof onClose === 'function') {
+          onClose();
+        }
       } catch (error: any) {
         messageApi.error(error.message || "Failed to create truck", 5);
         console.error("Error creating truck:", error);
@@ -84,7 +120,18 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
         messageApi.error('Image must be smaller than 2MB!');
         return Upload.LIST_IGNORE;
       }
-      setFileList([file]);
+      
+      // Create a new file list with the new file
+      const newFile = {
+        ...file,
+        uid: file.uid,
+        name: file.name,
+        status: 'done',
+        url: URL.createObjectURL(file),
+        originFileObj: file,
+      } as UploadFile;
+      
+      setFileList([newFile]);
       return false; // Prevent auto upload
     },
     fileList,
@@ -147,10 +194,30 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
 
           <Form.Item>
             <div className="flex justify-end gap-2 mt-4">
-              <Button key="reset" htmlType="button" onClick={handleReset}>
+              <Button 
+                key="reset" 
+                htmlType="button" 
+                onClick={handleReset}
+              >
                 Reset
               </Button>
-              <Button key="submit" type="primary" htmlType="submit" loading={loading}>
+              <Button 
+                key="cancel" 
+                htmlType="button" 
+                onClick={() => {
+                  if (typeof onClose === 'function') {
+                    onClose();
+                  }
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                key="submit" 
+                type="primary" 
+                htmlType="submit" 
+                loading={loading}
+              >
                 Create
               </Button>
             </div>

@@ -1,8 +1,25 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { sendOtp, verifyOtp } from "@/api/otp";
+import {
+  message,
+  Form,
+  Input,
+  Button,
+  Card,
+  Typography,
+  Space,
+  Divider,
+  Row,
+  Col,
+  Steps,
+} from "antd";
 import OTPInput from "react-otp-input";
-import { message } from "antd";
+import Link from "next/link";
+import { ArrowLeftOutlined } from "@ant-design/icons";
+import { motion, AnimatePresence } from "framer-motion";
+
+const { Title, Text } = Typography;
 
 export default function Recovery() {
   const [emailOrUserName, setEmailOrUserName] = useState<string>("");
@@ -12,11 +29,11 @@ export default function Recovery() {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendOtp = async (values: { emailOrUserName: string }) => {
+    setEmailOrUserName(values.emailOrUserName);
     setIsLoading(true);
     try {
-      const response = await sendOtp(emailOrUserName);
+      const response = await sendOtp(values.emailOrUserName);
       if (response.isSuccess) {
         messageApi.success({
           content: "OTP has been sent to your email!",
@@ -39,8 +56,7 @@ export default function Recovery() {
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleVerifyOtp = async () => {
     setIsLoading(true);
     try {
       const response = await verifyOtp({ emailOrUserName, OTPCode: otpCode });
@@ -75,99 +91,177 @@ export default function Recovery() {
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gray-100 relative overflow-hidden">
+    <div className="min-h-screen flex justify-center items-center bg-gray-100">
       {contextHolder}
-      <div className="relative bg-white p-12 rounded-lg shadow-xl w-full max-w-lg border border-gray-200 hover:shadow-2xl transition-shadow duration-300">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-orange-600 mb-2">
-            Recover Your Account
-          </h1>
-          <p className="text-gray-600 text-lg">
-            Enter your details to recover access
-          </p>
-        </div>
+      <Row gutter={[24, 0]} className="w-full max-w-6xl mx-auto" align="middle">
+        <Col
+          xs={0}
+          sm={0}
+          md={12}
+          lg={14}
+          xl={14}
+          className="flex justify-center items-center"
+        >
+          <div className="p-8 w-full">
+            <AnimatePresence mode="wait">
+              {step === "send" ? (
+                <motion.img
+                  key="forgot-password"
+                  src="/forgot-password.svg"
+                  alt="Forgot Password"
+                  className="w-full h-auto"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.5 }}
+                />
+              ) : (
+                <motion.img
+                  key="enter-otp"
+                  src="/enter-otp.svg"
+                  alt="Enter OTP"
+                  className="w-full h-auto"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.5 }}
+                />
+              )}
+            </AnimatePresence>
+          </div>
+        </Col>
+        <Col
+          xs={24}
+          sm={24}
+          md={12}
+          lg={10}
+          xl={10}
+          className="flex items-center"
+        >
+          <Card
+            style={{ width: "100%" }}
+            bordered={false}
+            className="shadow-lg"
+          >
+            <div className="text-center mb-6">
+              <Title level={4} style={{ color: "#f97316", fontWeight: "bold" }}>
+                RECOVER YOUR ACCOUNT
+              </Title>
+              <Text type="secondary">Enter your details to recover access</Text>
+            </div>
 
-        {step === "send" ? (
-          <form onSubmit={handleSendOtp} className="space-y-6 backdrop-blur-sm">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Email or username"
-                value={emailOrUserName}
-                onChange={(e) => setEmailOrUserName(e.target.value)}
-                required
-                className="w-full px-6 py-4 text-lg border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all duration-300"
+            <div className="mb-6">
+              <Steps
+                current={step === "send" ? 0 : 1}
+                items={[
+                  {
+                    title: "Verify Identity",
+                    description: "Enter your email/username",
+                  },
+                  {
+                    title: "Enter OTP",
+                    description: "Verify with code",
+                  },
+                  {
+                    title: "Reset Password",
+                    description: "Create new password",
+                  },
+                ]}
+                progressDot
+                size="small"
               />
             </div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-orange-500 text-white py-4 text-lg rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-            >
-              {isLoading ? "Sending..." : "Send OTP Code"}
-            </button>
-          </form>
-        ) : (
-          <form
-            onSubmit={handleVerifyOtp}
-            className="space-y-6 backdrop-blur-sm"
-          >
-            <div className="flex justify-between gap-3">
-              <OTPInput
-                value={otpCode}
-                onChange={(value) => setOtpCode(value)}
-                numInputs={6}
-                shouldAutoFocus
-                renderInput={(props) => <input {...props} />}
-                inputStyle={{
-                  width: "56px",
-                  height: "56px",
-                  fontSize: "24px",
-                  fontWeight: "bold",
-                  textAlign: "center",
-                  border: "1px solid #D1D5DB",
-                  borderRadius: "8px",
-                  color: "#374151",
-                }}
-                containerStyle={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: "12px",
-                }}
-              />
+
+            {step === "send" ? (
+              <Form
+                name="recovery"
+                onFinish={handleSendOtp}
+                layout="vertical"
+                size="large"
+              >
+                <Form.Item
+                  name="emailOrUserName"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input your email or username!",
+                    },
+                  ]}
+                >
+                  <Input
+                    placeholder="Enter your email or username"
+                    size="large"
+                  />
+                </Form.Item>
+                <Form.Item>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={isLoading}
+                    block
+                    style={{ background: "#f97316", height: "45px" }}
+                  >
+                    Send OTP Code
+                  </Button>
+                </Form.Item>
+              </Form>
+            ) : (
+              <Space
+                direction="vertical"
+                size="large"
+                style={{ width: "100%" }}
+              >
+                <div className="flex justify-center">
+                  <OTPInput
+                    value={otpCode}
+                    onChange={(value) => setOtpCode(value)}
+                    numInputs={6}
+                    shouldAutoFocus
+                    renderInput={(props) => <input {...props} />}
+                    inputStyle={{
+                      width: "45px",
+                      height: "45px",
+                      fontSize: "20px",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                      border: "1px solid #D1D5DB",
+                      borderRadius: "8px",
+                      color: "#374151",
+                      margin: "0 4px",
+                    }}
+                    containerStyle={{
+                      display: "flex",
+                      justifyContent: "center",
+                      gap: "8px",
+                    }}
+                  />
+                </div>
+                <Button
+                  type="primary"
+                  onClick={handleVerifyOtp}
+                  disabled={isLoading || otpCode.length < 6}
+                  loading={isLoading}
+                  block
+                  style={{ background: "#f97316", height: "45px" }}
+                >
+                  Verify Code
+                </Button>
+              </Space>
+            )}
+
+            <Divider />
+
+            <div className="text-center">
+              <Link href="/" className="text-orange-600 hover:text-orange-700">
+                <Space>
+                  <ArrowLeftOutlined />
+                  <span>Back to Login</span>
+                </Space>
+              </Link>
             </div>
-            <button
-              type="submit"
-              disabled={isLoading || otpCode.length < 6}
-              className="w-full bg-orange-500 text-white py-4 text-lg rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-            >
-              {isLoading ? "Verifying..." : "Verify Code"}
-            </button>
-          </form>
-        )}
-        <div className="mt-8 text-center">
-          <a
-            href="/"
-            className="text-orange-600 hover:text-orange-700 flex items-center justify-center gap-2 transition-colors duration-300 hover:underline text-lg"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-            Back to Login
-          </a>
-        </div>
-      </div>
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 }

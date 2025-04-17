@@ -14,6 +14,9 @@ import {
   Space,
   Tag,
   Popconfirm,
+  Row,
+  Col,
+  Divider,
 } from "antd";
 import {
   PlusOutlined,
@@ -27,7 +30,7 @@ import {
   UploadOutlined,
   UserOutlined,
   EyeOutlined,
-  EditOutlined,
+  FormOutlined,
   DeleteOutlined,
   TagOutlined,
   TeamOutlined,
@@ -40,6 +43,7 @@ import UserTable from "./UserTable";
 import CreateModal from "./CreateModal";
 import ExportConfigModal from "./ExportConfigModal";
 import UserFilterModal from "./UserFilterModal";
+import ImportUserModal from "./ImportUserModal";
 
 import {
   getAllUsers,
@@ -73,6 +77,7 @@ export function UserManagement() {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedUserDetail, setSelectedUserDetail] =
     useState<UserResponseDTO | null>(null);
+  const [importModalVisible, setImportModalVisible] = useState(false);
 
   // Column visibility state
   const [columnVisibility, setColumnVisibility] = useState<
@@ -271,7 +276,13 @@ export function UserManagement() {
       //   setRoleOptions(rolesResponse.data.map((role) => role.roleName));
       // }
 
-      setRoleOptions(["Admin", "Manager", "Staff", "User"]);
+      setRoleOptions([
+        "Admin",
+        "Manager",
+        "Healthcare Staff",
+        "Canteen Staff",
+        "User",
+      ]);
       setUserOptions(["Male", "Female"]);
 
       // Không cập nhật fullNameOptions ở đây nữa, vì đã có fetchAllUsersForDropdown
@@ -309,21 +320,21 @@ export function UserManagement() {
       const response = await getAllUsers(
         1,
         1000, // Số lượng lớn để lấy tất cả người dùng
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        "CreatedAt", // Sắp xếp theo ngày tạo
-        false // Giảm dần (mới nhất trước)
+        undefined, // fullNameSearch
+        undefined, // userNameSearch
+        undefined, // emailSearch
+        undefined, // phoneSearch
+        undefined, // roleFilter
+        undefined, // genderFilter
+        undefined, // dobStartDate
+        undefined, // dobEndDate
+        undefined, // createdStartDate
+        undefined, // createdEndDate
+        undefined, // updatedStartDate
+        undefined, // updatedEndDate
+        undefined, // status
+        "CreatedAt", // sortBy
+        false // ascending - Giảm dần (mới nhất trước)
       );
 
       if (response.isSuccess) {
@@ -349,28 +360,33 @@ export function UserManagement() {
       const response = await getAllUsers(
         1,
         1000, // Số lượng lớn để lấy tất cả người dùng
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        "CreatedAt", // Sắp xếp theo ngày tạo
-        false // Giảm dần (mới nhất trước)
+        undefined, // fullNameSearch
+        undefined, // userNameSearch
+        undefined, // emailSearch
+        undefined, // phoneSearch
+        undefined, // roleFilter
+        undefined, // genderFilter
+        undefined, // dobStartDate
+        undefined, // dobEndDate
+        undefined, // createdStartDate
+        undefined, // createdEndDate
+        undefined, // updatedStartDate
+        undefined, // updatedEndDate
+        undefined, // status
+        "CreatedAt", // sortBy
+        false // ascending - Giảm dần (mới nhất trước)
       );
 
       if (response.isSuccess) {
-        console.log(`API returned ${response.data.length} users for filter modal dropdowns`);
+        console.log(
+          `API returned ${response.data.length} users for filter modal dropdowns`
+        );
         setAllUsers(response.data);
       } else {
-        console.error("API call failed for filter dropdowns:", response.message);
+        console.error(
+          "API call failed for filter dropdowns:",
+          response.message
+        );
       }
     } catch (error) {
       console.error("Error fetching all users for filter dropdowns:", error);
@@ -441,7 +457,7 @@ export function UserManagement() {
     setSortBy("CreatedAt");
     setAscending(false);
     setCurrentPage(1);
-    
+
     // Reset all form values
     searchForm.setFieldsValue({
       fullNameSearch: "",
@@ -455,7 +471,7 @@ export function UserManagement() {
       createdDateRange: null,
       updatedDateRange: null,
       sortBy: "CreatedAt",
-      ascending: false
+      ascending: false,
     });
   };
 
@@ -598,9 +614,9 @@ export function UserManagement() {
     setSortBy("CreatedAt");
     setAscending(false);
     setCurrentPage(1);
-    
+
     // Update the filter state for the modal
-    setFilterState(prev => ({
+    setFilterState((prev) => ({
       ...prev,
       userNameSearch: "",
       emailSearch: "",
@@ -610,9 +626,9 @@ export function UserManagement() {
       createdDateRange: [null, null],
       updatedDateRange: [null, null],
       sortBy: "CreatedAt",
-      ascending: false
+      ascending: false,
     }));
-    
+
     setFilterModalVisible(false);
   };
 
@@ -635,45 +651,62 @@ export function UserManagement() {
     try {
       setLoading(true);
 
+      // Process additional filters from the modal
+      const filterFullName = fullNameSearch;
+      const filterUserName = userNameSearch;
+      const filterEmail = emailSearch;
+      const filterPhone = phoneSearch;
+      const filterRole = roleFilter;
+      const filterGender = genderFilter;
+      const filterStatus = statusFilter;
+
+      // Use values from the modal if they exist, otherwise use the current state values
+      const filterDobRange = dobDateRange;
+      const filterCreatedRange = createdDateRange;
+      const filterUpdatedRange = updatedDateRange;
+
+      // Apply sort direction from filter if available
+      const filterAscending = ascending;
+
       // Convert date ranges to Date objects
-      const formattedDobStart = dobDateRange[0]
-        ? dobDateRange[0].toDate()
+      const formattedDobStart = filterDobRange?.[0]
+        ? filterDobRange[0].toDate()
         : undefined;
-      const formattedDobEnd = dobDateRange[1]
-        ? dobDateRange[1].toDate()
+      const formattedDobEnd = filterDobRange?.[1]
+        ? filterDobRange[1].toDate()
         : undefined;
-      const formattedCreatedStart = createdDateRange[0]
-        ? createdDateRange[0].toDate()
+      const formattedCreatedStart = filterCreatedRange?.[0]
+        ? filterCreatedRange[0].toDate()
         : undefined;
-      const formattedCreatedEnd = createdDateRange[1]
-        ? createdDateRange[1].toDate()
+      const formattedCreatedEnd = filterCreatedRange?.[1]
+        ? filterCreatedRange[1].toDate()
         : undefined;
-      const formattedUpdatedStart = updatedDateRange[0]
-        ? updatedDateRange[0].toDate()
+      const formattedUpdatedStart = filterUpdatedRange?.[0]
+        ? filterUpdatedRange[0].toDate()
         : undefined;
-      const formattedUpdatedEnd = updatedDateRange[1]
-        ? updatedDateRange[1].toDate()
+      const formattedUpdatedEnd = filterUpdatedRange?.[1]
+        ? filterUpdatedRange[1].toDate()
         : undefined;
 
       const response = await exportUsersToExcelWithConfig(
         exportConfig,
         currentPage,
         pageSize,
-        fullNameSearch || undefined,
-        userNameSearch || undefined,
-        emailSearch || undefined,
-        phoneSearch || undefined,
-        roleFilter || undefined,
-        genderFilter || undefined,
+        filterFullName || undefined,
+        filterUserName || undefined,
+        filterEmail || undefined,
+        filterPhone || undefined,
+        filterRole || undefined,
+        filterGender || undefined,
         formattedDobStart,
         formattedDobEnd,
         formattedCreatedStart,
         formattedCreatedEnd,
         formattedUpdatedStart,
         formattedUpdatedEnd,
-        statusFilter || undefined,
+        filterStatus || undefined,
         sortBy,
-        ascending
+        filterAscending
       );
 
       if (response.isSuccess) {
@@ -709,6 +742,12 @@ export function UserManagement() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleImportSuccess = () => {
+    setImportModalVisible(false);
+    fetchUsers();
+    messageApi.success("Users imported successfully");
   };
 
   const handleImportUsers = async (file: File) => {
@@ -810,6 +849,41 @@ export function UserManagement() {
     setCurrentPage(1);
   };
 
+  // Function to get all user IDs with specific statuses
+  const getAllUserIdsByStatus = async (
+    statuses: string[]
+  ): Promise<string[]> => {
+    try {
+      // Get all users with the given statuses
+      const response = await getAllUsers(
+        1, // pageNumber
+        1000, // pageSize - A large number to get all
+        "", // fullNameSearch
+        "", // userNameSearch
+        "", // emailSearch
+        "", // phoneSearch
+        "", // roleFilter
+        "", // genderFilter
+        undefined, // dobStartDate
+        undefined, // dobEndDate
+        undefined, // createdStartDate
+        undefined, // createdEndDate
+        undefined, // updatedStartDate
+        undefined, // updatedEndDate
+        statuses.join(","), // status
+        "CreatedAt", // sortBy
+        false // ascending
+      );
+
+      // Extract IDs from the response
+      return response.data.map((user: UserResponseDTO) => user.id);
+    } catch (error) {
+      console.error("Error fetching users by status:", error);
+      messageApi.error("Failed to fetch users by status");
+      return [];
+    }
+  };
+
   return (
     <div className="history-container" style={{ padding: "20px" }}>
       {contextHolder}
@@ -832,20 +906,21 @@ export function UserManagement() {
       <Card
         className="shadow mb-4"
         bodyStyle={{ padding: "16px" }}
-        title={
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "16px",
-            }}
-          >
-            <AppstoreOutlined />
-            <span>Toolbar</span>
-          </div>
-        }
+        style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
       >
+        <Row align="middle" gutter={[16, 16]}>
+          <Col span={24}>
+            <Title level={4} style={{ margin: 0 }}>
+              <AppstoreOutlined
+                style={{ marginRight: "8px", fontSize: "20px" }}
+              />
+              Toolbar
+            </Title>
+          </Col>
+        </Row>
+
+        <Divider style={{ margin: "16px 0" }} />
+
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Full Name or Email Search */}
@@ -865,10 +940,12 @@ export function UserManagement() {
                 value: combined,
               }))}
               optionRender={(option) => {
-                const optionParts = (option.value?.toString() || "").split(" | ");
+                const optionParts = (option.value?.toString() || "").split(
+                  " | "
+                );
                 const fullName = optionParts[0];
                 const email = optionParts[1];
-                
+
                 return (
                   <div className="custom-select-option">
                     <div className="name">{fullName}</div>
@@ -924,7 +1001,7 @@ export function UserManagement() {
                 placeholder={
                   <div style={{ display: "flex", alignItems: "center" }}>
                     <TeamOutlined style={{ marginRight: 8 }} />
-                    <span>Role</span>
+                    <span>Select Role</span>
                   </div>
                 }
                 value={roleFilter || undefined}
@@ -932,7 +1009,7 @@ export function UserManagement() {
                   setRoleFilter(value || "");
                   setCurrentPage(1);
                 }}
-                style={{ width: "110px" }}
+                style={{ width: "140px" }}
                 allowClear
                 disabled={loading}
               >
@@ -950,9 +1027,7 @@ export function UserManagement() {
                 icon={<UndoOutlined />}
                 onClick={handleReset}
                 disabled={!(isMainFiltersApplied() || isFiltersApplied())}
-              >
-                Reset
-              </Button>
+              />
             </Tooltip>
 
             {/* Column Settings */}
@@ -967,7 +1042,7 @@ export function UserManagement() {
                           checked={areAllColumnsVisible()}
                           onChange={(e) => toggleAllColumns(e.target.checked)}
                         >
-                          <strong>Show All Columns</strong>
+                          Toggle All
                         </Checkbox>
                       </div>
                     ),
@@ -1008,6 +1083,15 @@ export function UserManagement() {
               </Tooltip>
             </Dropdown>
 
+            {/* Import Button */}
+            <Button
+              icon={<UploadOutlined />}
+              onClick={() => setImportModalVisible(true)}
+              disabled={loading}
+            >
+              Import
+            </Button>
+
             {/* Create Button */}
             <Button
               type="primary"
@@ -1021,81 +1105,17 @@ export function UserManagement() {
 
           <div>
             {/* Export Button */}
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: "1",
-                    label: "Export Users",
-                    icon: <FileExcelOutlined />,
-                    onClick: handleOpenExportConfig,
-                  },
-                  {
-                    key: "2",
-                    label: "Download Template",
-                    icon: <DownloadOutlined />,
-                    onClick: handleExportTemplate,
-                  },
-                ],
-              }}
-              trigger={["click"]}
-            >
-              <Button
-                type="primary"
-                icon={<FileExcelOutlined />}
-                disabled={loading}
-              >
-                Export
-              </Button>
-            </Dropdown>
-
-            {/* Import Button */}
             <Button
-              icon={<UploadOutlined />}
-              onClick={() => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = ".xlsx, .xls";
-                input.onchange = (e) => {
-                  const target = e.target as HTMLInputElement;
-                  if (target.files && target.files.length > 0) {
-                    handleImportUsers(target.files[0]);
-                  }
-                };
-                input.click();
-              }}
-              style={{ marginLeft: "8px" }}
+              type="primary"
+              icon={<FileExcelOutlined />}
+              onClick={handleOpenExportConfig}
               disabled={loading}
             >
-              Import
+              Export to Excel
             </Button>
           </div>
         </div>
       </Card>
-
-      {/* Bulk Actions */}
-      {selectedUsers.length > 0 && (
-        <div className="mb-3 flex items-center gap-2 p-2 bg-gray-50 rounded">
-          <Text>{selectedUsers.length} users selected</Text>
-          <Button
-            onClick={() => handleBulkActivate(selectedUsers)}
-            type="primary"
-            size="small"
-          >
-            Activate
-          </Button>
-          <Button
-            onClick={() => handleBulkDeactivate(selectedUsers)}
-            danger
-            size="small"
-          >
-            Deactivate
-          </Button>
-          <Button onClick={() => setSelectedUsers([])} size="small">
-            Cancel
-          </Button>
-        </div>
-      )}
 
       {/* User Table */}
       <UserTable
@@ -1112,6 +1132,7 @@ export function UserManagement() {
         onDeactivate={handleDeactivate}
         onViewDetails={handleViewDetails}
         onEdit={handleEdit}
+        getAllUserIdsByStatus={getAllUserIdsByStatus}
       />
 
       {/* Create User Modal */}
@@ -1128,6 +1149,22 @@ export function UserManagement() {
         config={exportConfig}
         onChange={handleExportConfigChange}
         onExport={handleExportToExcel}
+        filters={{
+          fullNameSearch,
+          userNameSearch,
+          emailSearch,
+          phoneSearch,
+          roleFilter,
+          genderFilter,
+          statusFilter,
+          dobDateRange,
+          createdDateRange,
+          updatedDateRange,
+          sortBy,
+          ascending,
+        }}
+        roleOptions={roleOptions}
+        userOptions={userOptions}
       />
 
       {/* Filter Modal */}
@@ -1139,6 +1176,13 @@ export function UserManagement() {
         filters={filterState}
         roleOptions={roleOptions}
         users={allUsers}
+      />
+
+      {/* Import User Modal */}
+      <ImportUserModal
+        visible={importModalVisible}
+        onCancel={() => setImportModalVisible(false)}
+        onSuccess={handleImportSuccess}
       />
     </div>
   );

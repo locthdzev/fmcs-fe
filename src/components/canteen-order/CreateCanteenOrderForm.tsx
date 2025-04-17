@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Button,
   Input,
   Modal,
-  ModalBody,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-} from "@heroui/react";
-import { Form, Select } from "antd";
-import { createCanteenOrder } from "@/api/canteenorder";
-import { getAllCanteenItems, CanteenItemResponse } from "@/api/canteenitems";
-import { toast } from "react-toastify";
-import { BinIcon } from "./Icons";
+  Form,
+  Space,
+  Select,
+  message
+} from "antd";
+import {
+  createCanteenOrder,
+} from "@/api/canteenorder";
+import { CanteenItemResponse, getAllCanteenItems } from "@/api/canteenitems";
+import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { getTrucks } from "@/api/truck";
 
 interface CreateCanteenOrderFormProps {
@@ -57,21 +57,29 @@ export const CreateCanteenOrderForm: React.FC<CreateCanteenOrderFormProps> = ({
   const [trucks, setTrucks] = useState<any[]>([]);
   const [formData, setFormData] = useState<FormData>({
     licensePlate: "",
-    orderDate: "",
+    orderDate: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     status: "Pending",
-    canteenOrderDetails: [],
+    canteenOrderDetails: [
+      {
+        itemId: "",
+        quantity: 1,
+        unitPrice: 0,
+        canteenItem: undefined,
+      },
+    ],
   });
   const [loading, setLoading] = useState(false);
   const [canteenItems, setCanteenItems] = useState<CanteenItem[]>([]);
+  const [messageApi, contextHolder] = message.useMessage();
   const selectedItemIds = new Set(
     formData.canteenOrderDetails.map((detail) => detail.itemId)
   );
 
   useEffect(() => {
     if (isOpen) {
-      fetchCanteenItems();
       fetchTrucks();
+      fetchCanteenItems();
     }
   }, [isOpen]);
 
@@ -80,7 +88,7 @@ export const CreateCanteenOrderForm: React.FC<CreateCanteenOrderFormProps> = ({
       const trucksData = await getTrucks();
       setTrucks(trucksData);
     } catch (error) {
-      toast.error("Failed to fetch trucks");
+      messageApi.error("Failed to fetch trucks", 5);
     }
   };
 
@@ -89,7 +97,7 @@ export const CreateCanteenOrderForm: React.FC<CreateCanteenOrderFormProps> = ({
       const items = await getAllCanteenItems();
       setCanteenItems(items);
     } catch (error) {
-      toast.error("Failed to fetch canteen items");
+      messageApi.error("Failed to fetch canteen items", 5);
     }
   };
 
@@ -105,69 +113,58 @@ export const CreateCanteenOrderForm: React.FC<CreateCanteenOrderFormProps> = ({
     field: string,
     value: string | number
   ) => {
-    setFormData((prev) => {
-      const newDetails = [...prev.canteenOrderDetails];
+    const newDetails = [...formData.canteenOrderDetails];
 
-      if (field === "itemId") {
-        const selectedItem = canteenItems.find((item) => item.id === value);
-        newDetails[index] = {
-          ...newDetails[index],
-          [field]: value as string,
-          unitPrice: selectedItem?.unitPrice || 0,
-          canteenItem: selectedItem
-            ? {
-                itemName: selectedItem.itemName,
-                unitPrice: selectedItem.unitPrice,
-                imageUrl: selectedItem.imageUrl,
-              }
-            : newDetails[index].canteenItem,
-        };
-      } else {
-        newDetails[index] = {
-          ...newDetails[index],
-          [field]: typeof value === "string" ? value : String(value),
-        };
-      }
-
-      return {
-        ...prev,
-        canteenOrderDetails: newDetails,
+    if (field === "itemId") {
+      const selectedItem = canteenItems.find((item) => item.id === value);
+      newDetails[index] = {
+        ...newDetails[index],
+        [field]: value as string,
+        unitPrice: selectedItem?.unitPrice || 0,
+        canteenItem: selectedItem
+          ? {
+              itemName: selectedItem.itemName,
+              unitPrice: selectedItem.unitPrice,
+              imageUrl: selectedItem.imageUrl,
+            }
+          : newDetails[index].canteenItem,
       };
+    } else {
+      newDetails[index] = {
+        ...newDetails[index],
+        [field]: typeof value === "string" ? value : String(value),
+      };
+    }
+
+    setFormData({
+      ...formData,
+      canteenOrderDetails: newDetails,
     });
   };
 
   const handleCanteenSearch = (index: number, value: string) => {
-    setFormData((prev) => {
-      const newDetails = [...prev.canteenOrderDetails];
-      newDetails[index] = {
-        ...newDetails[index],
-        searchItem: value,
-      };
+    const newDetails = [...formData.canteenOrderDetails];
+    newDetails[index] = {
+      ...newDetails[index],
+      searchItem: value,
+    };
 
-      return {
-        ...prev,
-        canteenOrderDetails: newDetails,
-      };
+    setFormData({
+      ...formData,
+      canteenOrderDetails: newDetails,
     });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleAddItem = () => {
-    const hasEmptyItem = formData.canteenOrderDetails.some(
-      detail => !detail.itemId
-    );
-    if (hasEmptyItem) {
-      toast.warning("Please complete current item before adding new");
-      return;
-    }
-    setFormData((prev) => ({
-      ...prev,
+    setFormData({
+      ...formData,
       canteenOrderDetails: [
-        ...prev.canteenOrderDetails,
+        ...formData.canteenOrderDetails,
         {
           itemId: "",
           quantity: 1,
@@ -175,246 +172,243 @@ export const CreateCanteenOrderForm: React.FC<CreateCanteenOrderFormProps> = ({
           canteenItem: undefined,
         },
       ],
-    }));
+    });
   };
 
   const handleRemoveItem = (itemId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      canteenOrderDetails: prev.canteenOrderDetails.filter(
-        (detail) => detail.itemId !== itemId
-      ),
-    }));
-    toast.success("Item removed successfully");
+    const updatedDetails = formData.canteenOrderDetails.filter(
+      (detail) => detail.itemId !== itemId
+    );
+
+    setFormData({
+      ...formData,
+      canteenOrderDetails: updatedDetails,
+    });
+
+    messageApi.success("Item removed successfully", 5);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.canteenOrderDetails.length === 0) {
-      toast.warning("Please add at least one item");
-      return;
-    }
-
+  const handleSubmit = async () => {
     try {
       setLoading(true);
-
-      const payload = {
-        ...formData,
-        orderDetails: formData.canteenOrderDetails.map((detail) => ({
+      
+      // Tạo object theo đúng kiểu CanteenOrderCreateRequest thay vì dùng FormData
+      const requestData = {
+        licensePlate: formData.licensePlate,
+        orderDate: formData.orderDate,
+        createdAt: formData.createdAt,
+        status: formData.status,
+        canteenOrderDetails: formData.canteenOrderDetails.map(detail => ({
           itemId: detail.itemId,
-          quantity: detail.quantity,
-        })),
+          quantity: detail.quantity
+        }))
       };
 
-      await createCanteenOrder(payload);
-      toast.success("Canteen order created successfully");
+      await createCanteenOrder(requestData);
+      messageApi.success("Canteen order created successfully", 5);
       onCreate();
       onClose();
-      setFormData({
-        licensePlate: "",
-        orderDate: "",
-        createdAt: new Date().toISOString(),
-        status: "Pending",
-        canteenOrderDetails: [],
-      });
     } catch (error) {
-      toast.error("Failed to create canteen order");
+      messageApi.error("Failed to create canteen order", 5);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ModalContent className="max-w-[1000px] min-h-[700px] max-h-[90vh]">
-      <ModalHeader className="border-b pb-3">Create Canteen Order</ModalHeader>
-      <ModalBody className="max-h-[80vh] overflow-y-auto">
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 gap-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">
-                Canteen Order Information
-              </h3>
-              <div className="grid grid-cols-[60%_30%] gap-4">
-                <Form.Item
-                  label="License Plate"
-                  required
-                  style={{ width: "90%" }}
-                >
-                  <Select
-                    style={{ width: "80%" }}
-                    placeholder="Please Select License Plate"
-                    value={formData.licensePlate}
-                    onChange={(value) =>
-                      setFormData((prev) => ({ ...prev, licensePlate: value }))
-                    }
-                    getPopupContainer={(triggerNode) =>
-                      triggerNode.parentElement!
-                    }
-                  >
-                    {trucks.map((truck) => (
-                      <Select.Option key={truck.id} value={truck.licensePlate}>
-                        {truck.licensePlate}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Input
-                  label="Order Date & Time"
-                  type="datetime-local"
-                  name="orderDate"
-                  value={formData.orderDate}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full"
-                  placeholder=" "
-                />
-              </div>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">Add Items to Order</h3>
-              {formData.canteenOrderDetails.map((detail, index) => (
-                <div
-                  key={index}
-                  className="mb-6 p-4 border border-gray-200 rounded-lg bg-white"
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_40px] gap-4 items-end">
-                    <div className="col-span-1 lg:col-span-1">
-                      <Select
-                        showSearch
-                        style={{ width: "100%", height: "56px" }}
-                        placeholder="Search to Select Item"
-                        optionFilterProp="children"
-                        value={detail.itemId || undefined}
-                        onChange={(value) =>
-                          handleCanteenDetailChange(index, "itemId", value)
-                        }
-                        onSearch={(value) => handleCanteenSearch(index, value)}
-                        filterOption={false}
-                        options={getFilteredCanteenItems(
-                          detail.searchItem || ""
-                        ).map((item) => ({
-                          value: item.id,
-                          label: (
-                            <div className="flex items-center gap-4">
-                              <img
-                                src={item.imageUrl || "/placeholder.png"}
-                                alt={item.itemName}
-                                className="w-12 h-12 object-cover rounded-md"
-                              />
-                              <div className="flex flex-col flex-1">
-                                <span>{item.itemName}</span>
-                              </div>
-                              <div className="text-right">
-                                <span>{`${item.unitPrice}`}</span>
-                              </div>
+    <Modal
+      title="Create Canteen Order"
+      open={isOpen}
+      onCancel={onClose}
+      footer={null}
+      width={1000}
+      style={{ maxHeight: "90vh" }}
+    >
+      {contextHolder}
+      <Form onFinish={handleSubmit}>
+        <div className="grid grid-cols-1 gap-3">
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">
+              Canteen Order Information
+            </h3>
+            <Select
+              style={{ width: "100%" }}
+              placeholder="Select License Plate"
+              value={formData.licensePlate || undefined}
+              onChange={(value) => {
+                setFormData({
+                  ...formData,
+                  licensePlate: value,
+                });
+              }}
+            >
+              {trucks.map((truck) => (
+                <Select.Option key={truck.id} value={truck.licensePlate}>
+                  {truck.licensePlate}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-lg mt-1">
+            <h3 className="text-lg font-semibold mb-4">
+              Add Items To Order
+            </h3>
+            {formData.canteenOrderDetails.map((detail, index) => (
+              <div
+                key={index}
+                className="mb-6 p-4 border border-gray-200 rounded-lg bg-white"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_40px] gap-4 items-end">
+                  <Form.Item label="Select Item" className="mb-0">
+                    <Select
+                      showSearch
+                      style={{ width: "100%", height: "32px" }}
+                      placeholder="Search to Select Item"
+                      optionFilterProp="children"
+                      value={detail.itemId || undefined}
+                      onChange={(value) =>
+                        handleCanteenDetailChange(index, "itemId", value)
+                      }
+                      onSearch={(value) =>
+                        handleCanteenSearch(index, value)
+                      }
+                      filterOption={false}
+                      options={getFilteredCanteenItems(
+                        detail.searchItem || ""
+                      ).map((item) => ({
+                        value: item.id,
+                        label: (
+                          <div className="flex items-center gap-2" style={{ height: "24px", lineHeight: "24px", overflow: "hidden" }}>
+                            <img
+                              src={item.imageUrl || "/placeholder.png"}
+                              alt={item.itemName}
+                              className="w-6 h-6 object-cover rounded-md"
+                            />
+                            <div className="flex-1 truncate">
+                              <span>{item.itemName}</span>
                             </div>
-                          ),
-                          disabled: selectedItemIds.has(item.id),
-                        }))}
-                        getPopupContainer={(trigger) => trigger.parentElement!}
-                      />
-                    </div>
+                            <div className="text-right">
+                              <span>{`${item.unitPrice}`}</span>
+                            </div>
+                          </div>
+                        ),
+                        disabled: item.id !== detail.itemId && selectedItemIds.has(item.id)
+                      }))}
+                    >
+                      {canteenItems.map((item) => (
+                        <Select.Option 
+                          key={item.id} 
+                          value={item.id}
+                          disabled={item.id !== detail.itemId && selectedItemIds.has(item.id)}
+                        >
+                          <div className="flex items-center gap-2" style={{ height: "24px", lineHeight: "24px", overflow: "hidden" }}>
+                            <img
+                              src={item.imageUrl || "/placeholder.png"}
+                              alt={item.itemName}
+                              className="w-6 h-6 object-cover rounded-md"
+                            />
+                            <div className="flex-1 truncate">
+                              <span>{item.itemName}</span>
+                            </div>
+                            <div className="text-right">
+                              <span>{`${item.unitPrice}`}</span>
+                            </div>
+                          </div>
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                  <Form.Item label="Quantity" className="mb-0">
                     <Input
-                      label="Quantity"
                       type="number"
                       value={detail.quantity.toString()}
-                      onChange={(e) =>
-                        handleCanteenDetailChange(
-                          index,
-                          "quantity",
-                          e.target.value
-                        )
-                      }
-                      min="1"
-                      required
+                      onChange={(e) => {
+                        const newDetails = [...formData.canteenOrderDetails];
+                        newDetails[index].quantity = Number(e.target.value);
+                        setFormData({
+                          ...formData,
+                          canteenOrderDetails: newDetails,
+                        });
+                      }}
+                      min={1}
                       className="w-full"
                     />
+                  </Form.Item>
+                  <Form.Item label="Total Price" className="mb-0">
                     <Input
-                      label="Total Price"
                       type="text"
-                      value={`${(
-                        detail.quantity * (detail.unitPrice ?? 0)
-                      ).toLocaleString()} VND`}
+                      value={
+                        (
+                          detail.quantity * (detail.unitPrice ?? 0)
+                        ).toLocaleString() + " VND"
+                      }
                       disabled
                       className="w-full"
                     />
-                    <Button
-                      type="button"
-                      variant="flat"
-                      color="danger"
-                      onClick={() => handleRemoveItem(detail.itemId)}
-                      isIconOnly
-                      className="h-10 w-10"
-                    >
-                      <BinIcon />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="flat"
-                onClick={handleAddItem}
-                className="w-full mt-4"
-              >
-                + Add New Item
-              </Button>
-            </div>
-          </div>
-        </form>
-      </ModalBody>
-      <ModalFooter className="border-t pt-4">
-        <div className="flex items-center justify-between w-full gap-4">
-            <div className="flex items-center gap-4">
-                <div className="flex flex-col items-center">
-                  <span className="text-gray-500 text-sm">Total Quantity</span>
-                  <span className="text-xl font-bold text-primary">
-                    {formData.canteenOrderDetails.reduce(
-                      (total, detail) => total + (detail.quantity || 0),
-                      0
-                    )}
-                  </span>
-                </div>
-
-                <div className="h-8 w-px bg-gray-300"></div>
-
-                <div className="flex flex-col items-center">
-                  <span className="text-gray-500 text-sm">Total Amount</span>
-                  <span className="text-xl font-bold text-green-600">
-
-                  {formData.canteenOrderDetails
-                    .reduce(
-                      (total, detail) =>
-                        total +
-                        (detail.quantity || 0) * (detail.unitPrice || 0),
-                      0
-                    )
-                    .toLocaleString() + " VND"}
-                  </span>
+                  </Form.Item>
+                  <Button
+                    danger
+                    type="text"
+                    onClick={() => handleRemoveItem(detail.itemId)}
+                    icon={<DeleteOutlined />}
+                    disabled={formData.canteenOrderDetails.length <= 1}
+                  />
                 </div>
               </div>
-
-          <div className="flex gap-3">
+            ))}
             <Button
-              type="button"
-              variant="flat"
-              onClick={onClose}
-              className="px-6"
+              type="default"
+              onClick={handleAddItem}
+              className="w-full mt-4"
+              icon={<PlusOutlined />}
             >
+              Add New Item
+            </Button>
+          </div>
+        </div>
+        <div className="flex items-center justify-between w-full gap-4 mt-4">
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-center">
+              <span className="text-gray-500 text-sm">Total Quantity</span>
+              <span className="text-xl font-bold text-primary">
+                {formData.canteenOrderDetails.reduce(
+                  (total, detail) => total + (detail.quantity || 0),
+                  0
+                )}
+              </span>
+            </div>
+
+            <div className="h-8 w-px bg-gray-300"></div>
+
+            <div className="flex flex-col items-center">
+              <span className="text-gray-500 text-sm">Total Amount</span>
+              <span className="text-xl font-bold text-green-600">
+                {formData.canteenOrderDetails
+                  .reduce(
+                    (total, detail) =>
+                      total +
+                      (detail.quantity || 0) * (detail.unitPrice || 0),
+                    0
+                  )
+                  .toLocaleString() + " VND"}
+              </span>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button onClick={onClose}>
               Cancel
             </Button>
             <Button
-              type="submit"
-              color="primary"
-              isLoading={loading}
-              className="px-6"
+              type="primary"
+              loading={loading}
               onClick={handleSubmit}
             >
               Create Order
             </Button>
           </div>
         </div>
-      </ModalFooter>
-    </ModalContent>
+      </Form>
+    </Modal>
   );
 };

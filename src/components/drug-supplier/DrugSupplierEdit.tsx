@@ -14,8 +14,7 @@ import {
   Divider,
   Tag
 } from "antd";
-import { getDrugSupplierById, updateDrugSupplier, DrugSupplierResponse } from "@/api/drugsupplier";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import { getDrugSupplierById, updateDrugSupplier, DrugSupplierResponse } from "../../api/drugsupplier";import { ArrowLeftOutlined } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import { ShopOutlined } from "@ant-design/icons";
 

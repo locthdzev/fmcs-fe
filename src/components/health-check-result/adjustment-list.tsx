@@ -15,22 +15,33 @@ import {
   Badge,
   Tag,
   Tooltip,
-  Empty
+  Empty,
+  Dropdown,
+  Menu,
+  Checkbox,
+  Modal,
+  Form,
+  InputNumber,
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
 import {
   getAllHealthCheckResults,
-  HealthCheckResultsResponseDTO
+  HealthCheckResultsResponseDTO,
 } from "@/api/healthcheckresult";
-import { 
-  SearchOutlined, 
-  EditOutlined,
+import {
+  SearchOutlined,
+  FormOutlined,
   EyeOutlined,
   ArrowLeftOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  SettingOutlined,
+  FilterOutlined,
+  UndoOutlined,
+  FileExcelOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
 import EditModal from "./EditModal";
 import { getUsers } from "@/api/user";
 
@@ -39,38 +50,225 @@ const { RangePicker } = DatePicker;
 const { Title, Text, Paragraph } = Typography;
 
 const formatDate = (date: string | undefined) => {
-  if (!date) return '';
-  return moment(date).format('DD/MM/YYYY');
+  if (!date) return "";
+  return moment(date).format("DD/MM/YYYY");
 };
 
 const formatDateTime = (datetime: string | undefined) => {
-  if (!datetime) return '';
-  return moment(datetime).format('DD/MM/YYYY HH:mm:ss');
+  if (!datetime) return "";
+  return moment(datetime).format("DD/MM/YYYY HH:mm:ss");
+};
+
+// Filter Modal Component
+const HealthCheckFilterModal: React.FC<{
+  visible: boolean;
+  onCancel: () => void;
+  onApply: (filters: any) => void;
+  onReset: () => void;
+  filters: {
+    userSearch: string;
+    staffSearch: string;
+    checkupDateRange: [moment.Moment | null, moment.Moment | null];
+    sortBy: string;
+    ascending: boolean;
+  };
+}> = ({ visible, onCancel, onApply, onReset, filters }) => {
+  const [localFilters, setLocalFilters] = useState(filters);
+
+  // Reset localFilters when modal is opened with new filters
+  useEffect(() => {
+    if (visible) {
+      setLocalFilters(filters);
+    }
+  }, [visible, filters]);
+
+  // Apply filters
+  const handleApply = () => {
+    onApply(localFilters);
+  };
+
+  // Common styles for filter items
+  const filterItemStyle = { marginBottom: "16px" };
+  const filterLabelStyle = { marginBottom: "8px", color: "#666666" };
+
+  // Function to update filter state
+  const updateFilter = (field: string, value: any) => {
+    setLocalFilters((prev) => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <Modal
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Advanced Filters
+        </Title>
+      }
+      open={visible}
+      onCancel={onCancel}
+      width={800}
+      footer={[
+        <Button key="reset" onClick={onReset} icon={<UndoOutlined />}>
+          Reset
+        </Button>,
+        <Button
+          key="apply"
+          type="primary"
+          onClick={handleApply}
+          icon={<FilterOutlined />}
+        >
+          Apply
+        </Button>,
+      ]}
+    >
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <Row gutter={16}>
+          {/* Patient Search */}
+          <Col span={12}>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Patient
+              </div>
+              <Input
+                placeholder="Search by patient"
+                value={localFilters.userSearch}
+                onChange={(e) => updateFilter("userSearch", e.target.value)}
+                prefix={<SearchOutlined />}
+                allowClear
+                style={{ width: "100%" }}
+              />
+            </div>
+          </Col>
+
+          {/* Medical Staff Search */}
+          <Col span={12}>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Medical Staff
+              </div>
+              <Input
+                placeholder="Search by medical staff"
+                value={localFilters.staffSearch}
+                onChange={(e) => updateFilter("staffSearch", e.target.value)}
+                prefix={<SearchOutlined />}
+                allowClear
+                style={{ width: "100%" }}
+              />
+            </div>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          {/* Checkup Date Range */}
+          <Col span={12}>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Checkup Date Range
+              </div>
+              <RangePicker
+                style={{ width: "100%" }}
+                placeholder={["From checkup date", "To checkup date"]}
+                allowClear
+                value={localFilters.checkupDateRange as any}
+                onChange={(dates) => updateFilter("checkupDateRange", dates)}
+              />
+            </div>
+          </Col>
+
+          {/* Sort By */}
+          <Col span={12}>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Sort By
+              </div>
+              <Select
+                placeholder="Sort by"
+                value={localFilters.sortBy}
+                onChange={(value) => updateFilter("sortBy", value)}
+                style={{ width: "100%" }}
+              >
+                <Option value="CancelledDate">Cancelled Date</Option>
+                <Option value="CheckupDate">Checkup Date</Option>
+                <Option value="CreatedAt">Created Date</Option>
+              </Select>
+            </div>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          {/* Order */}
+          <Col span={12}>
+            <div className="filter-item" style={filterItemStyle}>
+              <div className="filter-label" style={filterLabelStyle}>
+                Order
+              </div>
+              <Select
+                placeholder="Order"
+                value={localFilters.ascending ? "asc" : "desc"}
+                onChange={(value) => updateFilter("ascending", value === "asc")}
+                style={{ width: "100%" }}
+              >
+                <Option value="asc">Ascending</Option>
+                <Option value="desc">Descending</Option>
+              </Select>
+            </div>
+          </Col>
+        </Row>
+      </Space>
+    </Modal>
+  );
 };
 
 export const HealthCheckResultAdjustmentList: React.FC = () => {
   const router = useRouter();
-  const [healthCheckResults, setHealthCheckResults] = useState<HealthCheckResultsResponseDTO[]>([]);
+  const [healthCheckResults, setHealthCheckResults] = useState<
+    HealthCheckResultsResponseDTO[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [userSearch, setUserSearch] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
-  const [checkupDateRange, setCheckupDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
+  const [checkupDateRange, setCheckupDateRange] = useState<
+    [moment.Moment | null, moment.Moment | null]
+  >([null, null]);
   const [sortBy, setSortBy] = useState("CancelledDate");
   const [ascending, setAscending] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [currentResult, setCurrentResult] = useState<HealthCheckResultsResponseDTO | null>(null);
-  const [userOptions, setUserOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
-  const [staffOptions, setStaffOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
+  const [currentResult, setCurrentResult] =
+    useState<HealthCheckResultsResponseDTO | null>(null);
+  const [userOptions, setUserOptions] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
+  const [staffOptions, setStaffOptions] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
   const [codeSearch, setCodeSearch] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+
+  // Add column visibility state
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
+    code: true,
+    patient: true,
+    checkupDate: true,
+    staff: true,
+    cancelledDate: true,
+    reason: true,
+    actions: true,
+  });
 
   const fetchHealthCheckResults = useCallback(async () => {
     setLoading(true);
     try {
-      const checkupStartDate = checkupDateRange[0] ? checkupDateRange[0].format('YYYY-MM-DD') : undefined;
-      const checkupEndDate = checkupDateRange[1] ? checkupDateRange[1].format('YYYY-MM-DD') : undefined;
+      const checkupStartDate = checkupDateRange[0]
+        ? checkupDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const checkupEndDate = checkupDateRange[1]
+        ? checkupDateRange[1].format("YYYY-MM-DD")
+        : undefined;
 
       const response = await getAllHealthCheckResults(
         currentPage,
@@ -85,14 +283,19 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         checkupEndDate
       );
 
-      if (response.isSuccess) {
+      if (response.success) {
         setHealthCheckResults(response.data);
         setTotal(response.totalRecords);
       } else {
-        toast.error(response.message || "Failed to load health check results cancelled for adjustment");
+        toast.error(
+          response.message ||
+            "Failed to load health check results cancelled for adjustment"
+        );
       }
     } catch (error) {
-      toast.error("Failed to load health check results cancelled for adjustment");
+      toast.error(
+        "Failed to load health check results cancelled for adjustment"
+      );
     } finally {
       setLoading(false);
     }
@@ -104,7 +307,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
     staffSearch,
     sortBy,
     ascending,
-    checkupDateRange
+    checkupDateRange,
   ]);
 
   useEffect(() => {
@@ -116,99 +319,215 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
       try {
         // Lấy danh sách người dùng
         const users = await getUsers();
-        
+
         // Lọc ra người dùng thông thường (không phải staff)
-        const normalUsers = users.filter((user: any) => 
-          user.roles && !user.roles.some((role: string) => role === "Medical_Staff" || role === "Admin")
+        const normalUsers = users.filter(
+          (user: any) =>
+            user.roles &&
+            !user.roles.some(
+              (role: string) => role === "Healthcare Staff" || role === "Admin"
+            )
         );
-        setUserOptions(normalUsers.map((user: any) => ({
-          id: user.id,
-          fullName: user.fullName,
-          email: user.email
-        })));
-        
+        setUserOptions(
+          normalUsers.map((user: any) => ({
+            id: user.id,
+            fullName: user.fullName,
+            email: user.email,
+          }))
+        );
+
         // Lấy danh sách staff y tế
-        const medicalStaff = users.filter((user: any) => 
-          user.roles && user.roles.some((role: string) => role === "Medical_Staff")
+        const medicalStaff = users.filter(
+          (user: any) =>
+            user.roles &&
+            user.roles.some((role: string) => role === "Healthcare Staff")
         );
-        setStaffOptions(medicalStaff.map((staff: any) => ({
-          id: staff.id,
-          fullName: staff.fullName,
-          email: staff.email
-        })));
+        setStaffOptions(
+          medicalStaff.map((staff: any) => ({
+            id: staff.id,
+            fullName: staff.fullName,
+            email: staff.email,
+          }))
+        );
       } catch (error) {
         console.error("Failed to fetch users:", error);
         toast.error("Không thể tải danh sách người dùng");
       }
     };
-    
+
     fetchUsers();
   }, []);
-  
+
   const handleEdit = (record: HealthCheckResultsResponseDTO) => {
     setCurrentResult(record);
     setIsModalVisible(true);
   };
-  
+
   const handleCloseModal = () => {
     setIsModalVisible(false);
     setCurrentResult(null);
   };
-  
-  const columns = [
+
+  // Filter modal handlers
+  const handleOpenFilterModal = () => {
+    setFilterModalVisible(true);
+  };
+
+  const handleApplyFilters = (filters: any) => {
+    setUserSearch(filters.userSearch);
+    setStaffSearch(filters.staffSearch);
+    setCheckupDateRange(filters.checkupDateRange);
+    setSortBy(filters.sortBy);
+    setAscending(filters.ascending);
+    setFilterModalVisible(false);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setUserSearch("");
+    setStaffSearch("");
+    setCheckupDateRange([null, null]);
+    setSortBy("CancelledDate");
+    setAscending(false);
+    setFilterModalVisible(false);
+    setCurrentPage(1);
+  };
+
+  // Column visibility functions
+  const handleColumnVisibilityChange = (key: string) => {
+    setColumnVisibility((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const toggleAllColumns = (checked: boolean) => {
+    const newVisibility = { ...columnVisibility };
+    Object.keys(newVisibility).forEach((key) => {
+      newVisibility[key] = checked;
+    });
+    setColumnVisibility(newVisibility);
+  };
+
+  const areAllColumnsVisible = () => {
+    return Object.values(columnVisibility).every((value) => value === true);
+  };
+
+  const handleDropdownVisibleChange = (visible: boolean) => {
+    setDropdownOpen(visible);
+  };
+
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  // Reset all filters
+  const handleReset = () => {
+    setCodeSearch("");
+    setUserSearch("");
+    setStaffSearch("");
+    setCheckupDateRange([null, null]);
+    setSortBy("CancelledDate");
+    setAscending(false);
+    setCurrentPage(1);
+  };
+
+  const ALL_COLUMNS = [
     {
-      title: "Health Check Result Code",
-      dataIndex: "healthCheckResultCode",
-      render: (code: string) => <Text copyable>{code}</Text>,
+      key: "code",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          HEALTH CHECK RESULT CODE
+        </span>
+      ),
+      render: (record: HealthCheckResultsResponseDTO) => (
+        <Text copyable>{record.healthCheckResultCode}</Text>
+      ),
+      visible: columnVisibility.code,
     },
     {
-      title: "Patient",
-      dataIndex: "user",
-      render: (user: any) => (
+      key: "patient",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          PATIENT
+        </span>
+      ),
+      render: (record: HealthCheckResultsResponseDTO) => (
         <div>
-          <Text strong>{user?.fullName}</Text>
+          <Text strong>{record.user?.fullName}</Text>
           <div>
-            <Text type="secondary" className="text-sm">{user?.email}</Text>
+            <Text type="secondary" className="text-sm">
+              {record.user?.email}
+            </Text>
           </div>
         </div>
       ),
+      visible: columnVisibility.patient,
     },
     {
-      title: "Checkup Date",
-      dataIndex: "checkupDate",
-      render: (checkupDate: string) => formatDate(checkupDate),
-      sorter: true,
+      key: "checkupDate",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          CHECKUP DATE
+        </span>
+      ),
+      render: (record: HealthCheckResultsResponseDTO) =>
+        formatDate(record.checkupDate),
+      visible: columnVisibility.checkupDate,
     },
     {
-      title: "Medical Staff",
-      dataIndex: "staff",
-      render: (staff: any) => (
+      key: "staff",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          MEDICAL STAFF
+        </span>
+      ),
+      render: (record: HealthCheckResultsResponseDTO) => (
         <div>
-          <Text>{staff?.fullName}</Text>
+          <Text>{record.staff?.fullName}</Text>
           <div>
-            <Text type="secondary" className="text-sm">{staff?.email}</Text>
+            <Text type="secondary" className="text-sm">
+              {record.staff?.email}
+            </Text>
           </div>
         </div>
       ),
+      visible: columnVisibility.staff,
     },
     {
-      title: "Cancelled Date",
-      dataIndex: "cancelledDate",
-      render: (cancelledDate: string) => formatDateTime(cancelledDate),
+      key: "cancelledDate",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          CANCELLED DATE
+        </span>
+      ),
+      render: (record: HealthCheckResultsResponseDTO) =>
+        formatDateTime(record.cancelledDate),
+      visible: columnVisibility.cancelledDate,
     },
     {
-      title: "Cancellation Reason",
-      dataIndex: "cancellationReason",
-      render: (reason: string) => (
-        <Tooltip title={reason}>
+      key: "reason",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          CANCELLATION REASON
+        </span>
+      ),
+      render: (record: HealthCheckResultsResponseDTO) => (
+        <Tooltip title={record.cancellationReason}>
           <Paragraph ellipsis={{ rows: 2 }}>
-            {reason || "No reason provided"}
+            {record.cancellationReason || "No reason provided"}
           </Paragraph>
         </Tooltip>
       ),
+      visible: columnVisibility.reason,
     },
     {
-      title: "Actions",
+      key: "actions",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          ACTIONS
+        </span>
+      ),
       render: (record: HealthCheckResultsResponseDTO) => (
         <Space>
           <Tooltip title="View Details">
@@ -218,98 +537,310 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
               onClick={() => router.push(`/health-check-result/${record.id}`)}
             />
           </Tooltip>
-          
+
           <Tooltip title="Edit">
             <Button
               type="text"
-              icon={<EditOutlined />}
+              icon={<FormOutlined />}
               onClick={() => handleEdit(record)}
               className="text-blue-600"
             />
           </Tooltip>
         </Space>
       ),
+      visible: columnVisibility.actions,
     },
   ];
 
+  const columns = ALL_COLUMNS.filter((col) => col.visible);
+
+  // Check if any filter is applied
+  const isFilterApplied =
+    userSearch ||
+    staffSearch ||
+    checkupDateRange[0] ||
+    checkupDateRange[1] ||
+    sortBy !== "CancelledDate" ||
+    ascending !== false;
+
   return (
     <div className="p-6">
-      <Card className="mb-4 shadow-sm">
-        <Row gutter={[16, 16]}>
-          <Col span={24}>
-            <Space align="center">
-              <Button 
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.push('/health-check-result/management')}
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.push("/health-check-result/management")}
+            style={{ marginRight: "8px" }}
+          >
+            Back
+          </Button>
+          <h3 className="text-xl font-bold">
+            Health Check Results Cancelled for Adjustment
+          </h3>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <Card
+        className="shadow mb-4"
+        bodyStyle={{ padding: "16px" }}
+        title={
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "16px",
+            }}
+          >
+            <AppstoreOutlined />
+            <span>Toolbar</span>
+          </div>
+        }
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Code Filter */}
+            <Input
+              placeholder="Search by result code"
+              value={codeSearch}
+              onChange={(e) => setCodeSearch(e.target.value)}
+              prefix={<SearchOutlined />}
+              style={{ width: 200 }}
+              allowClear
+            />
+
+            {/* Filter Button */}
+            <Tooltip title="Advanced filters">
+              <Button
+                icon={
+                  <FilterOutlined
+                    style={{
+                      color: isFilterApplied ? "#1890ff" : undefined,
+                    }}
+                  />
+                }
+                onClick={handleOpenFilterModal}
               >
-                Back
+                Filter
+                {isFilterApplied && (
+                  <Badge
+                    count="!"
+                    size="small"
+                    offset={[5, -5]}
+                    style={{ backgroundColor: "#1890ff" }}
+                  />
+                )}
               </Button>
-              <Title level={4} style={{ margin: 0 }}>
-                Health Check Results Cancelled for Adjustment
-              </Title>
-            </Space>
-          </Col>
-          <Col span={24}>
-            <Space size="middle" wrap>
-              <Input
-                placeholder="Tìm theo mã kết quả khám"
-                value={codeSearch}
-                onChange={(e) => setCodeSearch(e.target.value)}
-                prefix={<SearchOutlined />}
-                style={{ width: 200 }}
-                allowClear
-              />
-              <Input
-                placeholder="Tìm theo bệnh nhân"
-                value={userSearch}
-                onChange={(e) => setUserSearch(e.target.value)}
-                prefix={<SearchOutlined />}
-                style={{ width: 200 }}
-                allowClear
-              />
-              <Input
-                placeholder="Search by medical staff"
-                value={staffSearch}
-                onChange={(e) => setStaffSearch(e.target.value)}
-                prefix={<SearchOutlined />}
-                style={{ width: 200 }}
-                allowClear
-              />
-              <RangePicker
-                placeholder={["From checkup date", "To checkup date"]}
-                onChange={(dates) => {
-                  setCheckupDateRange(dates as [moment.Moment | null, moment.Moment | null]);
+            </Tooltip>
+
+            {/* Reset Button */}
+            <Tooltip title="Reset all filters">
+              <Button
+                icon={<UndoOutlined />}
+                onClick={handleReset}
+                disabled={!(codeSearch || isFilterApplied)}
+              >
+                Reset
+              </Button>
+            </Tooltip>
+
+            {/* Column Settings */}
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: "selectAll",
+                    label: (
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={areAllColumnsVisible()}
+                          onChange={(e) => toggleAllColumns(e.target.checked)}
+                        >
+                          <strong>Show all columns</strong>
+                        </Checkbox>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "divider",
+                    type: "divider",
+                  },
+                  {
+                    key: "code",
+                    label: (
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.code}
+                          onChange={() => handleColumnVisibilityChange("code")}
+                        >
+                          Result Code
+                        </Checkbox>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "patient",
+                    label: (
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.patient}
+                          onChange={() =>
+                            handleColumnVisibilityChange("patient")
+                          }
+                        >
+                          Patient
+                        </Checkbox>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "checkupDate",
+                    label: (
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.checkupDate}
+                          onChange={() =>
+                            handleColumnVisibilityChange("checkupDate")
+                          }
+                        >
+                          Checkup Date
+                        </Checkbox>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "staff",
+                    label: (
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.staff}
+                          onChange={() => handleColumnVisibilityChange("staff")}
+                        >
+                          Medical Staff
+                        </Checkbox>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "cancelledDate",
+                    label: (
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.cancelledDate}
+                          onChange={() =>
+                            handleColumnVisibilityChange("cancelledDate")
+                          }
+                        >
+                          Cancelled Date
+                        </Checkbox>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "reason",
+                    label: (
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.reason}
+                          onChange={() =>
+                            handleColumnVisibilityChange("reason")
+                          }
+                        >
+                          Cancellation Reason
+                        </Checkbox>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "actions",
+                    label: (
+                      <div onClick={handleMenuClick}>
+                        <Checkbox
+                          checked={columnVisibility.actions}
+                          onChange={() =>
+                            handleColumnVisibilityChange("actions")
+                          }
+                        >
+                          Actions
+                        </Checkbox>
+                      </div>
+                    ),
+                  },
+                ],
+                onClick: (e) => {
+                  // Prevent dropdown from closing
+                  e.domEvent.stopPropagation();
+                },
+              }}
+              trigger={["hover", "click"]}
+              placement="bottomRight"
+              arrow
+              open={dropdownOpen}
+              onOpenChange={handleDropdownVisibleChange}
+              mouseEnterDelay={0.1}
+              mouseLeaveDelay={0.3}
+            >
+              <Tooltip title="Column settings">
+                <Button icon={<SettingOutlined />}>Columns</Button>
+              </Tooltip>
+            </Dropdown>
+          </div>
+          <div>
+            <Typography.Text type="secondary">
+              Rows per page:
+              <Select
+                value={pageSize}
+                onChange={(value) => {
+                  setPageSize(value);
+                  setCurrentPage(1);
                 }}
-                allowClear
-              />
-            </Space>
-          </Col>
-          <Col span={24}>
-            <Space size="middle" wrap>
-              <Select
-                placeholder="Sort by"
-                value={sortBy}
-                onChange={(value) => setSortBy(value)}
-                style={{ width: 150 }}
+                style={{ marginLeft: 8, width: 70 }}
               >
-                <Option value="CancelledDate">Cancelled Date</Option>
-                <Option value="CheckupDate">Checkup Date</Option>
-                <Option value="CreatedAt">Created Date</Option>
+                <Option value={5}>5</Option>
+                <Option value={10}>10</Option>
+                <Option value={15}>15</Option>
+                <Option value={20}>20</Option>
               </Select>
-              <Select
-                placeholder="Order"
-                value={ascending ? "asc" : "desc"}
-                onChange={(value) => setAscending(value === "asc")}
-                style={{ width: 120 }}
-              >
-                <Option value="asc">Ascending</Option>
-                <Option value="desc">Descending</Option>
-              </Select>
-            </Space>
-          </Col>
-        </Row>
+            </Typography.Text>
+          </div>
+        </div>
+
+        {/* Applied Filters Display */}
+        {isFilterApplied && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {userSearch && (
+              <Tag closable onClose={() => setUserSearch("")}>
+                Patient: {userSearch}
+              </Tag>
+            )}
+            {staffSearch && (
+              <Tag closable onClose={() => setStaffSearch("")}>
+                Staff: {staffSearch}
+              </Tag>
+            )}
+            {checkupDateRange[0] && checkupDateRange[1] && (
+              <Tag closable onClose={() => setCheckupDateRange([null, null])}>
+                Checkup Date: {formatDate(checkupDateRange[0]?.toString())} to{" "}
+                {formatDate(checkupDateRange[1]?.toString())}
+              </Tag>
+            )}
+            {sortBy !== "CancelledDate" && (
+              <Tag closable onClose={() => setSortBy("CancelledDate")}>
+                Sort by: {sortBy}
+              </Tag>
+            )}
+            {ascending !== false && (
+              <Tag closable onClose={() => setAscending(false)}>
+                Order: Ascending
+              </Tag>
+            )}
+          </div>
+        )}
       </Card>
 
+      {/* Results Table */}
       <Card className="shadow-sm">
         <Table
           columns={columns}
@@ -318,39 +849,56 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
           pagination={false}
           rowKey="id"
           locale={{
-            emptyText: <Empty description="No health check results cancelled for adjustment found" />,
+            emptyText: (
+              <Empty description="No health check results cancelled for adjustment found" />
+            ),
           }}
           className="border rounded-lg"
         />
       </Card>
 
+      {/* Pagination */}
       <Card className="mt-4 shadow-sm">
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Text type="secondary">
-              Total: {total} health check results cancelled for adjustment
-            </Text>
-          </Col>
-          <Col>
-            <Pagination
-              current={currentPage}
-              pageSize={pageSize}
-              total={total}
-              onChange={(page, size) => {
-                setCurrentPage(page);
-                setPageSize(size);
-              }}
-              showSizeChanger
-              onShowSizeChange={(current, size) => {
-                setCurrentPage(1);
-                setPageSize(size);
-              }}
-              pageSizeOptions={['5', '10', '15', '20']}
-            />
-          </Col>
+        <Row justify="center" align="middle">
+          <Space size="large" align="center">
+            <Typography.Text type="secondary">
+              Total: {total} health check results
+            </Typography.Text>
+            <Space align="center" size="large">
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={total}
+                onChange={(page) => {
+                  setCurrentPage(page);
+                }}
+                showSizeChanger={false}
+                showTotal={() => ""}
+              />
+              <Space align="center">
+                <Typography.Text type="secondary">Go to page:</Typography.Text>
+                <InputNumber
+                  min={1}
+                  max={Math.ceil(total / pageSize)}
+                  value={currentPage}
+                  onChange={(value: number | null) => {
+                    if (
+                      value &&
+                      Number(value) > 0 &&
+                      Number(value) <= Math.ceil(total / pageSize)
+                    ) {
+                      setCurrentPage(Number(value));
+                    }
+                  }}
+                  style={{ width: "60px" }}
+                />
+              </Space>
+            </Space>
+          </Space>
         </Row>
       </Card>
-      
+
+      {/* Edit Modal */}
       <EditModal
         visible={isModalVisible}
         onClose={handleCloseModal}
@@ -359,6 +907,21 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         userOptions={userOptions}
         staffOptions={staffOptions}
       />
+
+      {/* Filter Modal */}
+      <HealthCheckFilterModal
+        visible={filterModalVisible}
+        onCancel={() => setFilterModalVisible(false)}
+        onApply={handleApplyFilters}
+        onReset={handleResetFilters}
+        filters={{
+          userSearch,
+          staffSearch,
+          checkupDateRange,
+          sortBy,
+          ascending,
+        }}
+      />
     </div>
   );
-}; 
+};

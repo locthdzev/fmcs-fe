@@ -13,21 +13,21 @@ import {
 } from "antd";
 import { toast } from "react-toastify";
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
-import moment from "moment";
+import dayjs from "dayjs";
 import {
   HealthCheckResultsResponseDTO,
   HealthCheckResultsUpdateWithIdRequestDTO,
   updateHealthCheckResult,
   getHealthCheckResultById,
-  HealthCheckResultsIdResponseDTO
+  HealthCheckResultsIdResponseDTO,
 } from "@/api/healthcheckresult";
 
 const { Option } = Select;
 const { TextArea } = Input;
 
 const formatDate = (date: string | undefined) => {
-  if (!date) return '';
-  return moment(date).format('DD/MM/YYYY');
+  if (!date) return "";
+  return dayjs(date).format("DD/MM/YYYY");
 };
 
 interface EditModalProps {
@@ -50,7 +50,9 @@ const EditModal: React.FC<EditModalProps> = ({
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [followUpRequired, setFollowUpRequired] = useState(false);
-  const [healthCheckResultDetails, setHealthCheckResultDetails] = useState<any[]>([]);
+  const [healthCheckResultDetails, setHealthCheckResultDetails] = useState<
+    any[]
+  >([]);
 
   useEffect(() => {
     if (visible && healthCheckResult) {
@@ -58,24 +60,30 @@ const EditModal: React.FC<EditModalProps> = ({
         try {
           setLoading(true);
           const response = await getHealthCheckResultById(healthCheckResult.id);
-          
+
           if (response.isSuccess && response.data) {
             const result: HealthCheckResultsIdResponseDTO = response.data;
-            
+
             setFollowUpRequired(result.followUpRequired || false);
             setHealthCheckResultDetails(result.healthCheckResultDetails || []);
-            
+
             // Set form values
             form.setFieldsValue({
               userId: result.userId,
-              checkupDate: result.checkupDate ? moment(result.checkupDate) : moment(),
+              checkupDate: result.checkupDate
+                ? dayjs(result.checkupDate)
+                : dayjs(),
               followUpRequired: result.followUpRequired || false,
-              followUpDate: result.followUpDate ? moment(result.followUpDate) : undefined,
-              healthCheckResultDetails: result.healthCheckResultDetails?.map(detail => ({
-                resultSummary: detail.resultSummary || '',
-                diagnosis: detail.diagnosis || '',
-                recommendations: detail.recommendations || ''
-              })) || [{}]
+              followUpDate: result.followUpDate
+                ? dayjs(result.followUpDate)
+                : undefined,
+              healthCheckResultDetails: result.healthCheckResultDetails?.map(
+                (detail) => ({
+                  resultSummary: detail.resultSummary || "",
+                  diagnosis: detail.diagnosis || "",
+                  recommendations: detail.recommendations || "",
+                })
+              ) || [{}],
             });
           } else {
             toast.error(response.message || "Không thể tải thông tin chi tiết");
@@ -107,19 +115,23 @@ const EditModal: React.FC<EditModalProps> = ({
       // Chuyển đổi giá trị từ form sang DTO
       const requestData: HealthCheckResultsUpdateWithIdRequestDTO = {
         followUpRequired: values.followUpRequired || false,
-        followUpDate: values.followUpRequired && values.followUpDate
-          ? values.followUpDate.format("YYYY-MM-DD")
-          : undefined,
+        followUpDate:
+          values.followUpRequired && values.followUpDate
+            ? values.followUpDate.format("YYYY-MM-DD")
+            : undefined,
         healthCheckResultDetails: values.healthCheckResultDetails.map(
           (detail: any) => ({
             resultSummary: detail.resultSummary,
             diagnosis: detail.diagnosis,
             recommendations: detail.recommendations,
           })
-        )
+        ),
       };
 
-      const response = await updateHealthCheckResult(healthCheckResult.id, requestData);
+      const response = await updateHealthCheckResult(
+        healthCheckResult.id,
+        requestData
+      );
 
       if (response.isSuccess) {
         toast.success("Cập nhật kết quả khám thành công!");
@@ -166,7 +178,7 @@ const EditModal: React.FC<EditModalProps> = ({
         form={form}
         layout="vertical"
         initialValues={{
-          checkupDate: moment(),
+          checkupDate: dayjs(),
           healthCheckResultDetails: [{}],
         }}
       >
@@ -174,32 +186,29 @@ const EditModal: React.FC<EditModalProps> = ({
         <Form.Item name="userId" hidden={true}>
           <Input />
         </Form.Item>
-        
+
         <Typography.Title level={5}>Thông tin cơ bản</Typography.Title>
-        <Form.Item
-          label="Bệnh nhân"
-        >
+        <Form.Item label="Bệnh nhân">
           {healthCheckResult?.user ? (
             <Typography.Text strong>
               {healthCheckResult.user.fullName} ({healthCheckResult.user.email})
             </Typography.Text>
           ) : (
-            <Typography.Text type="secondary">Không có thông tin bệnh nhân</Typography.Text>
+            <Typography.Text type="secondary">
+              Không có thông tin bệnh nhân
+            </Typography.Text>
           )}
         </Form.Item>
 
-        <Form.Item
-          label="Ngày khám"
-        >
+        <Form.Item label="Ngày khám">
           <Typography.Text>
-            {healthCheckResult?.checkupDate ? formatDate(healthCheckResult.checkupDate) : ''}
+            {healthCheckResult?.checkupDate
+              ? formatDate(healthCheckResult.checkupDate)
+              : ""}
           </Typography.Text>
         </Form.Item>
 
-        <Form.Item
-          name="followUpRequired"
-          valuePropName="checked"
-        >
+        <Form.Item name="followUpRequired" valuePropName="checked">
           <Checkbox onChange={(e) => setFollowUpRequired(e.target.checked)}>
             Yêu cầu tái khám
           </Checkbox>
@@ -220,7 +229,9 @@ const EditModal: React.FC<EditModalProps> = ({
               format="DD/MM/YYYY"
               style={{ width: "100%" }}
               placeholder="Chọn ngày tái khám"
-              disabledDate={(current) => current && current < moment().endOf('day')}
+              disabledDate={(current) =>
+                current && current < dayjs().endOf("day")
+              }
             />
           </Form.Item>
         )}
@@ -235,7 +246,9 @@ const EditModal: React.FC<EditModalProps> = ({
               {fields.map(({ key, name, ...restField }) => (
                 <div key={key} className="mb-4 border p-4 rounded">
                   <div className="flex justify-between mb-2">
-                    <Typography.Text strong>Chi tiết #{key + 1}</Typography.Text>
+                    <Typography.Text strong>
+                      Chi tiết #{key + 1}
+                    </Typography.Text>
                     {fields.length > 1 && (
                       <Button
                         type="text"
@@ -306,4 +319,4 @@ const EditModal: React.FC<EditModalProps> = ({
   );
 };
 
-export default EditModal; 
+export default EditModal;
