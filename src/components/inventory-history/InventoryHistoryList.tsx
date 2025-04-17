@@ -25,7 +25,7 @@ import dayjs from "dayjs";
 import {
   GroupedInventoryHistoriesDTO,
   InventoryHistoryResponseDTO,
-  getGroupedInventoryHistories
+  getGroupedInventoryHistories,
 } from "@/api/inventoryhistory";
 import { useRouter } from "next/router";
 import {
@@ -99,7 +99,9 @@ export function InventoryHistoryList() {
   // Dropdown options
   const [uniqueBatchCodes, setUniqueBatchCodes] = useState<string[]>([]);
   const [uniqueDrugNames, setUniqueDrugNames] = useState<string[]>([]);
-  const [uniqueUsers, setUniqueUsers] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [uniqueUsers, setUniqueUsers] = useState<
+    { id: string; name: string; email: string }[]
+  >([]);
 
   // Filter state for the modal
   const [filterState, setFilterState] = useState({
@@ -158,7 +160,7 @@ export function InventoryHistoryList() {
           drug: group.inventoryRecord.drug,
           quantityInStock: group.inventoryRecord.quantityInStock,
           reorderLevel: group.inventoryRecord.reorderLevel,
-          status: group.inventoryRecord.status
+          status: group.inventoryRecord.status,
         }));
 
         // Additional sort to ensure groups with most recent action are at top
@@ -187,8 +189,7 @@ export function InventoryHistoryList() {
         setTotal(groupedData.totalInventoryRecords);
       } else {
         messageApi.error({
-          content:
-            response.message || "Could not load inventory histories",
+          content: response.message || "Could not load inventory histories",
           duration: 5,
         });
       }
@@ -276,6 +277,15 @@ export function InventoryHistoryList() {
     setDrugNameSearch("");
     setChangeDateRange([null, null]);
     setAscending(false);
+
+    // Reset state filter modal nếu modal đang mở
+    setFilterState({
+      userSearch: "",
+      batchCodeSearch: "",
+      drugNameSearch: "",
+      changeDateRange: [null, null],
+      ascending: false,
+    });
   };
 
   const formatDateTime = (dateTime: string) => {
@@ -325,18 +335,21 @@ export function InventoryHistoryList() {
 
       if (response.success) {
         const groupedData = response.data as GroupedInventoryHistoriesDTO;
-        
+
         // Extract unique batch codes
         const batchCodesSet = new Set<string>();
         // Extract unique drug names
         const drugNamesSet = new Set<string>();
         // Extract unique users with Map to avoid duplicates
-        const usersMap = new Map<string, { id: string; name: string; email: string }>();
+        const usersMap = new Map<
+          string,
+          { id: string; name: string; email: string }
+        >();
 
         groupedData.items.forEach((group) => {
           // Add batch code
           batchCodesSet.add(group.inventoryRecord.batchCode);
-          
+
           // Add drug name
           if (group.inventoryRecord.drug) {
             drugNamesSet.add(group.inventoryRecord.drug.name);
@@ -350,14 +363,14 @@ export function InventoryHistoryList() {
               usersMap.set(history.user.id, {
                 id: history.user.id,
                 name: history.user.fullName || history.userName,
-                email: history.user.email || ''
+                email: history.user.email || "",
               });
             } else if (history.userId && history.userName) {
               // Fallback to using basic user info if full user object isn't available
               usersMap.set(history.userId, {
                 id: history.userId,
                 name: history.userName,
-                email: ''
+                email: "",
               });
             }
           });
@@ -421,7 +434,7 @@ export function InventoryHistoryList() {
       onBack={() => router.back()}
     >
       {contextHolder}
-      
+
       {/* Filter Controls */}
       <Card
         className="shadow mb-4"
@@ -510,7 +523,8 @@ export function InventoryHistoryList() {
               icon={<FileExcelOutlined />}
               onClick={() => {
                 // URL đến API endpoint export trong backend
-                const exportUrl = "/api/inventoryhistory-management/inventoryhistories/export";
+                const exportUrl =
+                  "/api/inventoryhistory-management/inventoryhistories/export";
                 window.open(exportUrl, "_blank");
               }}
             >
@@ -562,7 +576,7 @@ export function InventoryHistoryList() {
                 <Option value="oldest">Oldest first</Option>
               </Select>
             </Space>
-            
+
             <Space>
               <Text type="secondary">Records per page:</Text>
               <Select
@@ -591,7 +605,11 @@ export function InventoryHistoryList() {
                     <Text
                       strong
                       style={{ fontSize: "16px" }}
-                      onClick={() => router.push(`/inventory-record/${group.inventoryRecordId}`)}
+                      onClick={() =>
+                        router.push(
+                          `/inventory-record/${group.inventoryRecordId}`
+                        )
+                      }
                       className="cursor-pointer hover:text-blue-500"
                     >
                       {group.batchCode}
@@ -630,7 +648,11 @@ export function InventoryHistoryList() {
                       type="primary"
                       size="small"
                       icon={<DatabaseOutlined />}
-                      onClick={() => router.push(`/inventory-record/${group.inventoryRecordId}`)}
+                      onClick={() =>
+                        router.push(
+                          `/inventory-record/${group.inventoryRecordId}`
+                        )
+                      }
                     >
                       View Details
                     </Button>
@@ -713,9 +735,17 @@ export function InventoryHistoryList() {
                                     <div>
                                       {history.user ? (
                                         <div>
-                                          <span>{history.user.fullName || history.userName}</span>
+                                          <span>
+                                            {history.user.fullName ||
+                                              history.userName}
+                                          </span>
                                           {history.user.email && (
-                                            <div style={{ fontSize: '12px', color: '#888' }}>
+                                            <div
+                                              style={{
+                                                fontSize: "12px",
+                                                color: "#888",
+                                              }}
+                                            >
                                               {history.user.email}
                                             </div>
                                           )}
@@ -726,7 +756,8 @@ export function InventoryHistoryList() {
                                     </div>
                                   </div>
 
-                                  {history.previousQuantity !== history.newQuantity && (
+                                  {history.previousQuantity !==
+                                    history.newQuantity && (
                                     <div style={{ display: "flex" }}>
                                       <div
                                         style={{
@@ -782,7 +813,7 @@ export function InventoryHistoryList() {
             showGoToPage={true}
             showTotal={true}
           />
-          
+
           {/* Filter Modal */}
           <InventoryHistoryFilterModal
             visible={showFilterModal}
@@ -797,4 +828,4 @@ export function InventoryHistoryList() {
       )}
     </PageContainer>
   );
-} 
+}

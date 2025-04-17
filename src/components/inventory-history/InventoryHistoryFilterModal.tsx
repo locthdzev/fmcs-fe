@@ -37,7 +37,9 @@ interface InventoryHistoryFilterModalProps {
   uniqueUsers: { id: string; name: string; email: string }[];
 }
 
-const InventoryHistoryFilterModal: React.FC<InventoryHistoryFilterModalProps> = ({
+const InventoryHistoryFilterModal: React.FC<
+  InventoryHistoryFilterModalProps
+> = ({
   visible,
   initialValues,
   onCancel,
@@ -113,37 +115,6 @@ const InventoryHistoryFilterModal: React.FC<InventoryHistoryFilterModalProps> = 
               className="filter-label"
               style={{ marginBottom: "8px", color: "#666666" }}
             >
-              Batch Code
-            </div>
-            <Select
-              showSearch
-              placeholder="Select Batch Code"
-              value={filterState.batchCodeSearch || undefined}
-              onChange={(value) =>
-                setFilterState((prev) => ({
-                  ...prev,
-                  batchCodeSearch: value || "",
-                }))
-              }
-              style={{ width: "100%" }}
-              allowClear
-              filterOption={(input, option) =>
-                (option?.label?.toString().toLowerCase() || "").includes(
-                  input.toLowerCase()
-                )
-              }
-              options={uniqueBatchCodes.map((code) => ({
-                value: code,
-                label: code,
-              }))}
-            />
-          </div>
-
-          <div className="filter-item" style={{ marginBottom: "16px" }}>
-            <div
-              className="filter-label"
-              style={{ marginBottom: "8px", color: "#666666" }}
-            >
               Drug Name/Code
             </div>
             <Select
@@ -197,7 +168,7 @@ const InventoryHistoryFilterModal: React.FC<InventoryHistoryFilterModalProps> = 
               optionLabelProp="label"
               options={uniqueUsers.map((user) => ({
                 value: user.name,
-                label: `${user.name} ${user.email ? `(${user.email})` : ''}`,
+                label: `${user.name} ${user.email ? `(${user.email})` : ""}`,
                 email: user.email,
               }))}
             />
@@ -310,4 +281,4 @@ const InventoryHistoryFilterModal: React.FC<InventoryHistoryFilterModalProps> = 
   );
 };
 
-export default InventoryHistoryFilterModal; 
+export default InventoryHistoryFilterModal;
