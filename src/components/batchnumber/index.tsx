@@ -6,12 +6,23 @@ import {
   Select,
   Input,
   DatePicker,
-  Pagination,
   Space,
   message,
+  Tooltip,
+  Card,
 } from "antd";
-import { Chip, Card, CardHeader, CardBody } from "@heroui/react";
-import { PencilSquareIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { Chip } from "@heroui/react";
+import {
+  PencilSquareIcon,
+  PlusIcon,
+} from "@heroicons/react/24/outline";
+import {
+  ExportOutlined,
+  FilterOutlined,
+  UndoOutlined,
+  SettingOutlined,
+  TagOutlined,
+} from "@ant-design/icons";
 import {
   getAllBatchNumbers,
   updateBatchNumberStatus,
@@ -24,6 +35,10 @@ import EditBatchNumberModal from "./EditBatchNumberModal";
 import MergeBatchNumbersModal from "./MergeBatchNumbersModal";
 import { BatchNumberIcon } from "./Icons";
 import debounce from "lodash/debounce";
+import TableControls from "../shared/TableControls";
+import PaginationFooter from "../shared/PaginationFooter";
+import ToolbarCard from "../shared/ToolbarCard";
+import PageContainer from "../shared/PageContainer";
 
 const { Column } = Table;
 const { Option } = Select;
@@ -34,7 +49,8 @@ export function BatchNumberManagement() {
   const [batchNumbers, setBatchNumbers] = useState<BatchNumberResponseDTO[]>(
     []
   );
-  const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
+  const [loading, setLoading] = useState<boolean>(false);
+  const [loadingActions, setLoadingActions] = useState<{ [key: string]: boolean }>({});
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isMergeModalVisible, setIsMergeModalVisible] = useState(false);
   const [currentBatchNumber, setCurrentBatchNumber] =
@@ -57,8 +73,12 @@ export function BatchNumberManagement() {
     [string, string] | null
   >(null);
 
+  // Selected row keys for batch actions
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+
   const fetchBatchNumbers = useCallback(async () => {
     try {
+      setLoading(true);
       const result = await getAllBatchNumbers(
         currentPage,
         pageSize,
@@ -80,6 +100,8 @@ export function BatchNumberManagement() {
         content: "Unable to load batch number list.",
         duration: 5,
       });
+    } finally {
+      setLoading(false);
     }
   }, [
     currentPage,
@@ -134,7 +156,7 @@ export function BatchNumberManagement() {
     }
 
     try {
-      setLoading((prev) => ({ ...prev, [id]: true }));
+      setLoadingActions((prev) => ({ ...prev, [id]: true }));
       const response = await updateBatchNumberStatus(
         id,
         isActive ? "Active" : "Inactive"
@@ -158,7 +180,7 @@ export function BatchNumberManagement() {
         duration: 5,
       });
     } finally {
-      setLoading((prev) => ({ ...prev, [id]: false }));
+      setLoadingActions((prev) => ({ ...prev, [id]: false }));
     }
   };
 
@@ -171,15 +193,9 @@ export function BatchNumberManagement() {
     setIsMergeModalVisible(true);
   };
 
-  const handleExportExcel = () => {
-    exportToExcel(
-      "/batchnumber-management/batchnumbers/export",
-      "batch_numbers.xlsx"
-    );
-    messageApi.success({
-      content: "Downloading Excel file...",
-      duration: 5,
-    });
+  const handlePageChange = (page: number, newPageSize?: number) => {
+    setCurrentPage(page);
+    if (newPageSize) setPageSize(newPageSize);
   };
 
   const handleSearchChange = debounce((value: string) => {
@@ -189,11 +205,6 @@ export function BatchNumberManagement() {
 
   const handleSortChange = (value: string) => {
     setSortBy(value);
-    setCurrentPage(1);
-  };
-
-  const handlePageSizeChange = (_: number, size: number) => {
-    setPageSize(size);
     setCurrentPage(1);
   };
 
@@ -216,97 +227,160 @@ export function BatchNumberManagement() {
     fetchBatchNumbers();
   };
 
+  const handleReset = () => {
+    setSearchText("");
+    setDrugNameFilter("");
+    setSupplierFilter("");
+    setStatusFilter("");
+    setManufacturingDateRange(null);
+    setExpiryDateRange(null);
+    setSortBy("CreatedAt");
+    setAscending(false);
+    setCurrentPage(1);
+  };
+
+  const handleExportExcel = () => {
+    exportToExcel(
+      "/batchnumber-management/batchnumbers/export",
+      "batch_numbers.xlsx"
+    );
+    messageApi.success({
+      content: "Downloading Excel file...",
+      duration: 5,
+    });
+  };
+
   return (
-    <div>
+    <>
       {contextHolder}
-      <Card className="m-4">
-        <CardHeader className="flex items-center gap-2">
-          <BatchNumberIcon />
-          <h3 className="text-2xl font-bold">Batch Number Management</h3>
-        </CardHeader>
-        <CardBody>
-          <Space
-            style={{
-              marginBottom: 16,
-              display: "flex",
-              justifyContent: "space-between",
-            }}
-          >
-            <Space>
+      <PageContainer
+        title="Batch Number Management"
+        icon={<BatchNumberIcon />}
+      >
+        {/* Search and Filters Toolbar */}
+        <ToolbarCard
+          leftContent={
+            <>
+              {/* Batch Code Search */}
               <Input
                 placeholder="Search by Batch Code"
                 onChange={(e) => handleSearchChange(e.target.value)}
                 style={{ width: 200 }}
+                allowClear
               />
+
+              {/* Drug Name Filter */}
               <Input
                 placeholder="Filter by Drug Name"
                 onChange={(e) => setDrugNameFilter(e.target.value)}
                 style={{ width: 200 }}
+                allowClear
               />
+
+              {/* Supplier Filter */}
               <Input
                 placeholder="Filter by Supplier"
                 onChange={(e) => setSupplierFilter(e.target.value)}
                 style={{ width: 200 }}
-              />
-              <Select
-                placeholder="Filter by Status"
-                onChange={(value) => setStatusFilter(value)}
-                style={{ width: 150 }}
                 allowClear
-              >
-                <Option value="Priority">Priority</Option>
-                <Option value="Active">Active</Option>
-                <Option value="NearExpiry">Near Expiry</Option>
-                <Option value="Inactive">Inactive</Option>
-                <Option value="Expired">Expired</Option>
-              </Select>
-              <RangePicker
-                placeholder={["Manufacturing Start", "End"]}
-                onChange={(dates) =>
-                  setManufacturingDateRange(
-                    dates
-                      ? [
-                          dates[0]?.format("YYYY-MM-DD") ?? "",
-                          dates[1]?.format("YYYY-MM-DD") ?? "",
-                        ]
-                      : null
-                  )
-                }
               />
-              <RangePicker
-                placeholder={["Expiry Start", "End"]}
-                onChange={(dates) =>
-                  setExpiryDateRange(
-                    dates
-                      ? [
-                          dates[0]?.format("YYYY-MM-DD") ?? "",
-                          dates[1]?.format("YYYY-MM-DD") ?? "",
-                        ]
-                      : null
-                  )
-                }
-              />
-            </Space>
-            <Space>
-              <Button type="primary" onClick={handleExportExcel}>
-                Export Excel
-              </Button>
+
+              {/* Status */}
+              <div>
+                <Select
+                  placeholder={
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <TagOutlined style={{ marginRight: 8 }} />
+                      <span>Status</span>
+                    </div>
+                  }
+                  allowClear
+                  style={{ width: "150px" }}
+                  value={statusFilter || undefined}
+                  onChange={(value) => setStatusFilter(value || "")}
+                  disabled={loading}
+                >
+                  <Option value="Priority">Priority</Option>
+                  <Option value="Active">Active</Option>
+                  <Option value="NearExpiry">Near Expiry</Option>
+                  <Option value="Inactive">Inactive</Option>
+                  <Option value="Expired">Expired</Option>
+                </Select>
+              </div>
+
+              {/* Reset Button */}
+              <Tooltip title="Reset All Filters">
+                <Button
+                  icon={<UndoOutlined />}
+                  onClick={handleReset}
+                  disabled={
+                    !(
+                      searchText ||
+                      drugNameFilter ||
+                      supplierFilter ||
+                      statusFilter ||
+                      manufacturingDateRange ||
+                      expiryDateRange
+                    )
+                  }
+                />
+              </Tooltip>
+
+              {/* Advanced Filters */}
+              <Tooltip title="Date Filters">
+                <Button
+                  icon={<FilterOutlined />}
+                  onClick={() => {
+                    // Could open a modal with date filters
+                    messageApi.info("Date filters would go here in a modal");
+                  }}
+                  disabled={loading}
+                >
+                  Dates
+                </Button>
+              </Tooltip>
+
+              {/* Merge Button */}
               <Button
                 type="primary"
                 onClick={handleShowMergeModal}
-                disabled={mergeableGroups.length === 0}
-                icon={<PlusIcon />}
+                disabled={mergeableGroups.length === 0 || loading}
+                icon={<PlusIcon className="w-5 h-5" />}
               >
                 Merge Batch Numbers
               </Button>
-            </Space>
-          </Space>
+            </>
+          }
+          rightContent={
+            <Button
+              type="primary"
+              icon={<ExportOutlined />}
+              onClick={handleExportExcel}
+              disabled={loading}
+            >
+              Export Excel
+            </Button>
+          }
+        />
 
+        {/* Table Controls for rows per page */}
+        <TableControls
+          selectedRowKeys={selectedRowKeys}
+          pageSize={pageSize}
+          onPageSizeChange={(newSize) => handlePageChange(1, newSize)}
+          bulkActions={[]}
+          maxRowsPerPage={100}
+          pageSizeOptions={[5, 10, 15, 20, 50, 100]}
+        />
+
+        {/* Data Table */}
+        <Card className="shadow-sm" bodyStyle={{ padding: "16px" }}>
           <Table
             dataSource={batchNumbers}
             rowKey="id"
             pagination={false}
             onChange={handleTableChange}
+            loading={loading}
           >
             <Column
               title="BATCH CODE"
@@ -441,7 +515,7 @@ export function BatchNumberManagement() {
                     !record.expiryDate ||
                     record.status === "Expired"
                   }
-                  loading={loading[record.id]}
+                  loading={loadingActions[record.id]}
                   onChange={(checked) => handleToggleStatus(record.id, checked)}
                 />
               )}
@@ -472,19 +546,18 @@ export function BatchNumberManagement() {
             />
           </Table>
 
-          <Pagination
+          <PaginationFooter
             current={currentPage}
             pageSize={pageSize}
             total={total}
-            onChange={(page) => setCurrentPage(page)}
-            onShowSizeChange={handlePageSizeChange}
-            showSizeChanger
-            pageSizeOptions={["10", "20", "50", "100"]}
-            style={{ marginTop: 16, textAlign: "right" }}
+            onChange={handlePageChange}
+            showGoToPage={true}
+            showTotal={true}
           />
-        </CardBody>
-      </Card>
+        </Card>
+      </PageContainer>
 
+      {/* Modals */}
       {currentBatchNumber && (
         <EditBatchNumberModal
           visible={isEditModalVisible}
@@ -502,6 +575,6 @@ export function BatchNumberManagement() {
           fetchMergeableGroups();
         }}
       />
-    </div>
+    </>
   );
 }

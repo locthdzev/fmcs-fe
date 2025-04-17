@@ -16,21 +16,27 @@ import {
   Input,
   Select,
   Upload,
-  Popconfirm
+  Popconfirm,
 } from "antd";
 import dayjs from "dayjs";
-import { getDrugById, DrugResponse, updateDrug, activateDrugs, deactivateDrugs } from "@/api/drug";
+import {
+  getDrugById,
+  DrugResponse,
+  updateDrug,
+  activateDrugs,
+  deactivateDrugs,
+} from "@/api/drug";
 import { getDrugGroups } from "@/api/druggroup";
 import {
   ArrowLeftOutlined,
-  EditOutlined,
+  FormOutlined,
   SaveOutlined,
   CloseOutlined,
   CheckCircleOutlined,
   StopOutlined,
   InboxOutlined,
   CameraOutlined,
-  EyeOutlined
+  EyeOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import { DrugIcon } from "./Icons";
@@ -46,6 +52,7 @@ interface DrugDetailProps {
 
 export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
   const router = useRouter();
+  const { edit } = router.query;
   const [form] = Form.useForm();
   const [drug, setDrug] = useState<DrugResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,14 +64,28 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [statusChangeLoading, setStatusChangeLoading] = useState(false);
   const [formState, setFormState] = useState({
-    drugCode: '',
-    name: '',
-    unit: '',
-    price: '',
-    drugGroupId: '',
-    manufacturer: '',
-    description: '',
+    drugCode: "",
+    name: "",
+    unit: "",
+    price: "",
+    drugGroupId: "",
+    manufacturer: "",
+    description: "",
   });
+
+  // Custom styles for the Select component
+  const selectStyles = `
+    .drug-detail-select .ant-select-selector {
+      padding: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      font-size: 0.875rem !important;
+    }
+    
+    .drug-detail-select .ant-select-arrow {
+      right: 0 !important;
+    }
+  `;
 
   useEffect(() => {
     if (id) {
@@ -74,16 +95,23 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
   }, [id]);
 
   useEffect(() => {
+    // If the edit query parameter is present, set editing mode to true
+    if (edit === "true") {
+      setIsEditing(true);
+    }
+  }, [edit]);
+
+  useEffect(() => {
     // Log the form values when entering editing mode
     if (isEditing && drug) {
       console.log("Entering edit mode with values:", {
-        drugCode: form.getFieldValue('drugCode'),
-        name: form.getFieldValue('name'),
-        unit: form.getFieldValue('unit'),
-        price: form.getFieldValue('price'),
-        drugGroupId: form.getFieldValue('drugGroupId'),
-        manufacturer: form.getFieldValue('manufacturer'),
-        description: form.getFieldValue('description'),
+        drugCode: form.getFieldValue("drugCode"),
+        name: form.getFieldValue("name"),
+        unit: form.getFieldValue("unit"),
+        price: form.getFieldValue("price"),
+        drugGroupId: form.getFieldValue("drugGroupId"),
+        manufacturer: form.getFieldValue("manufacturer"),
+        description: form.getFieldValue("description"),
       });
     }
   }, [isEditing, drug, form]);
@@ -92,15 +120,15 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
   useEffect(() => {
     if (drug) {
       const newState = {
-        drugCode: drug.drugCode || '',
-        name: drug.name || '',
-        unit: drug.unit || '',
-        price: drug.price?.toString() || '',
-        drugGroupId: drug.drugGroup?.id || '',
-        manufacturer: drug.manufacturer || '',
-        description: drug.description || '',
+        drugCode: drug.drugCode || "",
+        name: drug.name || "",
+        unit: drug.unit || "",
+        price: drug.price?.toString() || "",
+        drugGroupId: drug.drugGroup?.id || "",
+        manufacturer: drug.manufacturer || "",
+        description: drug.description || "",
       };
-      
+
       setFormState(newState);
       form.setFieldsValue(newState);
     }
@@ -111,7 +139,11 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
       const response = await getDrugGroups();
       if (response && Array.isArray(response)) {
         setDrugGroups(response);
-      } else if (response && response.isSuccess && Array.isArray(response.data)) {
+      } else if (
+        response &&
+        response.isSuccess &&
+        Array.isArray(response.data)
+      ) {
         setDrugGroups(response.data);
       } else {
         setDrugGroups([]);
@@ -128,24 +160,24 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
     setLoading(true);
     try {
       const response = await getDrugById(id);
-      if (response && typeof response === 'object') {
-         setDrug(response);
-         if (response.imageUrl) {
-           setImageUrl(response.imageUrl);
-         }
-         form.setFieldsValue({
-           drugCode: response.drugCode,
-           name: response.name,
-           unit: response.unit,
-           price: response.price,
-           drugGroupId: response.drugGroup?.id,
-           manufacturer: response.manufacturer,
-           description: response.description,
-         });
+      if (response && typeof response === "object") {
+        setDrug(response);
+        if (response.imageUrl) {
+          setImageUrl(response.imageUrl);
+        }
+        form.setFieldsValue({
+          drugCode: response.drugCode,
+          name: response.name,
+          unit: response.unit,
+          price: response.price,
+          drugGroupId: response.drugGroup?.id,
+          manufacturer: response.manufacturer,
+          description: response.description,
+        });
       } else {
-         console.error("Invalid response structure:", response);
-         messageApi.error("Failed to fetch drug details: Invalid data format");
-         setDrug(null);
+        console.error("Invalid response structure:", response);
+        messageApi.error("Failed to fetch drug details: Invalid data format");
+        setDrug(null);
       }
     } catch (error) {
       console.error("Error fetching drug details:", error);
@@ -163,7 +195,7 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
 
   const formatPrice = (price: string | number | undefined) => {
     if (!price) return "-";
-    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    const numPrice = typeof price === "string" ? parseFloat(price) : price;
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
@@ -186,35 +218,35 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
 
   const handleUpdate = async (values: any) => {
     if (!drug) return;
-    
+
     setSubmitLoading(true);
-    
+
     try {
       const formData = new FormData();
-      
+
       // Append form values
       Object.entries(values).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && key !== 'imageFile') {
+        if (value !== undefined && value !== null && key !== "imageFile") {
           formData.append(key, value as string);
         }
       });
-      
+
       // Keep the original status
       formData.append("status", drug.status || "");
-      
+
       // Thêm ImageUrl vào FormData
       formData.append("ImageUrl", drug.imageUrl || "");
-      
+
       // Kiểm tra và chuẩn bị file
       if (fileList.length > 0) {
         console.log("FileList details:", {
           file: fileList[0],
           hasOriginFileObj: !!fileList[0].originFileObj,
           fileType: fileList[0].type,
-          fileSize: fileList[0].size, 
-          fileKeys: Object.keys(fileList[0])
+          fileSize: fileList[0].size,
+          fileKeys: Object.keys(fileList[0]),
         });
-        
+
         // Trường hợp 1: File mới upload (có originFileObj)
         if (fileList[0].originFileObj) {
           console.log("Using originFileObj");
@@ -224,16 +256,20 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
         else if (fileList[0].url || fileList[0].thumbUrl) {
           console.log("Trying to fetch file from URL");
           try {
-            const response = await fetch(fileList[0].url || fileList[0].thumbUrl || "");
+            const response = await fetch(
+              fileList[0].url || fileList[0].thumbUrl || ""
+            );
             const blob = await response.blob();
-            const file = new File([blob], fileList[0].name || "image.jpg", { type: blob.type });
-            
+            const file = new File([blob], fileList[0].name || "image.jpg", {
+              type: blob.type,
+            });
+
             console.log("Created file from URL:", {
               name: file.name,
               type: file.type,
-              size: file.size
+              size: file.size,
             });
-            
+
             formData.append("imageFile", file);
           } catch (error) {
             console.error("Error fetching image:", error);
@@ -245,22 +281,24 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
           console.warn("File in fileList cannot be processed");
           messageApi.warning("Cannot process the selected image file");
         }
-      } 
-      
+      }
+
       // Gọi API update
       await updateDrug(drug.id, formData);
       messageApi.success("Drug updated successfully");
       setIsEditing(false);
-      
+
+      // Remove edit from URL without reloading
+      router.replace(`/drug/${id}`, undefined, { shallow: true });
+
       // Refresh the drug details
       fetchDrugDetails();
-      
+
       // Log FormData content for debugging
       console.log("FormData entries:");
       for (let pair of formData.entries()) {
         console.log(pair[0], pair[1]);
       }
-      
     } catch (error) {
       console.error("Error updating drug:", error);
       messageApi.error("Failed to update drug");
@@ -271,7 +309,7 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
 
   const handleActivate = async () => {
     if (!drug) return;
-    
+
     setStatusChangeLoading(true);
     try {
       await activateDrugs([drug.id]);
@@ -287,7 +325,7 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
 
   const handleDeactivate = async () => {
     if (!drug) return;
-    
+
     setStatusChangeLoading(true);
     try {
       await deactivateDrugs([drug.id]);
@@ -303,29 +341,30 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
 
   const uploadProps: UploadProps = {
     beforeUpload: (file) => {
-      const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+      const isJpgOrPng =
+        file.type === "image/jpeg" || file.type === "image/png";
       if (!isJpgOrPng) {
-        messageApi.error('You can only upload JPG/PNG file!');
+        messageApi.error("You can only upload JPG/PNG file!");
         return Upload.LIST_IGNORE;
       }
       const isLt2M = file.size / 1024 / 1024 < 2;
       if (!isLt2M) {
-        messageApi.error('Image must be smaller than 2MB!');
+        messageApi.error("Image must be smaller than 2MB!");
         return Upload.LIST_IGNORE;
       }
-      
+
       // Tạo một file mới từ file ban đầu để đảm bảo nó có thể được sử dụng
       const newFile = new File([file], file.name, { type: file.type });
-      
+
       // Tạo đối tượng upload file
       const uploadFile = {
         uid: Date.now().toString(),
         name: newFile.name,
         size: newFile.size,
         type: newFile.type,
-        originFileObj: newFile
+        originFileObj: newFile,
       } as UploadFile;
-      
+
       setFileList([uploadFile]);
       return false;
     },
@@ -346,34 +385,36 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
 
   const renderActionButtons = () => {
     if (!drug) return null;
-    
+
     if (isEditing) {
       return (
         <Space>
-          <Button 
+          <Button
             icon={<CloseOutlined />}
             onClick={() => {
               setIsEditing(false);
               // Reset form state to original values
               if (drug) {
                 const resetState = {
-                  drugCode: drug.drugCode || '',
-                  name: drug.name || '',
-                  unit: drug.unit || '',
-                  price: drug.price?.toString() || '',
-                  drugGroupId: drug.drugGroup?.id || '',
-                  manufacturer: drug.manufacturer || '',
-                  description: drug.description || '',
+                  drugCode: drug.drugCode || "",
+                  name: drug.name || "",
+                  unit: drug.unit || "",
+                  price: drug.price?.toString() || "",
+                  drugGroupId: drug.drugGroup?.id || "",
+                  manufacturer: drug.manufacturer || "",
+                  description: drug.description || "",
                 };
                 setFormState(resetState);
                 form.setFieldsValue(resetState);
               }
               setFileList([]);
+              // Remove edit from URL without reloading
+              router.replace(`/drug/${id}`, undefined, { shallow: true });
             }}
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             type="primary"
             icon={<SaveOutlined />}
             loading={submitLoading}
@@ -384,7 +425,7 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
         </Space>
       );
     }
-    
+
     return (
       <Space>
         {drug.status === "Active" ? (
@@ -395,7 +436,7 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
             okText="Yes"
             cancelText="No"
           >
-            <Button 
+            <Button
               danger
               icon={<StopOutlined />}
               loading={statusChangeLoading}
@@ -411,7 +452,7 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
             okText="Yes"
             cancelText="No"
           >
-            <Button 
+            <Button
               type="primary"
               icon={<CheckCircleOutlined />}
               loading={statusChangeLoading}
@@ -420,11 +461,15 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
             </Button>
           </Popconfirm>
         )}
-        <Button 
+        <Button
           type="primary"
-          icon={<EditOutlined />}
+          icon={<FormOutlined />}
           onClick={() => {
             setIsEditing(true);
+            // Add edit to URL without reloading
+            router.replace(`/drug/${id}?edit=true`, undefined, {
+              shallow: true,
+            });
           }}
         >
           Edit
@@ -435,7 +480,7 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
 
   const handleInputChange = (fieldName: string, value: any) => {
     console.log(`Setting field ${fieldName} to:`, value);
-    setFormState(prev => ({ ...prev, [fieldName]: value }));
+    setFormState((prev) => ({ ...prev, [fieldName]: value }));
     form.setFieldsValue({ [fieldName]: value });
   };
 
@@ -453,18 +498,18 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
       <div className="p-4">
         {contextHolder}
         <div className="flex items-center gap-2 mb-4">
-            <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.push("/drug")}
-                style={{ marginRight: "8px" }}
-            >
-                Back
-            </Button>
-            <DrugIcon />
-            <h3 className="text-xl font-bold">Drug Not Found</h3>
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.push("/drug")}
+            style={{ marginRight: "8px" }}
+          >
+            Back
+          </Button>
+          <DrugIcon />
+          <h3 className="text-xl font-bold">Drug Not Found</h3>
         </div>
         <Card>
-           <Text>The requested drug could not be found or loaded.</Text>
+          <Text>The requested drug could not be found or loaded.</Text>
         </Card>
       </div>
     );
@@ -473,6 +518,7 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
   return (
     <div className="p-4">
       {contextHolder}
+      <style>{selectStyles}</style>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Button
@@ -498,10 +544,7 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
               </Tag>
             }
           >
-            <Form
-              form={form}
-              layout="vertical"
-            >
+            <Form form={form} layout="vertical">
               <Row gutter={[24, 16]}>
                 <Col xs={24} md={6}>
                   <div className="flex flex-col items-center mb-4">
@@ -515,18 +558,15 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
                                 src={imageUrl}
                                 alt="Drug"
                                 height={200}
-                                style={{ 
-                                  objectFit: 'contain', 
-                                  maxWidth: '100%' 
+                                style={{
+                                  objectFit: "contain",
+                                  maxWidth: "100%",
                                 }}
                                 preview={true}
                               />
-                              <Upload
-                                {...uploadProps}
-                                showUploadList={false}
-                              >
-                                <Button 
-                                  icon={<CameraOutlined />} 
+                              <Upload {...uploadProps} showUploadList={false}>
+                                <Button
+                                  icon={<CameraOutlined />}
                                   shape="circle"
                                   className="absolute right-2 bottom-2 shadow-md"
                                 />
@@ -537,8 +577,12 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
                               <p className="ant-upload-drag-icon">
                                 <InboxOutlined />
                               </p>
-                              <p className="ant-upload-text">Click or drag image</p>
-                              <p className="ant-upload-hint">JPG/PNG (max: 2MB)</p>
+                              <p className="ant-upload-text">
+                                Click or drag image
+                              </p>
+                              <p className="ant-upload-hint">
+                                JPG/PNG (max: 2MB)
+                              </p>
                             </Upload.Dragger>
                           )}
                         </div>
@@ -549,16 +593,19 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
                               src={drug.imageUrl}
                               alt={drug.name}
                               height={200}
-                              style={{ 
-                                objectFit: 'contain', 
-                                maxWidth: '100%' 
+                              style={{
+                                objectFit: "contain",
+                                maxWidth: "100%",
                               }}
-                              preview={{ 
+                              preview={{
                                 mask: <EyeOutlined />,
                               }}
                             />
                           ) : (
-                            <div className="bg-gray-100 flex items-center justify-center rounded" style={{ height: 200, width: '100%' }}>
+                            <div
+                              className="bg-gray-100 flex items-center justify-center rounded"
+                              style={{ height: 200, width: "100%" }}
+                            >
                               <p className="text-gray-500">No image</p>
                             </div>
                           )}
@@ -567,155 +614,214 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
                     </div>
                   </div>
                 </Col>
-                
+
                 <Col xs={24} md={18}>
                   <Row gutter={[16, 16]}>
                     <Col xs={24} sm={12}>
                       <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">Drug Code</span>
+                        <span className="text-xs font-medium text-gray-700">
+                          Drug Code
+                        </span>
                         {isEditing ? (
                           <input
                             type="text"
                             name="drugCode"
                             value={formState.drugCode}
                             onChange={(e) => {
-                              handleInputChange('drugCode', e.target.value);
+                              handleInputChange("drugCode", e.target.value);
                             }}
                             className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
                           />
                         ) : (
-                          <div className="mt-1 w-full p-0">{drug.drugCode || "-"}</div>
+                          <div className="mt-1 w-full p-0">
+                            {drug.drugCode || "-"}
+                          </div>
                         )}
                       </div>
                     </Col>
                     <Col xs={24} sm={12}>
                       <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">Name</span>
+                        <span className="text-xs font-medium text-gray-700">
+                          Name
+                        </span>
                         {isEditing ? (
                           <input
                             type="text"
                             name="name"
                             value={formState.name}
                             onChange={(e) => {
-                              handleInputChange('name', e.target.value);
+                              handleInputChange("name", e.target.value);
                             }}
                             className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
                           />
                         ) : (
-                          <div className="mt-1 w-full p-0">{drug.name || "-"}</div>
+                          <div className="mt-1 w-full p-0">
+                            {drug.name || "-"}
+                          </div>
                         )}
                       </div>
                     </Col>
                     <Col xs={24} sm={12}>
                       <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">Unit</span>
+                        <span className="text-xs font-medium text-gray-700">
+                          Unit
+                        </span>
                         {isEditing ? (
                           <input
                             type="text"
                             name="unit"
                             value={formState.unit}
                             onChange={(e) => {
-                              handleInputChange('unit', e.target.value);
+                              handleInputChange("unit", e.target.value);
                             }}
                             className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
                           />
                         ) : (
-                          <div className="mt-1 w-full p-0">{drug.unit || "-"}</div>
+                          <div className="mt-1 w-full p-0">
+                            {drug.unit || "-"}
+                          </div>
                         )}
                       </div>
                     </Col>
                     <Col xs={24} sm={12}>
                       <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">Price</span>
+                        <span className="text-xs font-medium text-gray-700">
+                          Price
+                        </span>
                         {isEditing ? (
-                          <input
-                            type="number"
-                            name="price"
-                            value={formState.price}
-                            onChange={(e) => {
-                              handleInputChange('price', e.target.value);
-                            }}
-                            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-                          />
+                          <div className="mt-1 flex items-center">
+                            <input
+                              type="number"
+                              name="price"
+                              value={formState.price}
+                              onChange={(e) => {
+                                handleInputChange("price", e.target.value);
+                              }}
+                              className="w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+                            />
+                            <span className="ml-1 text-gray-500 sm:text-sm">
+                              VND
+                            </span>
+                          </div>
                         ) : (
-                          <div className="mt-1 w-full p-0">{formatPrice(drug.price)}</div>
+                          <div className="mt-1 w-full p-0">
+                            {formatPrice(drug.price)}
+                          </div>
                         )}
                       </div>
                     </Col>
                     <Col xs={24} sm={12}>
                       <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">Drug Group</span>
+                        <span className="text-xs font-medium text-gray-700">
+                          Drug Group
+                        </span>
                         {isEditing ? (
-                          <select
-                            name="drugGroupId"
-                            value={formState.drugGroupId}
-                            onChange={(e) => {
-                              handleInputChange('drugGroupId', e.target.value);
-                            }}
-                            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-                          >
-                            {drugGroups.map((group) => (
-                              <option key={group.id} value={group.id}>
-                                {group.groupName}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="mt-1">
+                            <Select
+                              showSearch
+                              style={{ width: "100%" }}
+                              value={formState.drugGroupId}
+                              onChange={(value) =>
+                                handleInputChange("drugGroupId", value)
+                              }
+                              placeholder="Select a drug group"
+                              optionFilterProp="children"
+                              filterOption={(input, option) =>
+                                (option?.label ?? "")
+                                  .toLowerCase()
+                                  .includes(input.toLowerCase())
+                              }
+                              bordered={false}
+                              options={drugGroups.map((group) => ({
+                                value: group.id,
+                                label: group.groupName,
+                              }))}
+                              dropdownStyle={{ zIndex: 1100 }}
+                              className="drug-detail-select border-none p-0"
+                            />
+                          </div>
                         ) : (
-                          <div className="mt-1 w-full p-0">{drug.drugGroup?.groupName || "-"}</div>
+                          <div className="mt-1 w-full p-0">
+                            {drug.drugGroup?.groupName || "-"}
+                          </div>
                         )}
                       </div>
                     </Col>
                     <Col xs={24} sm={12}>
-                      <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">Manufacturer</span>
+                      <div
+                        className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm"
+                        style={{ minHeight: "75.78px" }}
+                      >
+                        <span className="text-xs font-medium text-gray-700">
+                          Manufacturer
+                        </span>
                         {isEditing ? (
-                          <input
-                            type="text"
-                            name="manufacturer"
-                            value={formState.manufacturer}
-                            onChange={(e) => {
-                              handleInputChange('manufacturer', e.target.value);
-                            }}
-                            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-                          />
+                          <div className="mt-1">
+                            <input
+                              type="text"
+                              name="manufacturer"
+                              value={formState.manufacturer}
+                              onChange={(e) => {
+                                handleInputChange(
+                                  "manufacturer",
+                                  e.target.value
+                                );
+                              }}
+                              className="w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+                            />
+                          </div>
                         ) : (
-                          <div className="mt-1 w-full p-0">{drug.manufacturer || "-"}</div>
+                          <div className="mt-1 w-full p-0">
+                            {drug.manufacturer || "-"}
+                          </div>
                         )}
                       </div>
                     </Col>
                     <Col xs={24}>
                       <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">Description</span>
+                        <span className="text-xs font-medium text-gray-700">
+                          Description
+                        </span>
                         {isEditing ? (
                           <textarea
                             name="description"
                             value={formState.description}
                             onChange={(e) => {
-                              handleInputChange('description', e.target.value);
+                              handleInputChange("description", e.target.value);
                             }}
                             className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm resize-none"
                             rows={3}
                           />
                         ) : (
-                          <div className="mt-1 w-full p-0">{drug.description || "No description available."}</div>
+                          <div className="mt-1 w-full p-0">
+                            {drug.description || "No description available."}
+                          </div>
                         )}
                       </div>
                     </Col>
-                    
+
                     <Col xs={24}>
                       <Divider style={{ margin: "8px 0" }} />
                     </Col>
-                    
+
                     <Col xs={24} sm={12}>
                       <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">Created At</span>
-                        <div className="mt-1 w-full p-0">{formatDate(drug.createdAt)}</div>
+                        <span className="text-xs font-medium text-gray-700">
+                          Created At
+                        </span>
+                        <div className="mt-1 w-full p-0">
+                          {formatDate(drug.createdAt)}
+                        </div>
                       </div>
                     </Col>
                     <Col xs={24} sm={12}>
                       <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">Updated At</span>
-                        <div className="mt-1 w-full p-0">{formatDate(drug.updatedAt)}</div>
+                        <span className="text-xs font-medium text-gray-700">
+                          Updated At
+                        </span>
+                        <div className="mt-1 w-full p-0">
+                          {formatDate(drug.updatedAt)}
+                        </div>
                       </div>
                     </Col>
                   </Row>
@@ -729,4 +835,4 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
   );
 };
 
-export default DrugDetail; 
+export default DrugDetail;

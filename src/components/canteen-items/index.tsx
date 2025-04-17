@@ -32,7 +32,7 @@ import {
   AppstoreOutlined,
   TagOutlined,
   ExclamationCircleOutlined,
-  EditOutlined,
+  FormOutlined,
   EyeOutlined,
   ArrowLeftOutlined,
   FileExcelOutlined,
@@ -1058,7 +1058,7 @@ export function CanteenItems() {
 
     return (
       <Space>
-        <Text>{selectedRowKeys.length} items selected</Text>
+        <Text>{selectedRowKeys.length} Items selected</Text>
         <Button icon={<UndoOutlined />} onClick={() => setSelectedRowKeys([])}>
           Restore
         </Button>
@@ -1523,7 +1523,7 @@ export function CanteenItems() {
           <Tooltip title="Edit">
             <Button
               type="text"
-              icon={<EditOutlined />}
+              icon={<FormOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
                 router.push(`/canteen-item/edit/${record.id}`);
