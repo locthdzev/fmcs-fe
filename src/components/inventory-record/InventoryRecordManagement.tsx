@@ -40,12 +40,23 @@ import * as DrugApi from "@/api/drug";
 const { Option } = Select;
 const { Text, Title } = Typography;
 
-export function InventoryRecordManagement() {
+// Define interface for filter state
+interface InventoryFilterState {
+  quantityInStockRange: [number | null, number | null];
+  reorderLevelRange: [number | null, number | null];
+  lastUpdatedRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+  createdAtRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+  sortField: string;
+  ascending: boolean;
+}
+
+function InventoryRecordManagement() {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
 
   // Data state
   const [records, setRecords] = useState<InventoryRecordResponseDTO[]>([]);
+  const [allRecords, setAllRecords] = useState<InventoryRecordResponseDTO[]>([]); // Store all records for client-side filtering
   const [filteredRecords, setFilteredRecords] = useState<
     InventoryRecordResponseDTO[]
   >([]);
@@ -68,12 +79,14 @@ export function InventoryRecordManagement() {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
   // Filter states
-  const [searchTerm, setSearchTerm] = useState<string>(""); // Thay thế drugSearch và batchCodeSearch
+  const [searchTerm, setSearchTerm] = useState<string>(""); // Chỉ dùng cho tìm kiếm API
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const [lastUpdatedRange, setLastUpdatedRange] = useState<
-    [dayjs.Dayjs | null, dayjs.Dayjs | null]
-  >([null, null]);
-  const [ascending, setAscending] = useState<boolean>(false);
+  const [quantityInStockRange, setQuantityInStockRange] = useState<[number | null, number | null]>([null, null]);
+  const [reorderLevelRange, setReorderLevelRange] = useState<[number | null, number | null]>([null, null]);
+  const [lastUpdatedRange, setLastUpdatedRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+  const [createdAtRange, setCreatedAtRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+  const [sortField, setSortField] = useState<string>("createdAt"); // Default sort by createdAt
+  const [ascending, setAscending] = useState<boolean>(false); // Default newest first
 
   // Search options
   const [searchOptions, setSearchOptions] = useState<any[]>([]);
@@ -83,37 +96,81 @@ export function InventoryRecordManagement() {
   const [batchCodes, setBatchCodes] = useState<string[]>([]);
 
   // Filter state for the modal
-  const [filterState, setFilterState] = useState({
-    drugSearch: "",
-    batchCodeSearch: "",
-    statusFilter: "",
-    lastUpdatedRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+  const [filterState, setFilterState] = useState<InventoryFilterState>({
+    quantityInStockRange: [null, null],
+    reorderLevelRange: [null, null],
+    lastUpdatedRange: [null, null],
+    createdAtRange: [null, null],
+    sortField: "createdAt",
     ascending: false,
   });
+
+  // Track if advanced modal filters are active
+  const [isAdvancedFilterActive, setIsAdvancedFilterActive] = useState<boolean>(false);
 
   // Để quản lý debounce
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch data when base parameters change
   useEffect(() => {
-    fetchRecords();
-  }, [currentPage, pageSize]);
+    // Only fetch from API when not filtering
+    if (!isFiltering) {
+      fetchRecords();
+    }
+  }, [currentPage, pageSize, isFiltering]);
 
   // Apply client-side filtering when filter states change
   useEffect(() => {
-    if (records.length > 0) {
+    if (allRecords.length > 0 && (isFiltering || searchTerm)) {
       applyClientSideFilters();
     }
-  }, [searchTerm, statusFilter, lastUpdatedRange, ascending, records]);
+  }, [
+    searchTerm, 
+    statusFilter, 
+    quantityInStockRange, 
+    reorderLevelRange,
+    lastUpdatedRange, 
+    createdAtRange,
+    sortField,
+    ascending, 
+    allRecords,
+    currentPage,
+    pageSize,
+    isFiltering
+  ]);
 
   // Check if any client-side filter is active
   useEffect(() => {
     const hasActiveFilter =
       statusFilter !== "" ||
-      (lastUpdatedRange[0] !== null && lastUpdatedRange[1] !== null);
+      (quantityInStockRange[0] !== null || quantityInStockRange[1] !== null) ||
+      (reorderLevelRange[0] !== null || reorderLevelRange[1] !== null) ||
+      (lastUpdatedRange[0] !== null && lastUpdatedRange[1] !== null) ||
+      (createdAtRange[0] !== null && createdAtRange[1] !== null);
 
+    // Update isFiltering state
     setIsFiltering(hasActiveFilter);
-  }, [statusFilter, lastUpdatedRange]);
+    
+    // Fetch all records when filters change
+    if (hasActiveFilter && allRecords.length === 0) {
+      fetchAllRecordsForFiltering();
+    }
+
+    // Check if advanced modal filters are active (excluding the toolbar statusFilter)
+    const hasAdvancedFilters = 
+      (quantityInStockRange[0] !== null || quantityInStockRange[1] !== null) ||
+      (reorderLevelRange[0] !== null || reorderLevelRange[1] !== null) ||
+      (lastUpdatedRange[0] !== null && lastUpdatedRange[1] !== null) ||
+      (createdAtRange[0] !== null && createdAtRange[1] !== null);
+    
+    setIsAdvancedFilterActive(hasAdvancedFilters);
+  }, [
+    statusFilter, 
+    quantityInStockRange, 
+    reorderLevelRange,
+    lastUpdatedRange,
+    createdAtRange
+  ]);
 
   // Fetch options when component mounts
   useEffect(() => {
@@ -129,7 +186,12 @@ export function InventoryRecordManagement() {
   useEffect(() => {
     const connection = setupInventoryRecordRealTime(
       (updatedRecord: InventoryRecordResponseDTO) => {
+        // Update both records and allRecords arrays
         setRecords((prev) =>
+          prev.map((r) => (r.id === updatedRecord.id ? updatedRecord : r))
+        );
+        
+        setAllRecords((prev) =>
           prev.map((r) => (r.id === updatedRecord.id ? updatedRecord : r))
         );
       }
@@ -140,21 +202,30 @@ export function InventoryRecordManagement() {
     };
   }, []);
 
-  const fetchRecords = async () => {
+  // Fetch all records for client-side filtering
+  const fetchAllRecordsForFiltering = async () => {
     try {
       setLoading(true);
+      messageApi.loading({
+        content: "Loading all records for filtering...",
+        key: "filterLoading",
+        duration: 0
+      });
 
-      // Sử dụng searchTerm làm tham số search duy nhất
-      // Backend tìm kiếm theo cả batch code và drug name
+      // Use a large page size to get all records
       const result = await getAllInventoryRecords(
-        currentPage,
-        pageSize,
-        searchTerm // Search term sẽ được dùng để tìm kiếm cả batch code và drug name
+        1,
+        1000, // Large page size to get as many records as possible
+        searchTerm
       );
 
-      setRecords(result.data);
-
-      // Cập nhật danh sách batch codes từ kết quả
+      setAllRecords(result.data);
+      setTotalFromAPI(result.totalRecords);
+      
+      // Apply filters to the complete dataset
+      applyClientSideFilters(result.data);
+      
+      // Update batch codes
       const newBatchCodes = result.data.map(
         (record: InventoryRecordResponseDTO) => record.batchCode
       );
@@ -162,14 +233,56 @@ export function InventoryRecordManagement() {
         setBatchCodes((prev) => [...new Set([...prev, ...newBatchCodes])]);
       }
 
-      // Lưu trữ tổng số bản ghi thực tế từ API
-      setTotalFromAPI(result.totalRecords);
+      messageApi.success({
+        content: "All records loaded for filtering",
+        key: "filterLoading",
+        duration: 2
+      });
+    } catch (error) {
+      console.error("Error fetching all inventory records:", error);
+      messageApi.error({
+        content: "Unable to load all inventory records for filtering.",
+        key: "filterLoading",
+        duration: 5,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Ban đầu, gán tổng số bản ghi lọc bằng tổng từ API
+  const fetchRecords = async () => {
+    try {
+      setLoading(true);
+
+      // If filtering is active, use all records
+      if (isFiltering && allRecords.length > 0) {
+        applyClientSideFilters(allRecords);
+        return;
+      }
+
+      // Otherwise, fetch page from API
+      const result = await getAllInventoryRecords(
+        currentPage,
+        pageSize,
+        searchTerm
+      );
+
+      setRecords(result.data);
+
+      // Update batch codes
+      const newBatchCodes = result.data.map(
+        (record: InventoryRecordResponseDTO) => record.batchCode
+      );
+      if (newBatchCodes.length > 0) {
+        setBatchCodes((prev) => [...new Set([...prev, ...newBatchCodes])]);
+      }
+
+      // Store total count from API
+      setTotalFromAPI(result.totalRecords);
       setFilteredTotal(result.totalRecords);
 
-      // Gọi hàm lọc phía client để áp dụng các bộ lọc khác
-      applyClientSideFilters(result.data);
+      // Apply any client-side filters
+      setFilteredRecords(result.data);
     } catch (error) {
       console.error("Error fetching inventory records:", error);
       messageApi.error({
@@ -181,16 +294,52 @@ export function InventoryRecordManagement() {
     }
   };
 
-  const applyClientSideFilters = (recordsToFilter = records) => {
-    // Clone lại mảng để không ảnh hưởng đến dữ liệu gốc
+  const applyClientSideFilters = (recordsToFilter = allRecords.length > 0 ? allRecords : records) => {
+    // Clone array to avoid affecting original data
     let filtered = [...recordsToFilter];
 
-    // Lọc theo Status
+    // Filter by Status
     if (statusFilter) {
       filtered = filtered.filter((record) => record.status === statusFilter);
     }
 
-    // Lọc theo LastUpdated Range
+    // Filter by Quantity In Stock Range
+    if (quantityInStockRange[0] !== null || quantityInStockRange[1] !== null) {
+      filtered = filtered.filter((record) => {
+        const quantity = record.quantityInStock;
+        const min = quantityInStockRange[0];
+        const max = quantityInStockRange[1];
+
+        if (min !== null && max !== null) {
+          return quantity >= min && quantity <= max;
+        } else if (min !== null) {
+          return quantity >= min;
+        } else if (max !== null) {
+          return quantity <= max;
+        }
+        return true;
+      });
+    }
+
+    // Filter by Reorder Level Range
+    if (reorderLevelRange[0] !== null || reorderLevelRange[1] !== null) {
+      filtered = filtered.filter((record) => {
+        const level = record.reorderLevel;
+        const min = reorderLevelRange[0];
+        const max = reorderLevelRange[1];
+
+        if (min !== null && max !== null) {
+          return level >= min && level <= max;
+        } else if (min !== null) {
+          return level >= min;
+        } else if (max !== null) {
+          return level <= max;
+        }
+        return true;
+      });
+    }
+
+    // Filter by LastUpdated Range
     if (lastUpdatedRange[0] && lastUpdatedRange[1]) {
       const startDate = lastUpdatedRange[0].startOf("day");
       const endDate = lastUpdatedRange[1].endOf("day");
@@ -201,31 +350,76 @@ export function InventoryRecordManagement() {
           : dayjs(record.createdAt);
 
         return (
-          lastUpdatedDate.isAfter(startDate) &&
-          lastUpdatedDate.isBefore(endDate)
+          lastUpdatedDate.isAfter(startDate) ||
+          lastUpdatedDate.isSame(startDate, 'day') 
+        ) && (
+          lastUpdatedDate.isBefore(endDate) ||
+          lastUpdatedDate.isSame(endDate, 'day')
         );
       });
     }
 
-    // Sắp xếp theo thời gian (lastUpdated hoặc createdAt)
+    // Filter by CreatedAt Range
+    if (createdAtRange[0] && createdAtRange[1]) {
+      const startDate = createdAtRange[0].startOf("day");
+      const endDate = createdAtRange[1].endOf("day");
+
+      filtered = filtered.filter((record) => {
+        const createdDate = dayjs(record.createdAt);
+        return (
+          createdDate.isAfter(startDate) || 
+          createdDate.isSame(startDate, 'day')
+        ) && (
+          createdDate.isBefore(endDate) ||
+          createdDate.isSame(endDate, 'day')
+        );
+      });
+    }
+
+    // Sort by selected field
     filtered.sort((a, b) => {
-      const dateA = a.lastUpdated
-        ? new Date(a.lastUpdated)
-        : new Date(a.createdAt);
-      const dateB = b.lastUpdated
-        ? new Date(b.lastUpdated)
-        : new Date(b.createdAt);
+      let valueA, valueB;
+
+      switch (sortField) {
+        case "quantityInStock":
+          valueA = a.quantityInStock;
+          valueB = b.quantityInStock;
+          break;
+        case "reorderLevel":
+          valueA = a.reorderLevel;
+          valueB = b.reorderLevel;
+          break;
+        case "lastUpdated":
+          valueA = a.lastUpdated
+            ? new Date(a.lastUpdated).getTime()
+            : new Date(a.createdAt).getTime();
+          valueB = b.lastUpdated
+            ? new Date(b.lastUpdated).getTime()
+            : new Date(b.createdAt).getTime();
+          break;
+        case "createdAt":
+        default:
+          valueA = new Date(a.createdAt).getTime();
+          valueB = new Date(b.createdAt).getTime();
+          break;
+      }
 
       return ascending
-        ? dateA.getTime() - dateB.getTime() // Cũ nhất trước
-        : dateB.getTime() - dateA.getTime(); // Mới nhất trước
+        ? valueA - valueB // Ascending
+        : valueB - valueA; // Descending
     });
 
-    // Cập nhật filtered records
-    setFilteredRecords(filtered);
-
-    // Cập nhật tổng số bản ghi sau khi lọc
+    // Store total filtered count
     setFilteredTotal(filtered.length);
+
+    // Apply pagination to the filtered results
+    if (isFiltering) {
+      const startIndex = (currentPage - 1) * pageSize;
+      const paginatedData = filtered.slice(startIndex, startIndex + pageSize);
+      setFilteredRecords(paginatedData);
+    } else {
+      setFilteredRecords(filtered);
+    }
   };
 
   const fetchOptionsForSearch = async () => {
@@ -352,68 +546,115 @@ export function InventoryRecordManagement() {
   };
 
   const handlePageChange = (page: number, newPageSize?: number) => {
-    // Nếu đang lọc ở client, không cần gọi lại API
-    if (isFiltering) {
-      setCurrentPage(page);
-      return;
-    }
-
-    // Nếu pageSize thay đổi, cần fetch lại từ API
     if (newPageSize && newPageSize !== pageSize) {
       setPageSize(newPageSize);
-      setCurrentPage(1); // Reset về trang 1 khi thay đổi pageSize
+      setCurrentPage(1);
     } else {
       setCurrentPage(page);
+    }
+    
+    // For client-side filtering, just update page state
+    if (isFiltering) {
+      // The useEffect will trigger applyClientSideFilters to get the right page of data
+      return;
     }
   };
 
   const handleReset = () => {
     setSearchTerm("");
     setStatusFilter("");
+    setQuantityInStockRange([null, null]);
+    setReorderLevelRange([null, null]);
     setLastUpdatedRange([null, null]);
+    setCreatedAtRange([null, null]);
+    setSortField("createdAt");
     setAscending(false);
     setCurrentPage(1);
     setIsFiltering(false);
+    setIsAdvancedFilterActive(false);
 
     // Update filter state for modal
     setFilterState({
-      drugSearch: "",
-      batchCodeSearch: "",
-      statusFilter: "",
+      quantityInStockRange: [null, null],
+      reorderLevelRange: [null, null],
       lastUpdatedRange: [null, null],
+      createdAtRange: [null, null],
+      sortField: "createdAt",
       ascending: false,
     });
 
-    // Fetch lại dữ liệu từ API sau khi reset
+    // Fetch data from API after reset
     fetchRecords();
   };
 
   const handleOpenFilterModal = () => {
     // Update filter state for modal
     setFilterState({
-      drugSearch: "", // Không dùng nữa vì đã có searchTerm
-      batchCodeSearch: "", // Không dùng nữa vì đã có searchTerm
-      statusFilter,
+      quantityInStockRange,
+      reorderLevelRange,
       lastUpdatedRange,
+      createdAtRange,
+      sortField,
       ascending,
     });
     setFilterModalVisible(true);
   };
 
   const handleApplyFilters = (filters: any) => {
-    // Chỉ áp dụng statusFilter, lastUpdatedRange và ascending từ modal
-    setStatusFilter(filters.statusFilter || "");
-    setLastUpdatedRange(filters.lastUpdatedRange || [null, null]);
+    // Update filters
+    console.log("Received filters:", filters);
+    
+    setQuantityInStockRange(filters.quantityInStockRange || [null, null]);
+    setReorderLevelRange(filters.reorderLevelRange || [null, null]);
+    
+    // Process lastUpdatedRange properly
+    let lastUpdatedRangeValue: [dayjs.Dayjs | null, dayjs.Dayjs | null] = [null, null];
+    if (filters.lastUpdatedRange && filters.lastUpdatedRange[0] && filters.lastUpdatedRange[1]) {
+      lastUpdatedRangeValue = [dayjs(filters.lastUpdatedRange[0]), dayjs(filters.lastUpdatedRange[1])];
+    }
+    setLastUpdatedRange(lastUpdatedRangeValue);
+    
+    // Process createdAtRange properly
+    let createdAtRangeValue: [dayjs.Dayjs | null, dayjs.Dayjs | null] = [null, null];
+    if (filters.createdAtRange && filters.createdAtRange[0] && filters.createdAtRange[1]) {
+      createdAtRangeValue = [dayjs(filters.createdAtRange[0]), dayjs(filters.createdAtRange[1])];
+    }
+    setCreatedAtRange(createdAtRangeValue);
+    
+    setSortField(filters.sortField || "createdAt");
     setAscending(filters.ascending);
     setCurrentPage(1);
     setFilterModalVisible(false);
 
-    // Đánh dấu đang lọc nếu có bộ lọc nào đó
+    // Check if any filter is active
     const isClientFiltering =
-      filters.statusFilter !== "" ||
-      (filters.lastUpdatedRange && filters.lastUpdatedRange[0] !== null);
+      (filters.quantityInStockRange && 
+        (filters.quantityInStockRange[0] !== null || filters.quantityInStockRange[1] !== null)) ||
+      (filters.reorderLevelRange && 
+        (filters.reorderLevelRange[0] !== null || filters.reorderLevelRange[1] !== null)) ||
+      statusFilter !== "" ||
+      lastUpdatedRangeValue[0] !== null ||
+      createdAtRangeValue[0] !== null;
 
+    // Check if advanced modal filters (excluding statusFilter) are active
+    const hasAdvancedFilters = 
+      (filters.quantityInStockRange && 
+        (filters.quantityInStockRange[0] !== null || filters.quantityInStockRange[1] !== null)) ||
+      (filters.reorderLevelRange && 
+        (filters.reorderLevelRange[0] !== null || filters.reorderLevelRange[1] !== null)) ||
+      lastUpdatedRangeValue[0] !== null ||
+      createdAtRangeValue[0] !== null;
+    
+    setIsAdvancedFilterActive(hasAdvancedFilters);
     setIsFiltering(isClientFiltering);
+    
+    // If we're applying filters and don't have all records yet, fetch them
+    if (isClientFiltering && allRecords.length === 0) {
+      fetchAllRecordsForFiltering();
+    } else {
+      // Apply filters to existing data
+      applyClientSideFilters();
+    }
   };
 
   const handleResetFilters = () => {
@@ -517,7 +758,7 @@ export function InventoryRecordManagement() {
     >
       {contextHolder}
 
-      {/* Style cho biểu tượng tìm kiếm */}
+      {/* Style for search icon */}
       <style jsx global>{`
         .search-select-wrapper {
           position: relative;
@@ -572,12 +813,7 @@ export function InventoryRecordManagement() {
                 icon={
                   <FilterOutlined
                     style={{
-                      color:
-                        statusFilter ||
-                        lastUpdatedRange[0] ||
-                        lastUpdatedRange[1]
-                          ? "#1890ff"
-                          : undefined,
+                      color: isAdvancedFilterActive ? "#1890ff" : undefined,
                     }}
                   />
                 }
@@ -602,6 +838,11 @@ export function InventoryRecordManagement() {
                 onChange={(value) => {
                   setStatusFilter(value || "");
                   setCurrentPage(1);
+                  
+                  // If this is the first filter, fetch all records
+                  if (value && !isFiltering && allRecords.length === 0) {
+                    fetchAllRecordsForFiltering();
+                  }
                 }}
                 disabled={loading}
               >
@@ -618,14 +859,7 @@ export function InventoryRecordManagement() {
               <Button
                 icon={<UndoOutlined />}
                 onClick={handleReset}
-                disabled={
-                  !(
-                    searchTerm ||
-                    statusFilter ||
-                    lastUpdatedRange[0] ||
-                    lastUpdatedRange[1]
-                  )
-                }
+                disabled={!isFiltering && !searchTerm}
               />
             </Tooltip>
           </>
@@ -642,7 +876,7 @@ export function InventoryRecordManagement() {
         }
       />
 
-      {/* TableControls - Di chuyển ra ngoài Card */}
+      {/* TableControls */}
       <TableControls
         selectedRowKeys={selectedRowKeys}
         pageSize={pageSize}
@@ -690,7 +924,6 @@ export function InventoryRecordManagement() {
         onApply={handleApplyFilters}
         onReset={handleResetFilters}
         filters={filterState}
-        drugOptions={drugOptions}
       />
     </PageContainer>
   );

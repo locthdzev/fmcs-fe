@@ -57,31 +57,30 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
   // Define table columns
   const columns: ColumnsType<InventoryRecordResponseDTO> = [
     {
-      title: "DRUG CODE",
-      dataIndex: ["drug", "drugCode"],
-      key: "drugCode",
-      sorter: (a, b) => a.drug.drugCode.localeCompare(b.drug.drugCode),
-      render: (text, record) => (
-        <Button
-          type="link"
-          onClick={() => router.push(`/drug?id=${record.drug.id}`)}
-          style={{ padding: 0 }}
-        >
-          {text}
-        </Button>
-      ),
-    },
-    {
-      title: "DRUG NAME",
-      dataIndex: ["drug", "name"],
-      key: "drugName",
-      sorter: (a, b) => a.drug.name.localeCompare(b.drug.name),
-    },
-    {
       title: "BATCH CODE",
       dataIndex: "batchCode",
       key: "batchCode",
       sorter: (a, b) => a.batchCode.localeCompare(b.batchCode),
+      render: (text, record) => (
+        <Button
+          type="link"
+          onClick={() => router.push(`/inventoryrecord/detail?id=${record.id}`)}
+          style={{ padding: 0 }}
+        >
+          <Text>{text}</Text>
+        </Button>
+      ),
+    },
+    {
+      title: "DRUG",
+      dataIndex: ["drug", "drugCode"],
+      key: "drugCode",
+      sorter: (a, b) => a.drug.drugCode.localeCompare(b.drug.drugCode),
+      render: (text, record) => (
+        <Text>
+          {text} - {record.drug.name}
+        </Text>
+      ),
     },
     {
       title: "QUANTITY IN STOCK",
@@ -151,7 +150,6 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
       ),
     },
   ];
-
   return (
     <>
       {contextHolder}
@@ -163,9 +161,6 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
         loading={loading}
         pagination={false}
         bordered={bordered}
-        onRow={(record) => ({
-          onClick: () => router.push(`/inventoryrecord/detail?id=${record.id}`),
-        })}
       />
 
       <PaginationFooter

@@ -12,6 +12,8 @@ import {
   Col,
   Input,
   Form,
+  InputNumber,
+  Slider,
 } from "antd";
 import {
   UndoOutlined,
@@ -28,16 +30,19 @@ const { Option } = Select;
 interface InventoryRecordFilterModalProps {
   visible: boolean;
   onCancel: () => void;
-  onApply: (filters: any) => void;
+  onApply: (filters: InventoryRecordFilters) => void;
   onReset: () => void;
-  filters: {
-    drugSearch: string;
-    batchCodeSearch: string;
-    statusFilter: string;
-    lastUpdatedRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
-    ascending: boolean;
-  };
-  drugOptions: any[];
+  filters: InventoryRecordFilters;
+}
+
+// Interface for filter values
+export interface InventoryRecordFilters {
+  quantityInStockRange: [number | null, number | null];
+  reorderLevelRange: [number | null, number | null];
+  lastUpdatedRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+  createdAtRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+  sortField: string;
+  ascending: boolean;
 }
 
 const InventoryRecordFilterModal: React.FC<InventoryRecordFilterModalProps> = ({
@@ -46,21 +51,19 @@ const InventoryRecordFilterModal: React.FC<InventoryRecordFilterModalProps> = ({
   onApply,
   onReset,
   filters,
-  drugOptions,
 }) => {
   const [form] = Form.useForm();
-  const [localFilters, setLocalFilters] = React.useState(filters);
 
-  // Reset localFilters when modal is opened with new filters
+  // Reset form when modal is opened with new filters
   React.useEffect(() => {
     if (visible) {
-      setLocalFilters(filters);
       form.setFieldsValue({
-        drugSearch: filters.drugSearch,
-        batchCodeSearch: filters.batchCodeSearch,
-        statusFilter: filters.statusFilter,
-        lastUpdatedRange: filters.lastUpdatedRange,
-        ascending: filters.ascending,
+        quantityInStockRange: filters.quantityInStockRange || [null, null],
+        reorderLevelRange: filters.reorderLevelRange || [null, null],
+        lastUpdatedRange: filters.lastUpdatedRange || [null, null],
+        createdAtRange: filters.createdAtRange || [null, null],
+        ascending: filters.ascending !== undefined ? filters.ascending : false,
+        sortField: filters.sortField || "createdAt",
       });
     }
   }, [visible, filters, form]);
@@ -68,11 +71,28 @@ const InventoryRecordFilterModal: React.FC<InventoryRecordFilterModalProps> = ({
   // Process and apply filters
   const handleApply = () => {
     form.validateFields().then((values) => {
-      onApply({
+      console.log("Raw form values:", values);
+      
+      // Ensure proper handling of date ranges
+      const formattedValues = {
         ...values,
+        quantityInStockRange: values.quantityInStockRange || [null, null],
+        reorderLevelRange: values.reorderLevelRange || [null, null],
         lastUpdatedRange: values.lastUpdatedRange || [null, null],
-      });
+        createdAtRange: values.createdAtRange || [null, null],
+      };
+      
+      console.log("Applying filter values:", formattedValues);
+      onApply(formattedValues);
+    }).catch(err => {
+      console.error("Form validation error:", err);
     });
+  };
+
+  // Handle reset - chỉ reset form hiện tại, không reset các filter ở toolbar
+  const handleResetModal = () => {
+    form.resetFields();
+    // Không gọi onReset từ props để tránh reset toàn bộ filters
   };
 
   return (
@@ -82,7 +102,7 @@ const InventoryRecordFilterModal: React.FC<InventoryRecordFilterModalProps> = ({
       onCancel={onCancel}
       width={700}
       footer={[
-        <Button key="reset" onClick={onReset} icon={<UndoOutlined />}>
+        <Button key="reset" onClick={handleResetModal} icon={<UndoOutlined />}>
           Reset
         </Button>,
         <Button
@@ -96,47 +116,76 @@ const InventoryRecordFilterModal: React.FC<InventoryRecordFilterModalProps> = ({
       ]}
     >
       <Form form={form} layout="vertical" initialValues={filters}>
-        <Divider orientation="left">Search Criteria</Divider>
+        <Divider orientation="left">Inventory Filters</Divider>
+        
         <Row gutter={16}>
+          {/* Quantity In Stock Range */}
           <Col span={12}>
-            <Form.Item name="drugSearch" label="Drug">
-              <Select
-                showSearch
-                allowClear
-                placeholder="Select Drug"
-                filterOption={(input, option) =>
-                  (option?.label as string)
-                    .toLowerCase()
-                    .indexOf(input.toLowerCase()) >= 0
-                }
-                options={drugOptions.map((drug) => ({
-                  value: drug.name,
-                  label: `${drug.name} (${drug.drugCode})`,
-                }))}
-              />
+            <Form.Item 
+              name="quantityInStockRange" 
+              label="Quantity In Stock Range"
+              tooltip="Filter by quantity in stock range"
+            >
+              <Input.Group compact style={{ display: 'flex' }}>
+                <InputNumber 
+                  style={{ width: '45%' }} 
+                  placeholder="Min" 
+                  min={0}
+                  onChange={(value) => {
+                    const current = form.getFieldValue('quantityInStockRange') || [null, null];
+                    form.setFieldsValue({ quantityInStockRange: [value, current[1]] });
+                  }}
+                />
+                <Input
+                  style={{ width: '10%', borderLeft: 0, borderRight: 0, pointerEvents: 'none', textAlign: 'center' }}
+                  placeholder="~"
+                  disabled
+                />
+                <InputNumber 
+                  style={{ width: '45%' }} 
+                  placeholder="Max" 
+                  min={0}
+                  onChange={(value) => {
+                    const current = form.getFieldValue('quantityInStockRange') || [null, null];
+                    form.setFieldsValue({ quantityInStockRange: [current[0], value] });
+                  }}
+                />
+              </Input.Group>
             </Form.Item>
           </Col>
 
+          {/* Reorder Level Range */}
           <Col span={12}>
-            <Form.Item name="batchCodeSearch" label="Batch Code">
-              <Input placeholder="Enter batch code" />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="statusFilter" label="Status">
-              <Select
-                allowClear
-                placeholder="Select Status"
-              >
-                <Option value="Priority">Priority</Option>
-                <Option value="Active">Active</Option>
-                <Option value="NearExpiry">Near Expiry</Option>
-                <Option value="Inactive">Inactive</Option>
-                <Option value="Expired">Expired</Option>
-              </Select>
+            <Form.Item 
+              name="reorderLevelRange" 
+              label="Reorder Level Range"
+              tooltip="Filter by reorder level range"
+            >
+              <Input.Group compact style={{ display: 'flex' }}>
+                <InputNumber 
+                  style={{ width: '45%' }} 
+                  placeholder="Min" 
+                  min={0}
+                  onChange={(value) => {
+                    const current = form.getFieldValue('reorderLevelRange') || [null, null];
+                    form.setFieldsValue({ reorderLevelRange: [value, current[1]] });
+                  }}
+                />
+                <Input
+                  style={{ width: '10%', borderLeft: 0, borderRight: 0, pointerEvents: 'none', textAlign: 'center' }}
+                  placeholder="~"
+                  disabled
+                />
+                <InputNumber 
+                  style={{ width: '45%' }} 
+                  placeholder="Max" 
+                  min={0}
+                  onChange={(value) => {
+                    const current = form.getFieldValue('reorderLevelRange') || [null, null];
+                    form.setFieldsValue({ reorderLevelRange: [current[0], value] });
+                  }}
+                />
+              </Input.Group>
             </Form.Item>
           </Col>
         </Row>
@@ -144,6 +193,7 @@ const InventoryRecordFilterModal: React.FC<InventoryRecordFilterModalProps> = ({
         <Divider orientation="left">Date & Sorting</Divider>
 
         <Row gutter={16}>
+          {/* Last Updated Range */}
           <Col span={12}>
             <Form.Item name="lastUpdatedRange" label="Last Updated Range">
               <RangePicker
@@ -152,37 +202,90 @@ const InventoryRecordFilterModal: React.FC<InventoryRecordFilterModalProps> = ({
                 format="DD/MM/YYYY"
                 allowClear
                 presets={[
-                  { label: "Today", value: [dayjs(), dayjs()] },
+                  { label: "Today", value: [dayjs().startOf('day'), dayjs().endOf('day')] },
                   {
                     label: "Last 7 Days",
-                    value: [dayjs().subtract(6, "day"), dayjs()],
+                    value: [dayjs().subtract(6, "day").startOf('day'), dayjs().endOf('day')],
                   },
                   {
                     label: "Last 30 Days",
-                    value: [dayjs().subtract(29, "day"), dayjs()],
+                    value: [dayjs().subtract(29, "day").startOf('day'), dayjs().endOf('day')],
                   },
                   {
                     label: "This Month",
-                    value: [dayjs().startOf("month"), dayjs().endOf("month")],
+                    value: [dayjs().startOf("month").startOf('day'), dayjs().endOf("month").endOf('day')],
                   },
                   {
                     label: "Last Month",
                     value: [
-                      dayjs().subtract(1, "month").startOf("month"),
-                      dayjs().subtract(1, "month").endOf("month"),
+                      dayjs().subtract(1, "month").startOf("month").startOf('day'),
+                      dayjs().subtract(1, "month").endOf("month").endOf('day'),
                     ],
                   },
                   {
                     label: "This Year",
-                    value: [dayjs().startOf("year"), dayjs().endOf("year")],
+                    value: [dayjs().startOf("year").startOf('day'), dayjs().endOf("year").endOf('day')],
                   },
                 ]}
               />
             </Form.Item>
           </Col>
 
+          {/* Created At Range */}
           <Col span={12}>
-            <Form.Item name="ascending" label="Sort Direction (Last Updated)">
+            <Form.Item name="createdAtRange" label="Created At Range">
+              <RangePicker
+                style={{ width: "100%" }}
+                placeholder={["From date", "To date"]}
+                format="DD/MM/YYYY"
+                allowClear
+                presets={[
+                  { label: "Today", value: [dayjs().startOf('day'), dayjs().endOf('day')] },
+                  {
+                    label: "Last 7 Days",
+                    value: [dayjs().subtract(6, "day").startOf('day'), dayjs().endOf('day')],
+                  },
+                  {
+                    label: "Last 30 Days",
+                    value: [dayjs().subtract(29, "day").startOf('day'), dayjs().endOf('day')],
+                  },
+                  {
+                    label: "This Month",
+                    value: [dayjs().startOf("month").startOf('day'), dayjs().endOf("month").endOf('day')],
+                  },
+                  {
+                    label: "Last Month",
+                    value: [
+                      dayjs().subtract(1, "month").startOf("month").startOf('day'),
+                      dayjs().subtract(1, "month").endOf("month").endOf('day'),
+                    ],
+                  },
+                  {
+                    label: "This Year",
+                    value: [dayjs().startOf("year").startOf('day'), dayjs().endOf("year").endOf('day')],
+                  },
+                ]}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          {/* Sort Field */}
+          <Col span={12}>
+            <Form.Item name="sortField" label="Sort By Field">
+              <Select>
+                <Option value="createdAt">Created At</Option>
+                <Option value="lastUpdated">Last Updated</Option>
+                <Option value="quantityInStock">Quantity In Stock</Option>
+                <Option value="reorderLevel">Reorder Level</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+
+          {/* Sort Direction */}
+          <Col span={12}>
+            <Form.Item name="ascending" label="Sort Direction">
               <Radio.Group buttonStyle="solid" style={{ width: "100%" }}>
                 <Radio.Button
                   value={true}
