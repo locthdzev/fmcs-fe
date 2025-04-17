@@ -53,7 +53,12 @@ export const CreateDrugOrderForm: React.FC<CreateDrugOrderFormProps> = ({
   useEffect(() => {
     const fetchDrugs = async () => {
       try {
-        const drugsData = await getDrugs();
+        // Request a large number of drugs to ensure we get all available ones
+        const drugsData = await getDrugs({
+          page: 1,
+          pageSize: 1000, // Using a large value to get all drugs
+          status: "Active" // Only get active drugs
+        });
         setDrugs(drugsData);
       } catch (error) {
         messageApi.error("Failed to fetch drugs");
