@@ -1018,7 +1018,7 @@ export function Trucks() {
 
     return (
       <Space>
-        <Typography.Text>{selectedCount} items selected</Typography.Text>
+        <Typography.Text>{selectedCount} Items selected</Typography.Text>
         <AntButton
           icon={<UndoOutlined />}
           onClick={() => setSelectedKeys(new Set([]))}

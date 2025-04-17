@@ -2188,7 +2188,7 @@ export function Drugs() {
                 onChange: (selectedKeys) => {
                   setSelectedRowKeys(selectedKeys as string[]);
 
-                  // Kiểm tra các items selected để hiển thị đúng bulk actions
+                  // Kiểm tra các Items selected để hiển thị đúng bulk actions
                   const selectedItems = drugs.filter((drug) =>
                     selectedKeys.includes(drug.id)
                   );

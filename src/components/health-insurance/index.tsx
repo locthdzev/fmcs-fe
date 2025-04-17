@@ -1008,7 +1008,7 @@ export function HealthInsuranceManagement() {
         <div>
           {selectedRowKeys.length > 0 && (
             <Space>
-              <Text>{selectedRowKeys.length} items selected</Text>
+              <Text>{selectedRowKeys.length} Items selected</Text>
               <Popconfirm
                 title="Are you sure to delete the selected insurances?"
                 onConfirm={handleBulkDelete}

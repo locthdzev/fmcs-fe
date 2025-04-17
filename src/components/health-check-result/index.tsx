@@ -2059,7 +2059,7 @@ export function HealthCheckResultManagement() {
             {selectedRowKeys.length > 0 && (
               <Space>
                 <Typography.Text>
-                  {selectedRowKeys.length} items selected
+                  {selectedRowKeys.length} Items selected
                 </Typography.Text>
                 <Popconfirm
                   title="Are you sure you want to temporarily delete the selected health check results?"

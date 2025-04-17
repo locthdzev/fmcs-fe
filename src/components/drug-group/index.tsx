@@ -979,7 +979,7 @@ export function DrugGroups() {
       setSelectedRowKeys(keys);
     },
     getCheckboxProps: (record: DrugGroupResponse) => {
-      // If we have active items selected, disable inactive items and vice versa
+      // If we have active Items selected, disable inactive items and vice versa
       if (selectedRowKeys.length > 0) {
         const firstSelectedItem = drugGroups.find(
           (group) => group.id === selectedRowKeys[0]
@@ -1138,7 +1138,7 @@ export function DrugGroups() {
 
     return (
       <Space>
-        <Text>{selectedRowKeys.length} items selected</Text>
+        <Text>{selectedRowKeys.length} Items selected</Text>
         <Button icon={<UndoOutlined />} onClick={() => setSelectedRowKeys([])}>
           Restore
         </Button>

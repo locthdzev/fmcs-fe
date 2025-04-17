@@ -466,7 +466,7 @@ const UserTable: React.FC<UserTableProps> = ({
 
     return (
       <>
-        <Text type="secondary">{selectedUsers.length} items selected</Text>
+        <Text type="secondary">{selectedUsers.length} Items selected</Text>
 
         {/* Show Activate button only if there are inactive users in selection */}
         {hasInactive && (
@@ -505,7 +505,7 @@ const UserTable: React.FC<UserTableProps> = ({
             >
               <Button
                 icon={<CheckCircleOutlined />}
-                style={{ color: "#52c41a" }}
+                style={{ color: "#52c41a", borderColor: "#52c41a" }}
               >
                 Activate
               </Button>

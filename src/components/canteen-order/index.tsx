@@ -1126,7 +1126,7 @@ export function CanteenOrders() {
 
     return (
       <Space>
-        <Text>{selectedRowKeys.length} items selected</Text>
+        <Text>{selectedRowKeys.length} Items selected</Text>
         <Button icon={<UndoOutlined />} onClick={() => setSelectedRowKeys([])}>
           Restore
         </Button>

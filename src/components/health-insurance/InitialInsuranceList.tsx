@@ -19,7 +19,7 @@ import {
   Dropdown,
   Checkbox,
   Menu,
-  message
+  message,
 } from "antd";
 import moment from "moment";
 import dayjs from "dayjs";
@@ -45,7 +45,7 @@ import {
   AppstoreOutlined,
   SettingOutlined,
   TagOutlined,
-  FilterOutlined
+  FilterOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import { HealthInsuranceIcon } from "@/dashboard/sidebar/icons/HealthInsuranceIcon";
@@ -80,40 +80,43 @@ const getStatusColor = (status: string | undefined) => {
 };
 
 const getDeadlineStatus = (deadline: string | undefined) => {
-  if (!deadline) return {
-    color: 'default',
-    icon: <ClockCircleOutlined />,
-    text: 'No deadline'
-  };
-  
+  if (!deadline)
+    return {
+      color: "default",
+      icon: <ClockCircleOutlined />,
+      text: "No deadline",
+    };
+
   const now = moment();
   const deadlineDate = moment(deadline);
-  const daysUntil = deadlineDate.diff(now, 'days');
+  const daysUntil = deadlineDate.diff(now, "days");
 
   if (deadlineDate.isBefore(now)) {
     return {
-      color: 'red',
+      color: "red",
       icon: <ExclamationCircleOutlined />,
-      text: 'Expired'
+      text: "Expired",
     };
   } else if (daysUntil <= 3) {
     return {
-      color: 'orange',
+      color: "orange",
       icon: <ClockCircleOutlined />,
-      text: `${daysUntil} days left`
+      text: `${daysUntil} days left`,
     };
   } else {
     return {
-      color: 'green',
+      color: "green",
       icon: <CheckCircleOutlined />,
-      text: `${daysUntil} days left`
+      text: `${daysUntil} days left`,
     };
   }
 };
 
 export function InitialInsuranceList() {
   const router = useRouter();
-  const [insurances, setInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
+  const [insurances, setInsurances] = useState<HealthInsuranceResponseDTO[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -123,7 +126,9 @@ export function InitialInsuranceList() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [userFilter, setUserFilter] = useState<string | undefined>();
-  const [searchOptions, setSearchOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
+  const [searchOptions, setSearchOptions] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [messageApi, contextHolder] = message.useMessage();
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -139,7 +144,9 @@ export function InitialInsuranceList() {
   });
 
   // Columns visibility state
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
     policyholder: true,
     status: true,
     createdDate: true,
@@ -163,25 +170,33 @@ export function InitialInsuranceList() {
         statusFilter || "Pending",
         userFilter
       );
-      
+
       setInsurances(result.data);
       setApiTotal(result.totalRecords); // Lưu tổng số bản ghi từ API
-      
+
       // Extract unique policyholders với cả tên và email
       if (result.data && result.data.length > 0) {
         const policyholderData = result.data
           .filter((insurance: HealthInsuranceResponseDTO) => insurance.user)
           .map((insurance: HealthInsuranceResponseDTO) => ({
             id: insurance.user.id,
-            fullName: insurance.user.fullName || '',
-            email: insurance.user.email || ''
+            fullName: insurance.user.fullName || "",
+            email: insurance.user.email || "",
           }));
-        
+
         const uniquePolicyholders = policyholderData.filter(
-          (policyholder: {id: string; fullName: string; email: string}, index: number, self: {id: string; fullName: string; email: string}[]) => 
-            index === self.findIndex((p: {id: string; fullName: string; email: string}) => p.id === policyholder.id)
+          (
+            policyholder: { id: string; fullName: string; email: string },
+            index: number,
+            self: { id: string; fullName: string; email: string }[]
+          ) =>
+            index ===
+            self.findIndex(
+              (p: { id: string; fullName: string; email: string }) =>
+                p.id === policyholder.id
+            )
         );
-        
+
         console.log("Unique policyholders:", uniquePolicyholders.length);
         setSearchOptions(uniquePolicyholders);
       }
@@ -190,7 +205,14 @@ export function InitialInsuranceList() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, statusFilter, userFilter, filterState.ascending, messageApi]);
+  }, [
+    currentPage,
+    pageSize,
+    statusFilter,
+    userFilter,
+    filterState.ascending,
+    messageApi,
+  ]);
 
   // Fetch all users for filter modal
   const fetchUsers = useCallback(async () => {
@@ -231,7 +253,9 @@ export function InitialInsuranceList() {
       const response = await sendHealthInsuranceUpdateRequest();
       console.log("API response:", response);
       if (response.isSuccess) {
-        messageApi.success("Update requests sent to all pending users successfully!");
+        messageApi.success(
+          "Update requests sent to all pending users successfully!"
+        );
         fetchInsurances();
       } else {
         messageApi.error(response.message || "Failed to send update requests");
@@ -268,7 +292,9 @@ export function InitialInsuranceList() {
         setSelectedRowKeys([]);
         fetchInsurances();
       } else {
-        messageApi.error(response.message || "Failed to delete selected insurances");
+        messageApi.error(
+          response.message || "Failed to delete selected insurances"
+        );
       }
     } catch (error) {
       messageApi.error("Unable to delete selected insurances.");
@@ -318,7 +344,9 @@ export function InitialInsuranceList() {
       render: (record: HealthInsuranceResponseDTO) => (
         <div className="flex flex-col">
           <Typography.Text strong>{record.user.fullName}</Typography.Text>
-          <Typography.Text type="secondary" className="text-sm">{record.user.email}</Typography.Text>
+          <Typography.Text type="secondary" className="text-sm">
+            {record.user.email}
+          </Typography.Text>
         </div>
       ),
       visible: columnVisibility.policyholder,
@@ -332,9 +360,7 @@ export function InitialInsuranceList() {
       ),
       width: 150,
       render: (record: HealthInsuranceResponseDTO) => (
-        <Tag color={getStatusColor(record.status)}>
-              {record.status}
-        </Tag>
+        <Tag color={getStatusColor(record.status)}>{record.status}</Tag>
       ),
       visible: columnVisibility.status,
     },
@@ -349,7 +375,9 @@ export function InitialInsuranceList() {
       render: (record: HealthInsuranceResponseDTO) => (
         <Space direction="vertical" size="small">
           <Typography.Text>{formatDate(record.createdAt)}</Typography.Text>
-          <Typography.Text type="secondary" className="text-sm">{moment(record.createdAt).format('HH:mm:ss')}</Typography.Text>
+          <Typography.Text type="secondary" className="text-sm">
+            {moment(record.createdAt).format("HH:mm:ss")}
+          </Typography.Text>
         </Space>
       ),
       visible: columnVisibility.createdDate,
@@ -365,8 +393,12 @@ export function InitialInsuranceList() {
       render: (record: HealthInsuranceResponseDTO) =>
         record.createdBy ? (
           <div className="flex flex-col">
-            <Typography.Text strong>{record.createdBy.userName}</Typography.Text>
-            <Typography.Text type="secondary" className="text-sm">{record.createdBy.email}</Typography.Text>
+            <Typography.Text strong>
+              {record.createdBy.userName}
+            </Typography.Text>
+            <Typography.Text type="secondary" className="text-sm">
+              {record.createdBy.email}
+            </Typography.Text>
           </div>
         ) : (
           <Tag color="default">System</Tag>
@@ -384,8 +416,12 @@ export function InitialInsuranceList() {
       render: (record: HealthInsuranceResponseDTO) => {
         const status = getDeadlineStatus(record.deadline);
         return (
-          <Typography.Text type={moment(record.deadline).isBefore(moment()) ? "danger" : "success"}>
-            {formatDate(record.deadline) || 'No deadline'}
+          <Typography.Text
+            type={
+              moment(record.deadline).isBefore(moment()) ? "danger" : "success"
+            }
+          >
+            {formatDate(record.deadline) || "No deadline"}
           </Typography.Text>
         );
       },
@@ -407,20 +443,16 @@ export function InitialInsuranceList() {
             onConfirm={() => handleSoftDelete(record.id)}
             okText="Yes"
             cancelText="No"
-            icon={<ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />}
+            icon={<ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />}
           >
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-            >
+            <Button type="text" danger icon={<DeleteOutlined />}>
               Delete
             </Button>
           </Popconfirm>
         </Space>
       ),
       visible: columnVisibility.actions,
-    }
+    },
   ];
 
   const columns = ALL_COLUMNS.filter((col) => col.visible);
@@ -442,7 +474,7 @@ export function InitialInsuranceList() {
     setStatusFilter(filters.statusFilter);
     setCurrentPage(1);
     setFilterModalVisible(false);
-    
+
     // Fetch with new filters
     fetchInsurances();
   };
@@ -453,17 +485,23 @@ export function InitialInsuranceList() {
       userFilter: "",
       statusFilter: "",
       validDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
-      createdDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
-      updatedDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+      createdDateRange: [null, null] as [
+        dayjs.Dayjs | null,
+        dayjs.Dayjs | null
+      ],
+      updatedDateRange: [null, null] as [
+        dayjs.Dayjs | null,
+        dayjs.Dayjs | null
+      ],
       ascending: false,
     };
-    
+
     setFilterState(resetFilters);
     setUserFilter(undefined);
     setStatusFilter(undefined);
     setCurrentPage(1);
     setFilterModalVisible(false);
-    
+
     // Refresh data
     fetchInsurances();
   };
@@ -488,35 +526,36 @@ export function InitialInsuranceList() {
   const { filteredInsurances, displayTotal } = useMemo(() => {
     console.log("Filtering with searchText:", searchText);
     console.log("Total insurances before filter:", insurances.length);
-    
+
     // Nếu không có searchText, hiển thị tất cả và dùng apiTotal
     if (!searchText) {
-      return { 
+      return {
         filteredInsurances: insurances,
-        displayTotal: apiTotal 
+        displayTotal: apiTotal,
       };
     }
-    
+
     // Nếu có searchText, lọc dữ liệu
     const normalizedSearch = searchText.toLowerCase().trim();
-    
-    const filtered = insurances.filter(insurance => {
+
+    const filtered = insurances.filter((insurance) => {
       // Kiểm tra bảo đảm insurance.user có tồn tại
       if (!insurance.user) return false;
-      
-      const fullName = insurance.user.fullName?.toLowerCase() || '';
-      const email = insurance.user.email?.toLowerCase() || '';
-      
-      const match = fullName.includes(normalizedSearch) || email.includes(normalizedSearch);
+
+      const fullName = insurance.user.fullName?.toLowerCase() || "";
+      const email = insurance.user.email?.toLowerCase() || "";
+
+      const match =
+        fullName.includes(normalizedSearch) || email.includes(normalizedSearch);
       return match;
     });
-    
+
     console.log("Filtered insurances:", filtered.length);
-    
+
     // Nếu đang tìm kiếm, hiển thị số lượng kết quả tìm kiếm được
-    return { 
+    return {
       filteredInsurances: filtered,
-      displayTotal: filtered.length 
+      displayTotal: filtered.length,
     };
   }, [insurances, searchText, apiTotal]);
 
@@ -547,7 +586,7 @@ export function InitialInsuranceList() {
       </div>
 
       {/* Toolbar */}
-      <Card 
+      <Card
         className="shadow mb-4"
         bodyStyle={{ padding: "16px" }}
         title={
@@ -577,9 +616,11 @@ export function InitialInsuranceList() {
               value={searchText || undefined}
               filterOption={(input, option) => {
                 if (!option?.label) return false;
-                return (option.label as string).toLowerCase().includes(input.toLowerCase());
+                return (option.label as string)
+                  .toLowerCase()
+                  .includes(input.toLowerCase());
               }}
-              options={searchOptions.map(item => ({
+              options={searchOptions.map((item) => ({
                 value: item.fullName,
                 label: `${item.fullName} (${item.email})`,
               }))}
@@ -644,11 +685,19 @@ export function InitialInsuranceList() {
               <Button
                 icon={<UndoOutlined />}
                 onClick={handleReset}
-                disabled={!(searchText || statusFilter || userFilter || 
-                  filterState.validDateRange[0] || filterState.validDateRange[1] ||
-                  filterState.createdDateRange[0] || filterState.createdDateRange[1] ||
-                  filterState.updatedDateRange[0] || filterState.updatedDateRange[1]
-                )}
+                disabled={
+                  !(
+                    searchText ||
+                    statusFilter ||
+                    userFilter ||
+                    filterState.validDateRange[0] ||
+                    filterState.validDateRange[1] ||
+                    filterState.createdDateRange[0] ||
+                    filterState.createdDateRange[1] ||
+                    filterState.updatedDateRange[0] ||
+                    filterState.updatedDateRange[1]
+                  )
+                }
               >
                 Reset
               </Button>
@@ -787,20 +836,20 @@ export function InitialInsuranceList() {
 
           <div>
             {/* Send All Requests Button */}
-              <Popconfirm
-                title="Send Update Request"
-                description="Are you sure you want to send update requests to all pending users?"
-                onConfirm={handleSendUpdateRequest}
-                okText="Yes"
-                cancelText="No"
-                icon={<ExclamationCircleOutlined style={{ color: '#1890ff' }} />}
+            <Popconfirm
+              title="Send Update Request"
+              description="Are you sure you want to send update requests to all pending users?"
+              onConfirm={handleSendUpdateRequest}
+              okText="Yes"
+              cancelText="No"
+              icon={<ExclamationCircleOutlined style={{ color: "#1890ff" }} />}
+            >
+              <Button
+                type="primary"
+                icon={<SendOutlined />}
+                loading={isSendingRequest}
               >
-                <Button
-                  type="primary"
-                  icon={<SendOutlined />}
-                  loading={isSendingRequest}
-                >
-                  Send All Requests
+                Send All Requests
               </Button>
             </Popconfirm>
           </div>
@@ -813,7 +862,7 @@ export function InitialInsuranceList() {
         <div>
           {selectedRowKeys.length > 0 && (
             <Space>
-              <Text>{selectedRowKeys.length} items selected</Text>
+              <Text>{selectedRowKeys.length} Items selected</Text>
               <Popconfirm
                 title="Are you sure to delete the selected insurances?"
                 onConfirm={handleBulkDelete}
@@ -914,4 +963,4 @@ export function InitialInsuranceList() {
       />
     </div>
   );
-} 
+}
