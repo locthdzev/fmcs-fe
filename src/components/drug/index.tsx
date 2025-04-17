@@ -16,7 +16,7 @@ import {
   SearchOutlined,
   FileExcelOutlined,
   EyeOutlined,
-  EditOutlined,
+  FormOutlined,
   ExclamationCircleOutlined,
   ArrowLeftOutlined,
   DownOutlined,
@@ -655,10 +655,21 @@ export function Drugs() {
           );
         case "description":
           return cellValue ? (
-            <span title={cellValue as string} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "150px", display: "inline-block" }}>
+            <span
+              title={cellValue as string}
+              style={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: "150px",
+                display: "inline-block",
+              }}
+            >
               {cellValue as string}
             </span>
-          ) : "-";
+          ) : (
+            "-"
+          );
         case "createdAt":
           return cellValue ? formatDate(cellValue as string) : "-";
         case "drugGroup":
@@ -1534,32 +1545,34 @@ export function Drugs() {
         render: (text: string, record: DrugResponse) => (
           <Space>
             {record.imageUrl ? (
-              <div style={{ cursor: 'pointer' }}>
-                <Image 
-                  src={record.imageUrl} 
+              <div style={{ cursor: "pointer" }}>
+                <Image
+                  src={record.imageUrl}
                   alt={text}
                   width={40}
                   height={40}
-                  style={{ objectFit: 'cover', borderRadius: '4px' }}
+                  style={{ objectFit: "cover", borderRadius: "4px" }}
                   preview={{
                     mask: null,
-                    maskClassName: "ant-image-mask-custom"
+                    maskClassName: "ant-image-mask-custom",
                   }}
                 />
               </div>
             ) : (
-              <div 
-                style={{ 
-                  width: 40, 
-                  height: 40, 
-                  backgroundColor: '#f0f0f0', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  borderRadius: '4px'
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  backgroundColor: "#f0f0f0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "4px",
                 }}
               >
-                <MedicineBoxOutlined style={{ fontSize: '20px', color: '#bfbfbf' }} />
+                <MedicineBoxOutlined
+                  style={{ fontSize: "20px", color: "#bfbfbf" }}
+                />
               </div>
             )}
             <span>{text}</span>
@@ -1681,7 +1694,7 @@ export function Drugs() {
                   </Menu.Item>
                   <Menu.Item
                     key="edit"
-                    icon={<EditOutlined />}
+                    icon={<FormOutlined />}
                     onClick={() => handleOpenEditModal(record.id)}
                   >
                     Edit

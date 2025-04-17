@@ -32,7 +32,7 @@ import {
   AppstoreOutlined,
   TagOutlined,
   ExclamationCircleOutlined,
-  EditOutlined,
+  FormOutlined,
   ArrowLeftOutlined,
   FileExcelOutlined,
 } from "@ant-design/icons";
@@ -888,7 +888,7 @@ export function DrugGroups() {
           <Tooltip title="Edit">
             <Button
               type="text"
-              icon={<EditOutlined />}
+              icon={<FormOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
                 handleOpenEditModal(record.id);

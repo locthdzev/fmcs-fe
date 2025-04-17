@@ -24,7 +24,6 @@ import {
 import type { ColumnsType, ColumnType } from "antd/es/table";
 import {
   HistoryOutlined,
-  EditOutlined,
   DeleteOutlined,
   UndoOutlined,
   CloseCircleOutlined,

@@ -40,7 +40,7 @@ import {
   HistoryOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  EditOutlined,
+  FormOutlined,
   PlusOutlined,
   SearchOutlined,
   FileExcelOutlined,
@@ -267,7 +267,9 @@ const HistoryFilterModal: React.FC<{
                 <Option value="WaitingForApproval">Waiting For Approval</Option>
                 <Option value="Approved">Approved</Option>
                 <Option value="Completed">Completed</Option>
-                <Option value="CancelledCompletely">Cancelled Completely</Option>
+                <Option value="CancelledCompletely">
+                  Cancelled Completely
+                </Option>
                 <Option value="CancelledForAdjustment">
                   Cancelled For Adjustment
                 </Option>
@@ -291,7 +293,9 @@ const HistoryFilterModal: React.FC<{
                 <Option value="WaitingForApproval">Waiting For Approval</Option>
                 <Option value="Approved">Approved</Option>
                 <Option value="Completed">Completed</Option>
-                <Option value="CancelledCompletely">Cancelled Completely</Option>
+                <Option value="CancelledCompletely">
+                  Cancelled Completely
+                </Option>
                 <Option value="CancelledForAdjustment">
                   Cancelled For Adjustment
                 </Option>
@@ -314,7 +318,9 @@ const HistoryFilterModal: React.FC<{
                 style={{ width: "100%" }}
               >
                 <Option value="ActionDate">Action Time</Option>
-                <Option value="healthCheckResultCode">Health Check Result Code</Option>
+                <Option value="healthCheckResultCode">
+                  Health Check Result Code
+                </Option>
               </Select>
             </div>
           </Col>
@@ -813,7 +819,7 @@ export const HealthCheckResultHistory: React.FC = () => {
   const getActionIcon = (action: string | undefined) => {
     if (!action) return <HistoryOutlined />;
     if (action.includes("Created")) return <PlusOutlined />;
-    if (action.includes("Updated")) return <EditOutlined />;
+    if (action.includes("Updated")) return <FormOutlined />;
     if (action.includes("Approved")) return <CheckCircleOutlined />;
     if (action.includes("Cancelled") || action.includes("Rejected"))
       return <CloseCircleOutlined />;
@@ -1168,7 +1174,6 @@ export const HealthCheckResultHistory: React.FC = () => {
               </Button>
             </div>
           </div>
-
         </Card>
 
         {/* Pagination Size Selection - Outside of cards */}
@@ -1190,7 +1195,7 @@ export const HealthCheckResultHistory: React.FC = () => {
             </Select>
           </Typography.Text>
         </div>
-        
+
         {/* Results Display */}
         {loading ? (
           <Card className="shadow-sm">

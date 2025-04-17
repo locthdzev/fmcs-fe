@@ -33,7 +33,7 @@ import {
   AppstoreOutlined,
   TagOutlined,
   ExclamationCircleOutlined,
-  EditOutlined,
+  FormOutlined,
   EyeOutlined,
   ArrowLeftOutlined,
   FileExcelOutlined,
@@ -580,7 +580,7 @@ export function DrugSuppliers() {
           <Tooltip title="Edit">
             <Button
               type="text"
-              icon={<EditOutlined />}
+              icon={<FormOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
                 handleOpenEditModal(record.id);

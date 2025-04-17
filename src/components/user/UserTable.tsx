@@ -22,13 +22,12 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
-  EditOutlined,
+  FormOutlined,
   EyeOutlined,
   CheckCircleOutlined,
   StopOutlined,
   DownOutlined,
   MoreOutlined,
-  FormOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { UserResponseDTO } from "@/api/user";

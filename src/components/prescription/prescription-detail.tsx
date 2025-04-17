@@ -47,7 +47,7 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   HistoryOutlined,
-  EditOutlined,
+  FormOutlined,
   FileTextOutlined,
   MedicineBoxOutlined,
   SaveOutlined,
@@ -63,11 +63,16 @@ interface PrescriptionDetailProps {
   id: string;
 }
 
-export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) => {
+export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
+  id,
+}) => {
   const router = useRouter();
-  const [prescription, setPrescription] = useState<PrescriptionResponseDTO | null>(null);
+  const [prescription, setPrescription] =
+    useState<PrescriptionResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
-  const [histories, setHistories] = useState<PrescriptionHistoryResponseDTO[]>([]);
+  const [histories, setHistories] = useState<PrescriptionHistoryResponseDTO[]>(
+    []
+  );
   const [historiesLoading, setHistoriesLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
@@ -88,17 +93,19 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
       const response = await getPrescriptionById(id);
       if (response.success) {
         setPrescription(response.data);
-        
+
         // Initialize form with prescription data for editing
         if (response.data.prescriptionDetails) {
           form.setFieldsValue({
-            prescriptionDetails: response.data.prescriptionDetails.map((detail: PrescriptionDetailResponseDTO) => ({
-              id: detail.id,
-              drugId: detail.drug?.id,
-              dosage: detail.dosage,
-              quantity: detail.quantity,
-              instructions: detail.instructions,
-            })),
+            prescriptionDetails: response.data.prescriptionDetails.map(
+              (detail: PrescriptionDetailResponseDTO) => ({
+                id: detail.id,
+                drugId: detail.drug?.id,
+                dosage: detail.dosage,
+                quantity: detail.quantity,
+                instructions: detail.instructions,
+              })
+            ),
           });
         }
       } else {
@@ -227,7 +234,7 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
       };
 
       const response = await updatePrescription(id, requestData);
-      
+
       if (response.success) {
         toast.success("Prescription updated successfully");
         setIsEditing(false);
@@ -245,62 +252,64 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
   };
 
   const formatDate = (date: string | undefined) => {
-    if (!date) return '';
-    return moment(date).format('DD/MM/YYYY');
+    if (!date) return "";
+    return moment(date).format("DD/MM/YYYY");
   };
 
   const formatDateTime = (datetime: string | undefined) => {
-    if (!datetime) return '';
-    return moment(datetime).format('DD/MM/YYYY HH:mm:ss');
+    if (!datetime) return "";
+    return moment(datetime).format("DD/MM/YYYY HH:mm:ss");
   };
 
   const getStatusColor = (status: string | undefined) => {
     switch (status) {
-      case 'Dispensed':
-        return 'processing';
-      case 'Updated':
-        return 'warning';
-      case 'Used':
-        return 'success';
-      case 'UpdatedAndUsed':
-        return 'success';
-      case 'Inactive':
-        return 'default';
-      case 'Cancelled':
-        return 'error';
-      case 'SoftDeleted':
-        return 'default';
+      case "Dispensed":
+        return "processing";
+      case "Updated":
+        return "warning";
+      case "Used":
+        return "success";
+      case "UpdatedAndUsed":
+        return "success";
+      case "Inactive":
+        return "default";
+      case "Cancelled":
+        return "error";
+      case "SoftDeleted":
+        return "default";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const getActionColor = (action: string): string => {
     switch (action) {
-      case 'Create':
-        return 'green';
-      case 'Update':
-        return 'blue';
-      case 'Cancel':
-        return 'red';
-      case 'StatusChange':
-        return 'orange';
-      case 'SoftDelete':
-        return 'gray';
-      case 'Restore':
-        return 'green';
+      case "Create":
+        return "green";
+      case "Update":
+        return "blue";
+      case "Cancel":
+        return "red";
+      case "StatusChange":
+        return "orange";
+      case "SoftDelete":
+        return "gray";
+      case "Restore":
+        return "green";
       default:
-        return 'blue';
+        return "blue";
     }
   };
 
   const renderActionButtons = () => {
     if (!prescription) return null;
-    
-    const canEdit = prescription.status === 'Dispensed';
-    const canCancel = prescription.status === 'Dispensed';
-    const canSoftDelete = prescription.status === 'Used' || prescription.status === 'UpdatedAndUsed';
-    const canRestore = prescription.status === 'SoftDeleted';
+
+    const canEdit = prescription.status === "Dispensed";
+    const canCancel = prescription.status === "Dispensed";
+    const canSoftDelete =
+      prescription.status === "Used" ||
+      prescription.status === "UpdatedAndUsed";
+    const canRestore = prescription.status === "SoftDeleted";
 
     return (
       <Space>
@@ -323,10 +332,7 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
           </Button>
         ) : (
           canEdit && (
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => setIsEditing(true)}
-            >
+            <Button icon={<FormOutlined />} onClick={() => setIsEditing(true)}>
               Edit
             </Button>
           )
@@ -348,7 +354,9 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
             okText="Yes"
             cancelText="No"
             onConfirm={() => {
-              const reasonElement = document.getElementById("cancel-reason") as HTMLTextAreaElement;
+              const reasonElement = document.getElementById(
+                "cancel-reason"
+              ) as HTMLTextAreaElement;
               if (reasonElement && reasonElement.value) {
                 handleCancel(reasonElement.value);
               } else {
@@ -384,9 +392,7 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
             cancelText="No"
             onConfirm={handleRestore}
           >
-            <Button icon={<UndoOutlined />}>
-              Restore
-            </Button>
+            <Button icon={<UndoOutlined />}>Restore</Button>
           </Popconfirm>
         )}
 
@@ -439,26 +445,27 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
                   <Card key={key} style={{ marginBottom: 16 }}>
                     <Row gutter={16}>
                       <Col span={24}>
-                        <Form.Item
-                          {...restField}
-                          name={[name, 'id']}
-                          hidden
-                        >
+                        <Form.Item {...restField} name={[name, "id"]} hidden>
                           <Input />
                         </Form.Item>
-                        
+
                         <Form.Item
                           {...restField}
-                          name={[name, 'drugId']}
+                          name={[name, "drugId"]}
                           label="Medicine"
-                          rules={[{ required: true, message: 'Please select a medicine' }]}
+                          rules={[
+                            {
+                              required: true,
+                              message: "Please select a medicine",
+                            },
+                          ]}
                         >
                           <Select
                             disabled
                             placeholder="Select medicine"
-                            style={{ width: '100%' }}
+                            style={{ width: "100%" }}
                           >
-                            {drugOptions.map(drug => (
+                            {drugOptions.map((drug) => (
                               <Option key={drug.id} value={drug.id}>
                                 {drug.name} ({drug.drugCode})
                               </Option>
@@ -466,37 +473,52 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
                           </Select>
                         </Form.Item>
                       </Col>
-                      
+
                       <Col span={24}>
                         <Form.Item
                           {...restField}
-                          name={[name, 'dosage']}
+                          name={[name, "dosage"]}
                           label="Dosage"
-                          rules={[{ required: true, message: 'Please enter dosage' }]}
+                          rules={[
+                            { required: true, message: "Please enter dosage" },
+                          ]}
                         >
                           <Input placeholder="e.g. 1 tablet twice daily" />
                         </Form.Item>
                       </Col>
-                      
+
                       <Col span={24}>
                         <Form.Item
                           {...restField}
-                          name={[name, 'quantity']}
+                          name={[name, "quantity"]}
                           label="Quantity"
-                          rules={[{ required: true, message: 'Please enter quantity' }]}
+                          rules={[
+                            {
+                              required: true,
+                              message: "Please enter quantity",
+                            },
+                          ]}
                         >
-                          <InputNumber min={1} style={{ width: '100%' }} />
+                          <InputNumber min={1} style={{ width: "100%" }} />
                         </Form.Item>
                       </Col>
-                      
+
                       <Col span={24}>
                         <Form.Item
                           {...restField}
-                          name={[name, 'instructions']}
+                          name={[name, "instructions"]}
                           label="Instructions"
-                          rules={[{ required: true, message: 'Please enter instructions' }]}
+                          rules={[
+                            {
+                              required: true,
+                              message: "Please enter instructions",
+                            },
+                          ]}
                         >
-                          <TextArea rows={3} placeholder="Instructions for taking the medicine" />
+                          <TextArea
+                            rows={3}
+                            placeholder="Instructions for taking the medicine"
+                          />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -513,10 +535,22 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
       <div>
         {prescription.prescriptionDetails.map((detail, index) => (
           <Card key={index} style={{ marginBottom: 16 }}>
-            <Descriptions title={`Medicine ${index + 1}: ${detail.drug?.name} (${detail.drug?.drugCode})`} bordered column={1}>
-              <Descriptions.Item label="Dosage">{detail.dosage}</Descriptions.Item>
-              <Descriptions.Item label="Quantity">{detail.quantity}</Descriptions.Item>
-              <Descriptions.Item label="Instructions">{detail.instructions}</Descriptions.Item>
+            <Descriptions
+              title={`Medicine ${index + 1}: ${detail.drug?.name} (${
+                detail.drug?.drugCode
+              })`}
+              bordered
+              column={1}
+            >
+              <Descriptions.Item label="Dosage">
+                {detail.dosage}
+              </Descriptions.Item>
+              <Descriptions.Item label="Quantity">
+                {detail.quantity}
+              </Descriptions.Item>
+              <Descriptions.Item label="Instructions">
+                {detail.instructions}
+              </Descriptions.Item>
             </Descriptions>
           </Card>
         ))}
@@ -526,10 +560,10 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
 
   const renderPatientInfo = () => {
     if (!prescription || !prescription.healthCheckResult) return null;
-    
+
     const { healthCheckResult } = prescription;
     const user = healthCheckResult?.user;
-    
+
     return (
       <Card title="Patient Information" className="detail-card">
         <Row gutter={[16, 16]}>
@@ -538,28 +572,22 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
             <Text>{user?.fullName || "N/A"}</Text>
           </Col>
           <Col span={12}>
-            <Text strong>Gender:</Text>{" "}
-            <Text>{user?.gender || "N/A"}</Text>
+            <Text strong>Gender:</Text> <Text>{user?.gender || "N/A"}</Text>
           </Col>
           <Col span={12}>
             <Text strong>Date of Birth:</Text>{" "}
             <Text>
-              {user?.dob
-                ? moment(user.dob).format("DD/MM/YYYY")
-                : "N/A"}
+              {user?.dob ? moment(user.dob).format("DD/MM/YYYY") : "N/A"}
             </Text>
           </Col>
           <Col span={12}>
-            <Text strong>Phone:</Text>{" "}
-            <Text>{user?.phone || "N/A"}</Text>
+            <Text strong>Phone:</Text> <Text>{user?.phone || "N/A"}</Text>
           </Col>
           <Col span={12}>
-            <Text strong>Address:</Text>{" "}
-            <Text>{user?.address || "N/A"}</Text>
+            <Text strong>Address:</Text> <Text>{user?.address || "N/A"}</Text>
           </Col>
           <Col span={12}>
-            <Text strong>Email:</Text>{" "}
-            <Text>{user?.email || "N/A"}</Text>
+            <Text strong>Email:</Text> <Text>{user?.email || "N/A"}</Text>
           </Col>
         </Row>
       </Card>
@@ -575,69 +603,105 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
         </div>
 
         <Card>
-          <Descriptions title="Basic Information" bordered column={{ xxl: 4, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}>
-            <Descriptions.Item label="Prescription Code">{prescription.prescriptionCode}</Descriptions.Item>
+          <Descriptions
+            title="Basic Information"
+            bordered
+            column={{ xxl: 4, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
+          >
+            <Descriptions.Item label="Prescription Code">
+              {prescription.prescriptionCode}
+            </Descriptions.Item>
             <Descriptions.Item label="Health Check Code">
               {prescription?.healthCheckResult ? (
                 <Button
                   type="link"
-                  onClick={() => router.push(`/health-check-result/${prescription?.healthCheckResult?.id}`)}
+                  onClick={() =>
+                    router.push(
+                      `/health-check-result/${prescription?.healthCheckResult?.id}`
+                    )
+                  }
                 >
                   {prescription?.healthCheckResult?.healthCheckResultCode}
                 </Button>
-              ) : "N/A"}
+              ) : (
+                "N/A"
+              )}
             </Descriptions.Item>
-            <Descriptions.Item label="Prescription Date">{formatDate(prescription.prescriptionDate)}</Descriptions.Item>
+            <Descriptions.Item label="Prescription Date">
+              {formatDate(prescription.prescriptionDate)}
+            </Descriptions.Item>
             <Descriptions.Item label="Status">
-              <Tag color={getStatusColor(prescription.status)}>{prescription.status}</Tag>
+              <Tag color={getStatusColor(prescription.status)}>
+                {prescription.status}
+              </Tag>
             </Descriptions.Item>
-            
+
             <Descriptions.Item label="Patient" span={2}>
               {prescription?.healthCheckResult?.user ? (
                 <>
-                  <div><strong>{prescription?.healthCheckResult?.user.fullName}</strong></div>
+                  <div>
+                    <strong>
+                      {prescription?.healthCheckResult?.user.fullName}
+                    </strong>
+                  </div>
                   <div>{prescription?.healthCheckResult?.user.email}</div>
                   {prescription?.healthCheckResult?.user.phone && (
-                    <div>Phone: {prescription?.healthCheckResult?.user.phone}</div>
+                    <div>
+                      Phone: {prescription?.healthCheckResult?.user.phone}
+                    </div>
                   )}
                   {prescription?.healthCheckResult?.user.gender && (
-                    <div>Gender: {prescription?.healthCheckResult?.user.gender}</div>
+                    <div>
+                      Gender: {prescription?.healthCheckResult?.user.gender}
+                    </div>
                   )}
                 </>
-              ) : "N/A"}
+              ) : (
+                "N/A"
+              )}
             </Descriptions.Item>
-            
+
             <Descriptions.Item label="Healthcare Staff" span={2}>
               {prescription.staff ? (
                 <>
-                  <div><strong>{prescription.staff.fullName}</strong></div>
+                  <div>
+                    <strong>{prescription.staff.fullName}</strong>
+                  </div>
                   <div>{prescription.staff.email}</div>
                 </>
-              ) : "N/A"}
+              ) : (
+                "N/A"
+              )}
             </Descriptions.Item>
 
-            <Descriptions.Item label="Created At">{formatDateTime(prescription.createdAt)}</Descriptions.Item>
-            <Descriptions.Item label="Updated At">{formatDateTime(prescription.updatedAt) || "N/A"}</Descriptions.Item>
+            <Descriptions.Item label="Created At">
+              {formatDateTime(prescription.createdAt)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Updated At">
+              {formatDateTime(prescription.updatedAt) || "N/A"}
+            </Descriptions.Item>
             <Descriptions.Item label="Updated By" span={2}>
               {prescription.updatedBy ? (
                 <>
-                  <div><strong>{prescription.updatedBy.fullName}</strong></div>
+                  <div>
+                    <strong>{prescription.updatedBy.fullName}</strong>
+                  </div>
                   <div>{prescription.updatedBy.email}</div>
                 </>
-              ) : "N/A"}
+              ) : (
+                "N/A"
+              )}
             </Descriptions.Item>
           </Descriptions>
         </Card>
       </div>
-      
+
       <Divider orientation="left">Medications</Divider>
-      
-      <div className="mb-6">
-        {renderPrescriptionDetails()}
-      </div>
-      
+
+      <div className="mb-6">{renderPrescriptionDetails()}</div>
+
       <Divider orientation="left">Prescription History</Divider>
-      
+
       <div className="mb-6">
         {historiesLoading ? (
           <Skeleton active />
@@ -657,7 +721,9 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
                   </div>
                   {history.performedBy && (
                     <div>
-                      <strong>Performed By:</strong> {history.performedBy.fullName} ({history.performedBy.email})
+                      <strong>Performed By:</strong>{" "}
+                      {history.performedBy.fullName} (
+                      {history.performedBy.email})
                     </div>
                   )}
                   {history.previousStatus && (
@@ -689,4 +755,4 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ id }) =>
       </div>
     </div>
   );
-}; 
+};

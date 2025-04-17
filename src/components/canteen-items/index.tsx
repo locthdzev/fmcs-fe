@@ -32,7 +32,7 @@ import {
   AppstoreOutlined,
   TagOutlined,
   ExclamationCircleOutlined,
-  EditOutlined,
+  FormOutlined,
   EyeOutlined,
   ArrowLeftOutlined,
   FileExcelOutlined,
@@ -1523,7 +1523,7 @@ export function CanteenItems() {
           <Tooltip title="Edit">
             <Button
               type="text"
-              icon={<EditOutlined />}
+              icon={<FormOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
                 router.push(`/canteen-item/edit/${record.id}`);

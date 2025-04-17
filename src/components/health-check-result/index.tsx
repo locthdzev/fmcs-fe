@@ -29,7 +29,7 @@ import {
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
-import { Pie, Bar, Line } from 'react-chartjs-2';
+import { Pie, Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -41,7 +41,7 @@ import {
   LineElement,
   BarElement,
   Title,
-} from 'chart.js';
+} from "chart.js";
 import {
   getAllHealthCheckResults,
   getHealthCheckResultsStatistics,
@@ -57,14 +57,14 @@ import {
   cancelForAdjustmentHealthCheckResult,
 } from "@/api/healthcheckresult";
 import CreateModal from "./CreateModal";
-import { 
-  DownOutlined, 
-  SearchOutlined, 
+import {
+  DownOutlined,
+  SearchOutlined,
   SettingOutlined,
   PlusOutlined,
   ExportOutlined,
   EyeOutlined,
-  EditOutlined,
+  FormOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   DeleteOutlined,
@@ -83,7 +83,7 @@ import {
   FileExcelOutlined,
 } from "@ant-design/icons";
 import { getUsers, UserProfile } from "@/api/user";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
 import { HealthInsuranceIcon } from "@/dashboard/sidebar/icons/HealthInsuranceIcon";
 
 const { Option } = Select;
@@ -114,13 +114,13 @@ ChartJS.register(
 );
 
 const formatDate = (date: string | undefined) => {
-  if (!date) return '';
-  return moment(date).format('DD/MM/YYYY');
+  if (!date) return "";
+  return moment(date).format("DD/MM/YYYY");
 };
 
 const formatDateTime = (datetime: string | undefined) => {
-  if (!datetime) return '';
-  return moment(datetime).format('DD/MM/YYYY HH:mm:ss');
+  if (!datetime) return "";
+  return moment(datetime).format("DD/MM/YYYY HH:mm:ss");
 };
 
 const DEFAULT_VISIBLE_COLUMNS = [
@@ -143,25 +143,25 @@ const DEFAULT_EXPORT_CONFIG = {
   includeStatus: true,
   includeCreatedAt: true,
   includeUpdatedAt: true,
-  includeDetails: true
+  includeDetails: true,
 };
 
 const getStatusColor = (status: string | undefined) => {
   switch (status) {
-    case 'Completed':
-      return 'success';
-    case 'Approved':
-      return 'processing';
-    case 'Pending':
-      return 'warning';
-    case 'Cancelled':
-      return 'error';
-    case 'CancelledForAdjustment':
-      return 'orange';
-    case 'SoftDeleted':
-      return 'default';
+    case "Completed":
+      return "success";
+    case "Approved":
+      return "processing";
+    case "Pending":
+      return "warning";
+    case "Cancelled":
+      return "error";
+    case "CancelledForAdjustment":
+      return "orange";
+    case "SoftDeleted":
+      return "default";
     default:
-      return 'default';
+      return "default";
   }
 };
 
@@ -178,13 +178,7 @@ const HealthCheckFilterModal: React.FC<{
     sortBy: string;
     ascending: boolean;
   };
-}> = ({
-  visible,
-  onCancel,
-  onApply,
-  onReset,
-  filters,
-}) => {
+}> = ({ visible, onCancel, onApply, onReset, filters }) => {
   const [localFilters, setLocalFilters] = useState(filters);
 
   // Reset localFilters when modal is opened with new filters
@@ -242,10 +236,10 @@ const HealthCheckFilterModal: React.FC<{
                 style={{ width: "100%" }}
                 value={localFilters.statusFilter}
                 onChange={(value) => {
-                  if (value === 'ALL' || value === undefined) {
+                  if (value === "ALL" || value === undefined) {
                     updateFilter("statusFilter", undefined);
                     updateFilter("showDefaultFilter", false);
-                  } else if (value === 'DEFAULT') {
+                  } else if (value === "DEFAULT") {
                     updateFilter("statusFilter", undefined);
                     updateFilter("showDefaultFilter", true);
                   } else {
@@ -256,7 +250,10 @@ const HealthCheckFilterModal: React.FC<{
                 }}
               >
                 <Option value="DEFAULT">
-                  <Badge status="default" text="Default (Completed & Cancelled)" />
+                  <Badge
+                    status="default"
+                    text="Default (Completed & Cancelled)"
+                  />
                 </Option>
                 <Option value="ALL">
                   <Badge status="default" text="All statuses" />
@@ -285,7 +282,7 @@ const HealthCheckFilterModal: React.FC<{
               </Select>
             </div>
           </Col>
-          
+
           {/* Follow-up Required */}
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
@@ -319,9 +316,7 @@ const HealthCheckFilterModal: React.FC<{
                 format="DD/MM/YYYY"
                 allowClear
                 value={localFilters.checkupDateRange as any}
-                onChange={(dates) =>
-                  updateFilter("checkupDateRange", dates)
-                }
+                onChange={(dates) => updateFilter("checkupDateRange", dates)}
               />
             </div>
           </Col>
@@ -339,14 +334,12 @@ const HealthCheckFilterModal: React.FC<{
                 allowClear
                 disabled={localFilters.followUpRequired === false}
                 value={localFilters.followUpDateRange as any}
-                onChange={(dates) =>
-                  updateFilter("followUpDateRange", dates)
-                }
+                onChange={(dates) => updateFilter("followUpDateRange", dates)}
               />
             </div>
           </Col>
         </Row>
-        
+
         <Row gutter={16}>
           {/* Sort By */}
           <Col span={12}>
@@ -366,7 +359,7 @@ const HealthCheckFilterModal: React.FC<{
               </Select>
             </div>
           </Col>
-          
+
           {/* Order */}
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
@@ -392,38 +385,61 @@ const HealthCheckFilterModal: React.FC<{
 
 export function HealthCheckResultManagement() {
   const router = useRouter();
-  const [healthCheckResults, setHealthCheckResults] = useState<HealthCheckResultsResponseDTO[]>([]);
-  const [statistics, setStatistics] = useState<HealthCheckResultsStatisticsDTO | null>(null);
+  const [healthCheckResults, setHealthCheckResults] = useState<
+    HealthCheckResultsResponseDTO[]
+  >([]);
+  const [statistics, setStatistics] =
+    useState<HealthCheckResultsStatisticsDTO | null>(null);
   const [loading, setLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
-  const [selectedResult, setSelectedResult] = useState<HealthCheckResultsResponseDTO | null>(null);
+  const [selectedResult, setSelectedResult] =
+    useState<HealthCheckResultsResponseDTO | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [codeSearch, setCodeSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(
+    undefined
+  );
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<
+    string | undefined
+  >(undefined);
   const [showDefaultFilter, setShowDefaultFilter] = useState(true);
   const [sortBy, setSortBy] = useState("CheckupDate");
   const [ascending, setAscending] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [checkupDateRange, setCheckupDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
-  const [followUpRequired, setFollowUpRequired] = useState<boolean | undefined>();
-  const [followUpDateRange, setFollowUpDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
-  const [userOptions, setUserOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
-  const [staffOptions, setStaffOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
+  const [checkupDateRange, setCheckupDateRange] = useState<
+    [moment.Moment | null, moment.Moment | null]
+  >([null, null]);
+  const [followUpRequired, setFollowUpRequired] = useState<
+    boolean | undefined
+  >();
+  const [followUpDateRange, setFollowUpDateRange] = useState<
+    [moment.Moment | null, moment.Moment | null]
+  >([null, null]);
+  const [userOptions, setUserOptions] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
+  const [staffOptions, setStaffOptions] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
   const [healthCheckCodes, setHealthCheckCodes] = useState<string[]>([]);
-  const [healthCheckStaff, setHealthCheckStaff] = useState<{ id: string; fullName: string; email: string }[]>([]);
+  const [healthCheckStaff, setHealthCheckStaff] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
   const [showExportConfigModal, setShowExportConfigModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
-  const [exportConfig, setExportConfig] = useState<HealthCheckResultExportConfigDTO>(DEFAULT_EXPORT_CONFIG);
+  const [exportConfig, setExportConfig] =
+    useState<HealthCheckResultExportConfigDTO>(DEFAULT_EXPORT_CONFIG);
   const [form] = Form.useForm();
 
   // Add new state for column visibility
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
     code: true,
     patient: true,
     checkupDate: true,
@@ -443,27 +459,32 @@ export function HealthCheckResultManagement() {
       // Filter users with 'User' role and remove duplicates
       const uniqueUserIds = new Set();
       const userRoleUsers = users
-        .filter((user: UserProfile) => 
-          user.roles.includes('User') && !uniqueUserIds.has(user.id) && (uniqueUserIds.add(user.id) || true)
+        .filter(
+          (user: UserProfile) =>
+            user.roles.includes("User") &&
+            !uniqueUserIds.has(user.id) &&
+            (uniqueUserIds.add(user.id) || true)
         )
         .map((user: UserProfile) => ({
           id: user.id,
           fullName: user.fullName,
-          email: user.email
+          email: user.email,
         }));
       setUserOptions(userRoleUsers);
 
       // Filter users with 'Doctor' or 'Nurse' role and remove duplicates
       const uniqueStaffIds = new Set();
       const staffUsers = users
-        .filter((user: UserProfile) => 
-          (user.roles.includes('Doctor') || user.roles.includes('Nurse')) && 
-          !uniqueStaffIds.has(user.id) && (uniqueStaffIds.add(user.id) || true)
+        .filter(
+          (user: UserProfile) =>
+            (user.roles.includes("Doctor") || user.roles.includes("Nurse")) &&
+            !uniqueStaffIds.has(user.id) &&
+            (uniqueStaffIds.add(user.id) || true)
         )
         .map((user: UserProfile) => ({
           id: user.id,
           fullName: user.fullName,
-          email: user.email
+          email: user.email,
         }));
       setStaffOptions(staffUsers);
     } catch (error) {
@@ -489,15 +510,15 @@ export function HealthCheckResultManagement() {
             completed: 0,
             cancelledCompletely: 0,
             cancelledForAdjustment: 0,
-            softDeleted: 0
+            softDeleted: 0,
           },
           followUpStatistics: {
             totalFollowUps: 0,
             upcomingFollowUps: 0,
             overdueFollowUps: 0,
-            followUpsToday: 0
+            followUpsToday: 0,
           },
-          monthlyDistribution: []
+          monthlyDistribution: [],
         });
       }
     } catch (error) {
@@ -512,15 +533,15 @@ export function HealthCheckResultManagement() {
           completed: 0,
           cancelledCompletely: 0,
           cancelledForAdjustment: 0,
-          softDeleted: 0
+          softDeleted: 0,
         },
         followUpStatistics: {
           totalFollowUps: 0,
           upcomingFollowUps: 0,
           overdueFollowUps: 0,
-          followUpsToday: 0
+          followUpsToday: 0,
         },
-        monthlyDistribution: []
+        monthlyDistribution: [],
       });
     } finally {
       setStatsLoading(false);
@@ -548,28 +569,39 @@ export function HealthCheckResultManagement() {
 
       if (response.success) {
         // Get list of unique codes
-        const uniqueCodes = Array.from(new Set(
-          response.data.map((result: HealthCheckResultsResponseDTO) => result.healthCheckResultCode)
-        )) as string[];
+        const uniqueCodes = Array.from(
+          new Set(
+            response.data.map(
+              (result: HealthCheckResultsResponseDTO) =>
+                result.healthCheckResultCode
+            )
+          )
+        ) as string[];
         setHealthCheckCodes(uniqueCodes);
 
         // Get list of unique healthcare staff from results
-        const staffMap = new Map<string, { id: string; fullName: string; email: string }>();
+        const staffMap = new Map<
+          string,
+          { id: string; fullName: string; email: string }
+        >();
         response.data.forEach((result: HealthCheckResultsResponseDTO) => {
           if (result.staff && !staffMap.has(result.staff.id)) {
             staffMap.set(result.staff.id, {
               id: result.staff.id,
               fullName: result.staff.fullName,
-              email: result.staff.email
+              email: result.staff.email,
             });
           }
         });
-        
+
         const uniqueStaff = Array.from(staffMap.values());
         setHealthCheckStaff(uniqueStaff);
       }
     } catch (error) {
-      console.error("Unable to load health check result codes and staff:", error);
+      console.error(
+        "Unable to load health check result codes and staff:",
+        error
+      );
     }
   }, []);
 
@@ -582,10 +614,18 @@ export function HealthCheckResultManagement() {
   const fetchHealthCheckResults = useCallback(async () => {
     setLoading(true);
     try {
-      const checkupStartDate = checkupDateRange[0] ? checkupDateRange[0].format('YYYY-MM-DD') : undefined;
-      const checkupEndDate = checkupDateRange[1] ? checkupDateRange[1].format('YYYY-MM-DD') : undefined;
-      const followUpStartDate = followUpDateRange[0] ? followUpDateRange[0].format('YYYY-MM-DD') : undefined;
-      const followUpEndDate = followUpDateRange[1] ? followUpDateRange[1].format('YYYY-MM-DD') : undefined;
+      const checkupStartDate = checkupDateRange[0]
+        ? checkupDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const checkupEndDate = checkupDateRange[1]
+        ? checkupDateRange[1].format("YYYY-MM-DD")
+        : undefined;
+      const followUpStartDate = followUpDateRange[0]
+        ? followUpDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const followUpEndDate = followUpDateRange[1]
+        ? followUpDateRange[1].format("YYYY-MM-DD")
+        : undefined;
 
       const response = await getAllHealthCheckResults(
         currentPage,
@@ -606,8 +646,9 @@ export function HealthCheckResultManagement() {
       if (response.success) {
         if (showDefaultFilter && !statusFilter) {
           const filteredResults = response.data.filter(
-            (result: HealthCheckResultsResponseDTO) => 
-              result.status === 'Completed' || result.status === 'CancelledCompletely'
+            (result: HealthCheckResultsResponseDTO) =>
+              result.status === "Completed" ||
+              result.status === "CancelledCompletely"
           );
           setHealthCheckResults(filteredResults);
           setTotal(filteredResults.length);
@@ -616,7 +657,9 @@ export function HealthCheckResultManagement() {
           setTotal(response.totalRecords);
         }
       } else {
-        toast.error(response.message || "Unable to load health check results list");
+        toast.error(
+          response.message || "Unable to load health check results list"
+        );
       }
     } catch (error) {
       toast.error("Unable to load health check results list");
@@ -714,7 +757,9 @@ export function HealthCheckResultManagement() {
         fetchHealthCheckResults();
         fetchStatistics();
       } else {
-        toast.error(response.message || "Unable to temporarily delete health check result");
+        toast.error(
+          response.message || "Unable to temporarily delete health check result"
+        );
       }
     } catch (error) {
       toast.error("Unable to temporarily delete health check result");
@@ -729,7 +774,9 @@ export function HealthCheckResultManagement() {
         fetchHealthCheckResults();
         fetchStatistics();
       } else {
-        toast.error(response.message || "Unable to restore health check result");
+        toast.error(
+          response.message || "Unable to restore health check result"
+        );
       }
     } catch (error) {
       toast.error("Unable to restore health check result");
@@ -744,7 +791,9 @@ export function HealthCheckResultManagement() {
         fetchHealthCheckResults();
         fetchStatistics();
       } else {
-        toast.error(response.message || "Unable to approve health check result");
+        toast.error(
+          response.message || "Unable to approve health check result"
+        );
       }
     } catch (error) {
       toast.error("Unable to approve health check result");
@@ -759,7 +808,9 @@ export function HealthCheckResultManagement() {
         fetchHealthCheckResults();
         fetchStatistics();
       } else {
-        toast.error(response.message || "Unable to complete health check result");
+        toast.error(
+          response.message || "Unable to complete health check result"
+        );
       }
     } catch (error) {
       toast.error("Unable to complete health check result");
@@ -789,7 +840,10 @@ export function HealthCheckResultManagement() {
         fetchHealthCheckResults();
         fetchStatistics();
       } else {
-        toast.error(response.message || "Unable to cancel health check result for adjustment");
+        toast.error(
+          response.message ||
+            "Unable to cancel health check result for adjustment"
+        );
       }
     } catch (error) {
       toast.error("Unable to cancel health check result for adjustment");
@@ -798,14 +852,21 @@ export function HealthCheckResultManagement() {
 
   const handleBulkDelete = async () => {
     try {
-      const response = await softDeleteHealthCheckResults(selectedRowKeys as string[]);
+      const response = await softDeleteHealthCheckResults(
+        selectedRowKeys as string[]
+      );
       if (response.isSuccess) {
-        toast.success("Selected health check results have been temporarily deleted!");
+        toast.success(
+          "Selected health check results have been temporarily deleted!"
+        );
         setSelectedRowKeys([]);
         fetchHealthCheckResults();
         fetchStatistics();
       } else {
-        toast.error(response.message || "Unable to temporarily delete selected health check results");
+        toast.error(
+          response.message ||
+            "Unable to temporarily delete selected health check results"
+        );
       }
     } catch (error) {
       toast.error("Unable to temporarily delete selected health check results");
@@ -815,16 +876,24 @@ export function HealthCheckResultManagement() {
   const handleExport = async () => {
     setExportLoading(true);
     try {
-      const checkupStartDate = checkupDateRange[0] ? checkupDateRange[0].format('YYYY-MM-DD') : undefined;
-      const checkupEndDate = checkupDateRange[1] ? checkupDateRange[1].format('YYYY-MM-DD') : undefined;
-      const followUpStartDate = followUpDateRange[0] ? followUpDateRange[0].format('YYYY-MM-DD') : undefined;
-      const followUpEndDate = followUpDateRange[1] ? followUpDateRange[1].format('YYYY-MM-DD') : undefined;
-      
+      const checkupStartDate = checkupDateRange[0]
+        ? checkupDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const checkupEndDate = checkupDateRange[1]
+        ? checkupDateRange[1].format("YYYY-MM-DD")
+        : undefined;
+      const followUpStartDate = followUpDateRange[0]
+        ? followUpDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const followUpEndDate = followUpDateRange[1]
+        ? followUpDateRange[1].format("YYYY-MM-DD")
+        : undefined;
+
       // Ensure data is fully loaded for dropdown
       if (healthCheckCodes.length === 0 || healthCheckStaff.length === 0) {
         await fetchHealthCheckCodesAndStaff();
       }
-      
+
       // Update initial values for form
       form.setFieldsValue({
         exportAllPages: true, // Default to export all
@@ -847,15 +916,15 @@ export function HealthCheckResultManagement() {
         filterFollowUpDateRange: followUpDateRange,
         // Sort options
         sortOption: sortBy,
-        sortDirection: ascending ? "asc" : "desc"
+        sortDirection: ascending ? "asc" : "desc",
       });
-      
+
       // Set default values for exportConfig
       setExportConfig({
         ...DEFAULT_EXPORT_CONFIG,
-        exportAllPages: true // Ensure export all is selected
+        exportAllPages: true, // Ensure export all is selected
       });
-      
+
       setShowExportConfigModal(true);
       setExportLoading(false);
     } catch (error) {
@@ -868,11 +937,11 @@ export function HealthCheckResultManagement() {
     // Reset form and export config when closing modal
     form.setFieldsValue({
       ...DEFAULT_EXPORT_CONFIG,
-      exportAllPages: true // Ensure default is export all
+      exportAllPages: true, // Ensure default is export all
     });
     setExportConfig({
       ...DEFAULT_EXPORT_CONFIG,
-      exportAllPages: true
+      exportAllPages: true,
     });
     setShowExportConfigModal(false);
     setExportLoading(false);
@@ -882,7 +951,7 @@ export function HealthCheckResultManagement() {
     setExportLoading(true);
     try {
       const values = form.getFieldsValue();
-      
+
       // Build export configuration
       const config = {
         exportAllPages: values.exportAllPages || false,
@@ -896,55 +965,85 @@ export function HealthCheckResultManagement() {
         includeUpdatedAt: values.includeUpdatedAt !== false,
         includeDetails: values.includeDetails !== false,
       };
-      
+
       // Process date data
       const filterCheckupDateRange = values.filterCheckupDateRange;
       const filterFollowUpDateRange = values.filterFollowUpDateRange;
-      
-      const modalCheckupStartDate = filterCheckupDateRange && filterCheckupDateRange[0] 
-        ? filterCheckupDateRange[0].format('YYYY-MM-DD') 
-        : undefined;
-      const modalCheckupEndDate = filterCheckupDateRange && filterCheckupDateRange[1] 
-        ? filterCheckupDateRange[1].format('YYYY-MM-DD') 
-        : undefined;
-      const modalFollowUpStartDate = filterFollowUpDateRange && filterFollowUpDateRange[0] 
-        ? filterFollowUpDateRange[0].format('YYYY-MM-DD') 
-        : undefined;
-      const modalFollowUpEndDate = filterFollowUpDateRange && filterFollowUpDateRange[1] 
-        ? filterFollowUpDateRange[1].format('YYYY-MM-DD') 
-        : undefined;
-      
+
+      const modalCheckupStartDate =
+        filterCheckupDateRange && filterCheckupDateRange[0]
+          ? filterCheckupDateRange[0].format("YYYY-MM-DD")
+          : undefined;
+      const modalCheckupEndDate =
+        filterCheckupDateRange && filterCheckupDateRange[1]
+          ? filterCheckupDateRange[1].format("YYYY-MM-DD")
+          : undefined;
+      const modalFollowUpStartDate =
+        filterFollowUpDateRange && filterFollowUpDateRange[0]
+          ? filterFollowUpDateRange[0].format("YYYY-MM-DD")
+          : undefined;
+      const modalFollowUpEndDate =
+        filterFollowUpDateRange && filterFollowUpDateRange[1]
+          ? filterFollowUpDateRange[1].format("YYYY-MM-DD")
+          : undefined;
+
       // Determine sort order
       const modalSortBy = values.sortOption || sortBy;
       const modalAscending = values.sortDirection === "asc";
-      
+
       // Update sortBy and ascending values
       setSortBy(modalSortBy);
       setAscending(modalAscending);
 
-      const checkupStartDate = checkupDateRange[0] ? checkupDateRange[0].format('YYYY-MM-DD') : undefined;
-      const checkupEndDate = checkupDateRange[1] ? checkupDateRange[1].format('YYYY-MM-DD') : undefined;
-      const followUpStartDate = followUpDateRange[0] ? followUpDateRange[0].format('YYYY-MM-DD') : undefined;
-      const followUpEndDate = followUpDateRange[1] ? followUpDateRange[1].format('YYYY-MM-DD') : undefined;
-      
+      const checkupStartDate = checkupDateRange[0]
+        ? checkupDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const checkupEndDate = checkupDateRange[1]
+        ? checkupDateRange[1].format("YYYY-MM-DD")
+        : undefined;
+      const followUpStartDate = followUpDateRange[0]
+        ? followUpDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const followUpEndDate = followUpDateRange[1]
+        ? followUpDateRange[1].format("YYYY-MM-DD")
+        : undefined;
+
       // Use values from modal instead of outside values
       await exportHealthCheckResultsToExcelWithConfig(
         config,
         currentPage,
         pageSize,
-        values.exportAllPages ? undefined : values.filterCodeSearch || codeSearch || undefined,
-        values.exportAllPages ? undefined : values.filterUserSearch || userSearch || undefined,
-        values.exportAllPages ? undefined : values.filterStaffSearch || staffSearch || undefined,
+        values.exportAllPages
+          ? undefined
+          : values.filterCodeSearch || codeSearch || undefined,
+        values.exportAllPages
+          ? undefined
+          : values.filterUserSearch || userSearch || undefined,
+        values.exportAllPages
+          ? undefined
+          : values.filterStaffSearch || staffSearch || undefined,
         modalSortBy,
         modalAscending,
         values.exportAllPages ? undefined : values.filterStatus || statusFilter,
-        values.exportAllPages ? undefined : modalCheckupStartDate || checkupStartDate,
-        values.exportAllPages ? undefined : modalCheckupEndDate || checkupEndDate,
-        values.exportAllPages ? undefined : values.filterFollowUpRequired === undefined ? followUpRequired : values.filterFollowUpRequired,
-        values.exportAllPages ? undefined : modalFollowUpStartDate || followUpStartDate,
-        values.exportAllPages ? undefined : modalFollowUpEndDate || followUpEndDate
+        values.exportAllPages
+          ? undefined
+          : modalCheckupStartDate || checkupStartDate,
+        values.exportAllPages
+          ? undefined
+          : modalCheckupEndDate || checkupEndDate,
+        values.exportAllPages
+          ? undefined
+          : values.filterFollowUpRequired === undefined
+          ? followUpRequired
+          : values.filterFollowUpRequired,
+        values.exportAllPages
+          ? undefined
+          : modalFollowUpStartDate || followUpStartDate,
+        values.exportAllPages
+          ? undefined
+          : modalFollowUpEndDate || followUpEndDate
       );
-      
+
       closeConfigModal();
     } catch (error) {
       console.error("Export error:", error);
@@ -955,11 +1054,11 @@ export function HealthCheckResultManagement() {
   };
 
   const handleExportConfigChange = (changedValues: any) => {
-    setExportConfig(prev => ({ ...prev, ...changedValues }));
+    setExportConfig((prev) => ({ ...prev, ...changedValues }));
   };
 
   const isExportAllPages = () => {
-    return form.getFieldValue('exportAllPages');
+    return form.getFieldValue("exportAllPages");
   };
 
   // Modified reset function to reset all filters
@@ -1005,43 +1104,49 @@ export function HealthCheckResultManagement() {
       render: (record: HealthCheckResultsResponseDTO) => (
         <div className="flex flex-col">
           <Typography.Text strong>{record.user.fullName}</Typography.Text>
-          <Typography.Text type="secondary" className="text-sm">{record.user.email}</Typography.Text>
+          <Typography.Text type="secondary" className="text-sm">
+            {record.user.email}
+          </Typography.Text>
         </div>
       ),
       visible: columnVisibility.patient,
     },
-    { 
-      key: "checkupDate", 
+    {
+      key: "checkupDate",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
           CHECKUP DATE
         </span>
-      ), 
+      ),
       render: (record: HealthCheckResultsResponseDTO) => (
         <Tooltip title="Click to view details">
-          <Typography.Link onClick={() => router.push(`/health-check-result/${record.id}`)}>
+          <Typography.Link
+            onClick={() => router.push(`/health-check-result/${record.id}`)}
+          >
             {formatDate(record.checkupDate)}
           </Typography.Link>
         </Tooltip>
       ),
       visible: columnVisibility.checkupDate,
     },
-    { 
-      key: "staff", 
+    {
+      key: "staff",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
           DOCTOR / NURSE
         </span>
-      ), 
+      ),
       render: (record: HealthCheckResultsResponseDTO) => (
         <div className="flex flex-col">
           <Typography.Text>{record.staff.fullName}</Typography.Text>
-          <Typography.Text type="secondary" className="text-sm">{record.staff.email}</Typography.Text>
+          <Typography.Text type="secondary" className="text-sm">
+            {record.staff.email}
+          </Typography.Text>
         </div>
       ),
       visible: columnVisibility.staff,
     },
-    { 
+    {
       key: "followUp",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
@@ -1053,7 +1158,11 @@ export function HealthCheckResultManagement() {
           {record.followUpRequired ? (
             <>
               <Badge status="processing" text="Follow-up Required" />
-              <Typography.Text>{record.followUpDate ? formatDate(record.followUpDate) : 'Not scheduled'}</Typography.Text>
+              <Typography.Text>
+                {record.followUpDate
+                  ? formatDate(record.followUpDate)
+                  : "Not scheduled"}
+              </Typography.Text>
             </>
           ) : (
             <Badge status="default" text="No Follow-up Required" />
@@ -1062,17 +1171,15 @@ export function HealthCheckResultManagement() {
       ),
       visible: columnVisibility.followUp,
     },
-    { 
-      key: "status", 
+    {
+      key: "status",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
           STATUS
         </span>
-      ), 
+      ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Tag color={getStatusColor(record.status)}>
-          {record.status}
-        </Tag>
+        <Tag color={getStatusColor(record.status)}>{record.status}</Tag>
       ),
       visible: columnVisibility.status,
     },
@@ -1092,8 +1199,8 @@ export function HealthCheckResultManagement() {
               onClick={() => router.push(`/health-check-result/${record.id}`)}
             />
           </Tooltip>
-          
-          {record.status === 'Pending' && (
+
+          {record.status === "Pending" && (
             <Tooltip title="Approve">
               <Button
                 type="text"
@@ -1103,8 +1210,8 @@ export function HealthCheckResultManagement() {
               />
             </Tooltip>
           )}
-          
-          {record.status === 'Approved' && (
+
+          {record.status === "Approved" && (
             <Tooltip title="Complete">
               <Button
                 type="text"
@@ -1114,13 +1221,13 @@ export function HealthCheckResultManagement() {
               />
             </Tooltip>
           )}
-          
-          {(record.status === 'Pending' || record.status === 'Approved') && (
+
+          {(record.status === "Pending" || record.status === "Approved") && (
             <Tooltip title="Cancel">
               <Popconfirm
                 title="Enter reason for cancellation"
                 description={
-                  <Input.TextArea 
+                  <Input.TextArea
                     placeholder="Cancellation reason"
                     onChange={(e) => {
                       (e.target as any).reason = e.target.value;
@@ -1144,13 +1251,13 @@ export function HealthCheckResultManagement() {
               </Popconfirm>
             </Tooltip>
           )}
-          
-          {(record.status === 'Pending' || record.status === 'Approved') && (
+
+          {(record.status === "Pending" || record.status === "Approved") && (
             <Tooltip title="Cancel for adjustment">
               <Popconfirm
                 title="Enter reason for cancellation for adjustment"
                 description={
-                  <Input.TextArea 
+                  <Input.TextArea
                     placeholder="Reason for cancellation for adjustment"
                     onChange={(e) => {
                       (e.target as any).reason = e.target.value;
@@ -1174,8 +1281,8 @@ export function HealthCheckResultManagement() {
               </Popconfirm>
             </Tooltip>
           )}
-          
-          {record.status !== 'SoftDeleted' ? (
+
+          {record.status !== "SoftDeleted" ? (
             <Tooltip title="Temporarily delete">
               <Popconfirm
                 title="Are you sure you want to temporarily delete this health check result?"
@@ -1206,7 +1313,7 @@ export function HealthCheckResultManagement() {
     },
   ];
 
-  const columns = ALL_COLUMNS.filter(col => col.visible);
+  const columns = ALL_COLUMNS.filter((col) => col.visible);
 
   const statisticsCards = (
     <Row gutter={[16, 16]} className="mb-4">
@@ -1229,16 +1336,16 @@ export function HealthCheckResultManagement() {
             </div>
           ) : (
             <div style={{ height: 300 }}>
-              <Pie 
+              <Pie
                 data={{
                   labels: [
-                    'Waiting for Approval',
-                    'Follow-up Required',
-                    'No Follow-up Required',
-                    'Completed',
-                    'Cancelled',
-                    'Cancelled for Adjustment',
-                    'Soft Deleted'
+                    "Waiting for Approval",
+                    "Follow-up Required",
+                    "No Follow-up Required",
+                    "Completed",
+                    "Cancelled",
+                    "Cancelled for Adjustment",
+                    "Soft Deleted",
                   ],
                   datasets: [
                     {
@@ -1247,27 +1354,29 @@ export function HealthCheckResultManagement() {
                         statistics?.statusDistribution?.followUpRequired || 0,
                         statistics?.statusDistribution?.noFollowUpRequired || 0,
                         statistics?.statusDistribution?.completed || 0,
-                        statistics?.statusDistribution?.cancelledCompletely || 0,
-                        statistics?.statusDistribution?.cancelledForAdjustment || 0,
-                        statistics?.statusDistribution?.softDeleted || 0
+                        statistics?.statusDistribution?.cancelledCompletely ||
+                          0,
+                        statistics?.statusDistribution
+                          ?.cancelledForAdjustment || 0,
+                        statistics?.statusDistribution?.softDeleted || 0,
                       ],
                       backgroundColor: [
-                        '#faad14', // Yellow - Waiting for Approval
-                        '#1890ff', // Blue - Follow-up Required
-                        '#52c41a', // Green - No Follow-up Required
-                        '#13c2c2', // Cyan - Completed
-                        '#ff4d4f', // Red - Cancelled
-                        '#fa8c16', // Orange - Cancelled for Adjustment
-                        '#d9d9d9'  // Gray - Soft Deleted
+                        "#faad14", // Yellow - Waiting for Approval
+                        "#1890ff", // Blue - Follow-up Required
+                        "#52c41a", // Green - No Follow-up Required
+                        "#13c2c2", // Cyan - Completed
+                        "#ff4d4f", // Red - Cancelled
+                        "#fa8c16", // Orange - Cancelled for Adjustment
+                        "#d9d9d9", // Gray - Soft Deleted
                       ],
                       borderColor: [
-                        '#fff',
-                        '#fff',
-                        '#fff',
-                        '#fff',
-                        '#fff',
-                        '#fff',
-                        '#fff'
+                        "#fff",
+                        "#fff",
+                        "#fff",
+                        "#fff",
+                        "#fff",
+                        "#fff",
+                        "#fff",
                       ],
                       borderWidth: 1,
                     },
@@ -1278,29 +1387,29 @@ export function HealthCheckResultManagement() {
                   maintainAspectRatio: false,
                   plugins: {
                     legend: {
-                      position: 'right',
+                      position: "right",
                       labels: {
                         boxWidth: 10,
                         font: {
-                          size: 10
-                        }
-                      }
+                          size: 10,
+                        },
+                      },
                     },
                     tooltip: {
                       callbacks: {
-                        label: function(context) {
-                          let label = context.label || '';
+                        label: function (context) {
+                          let label = context.label || "";
                           if (label) {
-                            label += ': ';
+                            label += ": ";
                           }
                           if (context.parsed !== undefined) {
                             label += context.parsed;
                           }
                           return label;
-                        }
-                      }
-                    }
-                  }
+                        },
+                      },
+                    },
+                  },
                 }}
               />
             </div>
@@ -1317,25 +1426,25 @@ export function HealthCheckResultManagement() {
             </div>
           ) : (
             <div style={{ height: 300 }}>
-              <Bar 
+              <Bar
                 data={{
-                  labels: ['Total', 'Upcoming', 'Overdue', 'Today'],
+                  labels: ["Total", "Upcoming", "Overdue", "Today"],
                   datasets: [
                     {
-                      label: 'Follow-ups',
+                      label: "Follow-ups",
                       data: [
                         statistics?.followUpStatistics?.totalFollowUps || 0,
                         statistics?.followUpStatistics?.upcomingFollowUps || 0,
                         statistics?.followUpStatistics?.overdueFollowUps || 0,
-                        statistics?.followUpStatistics?.followUpsToday || 0
+                        statistics?.followUpStatistics?.followUpsToday || 0,
                       ],
                       backgroundColor: [
-                        '#8884d8',
-                        '#1890ff',
-                        '#ff4d4f',
-                        '#52c41a'
+                        "#8884d8",
+                        "#1890ff",
+                        "#ff4d4f",
+                        "#52c41a",
                       ],
-                    }
+                    },
                   ],
                 }}
                 options={{
@@ -1343,31 +1452,31 @@ export function HealthCheckResultManagement() {
                   maintainAspectRatio: false,
                   plugins: {
                     legend: {
-                      display: false
+                      display: false,
                     },
                     tooltip: {
                       callbacks: {
-                        label: function(context) {
-                          let label = context.dataset.label || '';
+                        label: function (context) {
+                          let label = context.dataset.label || "";
                           if (label) {
-                            label += ': ';
+                            label += ": ";
                           }
                           if (context.parsed.y !== undefined) {
                             label += context.parsed.y;
                           }
                           return label;
-                        }
-                      }
-                    }
+                        },
+                      },
+                    },
                   },
                   scales: {
                     y: {
                       beginAtZero: true,
                       ticks: {
-                        precision: 0
-                      }
-                    }
-                  }
+                        precision: 0,
+                      },
+                    },
+                  },
                 }}
               />
             </div>
@@ -1382,54 +1491,59 @@ export function HealthCheckResultManagement() {
             <div className="flex items-center justify-center h-64">
               <Spin />
             </div>
-          ) : (!statistics?.monthlyDistribution || statistics.monthlyDistribution.length === 0) ? (
+          ) : !statistics?.monthlyDistribution ||
+            statistics.monthlyDistribution.length === 0 ? (
             <Empty description="No monthly distribution data available" />
           ) : (
             <div style={{ height: 300 }}>
-              <Line 
+              <Line
                 data={{
-                  labels: statistics?.monthlyDistribution.map(item => `${item.month}/${item.year}`),
+                  labels: statistics?.monthlyDistribution.map(
+                    (item) => `${item.month}/${item.year}`
+                  ),
                   datasets: [
                     {
-                      label: 'Count',
-                      data: statistics?.monthlyDistribution.map(item => item.count),
+                      label: "Count",
+                      data: statistics?.monthlyDistribution.map(
+                        (item) => item.count
+                      ),
                       fill: false,
-                      backgroundColor: '#1890ff',
-                      borderColor: '#1890ff',
-                      tension: 0.1
-                    }
-                  ]
+                      backgroundColor: "#1890ff",
+                      borderColor: "#1890ff",
+                      tension: 0.1,
+                    },
+                  ],
                 }}
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
                   plugins: {
                     legend: {
-                      position: 'top',
+                      position: "top",
                     },
                     tooltip: {
                       callbacks: {
-                        label: function(context) {
-                          let label = context.dataset.label || '';
+                        label: function (context) {
+                          let label = context.dataset.label || "";
                           if (label) {
-                            label += ': ';
+                            label += ": ";
                           }
                           if (context.parsed.y !== undefined) {
                             label += context.parsed.y;
                           }
                           return label;
-                        }
-                      }
-                    }
+                        },
+                      },
+                    },
                   },
                   scales: {
                     y: {
                       beginAtZero: true,
                       ticks: {
-                        precision: 0
-                      }
-                    }
-                  }
+                        precision: 0,
+                      },
+                    },
+                  },
                 }}
               />
             </div>
@@ -1444,7 +1558,6 @@ export function HealthCheckResultManagement() {
       <Row gutter={[16, 16]}>
         <Col span={24}>
           <Typography.Title level={4} className="mb-4">
-            
             Quản lý kết quả khám
           </Typography.Title>
         </Col>
@@ -1480,10 +1593,10 @@ export function HealthCheckResultManagement() {
             <Select
               placeholder="Lọc theo trạng thái"
               onChange={(value) => {
-                if (value === 'ALL') {
+                if (value === "ALL") {
                   setStatusFilter(undefined);
                   setShowDefaultFilter(false);
-                } else if (value === 'DEFAULT') {
+                } else if (value === "DEFAULT") {
                   setStatusFilter(undefined);
                   setShowDefaultFilter(true);
                 } else {
@@ -1533,7 +1646,9 @@ export function HealthCheckResultManagement() {
             <RangePicker
               placeholder={["Từ ngày khám", "Đến ngày khám"]}
               onChange={(dates) => {
-                setCheckupDateRange(dates as [moment.Moment | null, moment.Moment | null]);
+                setCheckupDateRange(
+                  dates as [moment.Moment | null, moment.Moment | null]
+                );
               }}
               allowClear
             />
@@ -1549,7 +1664,9 @@ export function HealthCheckResultManagement() {
             <RangePicker
               placeholder={["Từ ngày tái khám", "Đến ngày tái khám"]}
               onChange={(dates) => {
-                setFollowUpDateRange(dates as [moment.Moment | null, moment.Moment | null]);
+                setFollowUpDateRange(
+                  dates as [moment.Moment | null, moment.Moment | null]
+                );
               }}
               allowClear
               disabled={followUpRequired === false}
@@ -1564,9 +1681,11 @@ export function HealthCheckResultManagement() {
                   <Menu.ItemGroup title="Hiển thị cột">
                     {ALL_COLUMNS.map((column) => (
                       <Menu.Item key={column.key}>
-                        <Checkbox 
+                        <Checkbox
                           checked={columnVisibility[column.key]}
-                          onChange={() => handleColumnVisibilityChange(column.key)}
+                          onChange={() =>
+                            handleColumnVisibilityChange(column.key)
+                          }
                         >
                           {column.title}
                         </Checkbox>
@@ -1575,23 +1694,18 @@ export function HealthCheckResultManagement() {
                   </Menu.ItemGroup>
                 </Menu>
               }
-              trigger={['click']}
+              trigger={["click"]}
             >
-              <Button icon={<SettingOutlined />}>
-                Cột
-              </Button>
+              <Button icon={<SettingOutlined />}>Cột</Button>
             </Dropdown>
-            <Button 
+            <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => setIsCreateModalVisible(true)}
             >
               Tạo mới
             </Button>
-            <Button 
-              icon={<ExportOutlined />}
-              onClick={handleExport}
-            >
+            <Button icon={<ExportOutlined />} onClick={handleExport}>
               Xuất Excel
             </Button>
           </Space>
@@ -1607,8 +1721,8 @@ export function HealthCheckResultManagement() {
                     okText="Xác nhận"
                     cancelText="Hủy"
                   >
-                    <Button 
-                      danger 
+                    <Button
+                      danger
                       type="primary"
                       icon={<DeleteOutlined />}
                       className="hover:opacity-90"
@@ -1683,7 +1797,9 @@ export function HealthCheckResultManagement() {
               Back
             </Button>
             <HealthInsuranceIcon />
-            <h3 className="text-xl font-bold">Health Check Results Management</h3>
+            <h3 className="text-xl font-bold">
+              Health Check Results Management
+            </h3>
           </div>
         </div>
         <Card
@@ -1718,17 +1834,26 @@ export function HealthCheckResultManagement() {
               {/* Advanced Filters Button */}
               <Tooltip title="Advanced Filters">
                 <Button
-                  icon={<FilterOutlined 
-                    style={{
-                      color:
-                        userSearch || staffSearch ||
-                        statusFilter || selectedStatusFilter ||
-                        checkupDateRange[0] || checkupDateRange[1] ||
-                        followUpDateRange[0] || followUpDateRange[1] ||
-                        followUpRequired !== undefined ||
-                        sortBy !== "CheckupDate" || ascending !== false ? "#1890ff" : undefined,
-                    }}
-                  />}
+                  icon={
+                    <FilterOutlined
+                      style={{
+                        color:
+                          userSearch ||
+                          staffSearch ||
+                          statusFilter ||
+                          selectedStatusFilter ||
+                          checkupDateRange[0] ||
+                          checkupDateRange[1] ||
+                          followUpDateRange[0] ||
+                          followUpDateRange[1] ||
+                          followUpRequired !== undefined ||
+                          sortBy !== "CheckupDate" ||
+                          ascending !== false
+                            ? "#1890ff"
+                            : undefined,
+                      }}
+                    />
+                  }
                   onClick={handleOpenFilterModal}
                 >
                   Filters
@@ -1740,11 +1865,21 @@ export function HealthCheckResultManagement() {
                 <Button
                   icon={<UndoOutlined />}
                   onClick={handleReset}
-                  disabled={!(codeSearch || userSearch || staffSearch || statusFilter || 
-                    checkupDateRange[0] || checkupDateRange[1] || 
-                    followUpRequired !== undefined || 
-                    followUpDateRange[0] || followUpDateRange[1] ||
-                    sortBy !== "CheckupDate" || ascending !== false)}
+                  disabled={
+                    !(
+                      codeSearch ||
+                      userSearch ||
+                      staffSearch ||
+                      statusFilter ||
+                      checkupDateRange[0] ||
+                      checkupDateRange[1] ||
+                      followUpRequired !== undefined ||
+                      followUpDateRange[0] ||
+                      followUpDateRange[1] ||
+                      sortBy !== "CheckupDate" ||
+                      ascending !== false
+                    )
+                  }
                 >
                   Reset
                 </Button>
@@ -1777,7 +1912,9 @@ export function HealthCheckResultManagement() {
                         <div onClick={handleMenuClick}>
                           <Checkbox
                             checked={columnVisibility.code}
-                            onChange={() => handleColumnVisibilityChange("code")}
+                            onChange={() =>
+                              handleColumnVisibilityChange("code")
+                            }
                           >
                             Result Code
                           </Checkbox>
@@ -1790,7 +1927,9 @@ export function HealthCheckResultManagement() {
                         <div onClick={handleMenuClick}>
                           <Checkbox
                             checked={columnVisibility.patient}
-                            onChange={() => handleColumnVisibilityChange("patient")}
+                            onChange={() =>
+                              handleColumnVisibilityChange("patient")
+                            }
                           >
                             Patient
                           </Checkbox>
@@ -1803,7 +1942,9 @@ export function HealthCheckResultManagement() {
                         <div onClick={handleMenuClick}>
                           <Checkbox
                             checked={columnVisibility.checkupDate}
-                            onChange={() => handleColumnVisibilityChange("checkupDate")}
+                            onChange={() =>
+                              handleColumnVisibilityChange("checkupDate")
+                            }
                           >
                             Checkup Date
                           </Checkbox>
@@ -1816,7 +1957,9 @@ export function HealthCheckResultManagement() {
                         <div onClick={handleMenuClick}>
                           <Checkbox
                             checked={columnVisibility.staff}
-                            onChange={() => handleColumnVisibilityChange("staff")}
+                            onChange={() =>
+                              handleColumnVisibilityChange("staff")
+                            }
                           >
                             Doctor / Nurse
                           </Checkbox>
@@ -1829,7 +1972,9 @@ export function HealthCheckResultManagement() {
                         <div onClick={handleMenuClick}>
                           <Checkbox
                             checked={columnVisibility.followUp}
-                            onChange={() => handleColumnVisibilityChange("followUp")}
+                            onChange={() =>
+                              handleColumnVisibilityChange("followUp")
+                            }
                           >
                             Follow-up
                           </Checkbox>
@@ -1842,7 +1987,9 @@ export function HealthCheckResultManagement() {
                         <div onClick={handleMenuClick}>
                           <Checkbox
                             checked={columnVisibility.status}
-                            onChange={() => handleColumnVisibilityChange("status")}
+                            onChange={() =>
+                              handleColumnVisibilityChange("status")
+                            }
                           >
                             Status
                           </Checkbox>
@@ -1855,7 +2002,9 @@ export function HealthCheckResultManagement() {
                         <div onClick={handleMenuClick}>
                           <Checkbox
                             checked={columnVisibility.actions}
-                            onChange={() => handleColumnVisibilityChange("actions")}
+                            onChange={() =>
+                              handleColumnVisibilityChange("actions")
+                            }
                           >
                             Actions
                           </Checkbox>
@@ -1909,7 +2058,9 @@ export function HealthCheckResultManagement() {
           <div>
             {selectedRowKeys.length > 0 && (
               <Space>
-                <Typography.Text>{selectedRowKeys.length} items selected</Typography.Text>
+                <Typography.Text>
+                  {selectedRowKeys.length} items selected
+                </Typography.Text>
                 <Popconfirm
                   title="Are you sure you want to temporarily delete the selected health check results?"
                   onConfirm={handleBulkDelete}
@@ -1959,7 +2110,9 @@ export function HealthCheckResultManagement() {
           <Card className="mt-4 shadow-sm">
             <Row justify="center" align="middle">
               <Space size="large" align="center">
-                <Typography.Text type="secondary">Total {total} health check results</Typography.Text>
+                <Typography.Text type="secondary">
+                  Total {total} health check results
+                </Typography.Text>
                 <Space align="center" size="large">
                   <Pagination
                     current={currentPage}
@@ -1972,7 +2125,9 @@ export function HealthCheckResultManagement() {
                     showTotal={() => ""}
                   />
                   <Space align="center">
-                    <Typography.Text type="secondary">Go to page:</Typography.Text>
+                    <Typography.Text type="secondary">
+                      Go to page:
+                    </Typography.Text>
                     <InputNumber
                       min={1}
                       max={Math.ceil(total / pageSize)}
@@ -1992,7 +2147,7 @@ export function HealthCheckResultManagement() {
                 </Space>
               </Space>
             </Row>
-        </Card>
+          </Card>
         </Card>
         <CreateModal
           visible={isCreateModalVisible}
@@ -2004,309 +2159,354 @@ export function HealthCheckResultManagement() {
           userOptions={userOptions}
           staffOptions={staffOptions}
         />
-      <Modal
-        title="Excel Export Configuration"
-        open={showExportConfigModal}
-        onCancel={closeConfigModal}
-        width={800}
-        footer={[
-          <Button key="cancel" onClick={closeConfigModal}>
-            Cancel
-          </Button>,
-          <Button 
-            key="submit" 
-            type="primary" 
-            loading={exportLoading}
-            onClick={handleExportWithConfig}
-          >
-            Export File
-          </Button>
-        ]}
-        maskClosable={true}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={exportConfig}
-          onValuesChange={handleExportConfigChange}
+        <Modal
+          title="Excel Export Configuration"
+          open={showExportConfigModal}
+          onCancel={closeConfigModal}
+          width={800}
+          footer={[
+            <Button key="cancel" onClick={closeConfigModal}>
+              Cancel
+            </Button>,
+            <Button
+              key="submit"
+              type="primary"
+              loading={exportLoading}
+              onClick={handleExportWithConfig}
+            >
+              Export File
+            </Button>,
+          ]}
+          maskClosable={true}
         >
-          <Row gutter={[16, 8]}>
-            <Col span={24}>
-              <Typography.Title level={5}>Basic Options</Typography.Title>
-            </Col>
-            
-            <Col span={24}>
-              <Form.Item 
-                name="exportAllPages" 
-                valuePropName="checked"
-                style={{ marginBottom: "12px" }}
-              >
-                <Checkbox>Export all data (ignore pagination)</Checkbox>
-              </Form.Item>
-            </Col>
-            
-            <Col span={24} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Typography.Title level={5}>Data Filters</Typography.Title>
-            </Col>
-            
-            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Search by code" name="filterCodeSearch">
-                <Select
-                  placeholder="Search by result code"
-                  allowClear
-                  showSearch
-                  defaultValue={codeSearch || undefined}
-                  style={{ width: '100%' }}
-                  filterOption={(input, option) =>
-                    (option?.children as unknown as string)?.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                  }
-                >
-                  {healthCheckCodes.map(code => (
-                    <Option key={code} value={code}>
-                      {code}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            
-            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Search by patient" name="filterUserSearch">
-                <Select
-                  placeholder="Search by patient"
-                  allowClear
-                  showSearch
-                  defaultValue={userSearch || undefined}
-                  style={{ width: '100%' }}
-                  filterOption={(input, option) =>
-                    (option?.children as unknown as string)?.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                  }
-                  optionFilterProp="children"
-                >
-                  {userOptions.map(user => (
-                    <Option key={user.id} value={user.fullName}>
-                      {user.fullName} ({user.email})
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            
-            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Search by doctor/nurse" name="filterStaffSearch">
-                <Select
-                  placeholder="Search by healthcare staff"
-                  allowClear
-                  showSearch
-                  defaultValue={staffSearch || undefined}
-                  style={{ width: '100%' }}
-                  filterOption={(input, option) =>
-                    (option?.children as unknown as string)?.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                  }
-                  optionFilterProp="children"
-                >
-                  {healthCheckStaff.map(staff => (
-                    <Option key={staff.id} value={staff.fullName}>
-                      {staff.fullName} ({staff.email})
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            
-            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Status" name="filterStatus">
-                <Select
-                  placeholder="Status"
-                  allowClear
-                  style={{ width: '100%' }}
-                  defaultValue={statusFilter}
-                >
-                  <Option value="Waiting for Approval">Waiting for Approval</Option>
-                  <Option value="Completed">Completed</Option>
-                  <Option value="FollowUpRequired">Follow-up Required</Option>
-                  <Option value="CancelledCompletely">Completely Cancelled</Option>
-                  <Option value="CancelledForAdjustment">Cancelled for Adjustment</Option>
-                  <Option value="NoFollowUpRequired">No Follow-up Required</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            
-            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Checkup date range" name="filterCheckupDateRange">
-                <RangePicker
-                  placeholder={["From date", "To date"]}
-                  style={{ width: '100%' }}
-                  defaultValue={checkupDateRange as any}
-                />
-              </Form.Item>
-            </Col>
-            
-            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Follow-up required" name="filterFollowUpRequired">
-                <Select
-                  placeholder="Follow-up required"
-                  allowClear
-                  style={{ width: '100%' }}
-                  defaultValue={followUpRequired}
-                >
-                  <Option value={true}>Yes</Option>
-                  <Option value={false}>No</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            
-            <Col span={8} style={{ display: isExportAllPages() ? 'none' : 'block' }}>
-              <Form.Item label="Follow-up date range" name="filterFollowUpDateRange">
-                <RangePicker
-                  placeholder={["From follow-up date", "To follow-up date"]}
-                  style={{ width: '100%' }}
-                  disabled={form.getFieldValue('filterFollowUpRequired') === false}
-                  defaultValue={followUpDateRange as any}
-                />
-              </Form.Item>
-            </Col>
-            
-            <Col span={24}>
-              <Typography.Title level={5}>Sort Options</Typography.Title>
-            </Col>
-            
-            <Col span={12}>
-              <Form.Item 
-                label="Sort by"
-                name="sortOption"
-              >
-                <Select
-                  style={{ width: '100%' }}
-                  defaultValue={sortBy}
-                >
-                  <Option value="CheckupDate">Checkup Date</Option>
-                  <Option value="CreatedAt">Created Date</Option>
-                  <Option value="Code">Result Code</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            
-            <Col span={12}>
-              <Form.Item 
-                label="Sort direction"
-                name="sortDirection"
-              >
-                <Select
-                  style={{ width: '100%' }}
-                  defaultValue={ascending ? "asc" : "desc"}
-                >
-                  <Option value="asc">Ascending</Option>
-                  <Option value="desc">Descending</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            
-            <Col span={24}>
-              <Divider />
-              <Typography.Title level={5}>Select Columns to Display</Typography.Title>
-            </Col>
-            
-            <Col span={8}>
-              <Form.Item 
-                name="includeCode" 
-                valuePropName="checked"
-                style={{ marginBottom: "8px" }}
-              >
-                <Checkbox>Result Code</Checkbox>
-              </Form.Item>
-            </Col>
-            
-            <Col span={8}>
-              <Form.Item 
-                name="includeUser" 
-                valuePropName="checked"
-                style={{ marginBottom: "8px" }}
-              >
-                <Checkbox>Patient Information</Checkbox>
-              </Form.Item>
-            </Col>
-            
-            <Col span={8}>
-              <Form.Item 
-                name="includeStaff" 
-                valuePropName="checked"
-                style={{ marginBottom: "8px" }}
-              >
-                <Checkbox>Healthcare Staff Information</Checkbox>
-              </Form.Item>
-            </Col>
-            
-            <Col span={8}>
-              <Form.Item 
-                name="includeCheckupDate" 
-                valuePropName="checked"
-                style={{ marginBottom: "8px" }}
-              >
-                <Checkbox>Checkup Date</Checkbox>
-              </Form.Item>
-            </Col>
-            
-            <Col span={8}>
-              <Form.Item 
-                name="includeFollowUp" 
-                valuePropName="checked"
-                style={{ marginBottom: "8px" }}
-              >
-                <Checkbox>Follow-up Information</Checkbox>
-              </Form.Item>
-            </Col>
-            
-            <Col span={8}>
-              <Form.Item 
-                name="includeStatus" 
-                valuePropName="checked"
-                style={{ marginBottom: "8px" }}
-              >
-                <Checkbox>Status</Checkbox>
-              </Form.Item>
-            </Col>
-            
-            <Col span={8}>
-              <Form.Item 
-                name="includeCreatedAt" 
-                valuePropName="checked"
-                style={{ marginBottom: "8px" }}
-              >
-                <Checkbox>Created Date</Checkbox>
-              </Form.Item>
-            </Col>
-            
-            <Col span={8}>
-              <Form.Item 
-                name="includeUpdatedAt" 
-                valuePropName="checked"
-                style={{ marginBottom: "8px" }}
-              >
-                <Checkbox>Update Information</Checkbox>
-              </Form.Item>
-            </Col>
+          <Form
+            form={form}
+            layout="vertical"
+            initialValues={exportConfig}
+            onValuesChange={handleExportConfigChange}
+          >
+            <Row gutter={[16, 8]}>
+              <Col span={24}>
+                <Typography.Title level={5}>Basic Options</Typography.Title>
+              </Col>
 
-            <Col span={8}>
-              <Form.Item 
-                name="includeDetails" 
-                valuePropName="checked"
-                style={{ marginBottom: "8px" }}
+              <Col span={24}>
+                <Form.Item
+                  name="exportAllPages"
+                  valuePropName="checked"
+                  style={{ marginBottom: "12px" }}
+                >
+                  <Checkbox>Export all data (ignore pagination)</Checkbox>
+                </Form.Item>
+              </Col>
+
+              <Col
+                span={24}
+                style={{ display: isExportAllPages() ? "none" : "block" }}
               >
-                <Checkbox>Health Check Details</Checkbox>
-              </Form.Item>
-            </Col>
-          </Row>
-          
-          <Alert
-            message="Excel Format Information"
-            description="When 'Health Check Details' is selected, detailed information will be displayed alongside the health check results on the same worksheet. Each health check result with multiple details will be displayed on multiple rows."
-            type="info"
-            showIcon
-            style={{ marginTop: "16px" }}
-          />
-        </Form>
-      </Modal>
+                <Typography.Title level={5}>Data Filters</Typography.Title>
+              </Col>
+
+              <Col
+                span={8}
+                style={{ display: isExportAllPages() ? "none" : "block" }}
+              >
+                <Form.Item label="Search by code" name="filterCodeSearch">
+                  <Select
+                    placeholder="Search by result code"
+                    allowClear
+                    showSearch
+                    defaultValue={codeSearch || undefined}
+                    style={{ width: "100%" }}
+                    filterOption={(input, option) =>
+                      (option?.children as unknown as string)
+                        ?.toLowerCase()
+                        .indexOf(input.toLowerCase()) >= 0
+                    }
+                  >
+                    {healthCheckCodes.map((code) => (
+                      <Option key={code} value={code}>
+                        {code}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+
+              <Col
+                span={8}
+                style={{ display: isExportAllPages() ? "none" : "block" }}
+              >
+                <Form.Item label="Search by patient" name="filterUserSearch">
+                  <Select
+                    placeholder="Search by patient"
+                    allowClear
+                    showSearch
+                    defaultValue={userSearch || undefined}
+                    style={{ width: "100%" }}
+                    filterOption={(input, option) =>
+                      (option?.children as unknown as string)
+                        ?.toLowerCase()
+                        .indexOf(input.toLowerCase()) >= 0
+                    }
+                    optionFilterProp="children"
+                  >
+                    {userOptions.map((user) => (
+                      <Option key={user.id} value={user.fullName}>
+                        {user.fullName} ({user.email})
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+
+              <Col
+                span={8}
+                style={{ display: isExportAllPages() ? "none" : "block" }}
+              >
+                <Form.Item
+                  label="Search by doctor/nurse"
+                  name="filterStaffSearch"
+                >
+                  <Select
+                    placeholder="Search by healthcare staff"
+                    allowClear
+                    showSearch
+                    defaultValue={staffSearch || undefined}
+                    style={{ width: "100%" }}
+                    filterOption={(input, option) =>
+                      (option?.children as unknown as string)
+                        ?.toLowerCase()
+                        .indexOf(input.toLowerCase()) >= 0
+                    }
+                    optionFilterProp="children"
+                  >
+                    {healthCheckStaff.map((staff) => (
+                      <Option key={staff.id} value={staff.fullName}>
+                        {staff.fullName} ({staff.email})
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+
+              <Col
+                span={8}
+                style={{ display: isExportAllPages() ? "none" : "block" }}
+              >
+                <Form.Item label="Status" name="filterStatus">
+                  <Select
+                    placeholder="Status"
+                    allowClear
+                    style={{ width: "100%" }}
+                    defaultValue={statusFilter}
+                  >
+                    <Option value="Waiting for Approval">
+                      Waiting for Approval
+                    </Option>
+                    <Option value="Completed">Completed</Option>
+                    <Option value="FollowUpRequired">Follow-up Required</Option>
+                    <Option value="CancelledCompletely">
+                      Completely Cancelled
+                    </Option>
+                    <Option value="CancelledForAdjustment">
+                      Cancelled for Adjustment
+                    </Option>
+                    <Option value="NoFollowUpRequired">
+                      No Follow-up Required
+                    </Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+
+              <Col
+                span={8}
+                style={{ display: isExportAllPages() ? "none" : "block" }}
+              >
+                <Form.Item
+                  label="Checkup date range"
+                  name="filterCheckupDateRange"
+                >
+                  <RangePicker
+                    placeholder={["From date", "To date"]}
+                    style={{ width: "100%" }}
+                    defaultValue={checkupDateRange as any}
+                  />
+                </Form.Item>
+              </Col>
+
+              <Col
+                span={8}
+                style={{ display: isExportAllPages() ? "none" : "block" }}
+              >
+                <Form.Item
+                  label="Follow-up required"
+                  name="filterFollowUpRequired"
+                >
+                  <Select
+                    placeholder="Follow-up required"
+                    allowClear
+                    style={{ width: "100%" }}
+                    defaultValue={followUpRequired}
+                  >
+                    <Option value={true}>Yes</Option>
+                    <Option value={false}>No</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+
+              <Col
+                span={8}
+                style={{ display: isExportAllPages() ? "none" : "block" }}
+              >
+                <Form.Item
+                  label="Follow-up date range"
+                  name="filterFollowUpDateRange"
+                >
+                  <RangePicker
+                    placeholder={["From follow-up date", "To follow-up date"]}
+                    style={{ width: "100%" }}
+                    disabled={
+                      form.getFieldValue("filterFollowUpRequired") === false
+                    }
+                    defaultValue={followUpDateRange as any}
+                  />
+                </Form.Item>
+              </Col>
+
+              <Col span={24}>
+                <Typography.Title level={5}>Sort Options</Typography.Title>
+              </Col>
+
+              <Col span={12}>
+                <Form.Item label="Sort by" name="sortOption">
+                  <Select style={{ width: "100%" }} defaultValue={sortBy}>
+                    <Option value="CheckupDate">Checkup Date</Option>
+                    <Option value="CreatedAt">Created Date</Option>
+                    <Option value="Code">Result Code</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+
+              <Col span={12}>
+                <Form.Item label="Sort direction" name="sortDirection">
+                  <Select
+                    style={{ width: "100%" }}
+                    defaultValue={ascending ? "asc" : "desc"}
+                  >
+                    <Option value="asc">Ascending</Option>
+                    <Option value="desc">Descending</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+
+              <Col span={24}>
+                <Divider />
+                <Typography.Title level={5}>
+                  Select Columns to Display
+                </Typography.Title>
+              </Col>
+
+              <Col span={8}>
+                <Form.Item
+                  name="includeCode"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
+                  <Checkbox>Result Code</Checkbox>
+                </Form.Item>
+              </Col>
+
+              <Col span={8}>
+                <Form.Item
+                  name="includeUser"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
+                  <Checkbox>Patient Information</Checkbox>
+                </Form.Item>
+              </Col>
+
+              <Col span={8}>
+                <Form.Item
+                  name="includeStaff"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
+                  <Checkbox>Healthcare Staff Information</Checkbox>
+                </Form.Item>
+              </Col>
+
+              <Col span={8}>
+                <Form.Item
+                  name="includeCheckupDate"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
+                  <Checkbox>Checkup Date</Checkbox>
+                </Form.Item>
+              </Col>
+
+              <Col span={8}>
+                <Form.Item
+                  name="includeFollowUp"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
+                  <Checkbox>Follow-up Information</Checkbox>
+                </Form.Item>
+              </Col>
+
+              <Col span={8}>
+                <Form.Item
+                  name="includeStatus"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
+                  <Checkbox>Status</Checkbox>
+                </Form.Item>
+              </Col>
+
+              <Col span={8}>
+                <Form.Item
+                  name="includeCreatedAt"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
+                  <Checkbox>Created Date</Checkbox>
+                </Form.Item>
+              </Col>
+
+              <Col span={8}>
+                <Form.Item
+                  name="includeUpdatedAt"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
+                  <Checkbox>Update Information</Checkbox>
+                </Form.Item>
+              </Col>
+
+              <Col span={8}>
+                <Form.Item
+                  name="includeDetails"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
+                  <Checkbox>Health Check Details</Checkbox>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Alert
+              message="Excel Format Information"
+              description="When 'Health Check Details' is selected, detailed information will be displayed alongside the health check results on the same worksheet. Each health check result with multiple details will be displayed on multiple rows."
+              type="info"
+              showIcon
+              style={{ marginTop: "16px" }}
+            />
+          </Form>
+        </Modal>
         <HealthCheckFilterModal
           visible={filterModalVisible}
           onCancel={() => setFilterModalVisible(false)}
@@ -2318,10 +2518,10 @@ export function HealthCheckResultManagement() {
             followUpRequired,
             followUpDateRange,
             sortBy,
-            ascending
+            ascending,
           }}
         />
       </div>
     </Fragment>
   );
-} 
+}

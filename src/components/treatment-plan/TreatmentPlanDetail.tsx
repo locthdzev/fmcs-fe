@@ -33,7 +33,7 @@ import {
   TreatmentPlanHistoryResponseDTO,
 } from "@/api/treatment-plan";
 import {
-  EditOutlined,
+  FormOutlined,
   DeleteOutlined,
   UndoOutlined,
   FilePdfOutlined,
@@ -354,7 +354,7 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
       case "created":
         return <PlusOutlined />;
       case "updated":
-        return <EditOutlined />;
+        return <FormOutlined />;
       case "cancelled":
         return <CloseCircleOutlined />;
       case "softdeleted":
@@ -395,7 +395,7 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
     return (
       <Space>
         <Button
-          icon={<EditOutlined />}
+          icon={<FormOutlined />}
           disabled={!canEditTreatmentPlan(treatmentPlan.status)}
           onClick={() => {
             form.setFieldsValue({

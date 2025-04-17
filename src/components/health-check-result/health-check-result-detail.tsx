@@ -47,7 +47,7 @@ import {
   CalendarOutlined,
   CloseCircleOutlined,
   HistoryOutlined,
-  EditOutlined,
+  FormOutlined,
   FileTextOutlined,
   MedicineBoxOutlined,
   CheckSquareOutlined,
@@ -64,11 +64,16 @@ interface HealthCheckResultDetailProps {
   id: string;
 }
 
-export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = ({ id }) => {
+export const HealthCheckResultDetail: React.FC<
+  HealthCheckResultDetailProps
+> = ({ id }) => {
   const router = useRouter();
-  const [healthCheckResult, setHealthCheckResult] = useState<HealthCheckResultsIdResponseDTO | null>(null);
+  const [healthCheckResult, setHealthCheckResult] =
+    useState<HealthCheckResultsIdResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
-  const [histories, setHistories] = useState<HealthCheckResultHistoryResponseDTO[]>([]);
+  const [histories, setHistories] = useState<
+    HealthCheckResultHistoryResponseDTO[]
+  >([]);
   const [historiesLoading, setHistoriesLoading] = useState(false);
   const [followUpDate, setFollowUpDate] = useState<string>("");
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
@@ -81,7 +86,9 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
       if (response.isSuccess) {
         setHealthCheckResult(response.data);
       } else {
-        toast.error(response.message || "Unable to load health check result information");
+        toast.error(
+          response.message || "Unable to load health check result information"
+        );
       }
     } catch (error) {
       toast.error("Unable to load health check result information");
@@ -98,7 +105,9 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
       if (response.isSuccess) {
         setHistories(response.data);
       } else {
-        toast.error(response.message || "Unable to load health check result history");
+        toast.error(
+          response.message || "Unable to load health check result history"
+        );
       }
     } catch (error) {
       toast.error("Unable to load health check result history");
@@ -133,7 +142,9 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(response.message || "Unable to approve health check result");
+        toast.error(
+          response.message || "Unable to approve health check result"
+        );
       }
     } catch (error) {
       toast.error("Unable to approve health check result");
@@ -149,7 +160,9 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(response.message || "Unable to complete health check result");
+        toast.error(
+          response.message || "Unable to complete health check result"
+        );
       }
     } catch (error) {
       toast.error("Unable to complete health check result");
@@ -177,11 +190,16 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
     try {
       const response = await cancelForAdjustmentHealthCheckResult(id, reason);
       if (response.isSuccess) {
-        toast.success("Health check result cancelled for adjustment successfully!");
+        toast.success(
+          "Health check result cancelled for adjustment successfully!"
+        );
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(response.message || "Unable to cancel health check result for adjustment");
+        toast.error(
+          response.message ||
+            "Unable to cancel health check result for adjustment"
+        );
       }
     } catch (error) {
       toast.error("Unable to cancel health check result for adjustment");
@@ -226,46 +244,50 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
     if (!id) return;
     try {
       await exportHealthCheckResultHistoriesByResultIdToExcel(id);
-      toast.success("Health check result history exported to Excel successfully!");
+      toast.success(
+        "Health check result history exported to Excel successfully!"
+      );
     } catch (error) {
       toast.error("Unable to export history to Excel file");
     }
   };
 
   const formatDate = (date: string | undefined) => {
-    if (!date) return '';
-    return moment(date).format('DD/MM/YYYY');
+    if (!date) return "";
+    return moment(date).format("DD/MM/YYYY");
   };
 
   const formatDateTime = (datetime: string | undefined) => {
-    if (!datetime) return '';
-    return moment(datetime).format('DD/MM/YYYY HH:mm:ss');
+    if (!datetime) return "";
+    return moment(datetime).format("DD/MM/YYYY HH:mm:ss");
   };
 
   const getStatusColor = (status: string | undefined) => {
     switch (status) {
-      case 'Completed':
-        return 'success';
-      case 'Approved':
-        return 'processing';
-      case 'Pending':
-        return 'warning';
-      case 'Cancelled':
-        return 'error';
-      case 'CancelledForAdjustment':
-        return 'orange';
-      case 'SoftDeleted':
-        return 'default';
+      case "Completed":
+        return "success";
+      case "Approved":
+        return "processing";
+      case "Pending":
+        return "warning";
+      case "Cancelled":
+        return "error";
+      case "CancelledForAdjustment":
+        return "orange";
+      case "SoftDeleted":
+        return "default";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const getActionColor = (action: string): string => {
-    if (action.includes('Created')) return 'green';
-    if (action.includes('Updated') || action.includes('Approved')) return 'blue';
-    if (action.includes('Cancelled') || action.includes('Rejected')) return 'red';
-    return 'gray';
+    if (action.includes("Created")) return "green";
+    if (action.includes("Updated") || action.includes("Approved"))
+      return "blue";
+    if (action.includes("Cancelled") || action.includes("Rejected"))
+      return "red";
+    return "gray";
   };
 
   const renderActionButtons = () => {
@@ -273,7 +295,7 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
 
     return (
       <Space wrap>
-        {healthCheckResult.status === 'Pending' && (
+        {healthCheckResult.status === "Pending" && (
           <Button
             type="primary"
             icon={<CheckCircleOutlined />}
@@ -283,7 +305,7 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
           </Button>
         )}
 
-        {healthCheckResult.status === 'Approved' && (
+        {healthCheckResult.status === "Approved" && (
           <Button
             type="primary"
             icon={<CheckSquareOutlined />}
@@ -293,7 +315,8 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
           </Button>
         )}
 
-        {(healthCheckResult.status === 'Pending' || healthCheckResult.status === 'Approved') && (
+        {(healthCheckResult.status === "Pending" ||
+          healthCheckResult.status === "Approved") && (
           <Popconfirm
             title="Enter cancellation reason"
             description={
@@ -319,7 +342,8 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
           </Popconfirm>
         )}
 
-        {(healthCheckResult.status === 'Pending' || healthCheckResult.status === 'Approved') && (
+        {(healthCheckResult.status === "Pending" ||
+          healthCheckResult.status === "Approved") && (
           <Popconfirm
             title="Enter reason for cancellation for adjustment"
             description={
@@ -348,19 +372,21 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
           </Popconfirm>
         )}
 
-        {(healthCheckResult.status === 'Approved' || healthCheckResult.status === 'Completed') && (
+        {(healthCheckResult.status === "Approved" ||
+          healthCheckResult.status === "Completed") && (
           <>
-            {healthCheckResult.followUpRequired && healthCheckResult.followUpDate ? (
-              <Button 
-                danger 
+            {healthCheckResult.followUpRequired &&
+            healthCheckResult.followUpDate ? (
+              <Button
+                danger
                 icon={<CalendarOutlined />}
                 onClick={handleCancelFollowUp}
               >
                 Cancel Follow-up
               </Button>
             ) : (
-              <Button 
-                type="default" 
+              <Button
+                type="default"
                 icon={<CalendarOutlined />}
                 onClick={() => setShowFollowUpModal(true)}
               >
@@ -397,10 +423,10 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
         <Card>
           <Empty description="Health check result not found" />
           <div className="text-center mt-4">
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               icon={<ArrowLeftOutlined />}
-              onClick={() => router.push('/health-check-result/management')}
+              onClick={() => router.push("/health-check-result/management")}
             >
               Back
             </Button>
@@ -416,16 +442,20 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
         <Row gutter={[16, 16]}>
           <Col span={24}>
             <Space align="center">
-              <Button 
-                icon={<ArrowLeftOutlined />} 
-                onClick={() => router.push('/health-check-result/management')}
+              <Button
+                icon={<ArrowLeftOutlined />}
+                onClick={() => router.push("/health-check-result/management")}
               >
                 Back
               </Button>
               <Title level={4} style={{ margin: 0 }}>
-                Health Check Result Details - {healthCheckResult.healthCheckResultCode}
+                Health Check Result Details -{" "}
+                {healthCheckResult.healthCheckResultCode}
               </Title>
-              <Tag color={getStatusColor(healthCheckResult.status)} className="ml-2">
+              <Tag
+                color={getStatusColor(healthCheckResult.status)}
+                className="ml-2"
+              >
                 {healthCheckResult.status}
               </Tag>
             </Space>
@@ -434,7 +464,12 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
             <Divider />
           </Col>
           <Col xs={24} md={12}>
-            <Descriptions title="Patient Information" bordered column={1} size="small">
+            <Descriptions
+              title="Patient Information"
+              bordered
+              column={1}
+              size="small"
+            >
               <Descriptions.Item label="Full Name">
                 {healthCheckResult.user.fullName}
               </Descriptions.Item>
@@ -445,7 +480,9 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
                 {healthCheckResult.user.gender || "No information"}
               </Descriptions.Item>
               <Descriptions.Item label="Date of Birth">
-                {healthCheckResult.user.dob ? formatDate(healthCheckResult.user.dob) : "No information"}
+                {healthCheckResult.user.dob
+                  ? formatDate(healthCheckResult.user.dob)
+                  : "No information"}
               </Descriptions.Item>
               <Descriptions.Item label="Address">
                 {healthCheckResult.user.address || "No information"}
@@ -456,7 +493,12 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
             </Descriptions>
           </Col>
           <Col xs={24} md={12}>
-            <Descriptions title="Health Check Information" bordered column={1} size="small">
+            <Descriptions
+              title="Health Check Information"
+              bordered
+              column={1}
+              size="small"
+            >
               <Descriptions.Item label="Health Check Result Code">
                 {healthCheckResult.healthCheckResultCode}
               </Descriptions.Item>
@@ -511,28 +553,37 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
         >
           <Card>
             {healthCheckResult.healthCheckResultDetails.length > 0 ? (
-              healthCheckResult.healthCheckResultDetails.map((detail, index) => (
-                <div key={detail.id} className="mb-4">
-                  <Title level={5}>Detail #{index + 1}</Title>
-                  <Descriptions bordered column={{ xs: 1, sm: 2 }} size="small">
-                    <Descriptions.Item label="Result Summary" span={2}>
-                      {detail.resultSummary}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Diagnosis" span={2}>
-                      {detail.diagnosis}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Recommendations" span={2}>
-                      {detail.recommendations}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Status">
-                      <Tag color={getStatusColor(detail.status)}>{detail.status}</Tag>
-                    </Descriptions.Item>
-                  </Descriptions>
-                  {index < healthCheckResult.healthCheckResultDetails.length - 1 && (
-                    <Divider />
-                  )}
-                </div>
-              ))
+              healthCheckResult.healthCheckResultDetails.map(
+                (detail, index) => (
+                  <div key={detail.id} className="mb-4">
+                    <Title level={5}>Detail #{index + 1}</Title>
+                    <Descriptions
+                      bordered
+                      column={{ xs: 1, sm: 2 }}
+                      size="small"
+                    >
+                      <Descriptions.Item label="Result Summary" span={2}>
+                        {detail.resultSummary}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Diagnosis" span={2}>
+                        {detail.diagnosis}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Recommendations" span={2}>
+                        {detail.recommendations}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Status">
+                        <Tag color={getStatusColor(detail.status)}>
+                          {detail.status}
+                        </Tag>
+                      </Descriptions.Item>
+                    </Descriptions>
+                    {index <
+                      healthCheckResult.healthCheckResultDetails.length - 1 && (
+                      <Divider />
+                    )}
+                  </div>
+                )
+              )
             ) : (
               <Empty description="No health check details available" />
             )}
@@ -558,7 +609,9 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
                       <Button
                         key="view"
                         type="link"
-                        onClick={() => message.info("This feature is not yet implemented")}
+                        onClick={() =>
+                          message.info("This feature is not yet implemented")
+                        }
                       >
                         View Details
                       </Button>,
@@ -566,11 +619,17 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
                   >
                     <List.Item.Meta
                       avatar={<MedicineBoxOutlined style={{ fontSize: 24 }} />}
-                      title={`Prescription date ${formatDate(item.prescriptionDate)}`}
+                      title={`Prescription date ${formatDate(
+                        item.prescriptionDate
+                      )}`}
                       description={
                         <Space direction="vertical">
-                          <Text>Number of medicines: {item.totalMedicines}</Text>
-                          <Tag color={getStatusColor(item.status)}>{item.status}</Tag>
+                          <Text>
+                            Number of medicines: {item.totalMedicines}
+                          </Text>
+                          <Tag color={getStatusColor(item.status)}>
+                            {item.status}
+                          </Tag>
                         </Space>
                       }
                     />
@@ -602,7 +661,9 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
                       <Button
                         key="view"
                         type="link"
-                        onClick={() => message.info("This feature is not yet implemented")}
+                        onClick={() =>
+                          message.info("This feature is not yet implemented")
+                        }
                       >
                         View Details
                       </Button>,
@@ -610,7 +671,9 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
                   >
                     <List.Item.Meta
                       avatar={<ClockCircleOutlined style={{ fontSize: 24 }} />}
-                      title={`Plan from ${formatDate(item.startDate)} to ${formatDate(item.endDate)}`}
+                      title={`Plan from ${formatDate(
+                        item.startDate
+                      )} to ${formatDate(item.endDate)}`}
                       description={
                         <Space direction="vertical">
                           <Text>{item.treatmentDescription}</Text>
@@ -650,35 +713,41 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
                 <Title level={5}>Health Check Result History</Title>
               </Col>
               <Col>
-                <Button 
-                  type="primary" 
-                  icon={<FileExcelOutlined />} 
+                <Button
+                  type="primary"
+                  icon={<FileExcelOutlined />}
                   onClick={handleExportHistoryToExcel}
                 >
                   Export to Excel
                 </Button>
               </Col>
             </Row>
-            
+
             {historiesLoading ? (
               <Skeleton active paragraph={{ rows: 6 }} />
             ) : histories.length > 0 ? (
               <Timeline>
                 {histories.map((history) => (
-                  <Timeline.Item 
+                  <Timeline.Item
                     key={history.id}
                     color={getActionColor(history.action)}
                   >
                     <div className="flex flex-col">
                       <Text strong>{history.action}</Text>
                       <Text type="secondary">
-                        {formatDateTime(history.actionDate)} by {history.performedBy?.fullName}
+                        {formatDateTime(history.actionDate)} by{" "}
+                        {history.performedBy?.fullName}
                       </Text>
                       {history.previousStatus && history.newStatus && (
                         <Text>
-                          Status: <Tag color={getStatusColor(history.previousStatus)}>{history.previousStatus}</Tag>
+                          Status:{" "}
+                          <Tag color={getStatusColor(history.previousStatus)}>
+                            {history.previousStatus}
+                          </Tag>
                           {" → "}
-                          <Tag color={getStatusColor(history.newStatus)}>{history.newStatus}</Tag>
+                          <Tag color={getStatusColor(history.newStatus)}>
+                            {history.newStatus}
+                          </Tag>
                         </Text>
                       )}
                       {history.rejectionReason && (
@@ -717,4 +786,4 @@ export const HealthCheckResultDetail: React.FC<HealthCheckResultDetailProps> = (
       </Modal>
     </div>
   );
-}; 
+};
