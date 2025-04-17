@@ -81,6 +81,31 @@ export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 }
 
+// Helper function to convert camelCase field names to PascalCase for backend API
+function convertToPascalCase(fieldName: string): string {
+  if (!fieldName) return "";
+  
+  // Handle known field mappings
+  const fieldMappings: Record<string, string> = {
+    "orderDate": "OrderDate",
+    "drugOrderCode": "DrugOrderCode",
+    "totalQuantity": "TotalQuantity",
+    "totalPrice": "TotalPrice",
+    "createdAt": "CreatedAt",
+    "updatedAt": "UpdatedAt",
+    "status": "Status", 
+    "supplier": "Supplier"
+  };
+  
+  // Return direct mapping if available
+  if (fieldMappings[fieldName]) {
+    return fieldMappings[fieldName];
+  }
+  
+  // Otherwise convert camelCase to PascalCase
+  return fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+}
+
 const staticColumns = [
   {
     title: (
@@ -303,7 +328,7 @@ export function DrugOrders() {
       orderDateRange: [null, null],
       createdDateRange: [null, null],
       updatedDateRange: [null, null],
-      sortBy: "orderDate",
+      sortBy: "OrderDate",
       ascending: false,
     });
 
@@ -311,7 +336,7 @@ export function DrugOrders() {
     orderDateRange: [null, null],
     createdDateRange: [null, null],
     updatedDateRange: [null, null],
-    sortBy: "orderDate",
+    sortBy: "OrderDate",
     ascending: false,
   };
 
@@ -329,14 +354,14 @@ export function DrugOrders() {
         status: statusFilter.length > 0 ? statusFilter[0] : undefined,
         sortBy:
           advancedFilters.sortBy ||
-          (Array.isArray(sorter)
-            ? "orderDate"
-            : (sorter?.field as string) || "orderDate"),
+          (Array.isArray(sorter) || !sorter.field
+            ? "OrderDate" // Default to OrderDate if no sorting is specified
+            : convertToPascalCase(sorter?.field as string)),
         ascending:
           advancedFilters.ascending !== undefined
             ? advancedFilters.ascending
-            : Array.isArray(sorter)
-            ? false
+            : Array.isArray(sorter) || !sorter.order
+            ? false // Default to false (descending) if no sort order specified
             : sorter?.order === "ascend",
         supplierId: advancedFilters.supplierId,
         minTotalPrice: advancedFilters.minTotalPrice,
@@ -504,6 +529,26 @@ export function DrugOrders() {
   const handleStatusFilterChange = (value: string[]) => {
     setStatusFilter(value);
     setCurrentPage(1);
+  };
+
+  const updatePageInUrl = (newPage: number) => {
+    const query = { ...router.query };
+
+    if (newPage === 1) {
+      // Remove page parameter if it's the default page
+      delete query.page;
+    } else {
+      query.page = newPage.toString();
+    }
+
+    router.push(
+      {
+        pathname: router.pathname,
+        query: query,
+      },
+      undefined,
+      { shallow: true }
+    );
   };
 
   const onPageChange = (page: number, newPageSize?: number) => {
@@ -706,26 +751,6 @@ export function DrugOrders() {
       setCurrentPage(queryPage);
     }
   }, [router.query.page, currentPage]);
-
-  const updatePageInUrl = (newPage: number) => {
-    const query = { ...router.query };
-
-    if (newPage === 1) {
-      // Remove page parameter if it's the default page
-      delete query.page;
-    } else {
-      query.page = newPage.toString();
-    }
-
-    router.push(
-      {
-        pathname: router.pathname,
-        query: query,
-      },
-      undefined,
-      { shallow: true }
-    );
-  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -1231,10 +1256,12 @@ export function DrugOrders() {
         pageSize: exportConfig.exportAllPages ? 1000 : pageSize, // Large number to get all if exportAllPages is true
         drugOrderCodeSearch: filterValue || undefined,
         status: statusFilter.length > 0 ? statusFilter[0] : undefined,
-        sortBy: Array.isArray(sorter)
-          ? "createdAt"
-          : (sorter?.field as string) || "createdAt",
-        ascending: Array.isArray(sorter) ? false : sorter?.order === "ascend",
+        sortBy: Array.isArray(sorter) || !sorter.field
+          ? "OrderDate" // Default to OrderDate if no sorting is specified
+          : convertToPascalCase(sorter?.field as string),
+        ascending: Array.isArray(sorter) || !sorter.order
+          ? false // Default to false (descending) if no sort order specified
+          : sorter?.order === "ascend",
         orderStartDate: undefined,
         orderEndDate: undefined,
         createdStartDate: undefined,
@@ -1688,10 +1715,12 @@ export function DrugOrders() {
           pageSize,
           drugOrderCodeSearch: filterValue,
           status: statusFilter.length > 0 ? statusFilter[0] : undefined,
-          sortBy: Array.isArray(sorter)
-            ? "createdAt"
-            : (sorter?.field as string) || "createdAt",
-          ascending: Array.isArray(sorter) ? false : sorter?.order === "ascend",
+          sortBy: Array.isArray(sorter) || !sorter.field 
+            ? "OrderDate" 
+            : convertToPascalCase(sorter?.field as string),
+          ascending: Array.isArray(sorter) || !sorter.order 
+            ? false 
+            : sorter?.order === "ascend",
           orderDateRange: [null, null],
           createdDateRange: [null, null],
           updatedDateRange: [null, null],

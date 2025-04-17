@@ -725,7 +725,7 @@ export function DrugGroups() {
   };
 
   const handleOpenEditModal = (id: string) => {
-    router.push(`/drug-group/edit/${id}`);
+    router.push(`/drug-group/${id}?edit=true`);
   };
 
   const handleCreateSuccess = () => {
