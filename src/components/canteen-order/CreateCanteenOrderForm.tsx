@@ -234,7 +234,7 @@ export const CreateCanteenOrderForm: React.FC<CreateCanteenOrderFormProps> = ({
             <Select
               style={{ width: "100%" }}
               placeholder="Select License Plate"
-              value={formData.licensePlate}
+              value={formData.licensePlate || undefined}
               onChange={(value) => {
                 setFormData({
                   ...formData,
