@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Calendar, Badge, Card, Typography, DatePicker, Spin, message, Tag, Row, Col, Tooltip, Button, Table } from "antd";
+import { Calendar, Badge, Card, Typography, DatePicker, Spin, message, Tag, Row, Col, Tooltip, Button, Table, Divider } from "antd";
 import { getCurrentUserSchedules } from "@/api/schedule";
 import { StaffScheduleResponse } from "@/api/schedule";
 import dayjs from "dayjs";
@@ -215,22 +215,54 @@ export default function MySchedulePage() {
         title: "DAY",
         dataIndex: "day",
         key: "day",
-        width: 160,
-        render: (text: string, record: any) => (
-          <div>
-            <div style={{ fontWeight: 'bold' }}>{text}</div>
-            <div style={{ fontSize: '12px', color: '#666' }}>{record.date}</div>
-          </div>
-        )
+        width: 200,
+        fixed: 'left' as const,
+        render: (text: string, record: any) => {
+          // Kiểm tra xem có phải là ngày hiện tại không
+          const isToday = dayjs(record.key).isSame(dayjs(), 'day');
+          
+          return (
+            <div style={{ 
+              padding: '8px',
+              background: isToday ? '#e6f7ff' : 'transparent',
+              borderRadius: isToday ? '4px' : '0',
+              border: isToday ? '1px solid #1890ff' : 'none'
+            }}>
+              <div style={{ 
+                fontWeight: 'bold',
+                color: isToday ? '#1890ff' : 'inherit'
+              }}>
+                {text}
+              </div>
+              <div style={{ 
+                fontSize: '12px', 
+                color: isToday ? '#1890ff' : '#666'
+              }}>
+                {record.date}
+                {isToday && <span style={{ marginLeft: '5px', fontWeight: 'bold' }}>(Today)</span>}
+              </div>
+            </div>
+          );
+        }
       },
       ...Array.from({ length: 24 }).map((_, index) => {
         const hour = index;
         const formattedHour = hour.toString().padStart(2, '0');
+        const isCurrentHour = dayjs().hour() === hour && dayjs().isSame(dayjs(), 'day');
+        
         return {
-          title: `${formattedHour}:00`,
+          title: (
+            <div style={{
+              color: isCurrentHour ? '#1890ff' : 'inherit',
+              fontWeight: isCurrentHour ? 'bold' : 'normal'
+            }}>
+              {`${formattedHour}:00`}
+              {isCurrentHour && <div style={{ fontSize: '10px' }}>(Now)</div>}
+            </div>
+          ),
           dataIndex: `hour_${hour}`,
           key: `hour_${hour}`,
-          width: 80,
+          width: 120,
           align: 'center' as 'center',
           render: (text: any) => text || null,
         };
@@ -261,7 +293,7 @@ export default function MySchedulePage() {
         // Điền thông tin vào từng ô giờ
         for(let h = startHour; h <= endHour; h++) {
           row[`hour_${h}`] = (
-            <Tag color="green" style={{ margin: 0 }}>
+            <Tag color="green" style={{ margin: 0, width: '100%', textAlign: 'center', padding: '4px 0' }}>
               {schedule.shiftName}
             </Tag>
           );
@@ -278,8 +310,10 @@ export default function MySchedulePage() {
           dataSource={data} 
           pagination={false}
           bordered
-          size="small"
-          scroll={{ x: 1500 }}
+          size="middle"
+          scroll={{ x: 3080 }}
+          rowClassName={(record) => dayjs(record.key).isSame(dayjs(), 'day') ? 'bg-blue-50' : ''}
+          sticky
         />
       </div>
     );
@@ -310,7 +344,11 @@ export default function MySchedulePage() {
           </Col>
         </Row>
 
-        <div className="mt-4 flex items-center justify-between flex-wrap">
+        <div className="my-3">
+          <Divider style={{ margin: "12px 0" }} />
+        </div>
+
+        <div className="mt-2 flex items-center justify-between flex-wrap">
           <div className="flex items-center gap-3 mb-2">
             {displayMode === "calendar" ? (
               <>
