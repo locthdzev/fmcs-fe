@@ -20,6 +20,7 @@ interface InventoryRecordTableProps {
   setSelectedRowKeys: (keys: string[]) => void;
   onEdit: (record: InventoryRecordResponseDTO) => void;
   bordered?: boolean;
+  columnVisibility?: Record<string, boolean>;
 }
 
 const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
@@ -33,6 +34,16 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
   setSelectedRowKeys,
   onEdit,
   bordered = false,
+  columnVisibility = {
+    batchCode: true,
+    drug: true,
+    quantityInStock: true,
+    reorderLevel: true,
+    status: true,
+    createdAt: true,
+    lastUpdated: true,
+    actions: true,
+  },
 }) => {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
@@ -74,7 +85,7 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
     {
       title: "DRUG",
       dataIndex: ["drug", "drugCode"],
-      key: "drugCode",
+      key: "drug",
       sorter: (a, b) => a.drug.drugCode.localeCompare(b.drug.drugCode),
       render: (text, record) => (
         <Text>
@@ -150,13 +161,19 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
       ),
     },
   ];
+
+  // Filter columns based on visibility settings
+  const visibleColumns = columns.filter(
+    (column) => columnVisibility[column.key as string]
+  );
+
   return (
     <>
       {contextHolder}
 
       <Table
         dataSource={records}
-        columns={columns}
+        columns={visibleColumns}
         rowKey="id"
         loading={loading}
         pagination={false}

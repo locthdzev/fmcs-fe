@@ -9,6 +9,8 @@ import {
   Input,
   Space,
   Spin,
+  Checkbox,
+  Dropdown,
 } from "antd";
 import {
   DatabaseOutlined,
@@ -18,6 +20,7 @@ import {
   TagOutlined,
   ArrowLeftOutlined,
   SearchOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -56,7 +59,9 @@ function InventoryRecordManagement() {
 
   // Data state
   const [records, setRecords] = useState<InventoryRecordResponseDTO[]>([]);
-  const [allRecords, setAllRecords] = useState<InventoryRecordResponseDTO[]>([]); // Store all records for client-side filtering
+  const [allRecords, setAllRecords] = useState<InventoryRecordResponseDTO[]>(
+    []
+  ); // Store all records for client-side filtering
   const [filteredRecords, setFilteredRecords] = useState<
     InventoryRecordResponseDTO[]
   >([]);
@@ -81,10 +86,18 @@ function InventoryRecordManagement() {
   // Filter states
   const [searchTerm, setSearchTerm] = useState<string>(""); // Chỉ dùng cho tìm kiếm API
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const [quantityInStockRange, setQuantityInStockRange] = useState<[number | null, number | null]>([null, null]);
-  const [reorderLevelRange, setReorderLevelRange] = useState<[number | null, number | null]>([null, null]);
-  const [lastUpdatedRange, setLastUpdatedRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
-  const [createdAtRange, setCreatedAtRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+  const [quantityInStockRange, setQuantityInStockRange] = useState<
+    [number | null, number | null]
+  >([null, null]);
+  const [reorderLevelRange, setReorderLevelRange] = useState<
+    [number | null, number | null]
+  >([null, null]);
+  const [lastUpdatedRange, setLastUpdatedRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null]
+  >([null, null]);
+  const [createdAtRange, setCreatedAtRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null]
+  >([null, null]);
   const [sortField, setSortField] = useState<string>("createdAt"); // Default sort by createdAt
   const [ascending, setAscending] = useState<boolean>(false); // Default newest first
 
@@ -106,10 +119,26 @@ function InventoryRecordManagement() {
   });
 
   // Track if advanced modal filters are active
-  const [isAdvancedFilterActive, setIsAdvancedFilterActive] = useState<boolean>(false);
+  const [isAdvancedFilterActive, setIsAdvancedFilterActive] =
+    useState<boolean>(false);
 
   // Để quản lý debounce
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Column visibility state
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
+    batchCode: true,
+    drug: true,
+    expiryDate: true,
+    quantityInStock: true,
+    reorderLevel: true,
+    status: true,
+    createdAt: true,
+    lastUpdated: true,
+    actions: true,
+  });
 
   // Fetch data when base parameters change
   useEffect(() => {
@@ -125,51 +154,55 @@ function InventoryRecordManagement() {
       applyClientSideFilters();
     }
   }, [
-    searchTerm, 
-    statusFilter, 
-    quantityInStockRange, 
+    searchTerm,
+    statusFilter,
+    quantityInStockRange,
     reorderLevelRange,
-    lastUpdatedRange, 
+    lastUpdatedRange,
     createdAtRange,
     sortField,
-    ascending, 
+    ascending,
     allRecords,
     currentPage,
     pageSize,
-    isFiltering
+    isFiltering,
   ]);
 
   // Check if any client-side filter is active
   useEffect(() => {
     const hasActiveFilter =
       statusFilter !== "" ||
-      (quantityInStockRange[0] !== null || quantityInStockRange[1] !== null) ||
-      (reorderLevelRange[0] !== null || reorderLevelRange[1] !== null) ||
+      quantityInStockRange[0] !== null ||
+      quantityInStockRange[1] !== null ||
+      reorderLevelRange[0] !== null ||
+      reorderLevelRange[1] !== null ||
       (lastUpdatedRange[0] !== null && lastUpdatedRange[1] !== null) ||
       (createdAtRange[0] !== null && createdAtRange[1] !== null);
 
     // Update isFiltering state
     setIsFiltering(hasActiveFilter);
-    
+
     // Fetch all records when filters change
     if (hasActiveFilter && allRecords.length === 0) {
       fetchAllRecordsForFiltering();
     }
 
     // Check if advanced modal filters are active (excluding the toolbar statusFilter)
-    const hasAdvancedFilters = 
-      (quantityInStockRange[0] !== null || quantityInStockRange[1] !== null) ||
-      (reorderLevelRange[0] !== null || reorderLevelRange[1] !== null) ||
+    const hasAdvancedFilters =
+      quantityInStockRange[0] !== null ||
+      quantityInStockRange[1] !== null ||
+      reorderLevelRange[0] !== null ||
+      reorderLevelRange[1] !== null ||
       (lastUpdatedRange[0] !== null && lastUpdatedRange[1] !== null) ||
       (createdAtRange[0] !== null && createdAtRange[1] !== null);
-    
+
     setIsAdvancedFilterActive(hasAdvancedFilters);
   }, [
-    statusFilter, 
-    quantityInStockRange, 
+    statusFilter,
+    quantityInStockRange,
     reorderLevelRange,
     lastUpdatedRange,
-    createdAtRange
+    createdAtRange,
   ]);
 
   // Fetch options when component mounts
@@ -190,7 +223,7 @@ function InventoryRecordManagement() {
         setRecords((prev) =>
           prev.map((r) => (r.id === updatedRecord.id ? updatedRecord : r))
         );
-        
+
         setAllRecords((prev) =>
           prev.map((r) => (r.id === updatedRecord.id ? updatedRecord : r))
         );
@@ -209,7 +242,7 @@ function InventoryRecordManagement() {
       messageApi.loading({
         content: "Loading all records for filtering...",
         key: "filterLoading",
-        duration: 0
+        duration: 0,
       });
 
       // Use a large page size to get all records
@@ -221,10 +254,10 @@ function InventoryRecordManagement() {
 
       setAllRecords(result.data);
       setTotalFromAPI(result.totalRecords);
-      
+
       // Apply filters to the complete dataset
       applyClientSideFilters(result.data);
-      
+
       // Update batch codes
       const newBatchCodes = result.data.map(
         (record: InventoryRecordResponseDTO) => record.batchCode
@@ -236,7 +269,7 @@ function InventoryRecordManagement() {
       messageApi.success({
         content: "All records loaded for filtering",
         key: "filterLoading",
-        duration: 2
+        duration: 2,
       });
     } catch (error) {
       console.error("Error fetching all inventory records:", error);
@@ -294,7 +327,9 @@ function InventoryRecordManagement() {
     }
   };
 
-  const applyClientSideFilters = (recordsToFilter = allRecords.length > 0 ? allRecords : records) => {
+  const applyClientSideFilters = (
+    recordsToFilter = allRecords.length > 0 ? allRecords : records
+  ) => {
     // Clone array to avoid affecting original data
     let filtered = [...recordsToFilter];
 
@@ -350,11 +385,10 @@ function InventoryRecordManagement() {
           : dayjs(record.createdAt);
 
         return (
-          lastUpdatedDate.isAfter(startDate) ||
-          lastUpdatedDate.isSame(startDate, 'day') 
-        ) && (
-          lastUpdatedDate.isBefore(endDate) ||
-          lastUpdatedDate.isSame(endDate, 'day')
+          (lastUpdatedDate.isAfter(startDate) ||
+            lastUpdatedDate.isSame(startDate, "day")) &&
+          (lastUpdatedDate.isBefore(endDate) ||
+            lastUpdatedDate.isSame(endDate, "day"))
         );
       });
     }
@@ -367,11 +401,9 @@ function InventoryRecordManagement() {
       filtered = filtered.filter((record) => {
         const createdDate = dayjs(record.createdAt);
         return (
-          createdDate.isAfter(startDate) || 
-          createdDate.isSame(startDate, 'day')
-        ) && (
-          createdDate.isBefore(endDate) ||
-          createdDate.isSame(endDate, 'day')
+          (createdDate.isAfter(startDate) ||
+            createdDate.isSame(startDate, "day")) &&
+          (createdDate.isBefore(endDate) || createdDate.isSame(endDate, "day"))
         );
       });
     }
@@ -552,7 +584,7 @@ function InventoryRecordManagement() {
     } else {
       setCurrentPage(page);
     }
-    
+
     // For client-side filtering, just update page state
     if (isFiltering) {
       // The useEffect will trigger applyClientSideFilters to get the right page of data
@@ -603,24 +635,44 @@ function InventoryRecordManagement() {
   const handleApplyFilters = (filters: any) => {
     // Update filters
     console.log("Received filters:", filters);
-    
+
     setQuantityInStockRange(filters.quantityInStockRange || [null, null]);
     setReorderLevelRange(filters.reorderLevelRange || [null, null]);
-    
+
     // Process lastUpdatedRange properly
-    let lastUpdatedRangeValue: [dayjs.Dayjs | null, dayjs.Dayjs | null] = [null, null];
-    if (filters.lastUpdatedRange && filters.lastUpdatedRange[0] && filters.lastUpdatedRange[1]) {
-      lastUpdatedRangeValue = [dayjs(filters.lastUpdatedRange[0]), dayjs(filters.lastUpdatedRange[1])];
+    let lastUpdatedRangeValue: [dayjs.Dayjs | null, dayjs.Dayjs | null] = [
+      null,
+      null,
+    ];
+    if (
+      filters.lastUpdatedRange &&
+      filters.lastUpdatedRange[0] &&
+      filters.lastUpdatedRange[1]
+    ) {
+      lastUpdatedRangeValue = [
+        dayjs(filters.lastUpdatedRange[0]),
+        dayjs(filters.lastUpdatedRange[1]),
+      ];
     }
     setLastUpdatedRange(lastUpdatedRangeValue);
-    
+
     // Process createdAtRange properly
-    let createdAtRangeValue: [dayjs.Dayjs | null, dayjs.Dayjs | null] = [null, null];
-    if (filters.createdAtRange && filters.createdAtRange[0] && filters.createdAtRange[1]) {
-      createdAtRangeValue = [dayjs(filters.createdAtRange[0]), dayjs(filters.createdAtRange[1])];
+    let createdAtRangeValue: [dayjs.Dayjs | null, dayjs.Dayjs | null] = [
+      null,
+      null,
+    ];
+    if (
+      filters.createdAtRange &&
+      filters.createdAtRange[0] &&
+      filters.createdAtRange[1]
+    ) {
+      createdAtRangeValue = [
+        dayjs(filters.createdAtRange[0]),
+        dayjs(filters.createdAtRange[1]),
+      ];
     }
     setCreatedAtRange(createdAtRangeValue);
-    
+
     setSortField(filters.sortField || "createdAt");
     setAscending(filters.ascending);
     setCurrentPage(1);
@@ -628,26 +680,30 @@ function InventoryRecordManagement() {
 
     // Check if any filter is active
     const isClientFiltering =
-      (filters.quantityInStockRange && 
-        (filters.quantityInStockRange[0] !== null || filters.quantityInStockRange[1] !== null)) ||
-      (filters.reorderLevelRange && 
-        (filters.reorderLevelRange[0] !== null || filters.reorderLevelRange[1] !== null)) ||
+      (filters.quantityInStockRange &&
+        (filters.quantityInStockRange[0] !== null ||
+          filters.quantityInStockRange[1] !== null)) ||
+      (filters.reorderLevelRange &&
+        (filters.reorderLevelRange[0] !== null ||
+          filters.reorderLevelRange[1] !== null)) ||
       statusFilter !== "" ||
       lastUpdatedRangeValue[0] !== null ||
       createdAtRangeValue[0] !== null;
 
     // Check if advanced modal filters (excluding statusFilter) are active
-    const hasAdvancedFilters = 
-      (filters.quantityInStockRange && 
-        (filters.quantityInStockRange[0] !== null || filters.quantityInStockRange[1] !== null)) ||
-      (filters.reorderLevelRange && 
-        (filters.reorderLevelRange[0] !== null || filters.reorderLevelRange[1] !== null)) ||
+    const hasAdvancedFilters =
+      (filters.quantityInStockRange &&
+        (filters.quantityInStockRange[0] !== null ||
+          filters.quantityInStockRange[1] !== null)) ||
+      (filters.reorderLevelRange &&
+        (filters.reorderLevelRange[0] !== null ||
+          filters.reorderLevelRange[1] !== null)) ||
       lastUpdatedRangeValue[0] !== null ||
       createdAtRangeValue[0] !== null;
-    
+
     setIsAdvancedFilterActive(hasAdvancedFilters);
     setIsFiltering(isClientFiltering);
-    
+
     // If we're applying filters and don't have all records yet, fetch them
     if (isClientFiltering && allRecords.length === 0) {
       fetchAllRecordsForFiltering();
@@ -750,6 +806,25 @@ function InventoryRecordManagement() {
       });
   };
 
+  const handleColumnVisibilityChange = (key: string) => {
+    setColumnVisibility((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const toggleAllColumns = (checked: boolean) => {
+    const newState = { ...columnVisibility };
+    Object.keys(newState).forEach((key) => {
+      newState[key] = checked;
+    });
+    setColumnVisibility(newState);
+  };
+
+  const areAllColumnsVisible = () => {
+    return Object.values(columnVisibility).every((visible) => visible);
+  };
+
   return (
     <PageContainer
       title="Inventory Record Management"
@@ -838,7 +913,7 @@ function InventoryRecordManagement() {
                 onChange={(value) => {
                   setStatusFilter(value || "");
                   setCurrentPage(1);
-                  
+
                   // If this is the first filter, fetch all records
                   if (value && !isFiltering && allRecords.length === 0) {
                     fetchAllRecordsForFiltering();
@@ -862,17 +937,156 @@ function InventoryRecordManagement() {
                 disabled={!isFiltering && !searchTerm}
               />
             </Tooltip>
+
+            {/* Column visibility dropdown */}
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: "selectAll",
+                    label: (
+                      <Checkbox
+                        checked={areAllColumnsVisible()}
+                        onChange={(e) => toggleAllColumns(e.target.checked)}
+                      >
+                        Toggle All
+                      </Checkbox>
+                    ),
+                  },
+                  { type: "divider" },
+                  {
+                    key: "batchCode",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.batchCode}
+                        onChange={() =>
+                          handleColumnVisibilityChange("batchCode")
+                        }
+                      >
+                        Batch Code
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "drug",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.drug}
+                        onChange={() => handleColumnVisibilityChange("drug")}
+                      >
+                        Drug
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "expiryDate",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.expiryDate}
+                        onChange={() =>
+                          handleColumnVisibilityChange("expiryDate")
+                        }
+                      >
+                        Expiry Date
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "quantityInStock",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.quantityInStock}
+                        onChange={() =>
+                          handleColumnVisibilityChange("quantityInStock")
+                        }
+                      >
+                        Quantity In Stock
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "reorderLevel",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.reorderLevel}
+                        onChange={() =>
+                          handleColumnVisibilityChange("reorderLevel")
+                        }
+                      >
+                        Reorder Level
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "status",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.status}
+                        onChange={() => handleColumnVisibilityChange("status")}
+                      >
+                        Status
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "createdAt",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.createdAt}
+                        onChange={() =>
+                          handleColumnVisibilityChange("createdAt")
+                        }
+                      >
+                        Created At
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "lastUpdated",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.lastUpdated}
+                        onChange={() =>
+                          handleColumnVisibilityChange("lastUpdated")
+                        }
+                      >
+                        Last Updated
+                      </Checkbox>
+                    ),
+                  },
+                  {
+                    key: "actions",
+                    label: (
+                      <Checkbox
+                        checked={columnVisibility.actions}
+                        onChange={() => handleColumnVisibilityChange("actions")}
+                      >
+                        Actions
+                      </Checkbox>
+                    ),
+                  },
+                ],
+              }}
+              placement="bottomRight"
+              trigger={["click"]}
+            >
+              <Button icon={<SettingOutlined />} style={{ marginRight: "8px" }}>
+                Columns
+              </Button>
+            </Dropdown>
           </>
         }
         rightContent={
-          <Button
-            type="primary"
-            icon={<FileExcelOutlined />}
-            onClick={handleExportExcel}
-            disabled={loading}
-          >
-            Export to Excel
-          </Button>
+          <>
+            <Button
+              type="primary"
+              icon={<FileExcelOutlined />}
+              onClick={handleExportExcel}
+              disabled={loading}
+            >
+              Export to Excel
+            </Button>
+          </>
         }
       />
 
@@ -904,6 +1118,7 @@ function InventoryRecordManagement() {
             setSelectedRowKeys={setSelectedRowKeys}
             onEdit={handleShowEditModal}
             bordered={true}
+            columnVisibility={columnVisibility}
           />
         )}
       </Card>
