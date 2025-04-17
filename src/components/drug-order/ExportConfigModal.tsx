@@ -115,7 +115,11 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
 
   return (
     <Modal
-      title="Export Configuration"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Export Configuration
+        </Title>
+      }
       open={visible}
       onCancel={handleCancel}
       width={800}
@@ -170,7 +174,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
               <Checkbox>Export all data (ignore pagination)</Checkbox>
             </Form.Item>
           </Col>
-          
+
           <Col span={24}>
             <div style={{ marginBottom: "16px" }}>
               <div
@@ -263,10 +267,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                   </Col>
 
                   <Col span={12}>
-                    <Form.Item
-                      label="Supplier"
-                      name="filterSupplier"
-                    >
+                    <Form.Item label="Supplier" name="filterSupplier">
                       <Select
                         placeholder="Select Supplier"
                         style={{ width: "100%" }}

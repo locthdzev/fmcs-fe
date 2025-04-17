@@ -121,7 +121,11 @@ const HistoryFilterModal: React.FC<{
 
   return (
     <Modal
-      title="Advanced Filters"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Advanced Filters
+        </Title>
+      }
       open={visible}
       onCancel={onCancel}
       width={800}
@@ -1374,7 +1378,11 @@ export const HealthCheckResultHistory: React.FC = () => {
 
         {/* Export Config Modal - Keep existing implementation */}
         <Modal
-          title="Export Configuration"
+          title={
+            <Title level={4} style={{ margin: 0 }}>
+              Export Configuration
+            </Title>
+          }
           open={showExportConfigModal}
           onCancel={closeConfigModal}
           width={800}

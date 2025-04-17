@@ -78,7 +78,11 @@ const DrugGroupFilterModal: React.FC<DrugGroupFilterModalProps> = ({
 
   return (
     <Modal
-      title="Advanced Filters"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Advanced Filters
+        </Title>
+      }
       open={visible}
       onCancel={onCancel}
       width={800}
@@ -116,7 +120,10 @@ const DrugGroupFilterModal: React.FC<DrugGroupFilterModalProps> = ({
                 onChange={(dates) =>
                   setLocalFilters((prev) => ({
                     ...prev,
-                    createdDateRange: dates as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+                    createdDateRange: dates as [
+                      dayjs.Dayjs | null,
+                      dayjs.Dayjs | null
+                    ],
                   }))
                 }
                 presets={[
@@ -168,7 +175,10 @@ const DrugGroupFilterModal: React.FC<DrugGroupFilterModalProps> = ({
                 onChange={(dates) =>
                   setLocalFilters((prev) => ({
                     ...prev,
-                    updatedDateRange: dates as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+                    updatedDateRange: dates as [
+                      dayjs.Dayjs | null,
+                      dayjs.Dayjs | null
+                    ],
                   }))
                 }
                 presets={[

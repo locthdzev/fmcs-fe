@@ -19,59 +19,87 @@ import dayjs from "dayjs";
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
+const { Option } = Select;
 
-interface FilterModalProps {
+interface InventoryHistoryFilterModalProps {
   visible: boolean;
-  filterState: {
-    healthCheckResultCode: string;
-    performedBySearch: string;
-    actionDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+  initialValues: {
+    userSearch: string;
+    batchCodeSearch: string;
+    drugNameSearch: string;
+    changeDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
     ascending: boolean;
   };
-  setFilterState: React.Dispatch<
-    React.SetStateAction<{
-      healthCheckResultCode: string;
-      performedBySearch: string;
-      actionDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
-      ascending: boolean;
-    }>
-  >;
-  uniqueHealthCheckCodes: string[];
-  uniquePerformers: { id: string; fullName: string; email: string }[];
-  onClose: () => void;
-  onApply: () => void;
-  onReset: () => void;
+  onCancel: () => void;
+  onApply: (values: any) => void;
+  uniqueBatchCodes: string[];
+  uniqueDrugNames: string[];
+  uniqueUsers: { id: string; name: string; email: string }[];
 }
 
-const TreatmentPlanHistoryFilterModal: React.FC<FilterModalProps> = ({
+const InventoryHistoryFilterModal: React.FC<
+  InventoryHistoryFilterModalProps
+> = ({
   visible,
-  filterState,
-  setFilterState,
-  uniqueHealthCheckCodes,
-  uniquePerformers,
-  onClose,
+  initialValues,
+  onCancel,
   onApply,
-  onReset,
+  uniqueBatchCodes,
+  uniqueDrugNames,
+  uniqueUsers,
 }) => {
+  // Create a local state to track changes while modal is open
+  const [filterState, setFilterState] = React.useState({
+    userSearch: initialValues.userSearch || "",
+    batchCodeSearch: initialValues.batchCodeSearch || "",
+    drugNameSearch: initialValues.drugNameSearch || "",
+    changeDateRange: initialValues.changeDateRange || [null, null],
+    ascending: initialValues.ascending,
+  });
+
+  // Update local state when initialValues change
+  React.useEffect(() => {
+    if (visible) {
+      setFilterState({
+        userSearch: initialValues.userSearch || "",
+        batchCodeSearch: initialValues.batchCodeSearch || "",
+        drugNameSearch: initialValues.drugNameSearch || "",
+        changeDateRange: initialValues.changeDateRange || [null, null],
+        ascending: initialValues.ascending,
+      });
+    }
+  }, [visible, initialValues]);
+
+  // Handle apply filters
+  const handleApply = () => {
+    onApply(filterState);
+  };
+
+  // Handle reset filters
+  const handleReset = () => {
+    setFilterState({
+      userSearch: "",
+      batchCodeSearch: "",
+      drugNameSearch: "",
+      changeDateRange: [null, null],
+      ascending: false,
+    });
+  };
+
   return (
     <Modal
-      title={
-        <Title level={4} style={{ margin: 0 }}>
-          Advanced Filters
-        </Title>
-      }
+      title="Advanced Filters"
       open={visible}
-      onOk={onApply}
-      onCancel={onClose}
+      onCancel={onCancel}
       width={600}
       footer={[
-        <Button key="reset" onClick={onReset} icon={<UndoOutlined />}>
+        <Button key="reset" onClick={handleReset} icon={<UndoOutlined />}>
           Reset
         </Button>,
         <Button
           key="apply"
           type="primary"
-          onClick={onApply}
+          onClick={handleApply}
           icon={<CheckCircleOutlined />}
         >
           Apply
@@ -87,16 +115,16 @@ const TreatmentPlanHistoryFilterModal: React.FC<FilterModalProps> = ({
               className="filter-label"
               style={{ marginBottom: "8px", color: "#666666" }}
             >
-              Health check code
+              Drug Name/Code
             </div>
             <Select
               showSearch
-              placeholder="Select Health Check Code"
-              value={filterState.healthCheckResultCode || undefined}
+              placeholder="Select Drug"
+              value={filterState.drugNameSearch || undefined}
               onChange={(value) =>
                 setFilterState((prev) => ({
                   ...prev,
-                  healthCheckResultCode: value || "",
+                  drugNameSearch: value || "",
                 }))
               }
               style={{ width: "100%" }}
@@ -106,9 +134,9 @@ const TreatmentPlanHistoryFilterModal: React.FC<FilterModalProps> = ({
                   input.toLowerCase()
                 )
               }
-              options={uniqueHealthCheckCodes.map((code) => ({
-                value: code,
-                label: code,
+              options={uniqueDrugNames.map((name) => ({
+                value: name,
+                label: name,
               }))}
             />
           </div>
@@ -122,12 +150,12 @@ const TreatmentPlanHistoryFilterModal: React.FC<FilterModalProps> = ({
             </div>
             <Select
               showSearch
-              placeholder="Select Performed By"
-              value={filterState.performedBySearch || undefined}
+              placeholder="Select User"
+              value={filterState.userSearch || undefined}
               onChange={(value) =>
                 setFilterState((prev) => ({
                   ...prev,
-                  performedBySearch: value || "",
+                  userSearch: value || "",
                 }))
               }
               style={{ width: "100%" }}
@@ -138,10 +166,10 @@ const TreatmentPlanHistoryFilterModal: React.FC<FilterModalProps> = ({
                 )
               }
               optionLabelProp="label"
-              options={uniquePerformers.map((performer) => ({
-                value: performer.fullName,
-                label: `${performer.fullName} (${performer.email})`,
-                email: performer.email,
+              options={uniqueUsers.map((user) => ({
+                value: user.name,
+                label: `${user.name} ${user.email ? `(${user.email})` : ""}`,
+                email: user.email,
               }))}
             />
           </div>
@@ -155,16 +183,16 @@ const TreatmentPlanHistoryFilterModal: React.FC<FilterModalProps> = ({
               className="filter-label"
               style={{ marginBottom: "8px", color: "#666666" }}
             >
-              Action date range
+              Change date range
             </div>
             <RangePicker
               style={{ width: "100%" }}
               placeholder={["From date", "To date"]}
-              value={filterState.actionDateRange}
+              value={filterState.changeDateRange}
               onChange={(dates) =>
                 setFilterState((prev) => ({
                   ...prev,
-                  actionDateRange: dates as [
+                  changeDateRange: dates as [
                     dayjs.Dayjs | null,
                     dayjs.Dayjs | null
                   ],
@@ -253,4 +281,4 @@ const TreatmentPlanHistoryFilterModal: React.FC<FilterModalProps> = ({
   );
 };
 
-export default TreatmentPlanHistoryFilterModal;
+export default InventoryHistoryFilterModal;

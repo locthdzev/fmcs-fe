@@ -18,9 +18,9 @@ import {
 } from "antd";
 import {
   // Assume this API function will be created
-  exportDrugSuppliersToExcelWithConfig, 
+  exportDrugSuppliersToExcelWithConfig,
   DrugSupplierResponse, // Use existing response type for options
-} from "@/api/drugsupplier"; 
+} from "@/api/drugsupplier";
 import dayjs from "dayjs";
 import {
   SortAscendingOutlined,
@@ -53,12 +53,13 @@ interface ExportConfigModalProps {
   onClose: () => void;
   config: DrugSupplierExportConfigDTO;
   onChange: (values: Partial<DrugSupplierExportConfigDTO>) => void; // Changed to Partial
-  filters: { // Adjusted filter structure
+  filters: {
+    // Adjusted filter structure
     filterValue: string; // Search by name
     statusFilter: string[]; // Status array
     advancedFilters: DrugSupplierAdvancedFilters; // Contains date ranges and sort
     // Pagination info might be needed if not exporting all
-    currentPage: number; 
+    currentPage: number;
     pageSize: number;
   };
   suppliers?: DrugSupplierResponse[]; // For name dropdown
@@ -95,16 +96,25 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         const hasAnyFilter =
           values.filterSupplierName ||
           (values.filterStatus && values.filterStatus.length > 0) ||
-          (values.filterCreatedDateRange && (values.filterCreatedDateRange[0] || values.filterCreatedDateRange[1])) ||
-          (values.filterUpdatedDateRange && (values.filterUpdatedDateRange[0] || values.filterUpdatedDateRange[1])) ||
+          (values.filterCreatedDateRange &&
+            (values.filterCreatedDateRange[0] ||
+              values.filterCreatedDateRange[1])) ||
+          (values.filterUpdatedDateRange &&
+            (values.filterUpdatedDateRange[0] ||
+              values.filterUpdatedDateRange[1])) ||
           filters.filterValue || // Check original filters as well
           (filters.statusFilter && filters.statusFilter.length > 0) ||
-          (filters.advancedFilters?.createdDateRange && (filters.advancedFilters.createdDateRange[0] || filters.advancedFilters.createdDateRange[1])) ||
-          (filters.advancedFilters?.updatedDateRange && (filters.advancedFilters.updatedDateRange[0] || filters.advancedFilters.updatedDateRange[1]));
+          (filters.advancedFilters?.createdDateRange &&
+            (filters.advancedFilters.createdDateRange[0] ||
+              filters.advancedFilters.createdDateRange[1])) ||
+          (filters.advancedFilters?.updatedDateRange &&
+            (filters.advancedFilters.updatedDateRange[0] ||
+              filters.advancedFilters.updatedDateRange[1]));
 
         if (!hasAnyFilter) {
           messageApi.error({
-            content: "Please select 'Export all data' or apply at least one filter",
+            content:
+              "Please select 'Export all data' or apply at least one filter",
             duration: 10,
           });
           setLoading(false);
@@ -180,8 +190,8 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
       // Handle response
       if (response.success && response.data) {
         // Ensure response.data is a valid URL (string)
-        const fileUrl = typeof response.data === 'string' ? response.data : '';
-        
+        const fileUrl = typeof response.data === "string" ? response.data : "";
+
         if (!fileUrl) {
           messageApi.error({
             content: "Invalid file URL in response",
@@ -190,11 +200,11 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
           setLoading(false);
           return;
         }
-        
+
         // Open URL in new tab
         window.open(fileUrl, "_blank");
         messageApi.success("Drug suppliers exported to Excel successfully", 10);
-        
+
         // Save config settings for next time
         const configValues = {
           exportAllPages: values.exportAllPages,
@@ -207,7 +217,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
           includeStatus: values.includeStatus,
         };
         onChange(configValues);
-        
+
         setLoading(false); // Reset loading state before closing
         onClose();
       } else {
@@ -236,22 +246,26 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
   const handleReset = () => {
     // Simply reset form to its initialValues
     form.resetFields();
-    
+
     // No need to call onChange here since the form's onValuesChange will handle it
   };
 
   return (
     <Modal
-      title="Export Configuration"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Export Configuration
+        </Title>
+      }
       open={visible}
       onCancel={handleCancel}
       width={800}
       footer={[
-        <Button 
-          key="reset" 
-          onClick={handleReset} 
+        <Button
+          key="reset"
+          onClick={handleReset}
           icon={<ReloadOutlined />}
-          style={{ display: 'right', alignItems: 'center', gap: '8px' }}
+          style={{ display: "right", alignItems: "center", gap: "8px" }}
         >
           Reset
         </Button>,
@@ -267,7 +281,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
       destroyOnClose={true}
     >
       {contextHolder}
-      <Spin spinning={loading} tip="Generating Excel file..."> 
+      <Spin spinning={loading} tip="Generating Excel file...">
         <Form
           form={form}
           layout="vertical"
@@ -280,12 +294,15 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
             includeAddress: true,
             includeCreatedAt: true,
             includeUpdatedAt: true,
-            includeStatus: true
+            includeStatus: true,
           }}
           onValuesChange={(changedValues) => {
             // Don't trigger onChange for initial form setup
             // Only handle user interactions
-            if ('exportAllPages' in changedValues && changedValues.exportAllPages) {
+            if (
+              "exportAllPages" in changedValues &&
+              changedValues.exportAllPages
+            ) {
               // When "Export all data" is checked, update include fields to be all checked
               const allSelectedFields = {
                 includeSupplierName: true,
@@ -302,25 +319,57 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
           }}
           preserve={false}
         >
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: "20px" }}>
             <Divider orientation="left">Basic Options</Divider>
-            
-            <Form.Item name="exportAllPages" valuePropName="checked" style={{ marginBottom: '16px' }}>
+
+            <Form.Item
+              name="exportAllPages"
+              valuePropName="checked"
+              style={{ marginBottom: "16px" }}
+            >
               <Checkbox>Export all data (ignore pagination)</Checkbox>
             </Form.Item>
-            
+
             <div>
-              <Text style={{ fontSize: '14px', marginBottom: '8px', display: 'block' }}>Sort direction</Text>
+              <Text
+                style={{
+                  fontSize: "14px",
+                  marginBottom: "8px",
+                  display: "block",
+                }}
+              >
+                Sort direction
+              </Text>
               <Form.Item name="filterSortDirection" noStyle>
-                <Radio.Group buttonStyle="solid" style={{ width: '100%' }}>
-                  <Radio.Button value="asc" style={{ width: '50%', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                <Radio.Group buttonStyle="solid" style={{ width: "100%" }}>
+                  <Radio.Button
+                    value="asc"
+                    style={{ width: "50%", textAlign: "center" }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                      }}
+                    >
                       <SortAscendingOutlined />
                       <span>Oldest First</span>
                     </div>
                   </Radio.Button>
-                  <Radio.Button value="desc" style={{ width: '50%', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <Radio.Button
+                    value="desc"
+                    style={{ width: "50%", textAlign: "center" }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                      }}
+                    >
                       <SortDescendingOutlined />
                       <span>Newest First</span>
                     </div>
@@ -335,21 +384,29 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
             {({ getFieldValue }) => {
               const exportAll = getFieldValue("exportAllPages");
               return !exportAll ? (
-                <div style={{ marginBottom: '20px' }}>
+                <div style={{ marginBottom: "20px" }}>
                   <Divider orientation="left">Data Filters</Divider>
-                  
+
                   <Row gutter={[16, 16]}>
                     <Col span={12}>
-                      <Form.Item label="Supplier Name" name="filterSupplierName">
+                      <Form.Item
+                        label="Supplier Name"
+                        name="filterSupplierName"
+                      >
                         <Select
                           placeholder="Select Supplier Name"
                           style={{ width: "100%" }}
                           allowClear
                           showSearch
-                          filterOption={(input, option) => 
-                            (option?.label?.toString().toLowerCase() ?? '').includes(input.toLowerCase())
+                          filterOption={(input, option) =>
+                            (
+                              option?.label?.toString().toLowerCase() ?? ""
+                            ).includes(input.toLowerCase())
                           }
-                          options={suppliers.map((s) => ({ value: s.supplierName, label: s.supplierName }))}
+                          options={suppliers.map((s) => ({
+                            value: s.supplierName,
+                            label: s.supplierName,
+                          }))}
                         />
                       </Form.Item>
                     </Col>
@@ -367,7 +424,10 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                     </Col>
 
                     <Col span={12}>
-                      <Form.Item label="Created Date Range" name="filterCreatedDateRange">
+                      <Form.Item
+                        label="Created Date Range"
+                        name="filterCreatedDateRange"
+                      >
                         <RangePicker
                           style={{ width: "100%" }}
                           placeholder={["From date", "To date"]}
@@ -377,7 +437,10 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                     </Col>
 
                     <Col span={12}>
-                      <Form.Item label="Updated Date Range" name="filterUpdatedDateRange">
+                      <Form.Item
+                        label="Updated Date Range"
+                        name="filterUpdatedDateRange"
+                      >
                         <RangePicker
                           style={{ width: "100%" }}
                           placeholder={["From date", "To date"]}
@@ -392,42 +455,70 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
           </Form.Item>
 
           {/* Include Fields Section */}
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: "20px" }}>
             <Divider orientation="left">Include Fields</Divider>
-            
+
             <Row gutter={[24, 16]}>
               <Col span={8}>
-                <Form.Item name="includeSupplierName" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeSupplierName"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Supplier Name</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeContactNumber" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeContactNumber"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Contact Number</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeEmail" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeEmail"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Email</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeAddress" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeAddress"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Address</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeCreatedAt" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeCreatedAt"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Created At</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeUpdatedAt" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeUpdatedAt"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Updated At</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeStatus" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeStatus"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Status</Checkbox>
                 </Form.Item>
               </Col>
@@ -446,9 +537,13 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
               gap: "8px",
             }}
           >
-            <InfoCircleOutlined style={{ color: '#1890ff', marginTop: '2px' }} />
+            <InfoCircleOutlined
+              style={{ color: "#1890ff", marginTop: "2px" }}
+            />
             <Text style={{ fontSize: "14px" }}>
-              You must either select "Export all data" or apply at least one filter before exporting. This ensures you get the exact data you need.
+              You must either select "Export all data" or apply at least one
+              filter before exporting. This ensures you get the exact data you
+              need.
             </Text>
           </div>
         </Form>
