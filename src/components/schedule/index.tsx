@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Select, Button, message, Tag, Input, DatePicker } from "antd";
+import { Select, Button, message, Tag, Input, DatePicker, Card } from "antd";
 import ScheduleTable from "./ScheduleTable";
 import ScheduleModal from "./ScheduleModal";
 import {
@@ -12,11 +12,19 @@ import { getShifts, ShiftResponse } from "@/api/shift";
 import { UserProfile, getAllStaff } from "@/api/user";
 import dayjs from "dayjs";
 import { ScheduleIcon } from "./Icons";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import {
+  LeftOutlined,
+  RightOutlined,
+  CalendarOutlined,
+} from "@ant-design/icons";
+import { useRouter } from "next/router";
+import PageContainer from "../shared/PageContainer";
 
 const { Option } = Select;
 
 export function Schedule() {
+  const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
   const [viewMode, setViewMode] = useState<"staff" | "shift">("staff");
   const [schedules, setSchedules] = useState<any[]>([]);
   const [visible, setVisible] = useState(false);
@@ -76,7 +84,7 @@ export function Schedule() {
         setFilteredStaffs(activeStaffs);
       }
     } catch (error) {
-      message.error("Error fetching data");
+      messageApi.error("Error fetching data");
     }
   };
 
@@ -126,7 +134,7 @@ export function Schedule() {
       );
 
       if (isDuplicate) {
-        message.error("This schedule already exists!");
+        messageApi.error("This schedule already exists!");
         return;
       }
 
@@ -152,21 +160,21 @@ export function Schedule() {
         });
       }
 
-      message.success("Schedule created successfully!");
+      messageApi.success("Schedule created successfully!");
       setVisible(false);
       fetchData();
     } catch (error) {
-      message.error("Failed to create schedule.");
+      messageApi.error("Failed to create schedule.");
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await deleteSchedule(id);
-      message.success("Schedule deleted successfully!");
+      messageApi.success("Schedule deleted successfully!");
       fetchData();
     } catch (error) {
-      message.error("Failed to delete schedule.");
+      messageApi.error("Failed to delete schedule.");
     }
   };
 
@@ -205,13 +213,18 @@ export function Schedule() {
     }
   };
 
+  const handleBack = () => {
+    router.back();
+  };
+
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-4 ml-4">
-        <ScheduleIcon />
-        <h3 className="text-2xl font-bold">Schedule Management</h3>
-      </div>
-      <div style={{ padding: "16px" }}>
+    <PageContainer
+      title="Schedule Management"
+      icon={<CalendarOutlined style={{ fontSize: "24px" }} />}
+      onBack={handleBack}
+    >
+      {contextHolder}
+      <div>
         <div
           style={{
             marginBottom: 16,
@@ -289,6 +302,6 @@ export function Schedule() {
           selectedRowId={selectedRowId}
         />
       </div>
-    </div>
+    </PageContainer>
   );
 }
