@@ -79,7 +79,11 @@ import ExportConfigModal, { DrugExportConfigWithUI } from "./ExportConfigModal";
 // Import các component shared mới
 import PageContainer from "../shared/PageContainer";
 import ToolbarCard from "../shared/ToolbarCard";
-import TableControls, { createDeleteBulkAction } from "../shared/TableControls";
+import TableControls, {
+  createDeleteBulkAction,
+  createActivateBulkAction,
+  createDeactivateBulkAction,
+} from "../shared/TableControls";
 import PaginationFooter from "../shared/PaginationFooter";
 
 const { Option } = Select;
@@ -1686,13 +1690,6 @@ export function Drugs() {
               overlay={
                 <Menu>
                   <Menu.Item
-                    key="view"
-                    icon={<EyeOutlined />}
-                    onClick={() => handleOpenDetails(record.id)}
-                  >
-                    View Details
-                  </Menu.Item>
-                  <Menu.Item
                     key="edit"
                     icon={<FormOutlined />}
                     onClick={() => handleOpenEditModal(record.id)}
@@ -1702,6 +1699,7 @@ export function Drugs() {
                   {record.status === "Active" ? (
                     <Menu.Item
                       key="deactivate"
+                      style={{ color: "red" }}
                       icon={<StopOutlined />}
                       onClick={() => {
                         setSelectedDrugs([record]);
@@ -1716,6 +1714,7 @@ export function Drugs() {
                     <Menu.Item
                       key="activate"
                       icon={<CheckCircleOutlined />}
+                      style={{ color: "green" }}
                       onClick={() => {
                         setSelectedDrugs([record]);
                         setConfirmAction("activate");
@@ -2101,17 +2100,10 @@ export function Drugs() {
             true
           ),
           // Activate action
-          {
-            key: "activate",
-            title: "Activate selected drugs",
-            description: `Are you sure you want to activate ${selectedRowKeys.length} selected drugs?`,
-            icon: <CheckCircleOutlined />,
-            buttonText: "Activate",
-            buttonType: "primary",
-            tooltip: "Activate selected drugs",
-            isVisible: showActivate,
-            isLoading: activatingItems,
-            onConfirm: async () => {
+          createActivateBulkAction(
+            selectedRowKeys.length,
+            activatingItems,
+            async () => {
               setActivatingItems(true);
               try {
                 await activateDrugs(selectedRowKeys as string[]);
@@ -2128,20 +2120,13 @@ export function Drugs() {
                 setActivatingItems(false);
               }
             },
-          },
+            showActivate
+          ),
           // Deactivate action
-          {
-            key: "deactivate",
-            title: "Deactivate selected drugs",
-            description: `Are you sure you want to deactivate ${selectedRowKeys.length} selected drugs?`,
-            icon: <StopOutlined />,
-            buttonText: "Deactivate",
-            buttonType: "primary",
-            isDanger: true,
-            tooltip: "Deactivate selected drugs",
-            isVisible: showDeactivate,
-            isLoading: deactivatingItems,
-            onConfirm: async () => {
+          createDeactivateBulkAction(
+            selectedRowKeys.length,
+            deactivatingItems,
+            async () => {
               setDeactivatingItems(true);
               try {
                 await deactivateDrugs(selectedRowKeys as string[]);
@@ -2158,12 +2143,12 @@ export function Drugs() {
                 setDeactivatingItems(false);
               }
             },
-          },
+            showDeactivate
+          ),
         ]}
         maxRowsPerPage={100}
         pageSizeOptions={[5, 10, 15, 20, 50, 100]}
       />
-
       {/* Main Data Table */}
       <Card className="shadow-sm" bodyStyle={{ padding: "16px" }}>
         <div style={{ overflowX: "auto" }}>

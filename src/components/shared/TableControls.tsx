@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Select, Typography, Tooltip, Popconfirm } from "antd";
-import { UndoOutlined, DeleteOutlined } from "@ant-design/icons";
+import { UndoOutlined, DeleteOutlined, CheckCircleOutlined, StopOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -16,6 +16,7 @@ export interface BulkAction {
   tooltip: string;
   isVisible: boolean;
   isLoading?: boolean;
+  style?: React.CSSProperties;
   onConfirm: () => Promise<void>;
 }
 
@@ -119,6 +120,7 @@ const TableControls: React.FC<TableControlsProps> = ({
                       type={action.buttonType}
                       danger={action.isDanger}
                       icon={action.icon}
+                      style={action.style}
                     >
                       {action.buttonText}
                     </Button>
@@ -189,6 +191,44 @@ export const createRestoreBulkAction = (
   isVisible,
   isLoading,
   onConfirm: onRestore,
+});
+
+export const createActivateBulkAction = (
+  selectedCount: number,
+  isLoading: boolean,
+  onActivate: () => Promise<void>,
+  isVisible: boolean = true
+): BulkAction => ({
+  key: "activate",
+  title: "Activate selected items",
+  description: `Are you sure you want to activate ${selectedCount} selected item(s)?`,
+  icon: <CheckCircleOutlined />,
+  buttonText: "Activate",
+  buttonType: "default",
+  tooltip: "Activate selected items",
+  style: { color: "#52c41a", borderColor: "#52c41a" },
+  isVisible,
+  isLoading,
+  onConfirm: onActivate,
+});
+
+export const createDeactivateBulkAction = (
+  selectedCount: number,
+  isLoading: boolean,
+  onDeactivate: () => Promise<void>,
+  isVisible: boolean = true
+): BulkAction => ({
+  key: "deactivate",
+  title: "Deactivate selected items",
+  description: `Are you sure you want to deactivate ${selectedCount} selected item(s)?`,
+  icon: <StopOutlined />,
+  buttonText: "Deactivate",
+  buttonType: "default",
+  isDanger: true,
+  tooltip: "Deactivate selected items",
+  isVisible,
+  isLoading,
+  onConfirm: onDeactivate,
 });
 
 export default TableControls;
