@@ -1,5 +1,6 @@
-import { InventoryHistory } from "../../components/inventory-history";
+import React from 'react';
+import { InventoryHistoryList } from '../../components/inventory-history/InventoryHistoryList';
 
-export default function InventoryRecordManagementPage() {
-  return <InventoryHistory />;
+export default function InventoryHistoryPage() {
+  return <InventoryHistoryList />;
 }
