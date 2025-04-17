@@ -47,7 +47,7 @@ import {
   PlusOutlined,
   ExportOutlined,
   EyeOutlined,
-  EditOutlined,
+  FormOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   DeleteOutlined,
@@ -499,7 +499,7 @@ export function HealthInsuranceManagement() {
           <Tooltip title="Edit">
             <Button
               type="text"
-              icon={<EditOutlined />}
+              icon={<FormOutlined />}
               onClick={() => {
                 setSelectedInsurance(record);
                 setIsEditModalVisible(true);
@@ -587,18 +587,24 @@ export function HealthInsuranceManagement() {
       userFilter: "",
       statusFilter: "",
       validDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
-      createdDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
-      updatedDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+      createdDateRange: [null, null] as [
+        dayjs.Dayjs | null,
+        dayjs.Dayjs | null
+      ],
+      updatedDateRange: [null, null] as [
+        dayjs.Dayjs | null,
+        dayjs.Dayjs | null
+      ],
       ascending: false,
     };
-    
+
     setFilterState(resetFilters);
     setUserFilter(undefined);
     setStatusFilter(undefined);
     setAscending(false);
     setCurrentPage(1);
     setFilterModalVisible(false);
-    
+
     // Refresh data
     fetchInsurances();
   };
@@ -611,7 +617,7 @@ export function HealthInsuranceManagement() {
     setSortBy("CreatedAt");
     setAscending(false);
     setCurrentPage(1);
-    
+
     // Reset the filter state as well
     setFilterState({
       userFilter: "",
@@ -771,11 +777,19 @@ export function HealthInsuranceManagement() {
               <Button
                 icon={<UndoOutlined />}
                 onClick={handleReset}
-                disabled={!(searchText || statusFilter || userFilter || 
-                  filterState.validDateRange[0] || filterState.validDateRange[1] ||
-                  filterState.createdDateRange[0] || filterState.createdDateRange[1] ||
-                  filterState.updatedDateRange[0] || filterState.updatedDateRange[1]
-                )}
+                disabled={
+                  !(
+                    searchText ||
+                    statusFilter ||
+                    userFilter ||
+                    filterState.validDateRange[0] ||
+                    filterState.validDateRange[1] ||
+                    filterState.createdDateRange[0] ||
+                    filterState.createdDateRange[1] ||
+                    filterState.updatedDateRange[0] ||
+                    filterState.updatedDateRange[1]
+                  )
+                }
               >
                 Reset
               </Button>
@@ -994,7 +1008,7 @@ export function HealthInsuranceManagement() {
         <div>
           {selectedRowKeys.length > 0 && (
             <Space>
-              <Text>{selectedRowKeys.length} items selected</Text>
+              <Text>{selectedRowKeys.length} Items selected</Text>
               <Popconfirm
                 title="Are you sure to delete the selected insurances?"
                 onConfirm={handleBulkDelete}
@@ -1023,7 +1037,6 @@ export function HealthInsuranceManagement() {
               <Option value={10}>10</Option>
               <Option value={15}>15</Option>
               <Option value={20}>20</Option>
-
             </Select>
           </Text>
         </div>

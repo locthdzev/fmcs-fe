@@ -32,8 +32,8 @@ import {
   cancelFollowUp,
   completeHealthCheckResult,
 } from "@/api/healthcheckresult";
-import { 
-  SearchOutlined, 
+import {
+  SearchOutlined,
   CheckCircleOutlined,
   EyeOutlined,
   CloseCircleOutlined,
@@ -47,7 +47,7 @@ import {
   TagOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
 import { getUsers, UserProfile } from "@/api/user";
 import FollowUpFilterModal from "./FollowUpFilterModal";
 import PageContainer from "../shared/PageContainer";
@@ -59,13 +59,13 @@ const { RangePicker } = DatePicker;
 const { Text, Title } = Typography;
 
 const formatDate = (date: string | undefined) => {
-  if (!date) return '';
-  return moment(date).format('DD/MM/YYYY');
+  if (!date) return "";
+  return moment(date).format("DD/MM/YYYY");
 };
 
 const formatDateTime = (datetime: string | undefined) => {
-  if (!datetime) return '';
-  return moment(datetime).format('DD/MM/YYYY HH:mm:ss');
+  if (!datetime) return "";
+  return moment(datetime).format("DD/MM/YYYY HH:mm:ss");
 };
 
 const DEFAULT_VISIBLE_COLUMNS = [
@@ -79,28 +79,40 @@ const DEFAULT_VISIBLE_COLUMNS = [
 
 export const HealthCheckResultFollowUpList: React.FC = () => {
   const router = useRouter();
-  const [healthCheckResults, setHealthCheckResults] = useState<HealthCheckResultsResponseDTO[]>([]);
+  const [healthCheckResults, setHealthCheckResults] = useState<
+    HealthCheckResultsResponseDTO[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [userSearch, setUserSearch] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
-  const [checkupDateRange, setCheckupDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
-  const [followUpDateRange, setFollowUpDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+  const [checkupDateRange, setCheckupDateRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null]
+  >([null, null]);
+  const [followUpDateRange, setFollowUpDateRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null]
+  >([null, null]);
   const [sortBy, setSortBy] = useState("CheckupDate");
   const [ascending] = useState(false);
   const [followUpStatus, setFollowUpStatus] = useState<string | undefined>();
   const [codeSearch, setCodeSearch] = useState("");
-  const [userOptions, setUserOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
-  const [staffOptions, setStaffOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
+  const [userOptions, setUserOptions] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
+  const [staffOptions, setStaffOptions] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
   // Column visibility state
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
     healthCheckResultCode: true,
     patient: true,
     checkupDate: true,
@@ -142,12 +154,25 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
   const fetchHealthCheckResults = useCallback(async () => {
     setLoading(true);
     try {
-      const checkupStartDate = checkupDateRange[0] ? checkupDateRange[0].format('YYYY-MM-DD') : undefined;
-      const checkupEndDate = checkupDateRange[1] ? checkupDateRange[1].format('YYYY-MM-DD') : undefined;
-      const followUpStartDate = followUpDateRange[0] ? followUpDateRange[0].format('YYYY-MM-DD') : undefined;
-      const followUpEndDate = followUpDateRange[1] ? followUpDateRange[1].format('YYYY-MM-DD') : undefined;
+      const checkupStartDate = checkupDateRange[0]
+        ? checkupDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const checkupEndDate = checkupDateRange[1]
+        ? checkupDateRange[1].format("YYYY-MM-DD")
+        : undefined;
+      const followUpStartDate = followUpDateRange[0]
+        ? followUpDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const followUpEndDate = followUpDateRange[1]
+        ? followUpDateRange[1].format("YYYY-MM-DD")
+        : undefined;
 
-      console.log("Fetching results with sortBy:", sortBy, "ascending:", ascending);
+      console.log(
+        "Fetching results with sortBy:",
+        sortBy,
+        "ascending:",
+        ascending
+      );
 
       // Always use descending order
       const ascendingParam = false;
@@ -167,16 +192,23 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
         true,
         followUpStartDate,
         followUpEndDate,
-        followUpStatus === "overdue" ? "overdue" : 
-          followUpStatus === "today" ? "today" : 
-          followUpStatus === "upcoming" ? "upcoming" : undefined
+        followUpStatus === "overdue"
+          ? "overdue"
+          : followUpStatus === "today"
+          ? "today"
+          : followUpStatus === "upcoming"
+          ? "upcoming"
+          : undefined
       );
 
       if (response.isSuccess) {
         setHealthCheckResults(response.data);
         setTotal(response.totalRecords);
       } else {
-        messageApi.error(response.message || "Không thể tải danh sách kết quả khám cần tái khám");
+        messageApi.error(
+          response.message ||
+            "Không thể tải danh sách kết quả khám cần tái khám"
+        );
       }
     } catch (error) {
       messageApi.error("Không thể tải danh sách kết quả khám cần tái khám");
@@ -194,13 +226,13 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
     followUpDateRange,
     followUpStatus,
     codeSearch,
-    messageApi
+    messageApi,
   ]);
 
   useEffect(() => {
     fetchHealthCheckResults();
   }, [fetchHealthCheckResults]);
-  
+
   const handleCancelFollowUp = async (id: string) => {
     try {
       const response = await cancelFollowUp(id);
@@ -214,7 +246,7 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
       messageApi.error("Unable to cancel follow-up");
     }
   };
-  
+
   const handleComplete = async (id: string) => {
     try {
       const response = await completeHealthCheckResult(id);
@@ -222,7 +254,9 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
         messageApi.success("Health check result completed successfully!");
         fetchHealthCheckResults();
       } else {
-        messageApi.error(response.message || "Unable to complete health check result");
+        messageApi.error(
+          response.message || "Unable to complete health check result"
+        );
       }
     } catch (error) {
       messageApi.error("Unable to complete health check result");
@@ -283,7 +317,7 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
     setFollowUpStatus(undefined);
     setSortBy("CheckupDate");
     setCurrentPage(1);
-    
+
     // Re-fetch results with reset filters after state updates
     setTimeout(() => {
       fetchHealthCheckResults();
@@ -303,7 +337,7 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
     setSortBy(filters.sortBy);
     setCurrentPage(1);
     setFilterModalVisible(false);
-    
+
     // Re-fetch results with new filters after state updates
     setTimeout(() => {
       fetchHealthCheckResults();
@@ -324,22 +358,22 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
   // Kiểm tra xem ngày tái khám đã qua chưa
   const isFollowUpOverdue = (followUpDate: string | undefined) => {
     if (!followUpDate) return false;
-    const today = moment().startOf('day');
-    const followUp = moment(followUpDate).startOf('day');
+    const today = moment().startOf("day");
+    const followUp = moment(followUpDate).startOf("day");
     return followUp.isBefore(today);
   };
 
   // Kiểm tra xem ngày tái khám là hôm nay không
   const isFollowUpToday = (followUpDate: string | undefined) => {
     if (!followUpDate) return false;
-    const today = moment().startOf('day');
-    const followUp = moment(followUpDate).startOf('day');
+    const today = moment().startOf("day");
+    const followUp = moment(followUpDate).startOf("day");
     return followUp.isSame(today);
   };
 
   const getFollowUpStatusTag = (followUpDate: string | undefined) => {
     if (!followUpDate) return <Tag color="default">Not Scheduled</Tag>;
-    
+
     if (isFollowUpOverdue(followUpDate)) {
       return <Tag color="error">Overdue</Tag>;
     } else if (isFollowUpToday(followUpDate)) {
@@ -440,7 +474,7 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
               onClick={() => router.push(`/health-check-result/${record.id}`)}
             />
           </Tooltip>
-          
+
           <Tooltip title="Complete">
             <Button
               type="text"
@@ -449,7 +483,7 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
               className="text-green-600"
             />
           </Tooltip>
-          
+
           <Tooltip title="Cancel Follow-up">
             <Popconfirm
               title="Are you sure you want to cancel this follow-up?"
@@ -481,7 +515,7 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
 
   // Handle back navigation
   const handleBack = () => {
-    router.push('/health-check-result/management');
+    router.push("/health-check-result/management");
   };
 
   return (
@@ -547,13 +581,13 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
               >
                 Filters
                 {isFilterApplied() && (
-                  <Badge 
-                    count="•" 
-                    style={{ 
-                      backgroundColor: "#1890ff", 
+                  <Badge
+                    count="•"
+                    style={{
+                      backgroundColor: "#1890ff",
                       boxShadow: "none",
-                      marginLeft: "4px"
-                    }} 
+                      marginLeft: "4px",
+                    }}
                   />
                 )}
               </Button>
@@ -564,14 +598,16 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
               <Button
                 icon={<UndoOutlined />}
                 onClick={handleReset}
-                disabled={!(
-                  codeSearch || 
-                  followUpStatus || 
-                  checkupDateRange[0] || 
-                  checkupDateRange[1] || 
-                  followUpDateRange[0] || 
-                  followUpDateRange[1]
-                )}
+                disabled={
+                  !(
+                    codeSearch ||
+                    followUpStatus ||
+                    checkupDateRange[0] ||
+                    checkupDateRange[1] ||
+                    followUpDateRange[0] ||
+                    followUpDateRange[1]
+                  )
+                }
               >
                 Reset
               </Button>
@@ -605,7 +641,9 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
                         <Checkbox
                           checked={columnVisibility.healthCheckResultCode}
                           onChange={() =>
-                            handleColumnVisibilityChange("healthCheckResultCode")
+                            handleColumnVisibilityChange(
+                              "healthCheckResultCode"
+                            )
                           }
                         >
                           Result Code
@@ -726,7 +764,7 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
         <div>
           {selectedRowKeys.length > 0 && (
             <Space>
-              <Text>{selectedRowKeys.length} items selected</Text>
+              <Text>{selectedRowKeys.length} Items selected</Text>
               <Popconfirm
                 title="Are you sure to cancel the selected follow-ups?"
                 onConfirm={handleBulkCancel}
@@ -774,7 +812,9 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
             onChange: (keys) => setSelectedRowKeys(keys),
           }}
           locale={{
-            emptyText: <Empty description="No follow-up required results found" />,
+            emptyText: (
+              <Empty description="No follow-up required results found" />
+            ),
           }}
           className="border rounded-lg"
         />
@@ -806,4 +846,4 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
       />
     </PageContainer>
   );
-}; 
+};

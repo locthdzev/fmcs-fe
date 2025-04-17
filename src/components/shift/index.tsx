@@ -44,7 +44,7 @@ import {
   SearchOutlined,
   SettingOutlined,
   ExportOutlined,
-  EditOutlined,
+  FormOutlined,
   DeleteOutlined,
   FilterOutlined,
   ArrowLeftOutlined,
@@ -68,18 +68,21 @@ const { Text, Title } = Typography;
 export function ShiftManagement() {
   const [shifts, setShifts] = useState<ShiftResponse[]>([]);
   const [loading, setLoading] = useState(false);
-  const [statusLoading, setStatusLoading] = useState<{ [key: string]: boolean }>({});
+  const [statusLoading, setStatusLoading] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [currentShift, setCurrentShift] = useState<ShiftResponse | null>(null);
-  const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
+  const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] =
+    useState(false);
   const [shiftToDelete, setShiftToDelete] = useState<string | null>(null);
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
-  
+
   // Filters
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
@@ -90,7 +93,9 @@ export function ShiftManagement() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Column visibility state
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
     shiftName: true,
     startTime: true,
     endTime: true,
@@ -119,22 +124,22 @@ export function ShiftManagement() {
 
   const filteredShifts = React.useMemo(() => {
     if (!shifts) return [];
-    
+
     let filtered = [...shifts];
-    
+
     // Apply search text filter
     if (searchText) {
       const normalizedSearch = searchText.toLowerCase();
-      filtered = filtered.filter(shift => 
+      filtered = filtered.filter((shift) =>
         shift.shiftName.toLowerCase().includes(normalizedSearch)
       );
     }
-    
+
     // Apply status filter
     if (statusFilter) {
-      filtered = filtered.filter(shift => shift.status === statusFilter);
+      filtered = filtered.filter((shift) => shift.status === statusFilter);
     }
-    
+
     // Apply sorting
     filtered.sort((a, b) => {
       let comparison = 0;
@@ -147,7 +152,7 @@ export function ShiftManagement() {
       }
       return ascending ? comparison : -comparison;
     });
-    
+
     return filtered;
   }, [shifts, searchText, statusFilter, sortBy, ascending]);
 
@@ -287,44 +292,67 @@ export function ShiftManagement() {
   const ALL_COLUMNS = [
     {
       key: "shiftName",
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>SHIFT NAME</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          SHIFT NAME
+        </span>
+      ),
       dataIndex: "shiftName",
       visible: columnVisibility.shiftName,
     },
     {
       key: "startTime",
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>START TIME</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          START TIME
+        </span>
+      ),
       dataIndex: "startTime",
       render: (startTime: string) => startTime.slice(0, 5),
       visible: columnVisibility.startTime,
     },
     {
       key: "endTime",
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>END TIME</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          END TIME
+        </span>
+      ),
       dataIndex: "endTime",
       render: (endTime: string) => endTime.slice(0, 5),
       visible: columnVisibility.endTime,
     },
     {
       key: "totalTime",
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>TOTAL TIME</span>,
-      render: (_: any, record: ShiftResponse) => calculateTotalHours(record.startTime, record.endTime),
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          TOTAL TIME
+        </span>
+      ),
+      render: (_: any, record: ShiftResponse) =>
+        calculateTotalHours(record.startTime, record.endTime),
       visible: columnVisibility.totalTime,
     },
     {
       key: "status",
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>STATUS</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          STATUS
+        </span>
+      ),
       dataIndex: "status",
       render: (status: string) => (
-        <Tag color={status === "Active" ? "success" : "error"}>
-          {status}
-        </Tag>
+        <Tag color={status === "Active" ? "success" : "error"}>{status}</Tag>
       ),
       visible: columnVisibility.status,
     },
     {
       key: "toggle",
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>TOGGLE</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          TOGGLE
+        </span>
+      ),
       render: (_: any, record: ShiftResponse) => (
         <Switch
           checked={record.status === "Active"}
@@ -336,13 +364,17 @@ export function ShiftManagement() {
     },
     {
       key: "actions",
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>ACTIONS</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          ACTIONS
+        </span>
+      ),
       render: (_: any, record: ShiftResponse) => (
         <Space>
           <Tooltip title="Edit">
             <Button
               type="text"
-              icon={<EditOutlined />}
+              icon={<FormOutlined />}
               onClick={() => handleShowEditModal(record)}
             />
           </Tooltip>
@@ -360,12 +392,12 @@ export function ShiftManagement() {
     },
   ];
 
-  const columns = ALL_COLUMNS.filter(col => col.visible);
+  const columns = ALL_COLUMNS.filter((col) => col.visible);
 
   return (
     <div className="p-6">
       {contextHolder}
-      
+
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -435,7 +467,14 @@ export function ShiftManagement() {
               <Button
                 icon={<UndoOutlined />}
                 onClick={handleReset}
-                disabled={!(searchText || statusFilter || sortBy !== "shiftName" || !ascending)}
+                disabled={
+                  !(
+                    searchText ||
+                    statusFilter ||
+                    sortBy !== "shiftName" ||
+                    !ascending
+                  )
+                }
               >
                 Reset
               </Button>
@@ -468,7 +507,9 @@ export function ShiftManagement() {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.shiftName}
-                          onChange={() => handleColumnVisibilityChange("shiftName")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("shiftName")
+                          }
                         >
                           Shift Name
                         </Checkbox>
@@ -481,7 +522,9 @@ export function ShiftManagement() {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.startTime}
-                          onChange={() => handleColumnVisibilityChange("startTime")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("startTime")
+                          }
                         >
                           Start Time
                         </Checkbox>
@@ -494,7 +537,9 @@ export function ShiftManagement() {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.endTime}
-                          onChange={() => handleColumnVisibilityChange("endTime")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("endTime")
+                          }
                         >
                           End Time
                         </Checkbox>
@@ -507,7 +552,9 @@ export function ShiftManagement() {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.totalTime}
-                          onChange={() => handleColumnVisibilityChange("totalTime")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("totalTime")
+                          }
                         >
                           Total Time
                         </Checkbox>
@@ -520,7 +567,9 @@ export function ShiftManagement() {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.status}
-                          onChange={() => handleColumnVisibilityChange("status")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("status")
+                          }
                         >
                           Status
                         </Checkbox>
@@ -533,7 +582,9 @@ export function ShiftManagement() {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.toggle}
-                          onChange={() => handleColumnVisibilityChange("toggle")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("toggle")
+                          }
                         >
                           Toggle
                         </Checkbox>
@@ -546,7 +597,9 @@ export function ShiftManagement() {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.actions}
-                          onChange={() => handleColumnVisibilityChange("actions")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("actions")
+                          }
                         >
                           Actions
                         </Checkbox>
@@ -583,7 +636,6 @@ export function ShiftManagement() {
             </Button>
           </div>
         </div>
-
       </Card>
 
       {/* Selection Actions and Rows per page */}
@@ -592,7 +644,7 @@ export function ShiftManagement() {
         <div>
           {selectedRowKeys.length > 0 && (
             <Space>
-              <Text>{selectedRowKeys.length} items selected</Text>
+              <Text>{selectedRowKeys.length} Items selected</Text>
               <Popconfirm
                 title="Are you sure to delete the selected shifts?"
                 onConfirm={handleBulkDelete}
@@ -668,7 +720,8 @@ export function ShiftManagement() {
                       if (
                         value &&
                         Number(value) > 0 &&
-                        Number(value) <= Math.ceil(filteredShifts.length / pageSize)
+                        Number(value) <=
+                          Math.ceil(filteredShifts.length / pageSize)
                       ) {
                         setCurrentPage(Number(value));
                       }
@@ -705,8 +758,15 @@ export function ShiftManagement() {
         open={isConfirmDeleteModalOpen}
         onCancel={() => setIsConfirmDeleteModalOpen(false)}
         footer={[
-          <Button key="cancel" onClick={() => setIsConfirmDeleteModalOpen(false)}>Cancel</Button>,
-          <Button key="delete" type="primary" onClick={handleDeleteShift}>Delete</Button>
+          <Button
+            key="cancel"
+            onClick={() => setIsConfirmDeleteModalOpen(false)}
+          >
+            Cancel
+          </Button>,
+          <Button key="delete" type="primary" onClick={handleDeleteShift}>
+            Delete
+          </Button>,
         ]}
       >
         <p>Are you sure you want to delete this shift?</p>

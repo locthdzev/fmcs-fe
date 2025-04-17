@@ -12,14 +12,20 @@ import {
   Divider,
 } from "antd";
 import dayjs from "dayjs";
-import { getDrugGroupById, DrugGroupResponse, DrugGroupExportConfig } from "@/api/druggroup";
+import {
+  getDrugGroupById,
+  DrugGroupResponse,
+  DrugGroupExportConfig,
+} from "@/api/druggroup";
 import {
   ArrowLeftOutlined,
-  EditOutlined,
+  FormOutlined,
   FileExcelOutlined,
 } from "@ant-design/icons";
 import { DrugGroupIcon } from "./Icons";
-import ExportConfigModal, { DrugGroupExportConfigWithUI } from "./ExportConfigModal";
+import ExportConfigModal, {
+  DrugGroupExportConfigWithUI,
+} from "./ExportConfigModal";
 import { DrugGroupAdvancedFilters } from "./DrugGroupFilterModal";
 
 const { Text } = Typography;
@@ -29,29 +35,36 @@ interface DrugGroupDetailsProps {
   initialData?: DrugGroupResponse | null;
 }
 
-export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({ id, initialData }) => {
+export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
+  id,
+  initialData,
+}) => {
   const router = useRouter();
-  const [drugGroup, setDrugGroup] = useState<DrugGroupResponse | null>(initialData || null);
+  const [drugGroup, setDrugGroup] = useState<DrugGroupResponse | null>(
+    initialData || null
+  );
   const [loading, setLoading] = useState(!initialData);
   const [messageApi, contextHolder] = message.useMessage();
   const [exportModalVisible, setExportModalVisible] = useState(false);
-  const [exportConfig, setExportConfig] = useState<DrugGroupExportConfigWithUI>({
-    exportAllPages: false,
-    includeGroupName: true,
-    includeDescription: true,
-    includeCreatedAt: true,
-    includeUpdatedAt: true,
-    includeStatus: true,
-  });
+  const [exportConfig, setExportConfig] = useState<DrugGroupExportConfigWithUI>(
+    {
+      exportAllPages: false,
+      includeGroupName: true,
+      includeDescription: true,
+      includeCreatedAt: true,
+      includeUpdatedAt: true,
+      includeStatus: true,
+    }
+  );
 
   useEffect(() => {
     console.log("DrugGroupDetails component mounted with id:", id);
     console.log("Initial data provided:", initialData);
-    
+
     if (!initialData) {
       if (id) {
         fetchData();
-      } else if (router.query.id && typeof router.query.id === 'string') {
+      } else if (router.query.id && typeof router.query.id === "string") {
         // Fallback for older component usage without explicit id prop
         fetchData(router.query.id);
       }
@@ -61,18 +74,18 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({ id, initialD
   const fetchData = async (dataId?: string) => {
     const idToUse = dataId || id;
     if (!idToUse) return;
-    
+
     setLoading(true);
     try {
       console.log("Fetching drug group with ID:", idToUse);
       const response = await getDrugGroupById(idToUse);
       console.log("API Response:", response);
-      
+
       // Kiểm tra cấu trúc dữ liệu trả về từ API
       let groupData;
       if (response && response.data) {
         groupData = response.data;
-      } else if (response && typeof response === 'object') {
+      } else if (response && typeof response === "object") {
         groupData = response;
       } else {
         console.error("Unexpected API response structure:", response);
@@ -80,7 +93,7 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({ id, initialD
         setDrugGroup(null);
         return;
       }
-      
+
       console.log("Processed Drug Group Data:", groupData);
       setDrugGroup(groupData);
     } catch (error) {
@@ -92,8 +105,10 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({ id, initialD
     }
   };
 
-  const handleExportConfigChange = (values: Partial<DrugGroupExportConfigWithUI>) => {
-    setExportConfig(prev => ({ ...prev, ...values }));
+  const handleExportConfigChange = (
+    values: Partial<DrugGroupExportConfigWithUI>
+  ) => {
+    setExportConfig((prev) => ({ ...prev, ...values }));
   };
 
   const formatDate = (dateString: string | undefined) => {
@@ -115,18 +130,18 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({ id, initialD
       <div className="p-4">
         {contextHolder}
         <div className="flex items-center gap-2 mb-4">
-            <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.push("/drug-group")}
-                style={{ marginRight: "8px" }}
-            >
-                Back
-            </Button>
-            <DrugGroupIcon />
-            <h3 className="text-xl font-bold">Drug Group Not Found</h3>
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.push("/drug-group")}
+            style={{ marginRight: "8px" }}
+          >
+            Back
+          </Button>
+          <DrugGroupIcon />
+          <h3 className="text-xl font-bold">Drug Group Not Found</h3>
         </div>
         <Card>
-           <Text>The requested drug group could not be found or loaded.</Text>
+          <Text>The requested drug group could not be found or loaded.</Text>
         </Card>
       </div>
     );
@@ -143,8 +158,8 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({ id, initialD
 
       <div className="flex justify-between items-center p-4 border-b">
         <div className="flex items-center gap-2">
-          <Button 
-            icon={<ArrowLeftOutlined />} 
+          <Button
+            icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/drug-group")}
           >
             Back
@@ -153,11 +168,12 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({ id, initialD
           <span className="text-xl font-bold">Drug Group Details</span>
         </div>
         <div className="space-x-2">
-
-          <Button 
-            type="primary" 
-            icon={<EditOutlined />}
-            onClick={() => router.push(`/drug-group/edit/${id || router.query.id}`)}
+          <Button
+            type="primary"
+            icon={<FormOutlined />}
+            onClick={() =>
+              router.push(`/drug-group/edit/${id || router.query.id}`)
+            }
           >
             Edit Group
           </Button>
@@ -172,7 +188,7 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({ id, initialD
               {drugGroup.status?.toUpperCase()}
             </Tag>
           </div>
-          
+
           <Row gutter={[24, 24]}>
             <Col xs={24} md={12}>
               <div className="border rounded p-4">
@@ -180,11 +196,13 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({ id, initialD
                 <div className="font-medium">{drugGroup.groupName}</div>
               </div>
             </Col>
-            
+
             <Col xs={24} md={12}>
               <div className="border rounded p-4">
                 <div className="text-gray-500 text-sm mb-1">Description</div>
-                <div className="font-medium">{drugGroup.description || "-"}</div>
+                <div className="font-medium">
+                  {drugGroup.description || "-"}
+                </div>
               </div>
             </Col>
 
@@ -202,14 +220,18 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({ id, initialD
             <Col xs={24} md={12}>
               <div className="border rounded p-4">
                 <div className="text-gray-500 text-sm mb-1">Created At</div>
-                <div className="font-medium">{formatDate(drugGroup.createdAt)}</div>
+                <div className="font-medium">
+                  {formatDate(drugGroup.createdAt)}
+                </div>
               </div>
             </Col>
-            
+
             <Col xs={24} md={12}>
               <div className="border rounded p-4">
                 <div className="text-gray-500 text-sm mb-1">Updated At</div>
-                <div className="font-medium">{formatDate(drugGroup.updatedAt)}</div>
+                <div className="font-medium">
+                  {formatDate(drugGroup.updatedAt)}
+                </div>
               </div>
             </Col>
           </Row>
@@ -225,9 +247,15 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({ id, initialD
           filterValue: drugGroup.groupName || "",
           statusFilter: drugGroup.status ? [drugGroup.status] : [],
           advancedFilters: {
-            createdDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
-            updatedDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
-            ascending: true
+            createdDateRange: [null, null] as [
+              dayjs.Dayjs | null,
+              dayjs.Dayjs | null
+            ],
+            updatedDateRange: [null, null] as [
+              dayjs.Dayjs | null,
+              dayjs.Dayjs | null
+            ],
+            ascending: true,
           },
           currentPage: 1,
           pageSize: 10,

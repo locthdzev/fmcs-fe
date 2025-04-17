@@ -23,7 +23,7 @@ import {
   Form,
   message,
   InputNumber,
-  Modal
+  Modal,
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -32,10 +32,10 @@ import {
   HealthCheckResultsResponseDTO,
   approveHealthCheckResult,
   cancelCompletelyHealthCheckResult,
-  cancelForAdjustmentHealthCheckResult
+  cancelForAdjustmentHealthCheckResult,
 } from "@/api/healthcheckresult";
-import { 
-  SearchOutlined, 
+import {
+  SearchOutlined,
   CheckCircleOutlined,
   EyeOutlined,
   CloseCircleOutlined,
@@ -46,9 +46,9 @@ import {
   SettingOutlined,
   AppstoreOutlined,
   TagOutlined,
-  FileExcelOutlined
+  FileExcelOutlined,
 } from "@ant-design/icons";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -172,9 +172,7 @@ const HealthCheckFilterModal: React.FC<HealthCheckFilterModalProps> = ({
                 format="DD/MM/YYYY"
                 allowClear
                 value={localFilters.checkupDateRange as any}
-                onChange={(dates) =>
-                  updateFilter("checkupDateRange", dates)
-                }
+                onChange={(dates) => updateFilter("checkupDateRange", dates)}
               />
             </div>
           </Col>
@@ -191,9 +189,7 @@ const HealthCheckFilterModal: React.FC<HealthCheckFilterModalProps> = ({
                 format="DD/MM/YYYY"
                 allowClear
                 value={localFilters.followUpDateRange as any}
-                onChange={(dates) =>
-                  updateFilter("followUpDateRange", dates)
-                }
+                onChange={(dates) => updateFilter("followUpDateRange", dates)}
               />
             </div>
           </Col>
@@ -209,11 +205,19 @@ const HealthCheckFilterModal: React.FC<HealthCheckFilterModalProps> = ({
               <Select
                 placeholder="Select follow-up status"
                 style={{ width: "100%" }}
-                value={localFilters.followUpRequired === undefined 
-                  ? undefined 
-                  : (localFilters.followUpRequired ? "yes" : "no")}
-                onChange={(value) => updateFilter("followUpRequired", 
-                  value === undefined ? undefined : value === "yes")}
+                value={
+                  localFilters.followUpRequired === undefined
+                    ? undefined
+                    : localFilters.followUpRequired
+                    ? "yes"
+                    : "no"
+                }
+                onChange={(value) =>
+                  updateFilter(
+                    "followUpRequired",
+                    value === undefined ? undefined : value === "yes"
+                  )
+                }
                 allowClear
               >
                 <Option value="yes">Yes</Option>
@@ -221,7 +225,7 @@ const HealthCheckFilterModal: React.FC<HealthCheckFilterModalProps> = ({
               </Select>
             </div>
           </Col>
-          
+
           {/* Sort By */}
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
@@ -240,7 +244,7 @@ const HealthCheckFilterModal: React.FC<HealthCheckFilterModalProps> = ({
             </div>
           </Col>
         </Row>
-        
+
         <Row gutter={16}>
           {/* Order */}
           <Col span={12}>
@@ -266,27 +270,35 @@ const HealthCheckFilterModal: React.FC<HealthCheckFilterModalProps> = ({
 };
 
 const formatDate = (date: string | undefined) => {
-  if (!date) return '';
-  return moment(date).format('DD/MM/YYYY');
+  if (!date) return "";
+  return moment(date).format("DD/MM/YYYY");
 };
 
 const formatDateTime = (datetime: string | undefined) => {
-  if (!datetime) return '';
-  return moment(datetime).format('DD/MM/YYYY HH:mm:ss');
+  if (!datetime) return "";
+  return moment(datetime).format("DD/MM/YYYY HH:mm:ss");
 };
 
 export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
   const router = useRouter();
-  const [healthCheckResults, setHealthCheckResults] = useState<HealthCheckResultsResponseDTO[]>([]);
+  const [healthCheckResults, setHealthCheckResults] = useState<
+    HealthCheckResultsResponseDTO[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [userSearch, setUserSearch] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
-  const [checkupDateRange, setCheckupDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
-  const [followUpRequired, setFollowUpRequired] = useState<boolean | undefined>();
-  const [followUpDateRange, setFollowUpDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
+  const [checkupDateRange, setCheckupDateRange] = useState<
+    [moment.Moment | null, moment.Moment | null]
+  >([null, null]);
+  const [followUpRequired, setFollowUpRequired] = useState<
+    boolean | undefined
+  >();
+  const [followUpDateRange, setFollowUpDateRange] = useState<
+    [moment.Moment | null, moment.Moment | null]
+  >([null, null]);
   const [sortBy, setSortBy] = useState("CheckupDate");
   const [ascending, setAscending] = useState(false);
   const [codeSearch, setCodeSearch] = useState("");
@@ -296,7 +308,9 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
   // Column visibility state
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
     healthCheckResultCode: true,
     patient: true,
     checkupDate: true,
@@ -308,10 +322,18 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
   const fetchHealthCheckResults = useCallback(async () => {
     setLoading(true);
     try {
-      const checkupStartDate = checkupDateRange[0] ? checkupDateRange[0].format('YYYY-MM-DD') : undefined;
-      const checkupEndDate = checkupDateRange[1] ? checkupDateRange[1].format('YYYY-MM-DD') : undefined;
-      const followUpStartDate = followUpDateRange[0] ? followUpDateRange[0].format('YYYY-MM-DD') : undefined;
-      const followUpEndDate = followUpDateRange[1] ? followUpDateRange[1].format('YYYY-MM-DD') : undefined;
+      const checkupStartDate = checkupDateRange[0]
+        ? checkupDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const checkupEndDate = checkupDateRange[1]
+        ? checkupDateRange[1].format("YYYY-MM-DD")
+        : undefined;
+      const followUpStartDate = followUpDateRange[0]
+        ? followUpDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const followUpEndDate = followUpDateRange[1]
+        ? followUpDateRange[1].format("YYYY-MM-DD")
+        : undefined;
 
       const response = await getAllHealthCheckResults(
         currentPage,
@@ -333,10 +355,15 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
         setHealthCheckResults(response.data);
         setTotal(response.totalRecords);
       } else {
-        messageApi.error(response.message || "Failed to load health check results waiting for approval");
+        messageApi.error(
+          response.message ||
+            "Failed to load health check results waiting for approval"
+        );
       }
     } catch (error) {
-      messageApi.error("Failed to load health check results waiting for approval");
+      messageApi.error(
+        "Failed to load health check results waiting for approval"
+      );
     } finally {
       setLoading(false);
     }
@@ -351,13 +378,13 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
     followUpRequired,
     followUpDateRange,
     codeSearch,
-    messageApi
+    messageApi,
   ]);
 
   useEffect(() => {
     fetchHealthCheckResults();
   }, [fetchHealthCheckResults]);
-  
+
   const handleApprove = async (id: string) => {
     try {
       const response = await approveHealthCheckResult(id);
@@ -365,13 +392,15 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
         messageApi.success("Health check result has been approved!");
         fetchHealthCheckResults();
       } else {
-        messageApi.error(response.message || "Failed to approve health check result");
+        messageApi.error(
+          response.message || "Failed to approve health check result"
+        );
       }
     } catch (error) {
       messageApi.error("Failed to approve health check result");
     }
   };
-  
+
   const handleCancel = async (id: string, reason: string) => {
     try {
       const response = await cancelCompletelyHealthCheckResult(id, reason);
@@ -379,21 +408,28 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
         messageApi.success("Health check result has been cancelled!");
         fetchHealthCheckResults();
       } else {
-        messageApi.error(response.message || "Failed to cancel health check result");
+        messageApi.error(
+          response.message || "Failed to cancel health check result"
+        );
       }
     } catch (error) {
       messageApi.error("Failed to cancel health check result");
     }
   };
-  
+
   const handleCancelForAdjustment = async (id: string, reason: string) => {
     try {
       const response = await cancelForAdjustmentHealthCheckResult(id, reason);
       if (response.isSuccess) {
-        messageApi.success("Health check result has been cancelled for adjustment!");
+        messageApi.success(
+          "Health check result has been cancelled for adjustment!"
+        );
         fetchHealthCheckResults();
       } else {
-        messageApi.error(response.message || "Failed to cancel health check result for adjustment");
+        messageApi.error(
+          response.message ||
+            "Failed to cancel health check result for adjustment"
+        );
       }
     } catch (error) {
       messageApi.error("Failed to cancel health check result for adjustment");
@@ -544,12 +580,19 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
         </span>
       ),
       dataIndex: "followUpRequired",
-      render: (followUpRequired: boolean, record: HealthCheckResultsResponseDTO) => (
+      render: (
+        followUpRequired: boolean,
+        record: HealthCheckResultsResponseDTO
+      ) => (
         <Space direction="vertical" size={0}>
           {followUpRequired ? (
             <>
               <Badge status="processing" text="Follow-up Required" />
-              <Text>{record.followUpDate ? formatDate(record.followUpDate) : 'Not scheduled yet'}</Text>
+              <Text>
+                {record.followUpDate
+                  ? formatDate(record.followUpDate)
+                  : "Not scheduled yet"}
+              </Text>
             </>
           ) : (
             <Badge status="default" text="No Follow-up Required" />
@@ -574,7 +617,7 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
               onClick={() => router.push(`/health-check-result/${record.id}`)}
             />
           </Tooltip>
-          
+
           <Tooltip title="Approve">
             <Button
               type="text"
@@ -583,12 +626,12 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
               className="text-green-600"
             />
           </Tooltip>
-          
+
           <Tooltip title="Cancel">
             <Popconfirm
               title="Enter reason for cancellation"
               description={
-                <TextArea 
+                <TextArea
                   placeholder="Reason for cancellation"
                   onChange={(e) => {
                     (e.target as any).reason = e.target.value;
@@ -611,12 +654,12 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
               />
             </Popconfirm>
           </Tooltip>
-          
+
           <Tooltip title="Cancel for Adjustment">
             <Popconfirm
               title="Enter reason for adjustment"
               description={
-                <TextArea 
+                <TextArea
                   placeholder="Reason for adjustment"
                   onChange={(e) => {
                     (e.target as any).reason = e.target.value;
@@ -655,14 +698,16 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-              <Button 
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.push('/health-check-result/management')}
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.push("/health-check-result/management")}
             style={{ marginRight: "8px" }}
-              >
-                Back
-              </Button>
-          <h3 className="text-xl font-bold">Health Check Results Waiting for Approval</h3>
+          >
+            Back
+          </Button>
+          <h3 className="text-xl font-bold">
+            Health Check Results Waiting for Approval
+          </h3>
         </div>
       </div>
 
@@ -687,28 +732,36 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Code Search */}
-              <Input
+            <Input
               placeholder="Search by result code"
-                value={codeSearch}
-                onChange={(e) => setCodeSearch(e.target.value)}
-                prefix={<SearchOutlined />}
-                style={{ width: 200 }}
-                allowClear
-              />
+              value={codeSearch}
+              onChange={(e) => setCodeSearch(e.target.value)}
+              prefix={<SearchOutlined />}
+              style={{ width: 200 }}
+              allowClear
+            />
 
             {/* Advanced Filters Button */}
             <Tooltip title="Advanced Filters">
               <Button
-                icon={<FilterOutlined 
-                  style={{
-                    color:
-                      userSearch || staffSearch ||
-                      checkupDateRange[0] || checkupDateRange[1] ||
-                      followUpDateRange[0] || followUpDateRange[1] ||
-                      followUpRequired !== undefined ||
-                      sortBy !== "CheckupDate" || ascending !== false ? "#1890ff" : undefined,
-                  }}
-                />}
+                icon={
+                  <FilterOutlined
+                    style={{
+                      color:
+                        userSearch ||
+                        staffSearch ||
+                        checkupDateRange[0] ||
+                        checkupDateRange[1] ||
+                        followUpDateRange[0] ||
+                        followUpDateRange[1] ||
+                        followUpRequired !== undefined ||
+                        sortBy !== "CheckupDate" ||
+                        ascending !== false
+                          ? "#1890ff"
+                          : undefined,
+                    }}
+                  />
+                }
                 onClick={handleOpenFilterModal}
               >
                 Filters
@@ -720,11 +773,20 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
               <Button
                 icon={<UndoOutlined />}
                 onClick={handleReset}
-                disabled={!(codeSearch || userSearch || staffSearch || 
-                  checkupDateRange[0] || checkupDateRange[1] ||
-                  followUpRequired !== undefined ||
-                  followUpDateRange[0] || followUpDateRange[1] ||
-                  sortBy !== "CheckupDate" || ascending !== false)}
+                disabled={
+                  !(
+                    codeSearch ||
+                    userSearch ||
+                    staffSearch ||
+                    checkupDateRange[0] ||
+                    checkupDateRange[1] ||
+                    followUpRequired !== undefined ||
+                    followUpDateRange[0] ||
+                    followUpDateRange[1] ||
+                    sortBy !== "CheckupDate" ||
+                    ascending !== false
+                  )
+                }
               >
                 Reset
               </Button>
@@ -758,7 +820,9 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
                         <Checkbox
                           checked={columnVisibility.healthCheckResultCode}
                           onChange={() =>
-                            handleColumnVisibilityChange("healthCheckResultCode")
+                            handleColumnVisibilityChange(
+                              "healthCheckResultCode"
+                            )
                           }
                         >
                           Result Code
@@ -884,10 +948,10 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
         <div>
           {selectedRowKeys.length > 0 && (
             <Space>
-              <Text>{selectedRowKeys.length} items selected</Text>
-              <Button 
-                type="primary" 
-                icon={<CheckCircleOutlined />} 
+              <Text>{selectedRowKeys.length} Items selected</Text>
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
                 onClick={() => {
                   // This is a placeholder - you would need to implement a bulk approve API
                   // For now, we'll approve them one by one
@@ -896,9 +960,11 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
                     handleApprove(id as string);
                     successCount++;
                   }
-                  
+
                   if (successCount > 0) {
-                    messageApi.success(`${successCount} health check results have been approved!`);
+                    messageApi.success(
+                      `${successCount} health check results have been approved!`
+                    );
                     setSelectedRowKeys([]);
                     fetchHealthCheckResults();
                   }
@@ -946,22 +1012,24 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
           }}
           className="border rounded-lg"
           locale={{
-            emptyText: <Empty description="No health check results waiting for approval" />,
+            emptyText: (
+              <Empty description="No health check results waiting for approval" />
+            ),
           }}
         />
 
         {/* Bottom Pagination */}
-      <Card className="mt-4 shadow-sm">
+        <Card className="mt-4 shadow-sm">
           <Row justify="center" align="middle">
             <Space size="large" align="center">
               <Text type="secondary">Total {total} items</Text>
               <Space align="center" size="large">
-            <Pagination
-              current={currentPage}
-              pageSize={pageSize}
-              total={total}
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={total}
                   onChange={(page) => {
-                setCurrentPage(page);
+                    setCurrentPage(page);
                   }}
                   showSizeChanger={false}
                   showTotal={() => ""}
@@ -986,7 +1054,7 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
                 </Space>
               </Space>
             </Space>
-        </Row>
+          </Row>
         </Card>
       </Card>
 
@@ -1003,9 +1071,9 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
           followUpRequired,
           followUpDateRange,
           sortBy,
-          ascending
+          ascending,
         }}
       />
     </div>
   );
-}; 
+};

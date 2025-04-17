@@ -21,17 +21,17 @@ import {
   Checkbox,
   Modal,
   Form,
-  InputNumber
+  InputNumber,
 } from "antd";
 import { toast } from "react-toastify";
 import moment from "moment";
 import {
   getAllHealthCheckResults,
-  HealthCheckResultsResponseDTO
+  HealthCheckResultsResponseDTO,
 } from "@/api/healthcheckresult";
-import { 
-  SearchOutlined, 
-  EditOutlined,
+import {
+  SearchOutlined,
+  FormOutlined,
   EyeOutlined,
   ArrowLeftOutlined,
   InfoCircleOutlined,
@@ -39,9 +39,9 @@ import {
   FilterOutlined,
   UndoOutlined,
   FileExcelOutlined,
-  AppstoreOutlined
+  AppstoreOutlined,
 } from "@ant-design/icons";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
 import EditModal from "./EditModal";
 import { getUsers } from "@/api/user";
 
@@ -50,13 +50,13 @@ const { RangePicker } = DatePicker;
 const { Title, Text, Paragraph } = Typography;
 
 const formatDate = (date: string | undefined) => {
-  if (!date) return '';
-  return moment(date).format('DD/MM/YYYY');
+  if (!date) return "";
+  return moment(date).format("DD/MM/YYYY");
 };
 
 const formatDateTime = (datetime: string | undefined) => {
-  if (!datetime) return '';
-  return moment(datetime).format('DD/MM/YYYY HH:mm:ss');
+  if (!datetime) return "";
+  return moment(datetime).format("DD/MM/YYYY HH:mm:ss");
 };
 
 // Filter Modal Component
@@ -72,13 +72,7 @@ const HealthCheckFilterModal: React.FC<{
     sortBy: string;
     ascending: boolean;
   };
-}> = ({
-  visible,
-  onCancel,
-  onApply,
-  onReset,
-  filters,
-}) => {
+}> = ({ visible, onCancel, onApply, onReset, filters }) => {
   const [localFilters, setLocalFilters] = useState(filters);
 
   // Reset localFilters when modal is opened with new filters
@@ -140,7 +134,7 @@ const HealthCheckFilterModal: React.FC<{
               />
             </div>
           </Col>
-          
+
           {/* Medical Staff Search */}
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
@@ -171,13 +165,11 @@ const HealthCheckFilterModal: React.FC<{
                 placeholder={["From checkup date", "To checkup date"]}
                 allowClear
                 value={localFilters.checkupDateRange as any}
-                onChange={(dates) =>
-                  updateFilter("checkupDateRange", dates)
-                }
+                onChange={(dates) => updateFilter("checkupDateRange", dates)}
               />
             </div>
           </Col>
-          
+
           {/* Sort By */}
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
@@ -197,7 +189,7 @@ const HealthCheckFilterModal: React.FC<{
             </div>
           </Col>
         </Row>
-        
+
         <Row gutter={16}>
           {/* Order */}
           <Col span={12}>
@@ -224,26 +216,37 @@ const HealthCheckFilterModal: React.FC<{
 
 export const HealthCheckResultAdjustmentList: React.FC = () => {
   const router = useRouter();
-  const [healthCheckResults, setHealthCheckResults] = useState<HealthCheckResultsResponseDTO[]>([]);
+  const [healthCheckResults, setHealthCheckResults] = useState<
+    HealthCheckResultsResponseDTO[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [userSearch, setUserSearch] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
-  const [checkupDateRange, setCheckupDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
+  const [checkupDateRange, setCheckupDateRange] = useState<
+    [moment.Moment | null, moment.Moment | null]
+  >([null, null]);
   const [sortBy, setSortBy] = useState("CancelledDate");
   const [ascending, setAscending] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [currentResult, setCurrentResult] = useState<HealthCheckResultsResponseDTO | null>(null);
-  const [userOptions, setUserOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
-  const [staffOptions, setStaffOptions] = useState<{ id: string; fullName: string; email: string }[]>([]);
+  const [currentResult, setCurrentResult] =
+    useState<HealthCheckResultsResponseDTO | null>(null);
+  const [userOptions, setUserOptions] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
+  const [staffOptions, setStaffOptions] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
   const [codeSearch, setCodeSearch] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
-  
+
   // Add column visibility state
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
     code: true,
     patient: true,
     checkupDate: true,
@@ -256,8 +259,12 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
   const fetchHealthCheckResults = useCallback(async () => {
     setLoading(true);
     try {
-      const checkupStartDate = checkupDateRange[0] ? checkupDateRange[0].format('YYYY-MM-DD') : undefined;
-      const checkupEndDate = checkupDateRange[1] ? checkupDateRange[1].format('YYYY-MM-DD') : undefined;
+      const checkupStartDate = checkupDateRange[0]
+        ? checkupDateRange[0].format("YYYY-MM-DD")
+        : undefined;
+      const checkupEndDate = checkupDateRange[1]
+        ? checkupDateRange[1].format("YYYY-MM-DD")
+        : undefined;
 
       const response = await getAllHealthCheckResults(
         currentPage,
@@ -276,10 +283,15 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         setHealthCheckResults(response.data);
         setTotal(response.totalRecords);
       } else {
-        toast.error(response.message || "Failed to load health check results cancelled for adjustment");
+        toast.error(
+          response.message ||
+            "Failed to load health check results cancelled for adjustment"
+        );
       }
     } catch (error) {
-      toast.error("Failed to load health check results cancelled for adjustment");
+      toast.error(
+        "Failed to load health check results cancelled for adjustment"
+      );
     } finally {
       setLoading(false);
     }
@@ -291,7 +303,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
     staffSearch,
     sortBy,
     ascending,
-    checkupDateRange
+    checkupDateRange,
   ]);
 
   useEffect(() => {
@@ -303,40 +315,50 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
       try {
         // Lấy danh sách người dùng
         const users = await getUsers();
-        
+
         // Lọc ra người dùng thông thường (không phải staff)
-        const normalUsers = users.filter((user: any) => 
-          user.roles && !user.roles.some((role: string) => role === "Healthcare Staff" || role === "Admin")
+        const normalUsers = users.filter(
+          (user: any) =>
+            user.roles &&
+            !user.roles.some(
+              (role: string) => role === "Healthcare Staff" || role === "Admin"
+            )
         );
-        setUserOptions(normalUsers.map((user: any) => ({
-          id: user.id,
-          fullName: user.fullName,
-          email: user.email
-        })));
-        
+        setUserOptions(
+          normalUsers.map((user: any) => ({
+            id: user.id,
+            fullName: user.fullName,
+            email: user.email,
+          }))
+        );
+
         // Lấy danh sách staff y tế
-        const medicalStaff = users.filter((user: any) => 
-          user.roles && user.roles.some((role: string) => role === "Healthcare Staff")
+        const medicalStaff = users.filter(
+          (user: any) =>
+            user.roles &&
+            user.roles.some((role: string) => role === "Healthcare Staff")
         );
-        setStaffOptions(medicalStaff.map((staff: any) => ({
-          id: staff.id,
-          fullName: staff.fullName,
-          email: staff.email
-        })));
+        setStaffOptions(
+          medicalStaff.map((staff: any) => ({
+            id: staff.id,
+            fullName: staff.fullName,
+            email: staff.email,
+          }))
+        );
       } catch (error) {
         console.error("Failed to fetch users:", error);
         toast.error("Không thể tải danh sách người dùng");
       }
     };
-    
+
     fetchUsers();
   }, []);
-  
+
   const handleEdit = (record: HealthCheckResultsResponseDTO) => {
     setCurrentResult(record);
     setIsModalVisible(true);
   };
-  
+
   const handleCloseModal = () => {
     setIsModalVisible(false);
     setCurrentResult(null);
@@ -366,7 +388,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
     setFilterModalVisible(false);
     setCurrentPage(1);
   };
-  
+
   // Column visibility functions
   const handleColumnVisibilityChange = (key: string) => {
     setColumnVisibility((prev) => ({
@@ -394,7 +416,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
   const handleMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
-  
+
   // Reset all filters
   const handleReset = () => {
     setCodeSearch("");
@@ -430,7 +452,9 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         <div>
           <Text strong>{record.user?.fullName}</Text>
           <div>
-            <Text type="secondary" className="text-sm">{record.user?.email}</Text>
+            <Text type="secondary" className="text-sm">
+              {record.user?.email}
+            </Text>
           </div>
         </div>
       ),
@@ -443,7 +467,8 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
           CHECKUP DATE
         </span>
       ),
-      render: (record: HealthCheckResultsResponseDTO) => formatDate(record.checkupDate),
+      render: (record: HealthCheckResultsResponseDTO) =>
+        formatDate(record.checkupDate),
       visible: columnVisibility.checkupDate,
     },
     {
@@ -457,7 +482,9 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         <div>
           <Text>{record.staff?.fullName}</Text>
           <div>
-            <Text type="secondary" className="text-sm">{record.staff?.email}</Text>
+            <Text type="secondary" className="text-sm">
+              {record.staff?.email}
+            </Text>
           </div>
         </div>
       ),
@@ -470,7 +497,8 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
           CANCELLED DATE
         </span>
       ),
-      render: (record: HealthCheckResultsResponseDTO) => formatDateTime(record.cancelledDate),
+      render: (record: HealthCheckResultsResponseDTO) =>
+        formatDateTime(record.cancelledDate),
       visible: columnVisibility.cancelledDate,
     },
     {
@@ -505,11 +533,11 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
               onClick={() => router.push(`/health-check-result/${record.id}`)}
             />
           </Tooltip>
-          
+
           <Tooltip title="Edit">
             <Button
               type="text"
-              icon={<EditOutlined />}
+              icon={<FormOutlined />}
               onClick={() => handleEdit(record)}
               className="text-blue-600"
             />
@@ -520,10 +548,16 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
     },
   ];
 
-  const columns = ALL_COLUMNS.filter(col => col.visible);
+  const columns = ALL_COLUMNS.filter((col) => col.visible);
 
   // Check if any filter is applied
-  const isFilterApplied = userSearch || staffSearch || checkupDateRange[0] || checkupDateRange[1] || sortBy !== "CancelledDate" || ascending !== false;
+  const isFilterApplied =
+    userSearch ||
+    staffSearch ||
+    checkupDateRange[0] ||
+    checkupDateRange[1] ||
+    sortBy !== "CancelledDate" ||
+    ascending !== false;
 
   return (
     <div className="p-6">
@@ -532,15 +566,17 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         <div className="flex items-center gap-2">
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push('/health-check-result/management')}
+            onClick={() => router.push("/health-check-result/management")}
             style={{ marginRight: "8px" }}
           >
             Back
           </Button>
-          <h3 className="text-xl font-bold">Health Check Results Cancelled for Adjustment</h3>
+          <h3 className="text-xl font-bold">
+            Health Check Results Cancelled for Adjustment
+          </h3>
         </div>
       </div>
-      
+
       {/* Toolbar */}
       <Card
         className="shadow mb-4"
@@ -570,24 +606,26 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
               style={{ width: 200 }}
               allowClear
             />
-            
+
             {/* Filter Button */}
             <Tooltip title="Advanced filters">
-              <Button 
-                icon={<FilterOutlined 
-                  style={{
-                    color: isFilterApplied ? "#1890ff" : undefined,
-                  }}
-                />} 
+              <Button
+                icon={
+                  <FilterOutlined
+                    style={{
+                      color: isFilterApplied ? "#1890ff" : undefined,
+                    }}
+                  />
+                }
                 onClick={handleOpenFilterModal}
               >
                 Filter
                 {isFilterApplied && (
-                  <Badge 
-                    count="!" 
-                    size="small" 
-                    offset={[5, -5]} 
-                    style={{ backgroundColor: '#1890ff' }}
+                  <Badge
+                    count="!"
+                    size="small"
+                    offset={[5, -5]}
+                    style={{ backgroundColor: "#1890ff" }}
                   />
                 )}
               </Button>
@@ -644,7 +682,9 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.patient}
-                          onChange={() => handleColumnVisibilityChange("patient")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("patient")
+                          }
                         >
                           Patient
                         </Checkbox>
@@ -657,7 +697,9 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.checkupDate}
-                          onChange={() => handleColumnVisibilityChange("checkupDate")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("checkupDate")
+                          }
                         >
                           Checkup Date
                         </Checkbox>
@@ -683,7 +725,9 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.cancelledDate}
-                          onChange={() => handleColumnVisibilityChange("cancelledDate")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("cancelledDate")
+                          }
                         >
                           Cancelled Date
                         </Checkbox>
@@ -696,7 +740,9 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.reason}
-                          onChange={() => handleColumnVisibilityChange("reason")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("reason")
+                          }
                         >
                           Cancellation Reason
                         </Checkbox>
@@ -709,7 +755,9 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
                       <div onClick={handleMenuClick}>
                         <Checkbox
                           checked={columnVisibility.actions}
-                          onChange={() => handleColumnVisibilityChange("actions")}
+                          onChange={() =>
+                            handleColumnVisibilityChange("actions")
+                          }
                         >
                           Actions
                         </Checkbox>
@@ -770,7 +818,8 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
             )}
             {checkupDateRange[0] && checkupDateRange[1] && (
               <Tag closable onClose={() => setCheckupDateRange([null, null])}>
-                Checkup Date: {formatDate(checkupDateRange[0]?.toString())} to {formatDate(checkupDateRange[1]?.toString())}
+                Checkup Date: {formatDate(checkupDateRange[0]?.toString())} to{" "}
+                {formatDate(checkupDateRange[1]?.toString())}
               </Tag>
             )}
             {sortBy !== "CancelledDate" && (
@@ -796,7 +845,9 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
           pagination={false}
           rowKey="id"
           locale={{
-            emptyText: <Empty description="No health check results cancelled for adjustment found" />,
+            emptyText: (
+              <Empty description="No health check results cancelled for adjustment found" />
+            ),
           }}
           className="border rounded-lg"
         />
@@ -806,7 +857,9 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
       <Card className="mt-4 shadow-sm">
         <Row justify="center" align="middle">
           <Space size="large" align="center">
-            <Typography.Text type="secondary">Total: {total} health check results</Typography.Text>
+            <Typography.Text type="secondary">
+              Total: {total} health check results
+            </Typography.Text>
             <Space align="center" size="large">
               <Pagination
                 current={currentPage}
@@ -840,7 +893,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
           </Space>
         </Row>
       </Card>
-      
+
       {/* Edit Modal */}
       <EditModal
         visible={isModalVisible}
@@ -862,9 +915,9 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
           staffSearch,
           checkupDateRange,
           sortBy,
-          ascending
+          ascending,
         }}
       />
     </div>
   );
-}; 
+};

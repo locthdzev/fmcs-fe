@@ -47,7 +47,7 @@ import {
   ReloadOutlined,
   PlusOutlined,
   UserOutlined,
-  EditOutlined,
+  FormOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import debounce from "lodash/debounce";
@@ -224,15 +224,38 @@ interface State {
 }
 
 type Action =
-  | { type: "SET_DATA"; payload: { studentCheckups: EnhancedStudentCheckup[]; staffCheckups: EnhancedStaffCheckup[]; studentTotal: number; staffTotal: number } }
+  | {
+      type: "SET_DATA";
+      payload: {
+        studentCheckups: EnhancedStudentCheckup[];
+        staffCheckups: EnhancedStaffCheckup[];
+        studentTotal: number;
+        staffTotal: number;
+      };
+    }
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_ACTION_LOADING"; payload: string | null }
   | { type: "SET_SEARCH_TEXT"; payload: string }
   | { type: "SET_DATE_RANGE"; payload: [Dayjs, Dayjs] | null }
-  | { type: "TOGGLE_MODAL"; payload: { modal: "student" | "staff" | "detail" | "updateStudent" | "updateStaff"; visible: boolean } }
-  | { type: "SET_SELECTED_CHECKUP"; payload: EnhancedStudentCheckup | EnhancedStaffCheckup | null }
-  | { type: "SET_SELECTED_STUDENT_CHECKUP"; payload: EnhancedStudentCheckup | null }
-  | { type: "SET_ACTIVE_TAB"; payload: "student" | "staff" | "student-inactive" | "staff-inactive" }
+  | {
+      type: "TOGGLE_MODAL";
+      payload: {
+        modal: "student" | "staff" | "detail" | "updateStudent" | "updateStaff";
+        visible: boolean;
+      };
+    }
+  | {
+      type: "SET_SELECTED_CHECKUP";
+      payload: EnhancedStudentCheckup | EnhancedStaffCheckup | null;
+    }
+  | {
+      type: "SET_SELECTED_STUDENT_CHECKUP";
+      payload: EnhancedStudentCheckup | null;
+    }
+  | {
+      type: "SET_ACTIVE_TAB";
+      payload: "student" | "staff" | "student-inactive" | "staff-inactive";
+    }
   | { type: "SET_PAGE"; payload: { type: "student" | "staff"; page: number } };
 
 const initialState: State = {
@@ -262,7 +285,8 @@ const reducer = (state: State, action: Action): State => {
     case "SET_DATA":
       return {
         ...state,
-        studentCheckups: action.payload.studentCheckups ?? state.studentCheckups,
+        studentCheckups:
+          action.payload.studentCheckups ?? state.studentCheckups,
         staffCheckups: action.payload.staffCheckups ?? state.staffCheckups,
         studentTotal: action.payload.studentTotal ?? state.studentTotal,
         staffTotal: action.payload.staffTotal ?? state.staffTotal,
@@ -278,11 +302,21 @@ const reducer = (state: State, action: Action): State => {
     case "TOGGLE_MODAL":
       return {
         ...state,
-        ...(action.payload.modal === "student" && { studentModalVisible: action.payload.visible }),
-        ...(action.payload.modal === "staff" && { staffModalVisible: action.payload.visible }),
-        ...(action.payload.modal === "detail" && { detailModalVisible: action.payload.visible }),
-        ...(action.payload.modal === "updateStudent" && { updateStudentModalVisible: action.payload.visible }),
-        ...(action.payload.modal === "updateStaff" && { updateStaffModalVisible: action.payload.visible }),
+        ...(action.payload.modal === "student" && {
+          studentModalVisible: action.payload.visible,
+        }),
+        ...(action.payload.modal === "staff" && {
+          staffModalVisible: action.payload.visible,
+        }),
+        ...(action.payload.modal === "detail" && {
+          detailModalVisible: action.payload.visible,
+        }),
+        ...(action.payload.modal === "updateStudent" && {
+          updateStudentModalVisible: action.payload.visible,
+        }),
+        ...(action.payload.modal === "updateStaff" && {
+          updateStaffModalVisible: action.payload.visible,
+        }),
       };
     case "SET_SELECTED_CHECKUP":
       return { ...state, selectedCheckup: action.payload };
@@ -293,8 +327,12 @@ const reducer = (state: State, action: Action): State => {
     case "SET_PAGE":
       return {
         ...state,
-        ...(action.payload.type === "student" && { studentPage: action.payload.page }),
-        ...(action.payload.type === "staff" && { staffPage: action.payload.page }),
+        ...(action.payload.type === "student" && {
+          studentPage: action.payload.page,
+        }),
+        ...(action.payload.type === "staff" && {
+          staffPage: action.payload.page,
+        }),
       };
     default:
       return state;
@@ -313,15 +351,15 @@ const useConfirm = () => {
       title,
       icon: <ExclamationCircleOutlined />,
       content,
-      okText: 'Yes, Delete',
-      okType: 'danger',
-      cancelText: 'No, Cancel',
+      okText: "Yes, Delete",
+      okType: "danger",
+      cancelText: "No, Cancel",
       onOk,
       onCancel,
       centered: true,
       maskClosable: true,
-      transitionName: 'ant-fade',
-      bodyStyle: { padding: '20px' },
+      transitionName: "ant-fade",
+      bodyStyle: { padding: "20px" },
     });
   };
   return confirm;
@@ -329,17 +367,23 @@ const useConfirm = () => {
 
 const getStatusColor = (status: string | undefined) => {
   switch (status) {
-    case "Active": return "green";
-    case "Inactive": return "red";
-    default: return "default";
+    case "Active":
+      return "green";
+    case "Inactive":
+      return "red";
+    default:
+      return "default";
   }
 };
 
 const getStatusIcon = (status: string | undefined) => {
   switch (status) {
-    case "Active": return <CheckCircleOutlined />;
-    case "Inactive": return <DeleteOutlined />;
-    default: return null;
+    case "Active":
+      return <CheckCircleOutlined />;
+    case "Inactive":
+      return <DeleteOutlined />;
+    default:
+      return null;
   }
 };
 
@@ -348,139 +392,179 @@ export function PeriodicHealthCheckupManagement() {
   const router = useRouter();
   const confirm = useConfirm();
 
-  const fetchDetailedCheckup = useCallback(async (checkupId: string, token: string): Promise<{
-    id: string;
-    periodicHealthCheckUpId: string;
-    fullName?: string;
-    gender?: string;
-    status: string;
-    conclusion?: string;
-    createdAt: string;
-    createdBy: string;
-  }> => {
-    const result = await getHealthCheckupByCheckupId(checkupId, token);
-    if (result.isSuccess && result.data) {
-      const data = result.data;
+  const fetchDetailedCheckup = useCallback(
+    async (
+      checkupId: string,
+      token: string
+    ): Promise<{
+      id: string;
+      periodicHealthCheckUpId: string;
+      fullName?: string;
+      gender?: string;
+      status: string;
+      conclusion?: string;
+      createdAt: string;
+      createdBy: string;
+    }> => {
+      const result = await getHealthCheckupByCheckupId(checkupId, token);
+      if (result.isSuccess && result.data) {
+        const data = result.data;
+        return {
+          id: data.id,
+          periodicHealthCheckUpId: data.id,
+          fullName:
+            data.user?.fullName || data.staff?.fullName || "Unknown Name",
+          gender: data.user?.gender || data.staff?.gender || "N/A",
+          status: data.status,
+          conclusion: data.classification || "",
+          createdAt: data.createdAt || dayjs().toISOString(),
+          createdBy: data.createdBy || "Unknown",
+        };
+      }
       return {
-        id: data.id,
-        periodicHealthCheckUpId: data.id,
-        fullName: data.user?.fullName || data.staff?.fullName || "Unknown Name",
-        gender: data.user?.gender || data.staff?.gender || "N/A",
-        status: data.status,
-        conclusion: data.classification || "",
-        createdAt: data.createdAt || dayjs().toISOString(),
-        createdBy: data.createdBy || "Unknown",
+        id: checkupId,
+        periodicHealthCheckUpId: checkupId,
+        fullName: "Unknown Name",
+        gender: "N/A",
+        status: "Unknown",
+        conclusion: "",
+        createdAt: dayjs().toISOString(),
+        createdBy: "Unknown",
       };
-    }
-    return {
-      id: checkupId,
-      periodicHealthCheckUpId: checkupId,
-      fullName: "Unknown Name",
-      gender: "N/A",
-      status: "Unknown",
-      conclusion: "",
-      createdAt: dayjs().toISOString(),
-      createdBy: "Unknown",
-    };
-  }, []);
+    },
+    []
+  );
 
-  const fetchData = useCallback(async (retryCount = 0) => {
-    dispatch({ type: "SET_LOADING", payload: true });
-    try {
-      const token = Cookies.get("token");
-      if (!token) throw new Error("No token found");
+  const fetchData = useCallback(
+    async (retryCount = 0) => {
+      dispatch({ type: "SET_LOADING", payload: true });
+      try {
+        const token = Cookies.get("token");
+        if (!token) throw new Error("No token found");
 
-      const studentPromise = getAllStudentHealthCheckups(
-        state.studentPage,
-        state.pageSize,
-        undefined,
-        "CreatedAt",
-        false,
-        token
-      ).catch((error) => ({
-        isSuccess: false,
-        message: error.message || "Student fetch failed",
-        data: [],
-        totalRecords: 0,
-      }));
+        const studentPromise = getAllStudentHealthCheckups(
+          state.studentPage,
+          state.pageSize,
+          undefined,
+          "CreatedAt",
+          false,
+          token
+        ).catch((error) => ({
+          isSuccess: false,
+          message: error.message || "Student fetch failed",
+          data: [],
+          totalRecords: 0,
+        }));
 
-      const staffPromise = getAllStaffHealthCheckups(
-        state.staffPage,
-        state.pageSize,
-        undefined,
-        "CreatedAt",
-        false,
-        token
-      ).catch((error) => ({
-        isSuccess: false,
-        message: error.message || "Staff fetch failed",
-        data: [],
-        totalRecords: 0,
-      }));
+        const staffPromise = getAllStaffHealthCheckups(
+          state.staffPage,
+          state.pageSize,
+          undefined,
+          "CreatedAt",
+          false,
+          token
+        ).catch((error) => ({
+          isSuccess: false,
+          message: error.message || "Staff fetch failed",
+          data: [],
+          totalRecords: 0,
+        }));
 
-      const [studentResult, staffResult] = await Promise.all([studentPromise, staffPromise]);
+        const [studentResult, staffResult] = await Promise.all([
+          studentPromise,
+          staffPromise,
+        ]);
 
-      let enhancedStudentCheckups: EnhancedStudentCheckup[] = [];
-      if (studentResult.isSuccess && studentResult.data) {
-        enhancedStudentCheckups = await Promise.all(
-          studentResult.data.map(async (checkup) => {
-            const detailed = await fetchDetailedCheckup(checkup.periodicHealthCheckUpId, token);
-            return { ...detailed, ...checkup };
-          })
-        );
-      } else if (!studentResult.isSuccess && studentResult.message !== "No active student health checkup details found") {
-        console.warn("Student data fetch warning:", studentResult.message);
+        let enhancedStudentCheckups: EnhancedStudentCheckup[] = [];
+        if (studentResult.isSuccess && studentResult.data) {
+          enhancedStudentCheckups = await Promise.all(
+            studentResult.data.map(async (checkup) => {
+              const detailed = await fetchDetailedCheckup(
+                checkup.periodicHealthCheckUpId,
+                token
+              );
+              return { ...detailed, ...checkup };
+            })
+          );
+        } else if (
+          !studentResult.isSuccess &&
+          studentResult.message !==
+            "No active student health checkup details found"
+        ) {
+          console.warn("Student data fetch warning:", studentResult.message);
+        }
+
+        let enhancedStaffCheckups: EnhancedStaffCheckup[] = [];
+        if (staffResult.isSuccess && staffResult.data) {
+          enhancedStaffCheckups = await Promise.all(
+            staffResult.data.map(async (checkup) => {
+              const detailed = await fetchDetailedCheckup(
+                checkup.periodicHealthCheckUpId,
+                token
+              );
+              return {
+                ...detailed,
+                ...checkup,
+                createdBy: checkup.createdBy || detailed.createdBy || "Unknown",
+                hospitalName: checkup.hospitalName || "Unknown Hospital",
+                reportIssuanceDate:
+                  checkup.reportIssuanceDate || dayjs().toISOString(),
+                updatedBy: checkup.updatedBy,
+              };
+            })
+          );
+        } else if (
+          !staffResult.isSuccess &&
+          staffResult.message !== "No active staff health checkup details found"
+        ) {
+          console.warn("Staff data fetch warning:", staffResult.message);
+        }
+
+        dispatch({
+          type: "SET_DATA",
+          payload: {
+            studentCheckups: enhancedStudentCheckups,
+            staffCheckups: enhancedStaffCheckups,
+            studentTotal:
+              studentResult.totalRecords || enhancedStudentCheckups.length || 0,
+            staffTotal:
+              staffResult.totalRecords || enhancedStaffCheckups.length || 0,
+          },
+        });
+
+        if (
+          !studentResult.isSuccess &&
+          studentResult.message !==
+            "No active student health checkup details found" &&
+          !staffResult.isSuccess &&
+          staffResult.message !== "No active staff health checkup details found"
+        ) {
+          throw new Error(
+            `${studentResult.message || "Student fetch failed"} | ${
+              staffResult.message || "Staff fetch failed"
+            }`
+          );
+        }
+      } catch (error: any) {
+        if (retryCount < 2) {
+          toast.warn(`Retrying... (${retryCount + 1}/3)`);
+          setTimeout(() => fetchData(retryCount + 1), 1000);
+        } else {
+          toast.error(`Failed to load data: ${error.message}`);
+          if (error.message === "No token found") router.push("/");
+        }
+      } finally {
+        dispatch({ type: "SET_LOADING", payload: false });
       }
-
-      let enhancedStaffCheckups: EnhancedStaffCheckup[] = [];
-      if (staffResult.isSuccess && staffResult.data) {
-        enhancedStaffCheckups = await Promise.all(
-          staffResult.data.map(async (checkup) => {
-            const detailed = await fetchDetailedCheckup(checkup.periodicHealthCheckUpId, token);
-            return {
-              ...detailed,
-              ...checkup,
-              createdBy: checkup.createdBy || detailed.createdBy || "Unknown",
-              hospitalName: checkup.hospitalName || "Unknown Hospital",
-              reportIssuanceDate: checkup.reportIssuanceDate || dayjs().toISOString(),
-              updatedBy: checkup.updatedBy,
-            };
-          })
-        );
-      } else if (!staffResult.isSuccess && staffResult.message !== "No active staff health checkup details found") {
-        console.warn("Staff data fetch warning:", staffResult.message);
-      }
-
-      dispatch({
-        type: "SET_DATA",
-        payload: {
-          studentCheckups: enhancedStudentCheckups,
-          staffCheckups: enhancedStaffCheckups,
-          studentTotal: studentResult.totalRecords || enhancedStudentCheckups.length || 0,
-          staffTotal: staffResult.totalRecords || enhancedStaffCheckups.length || 0,
-        },
-      });
-
-      if (
-        (!studentResult.isSuccess && studentResult.message !== "No active student health checkup details found") &&
-        (!staffResult.isSuccess && staffResult.message !== "No active staff health checkup details found")
-      ) {
-        throw new Error(
-          `${studentResult.message || "Student fetch failed"} | ${staffResult.message || "Staff fetch failed"}`
-        );
-      }
-    } catch (error: any) {
-      if (retryCount < 2) {
-        toast.warn(`Retrying... (${retryCount + 1}/3)`);
-        setTimeout(() => fetchData(retryCount + 1), 1000);
-      } else {
-        toast.error(`Failed to load data: ${error.message}`);
-        if (error.message === "No token found") router.push("/");
-      }
-    } finally {
-      dispatch({ type: "SET_LOADING", payload: false });
-    }
-  }, [state.studentPage, state.staffPage, state.pageSize, fetchDetailedCheckup, router]);
+    },
+    [
+      state.studentPage,
+      state.staffPage,
+      state.pageSize,
+      fetchDetailedCheckup,
+      router,
+    ]
+  );
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -494,22 +578,35 @@ export function PeriodicHealthCheckupManagement() {
   const handleRefresh = () => fetchData();
 
   const handleDelete = useCallback(
-    async (checkup: EnhancedStudentCheckup | EnhancedStaffCheckup, type: "student" | "staff") => {
+    async (
+      checkup: EnhancedStudentCheckup | EnhancedStaffCheckup,
+      type: "student" | "staff"
+    ) => {
       dispatch({ type: "SET_ACTION_LOADING", payload: checkup.id });
       try {
         const token = Cookies.get("token");
         if (!token) throw new Error("No authentication token found");
 
-        const parentResponse = await deleteParentHealthCheckup(checkup.periodicHealthCheckUpId, token);
+        const parentResponse = await deleteParentHealthCheckup(
+          checkup.periodicHealthCheckUpId,
+          token
+        );
         if (!parentResponse.isSuccess) {
-          throw new Error(parentResponse.message || "Failed to delete parent health checkup");
+          throw new Error(
+            parentResponse.message || "Failed to delete parent health checkup"
+          );
         }
 
         const subtableDelete =
-          type === "student" ? deleteStudentHealthCheckup : deleteStaffHealthCheckup;
+          type === "student"
+            ? deleteStudentHealthCheckup
+            : deleteStaffHealthCheckup;
         const subtableResponse = await subtableDelete(checkup.id, token);
         if (!subtableResponse.isSuccess) {
-          throw new Error(subtableResponse.message || `Failed to delete ${type} health checkup`);
+          throw new Error(
+            subtableResponse.message ||
+              `Failed to delete ${type} health checkup`
+          );
         }
 
         toast.success("Deleted successfully!");
@@ -524,54 +621,112 @@ export function PeriodicHealthCheckupManagement() {
     [fetchData, router]
   );
 
-  const handleDeleteClick = useCallback((checkup: EnhancedStudentCheckup | EnhancedStaffCheckup, e: React.MouseEvent) => {
-    e.stopPropagation();
-    confirm(
-      'Confirm Deletion',
-      <div>
-        <p>Are you sure you want to delete the health checkup for:</p>
-        <p><strong>{checkup.fullName || checkup.id}</strong>?</p>
-        <p style={{ color: '#ff4d4f', marginTop: '8px' }}>
-          This action cannot be undone.
-        </p>
-      </div>,
-      () => handleDelete(checkup, state.activeTab.includes("student") ? "student" : "staff"),
-      () => console.log('Deletion cancelled')
-    );
-  }, [handleDelete, state.activeTab, confirm]);
+  const handleDeleteClick = useCallback(
+    (
+      checkup: EnhancedStudentCheckup | EnhancedStaffCheckup,
+      e: React.MouseEvent
+    ) => {
+      e.stopPropagation();
+      confirm(
+        "Confirm Deletion",
+        <div>
+          <p>Are you sure you want to delete the health checkup for:</p>
+          <p>
+            <strong>{checkup.fullName || checkup.id}</strong>?
+          </p>
+          <p style={{ color: "#ff4d4f", marginTop: "8px" }}>
+            This action cannot be undone.
+          </p>
+        </div>,
+        () =>
+          handleDelete(
+            checkup,
+            state.activeTab.includes("student") ? "student" : "staff"
+          ),
+        () => console.log("Deletion cancelled")
+      );
+    },
+    [handleDelete, state.activeTab, confirm]
+  );
 
-  const handleUpdateClick = useCallback((checkup: EnhancedStudentCheckup | EnhancedStaffCheckup, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (state.activeTab.includes("student")) {
-      dispatch({ type: "SET_SELECTED_STUDENT_CHECKUP", payload: checkup as EnhancedStudentCheckup });
-      dispatch({ type: "TOGGLE_MODAL", payload: { modal: "updateStudent", visible: true } });
-    } else {
-      dispatch({ type: "SET_SELECTED_CHECKUP", payload: checkup as EnhancedStaffCheckup });
-      dispatch({ type: "TOGGLE_MODAL", payload: { modal: "updateStaff", visible: true } });
-    }
-  }, [state.activeTab]);
+  const handleUpdateClick = useCallback(
+    (
+      checkup: EnhancedStudentCheckup | EnhancedStaffCheckup,
+      e: React.MouseEvent
+    ) => {
+      e.stopPropagation();
+      if (state.activeTab.includes("student")) {
+        dispatch({
+          type: "SET_SELECTED_STUDENT_CHECKUP",
+          payload: checkup as EnhancedStudentCheckup,
+        });
+        dispatch({
+          type: "TOGGLE_MODAL",
+          payload: { modal: "updateStudent", visible: true },
+        });
+      } else {
+        dispatch({
+          type: "SET_SELECTED_CHECKUP",
+          payload: checkup as EnhancedStaffCheckup,
+        });
+        dispatch({
+          type: "TOGGLE_MODAL",
+          payload: { modal: "updateStaff", visible: true },
+        });
+      }
+    },
+    [state.activeTab]
+  );
 
   const debouncedSetSearchText = useMemo(
-    () => debounce((value: string) => dispatch({ type: "SET_SEARCH_TEXT", payload: value }), 300),
+    () =>
+      debounce(
+        (value: string) =>
+          dispatch({ type: "SET_SEARCH_TEXT", payload: value }),
+        300
+      ),
     []
   );
 
   const filteredCheckups = useMemo(() => {
-    const checkups = state.activeTab.includes("student") ? state.studentCheckups : state.staffCheckups;
+    const checkups = state.activeTab.includes("student")
+      ? state.studentCheckups
+      : state.staffCheckups;
     return checkups.filter((checkup) => {
       const matchesSearch = state.searchText
         ? checkup.id.toLowerCase().includes(state.searchText.toLowerCase()) ||
-          ("mssv" in checkup && checkup.mssv && checkup.mssv.toLowerCase().includes(state.searchText.toLowerCase())) ||
-          (checkup.fullName && checkup.fullName.toLowerCase().includes(state.searchText.toLowerCase())) ||
-          (checkup.conclusion && checkup.conclusion.toLowerCase().includes(state.searchText.toLowerCase()))
+          ("mssv" in checkup &&
+            checkup.mssv &&
+            checkup.mssv
+              .toLowerCase()
+              .includes(state.searchText.toLowerCase())) ||
+          (checkup.fullName &&
+            checkup.fullName
+              .toLowerCase()
+              .includes(state.searchText.toLowerCase())) ||
+          (checkup.conclusion &&
+            checkup.conclusion
+              .toLowerCase()
+              .includes(state.searchText.toLowerCase()))
         : true;
       const matchesDate =
         state.dateRange && checkup.createdAt
-          ? dayjs(checkup.createdAt).isBetween(state.dateRange[0], state.dateRange[1], "day", "[]")
+          ? dayjs(checkup.createdAt).isBetween(
+              state.dateRange[0],
+              state.dateRange[1],
+              "day",
+              "[]"
+            )
           : true;
       return matchesSearch && matchesDate;
     });
-  }, [state.studentCheckups, state.staffCheckups, state.activeTab, state.searchText, state.dateRange]);
+  }, [
+    state.studentCheckups,
+    state.staffCheckups,
+    state.activeTab,
+    state.searchText,
+    state.dateRange,
+  ]);
 
   const resetFilters = () => {
     dispatch({ type: "SET_SEARCH_TEXT", payload: "" });
@@ -580,11 +735,18 @@ export function PeriodicHealthCheckupManagement() {
     dispatch({ type: "SET_PAGE", payload: { type: "staff", page: 1 } });
   };
 
-  const handleDateRangeChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
-    dispatch({ type: "SET_DATE_RANGE", payload: dates && dates[0] && dates[1] ? [dates[0], dates[1]] : null });
+  const handleDateRangeChange = (
+    dates: [Dayjs | null, Dayjs | null] | null
+  ) => {
+    dispatch({
+      type: "SET_DATE_RANGE",
+      payload: dates && dates[0] && dates[1] ? [dates[0], dates[1]] : null,
+    });
   };
 
-  const handleUpdateSuccess = async (updatedCheckup?: PeriodicHealthCheckupsDetailsStaffResponseDTO) => {
+  const handleUpdateSuccess = async (
+    updatedCheckup?: PeriodicHealthCheckupsDetailsStaffResponseDTO
+  ) => {
     console.log("handleUpdateSuccess called with:", updatedCheckup);
     if (updatedCheckup) {
       const token = Cookies.get("token");
@@ -592,20 +754,24 @@ export function PeriodicHealthCheckupManagement() {
         router.push("/");
         return;
       }
-      const detailed = await fetchDetailedCheckup(updatedCheckup.periodicHealthCheckUpId, token);
+      const detailed = await fetchDetailedCheckup(
+        updatedCheckup.periodicHealthCheckUpId,
+        token
+      );
       const enhancedCheckup: EnhancedStaffCheckup = {
         ...detailed,
         ...updatedCheckup,
         createdBy: updatedCheckup.createdBy || detailed.createdBy || "Unknown",
         hospitalName: updatedCheckup.hospitalName || "Unknown Hospital",
-        reportIssuanceDate: updatedCheckup.reportIssuanceDate || dayjs().toISOString(),
+        reportIssuanceDate:
+          updatedCheckup.reportIssuanceDate || dayjs().toISOString(),
       };
 
       console.log("Updating state with enhanced checkup:", enhancedCheckup);
       dispatch({
         type: "SET_DATA",
         payload: {
-          staffCheckups: state.staffCheckups.map(checkup =>
+          staffCheckups: state.staffCheckups.map((checkup) =>
             checkup.id === enhancedCheckup.id ? enhancedCheckup : checkup
           ),
           studentCheckups: state.studentCheckups,
@@ -625,10 +791,14 @@ export function PeriodicHealthCheckupManagement() {
   const summaryStats = useMemo(() => {
     return {
       total: state.studentCheckups.length + state.staffCheckups.length,
-      active: state.studentCheckups.filter((c) => c.status === "Active").length +
-              state.staffCheckups.filter((c) => c.status === "Active").length,
-      inactiveStudents: state.studentCheckups.filter((c) => c.status === "Inactive").length,
-      inactiveStaff: state.staffCheckups.filter((c) => c.status === "Inactive").length,
+      active:
+        state.studentCheckups.filter((c) => c.status === "Active").length +
+        state.staffCheckups.filter((c) => c.status === "Active").length,
+      inactiveStudents: state.studentCheckups.filter(
+        (c) => c.status === "Inactive"
+      ).length,
+      inactiveStaff: state.staffCheckups.filter((c) => c.status === "Inactive")
+        .length,
     };
   }, [state.studentCheckups, state.staffCheckups]);
 
@@ -639,17 +809,27 @@ export function PeriodicHealthCheckupManagement() {
         label: (
           <span>
             <Tag color="blue">Student Checkups</Tag>
-            <Badge count={state.studentTotal} style={{ backgroundColor: "#1890ff" }} />
+            <Badge
+              count={state.studentTotal}
+              style={{ backgroundColor: "#1890ff" }}
+            />
           </span>
         ),
         children: (
           <CheckupList
-            checkups={filteredCheckups.filter(c => c.status === "Active") as EnhancedStudentCheckup[]}
+            checkups={
+              filteredCheckups.filter(
+                (c) => c.status === "Active"
+              ) as EnhancedStudentCheckup[]
+            }
             type="student"
             actionLoading={state.actionLoading}
             onViewDetails={(checkup) => {
               dispatch({ type: "SET_SELECTED_CHECKUP", payload: checkup });
-              dispatch({ type: "TOGGLE_MODAL", payload: { modal: "detail", visible: true } });
+              dispatch({
+                type: "TOGGLE_MODAL",
+                payload: { modal: "detail", visible: true },
+              });
             }}
             handleDeleteClick={handleDeleteClick}
             handleUpdateClick={handleUpdateClick}
@@ -661,17 +841,27 @@ export function PeriodicHealthCheckupManagement() {
         label: (
           <span>
             <Tag color="purple">Staff Checkups</Tag>
-            <Badge count={state.staffTotal} style={{ backgroundColor: "#722ed1" }} />
+            <Badge
+              count={state.staffTotal}
+              style={{ backgroundColor: "#722ed1" }}
+            />
           </span>
         ),
         children: (
           <CheckupList
-            checkups={filteredCheckups.filter(c => c.status === "Active") as EnhancedStaffCheckup[]}
+            checkups={
+              filteredCheckups.filter(
+                (c) => c.status === "Active"
+              ) as EnhancedStaffCheckup[]
+            }
             type="staff"
             actionLoading={state.actionLoading}
             onViewDetails={(checkup) => {
               dispatch({ type: "SET_SELECTED_CHECKUP", payload: checkup });
-              dispatch({ type: "TOGGLE_MODAL", payload: { modal: "detail", visible: true } });
+              dispatch({
+                type: "TOGGLE_MODAL",
+                payload: { modal: "detail", visible: true },
+              });
             }}
             handleDeleteClick={handleDeleteClick}
             handleUpdateClick={handleUpdateClick}
@@ -683,17 +873,30 @@ export function PeriodicHealthCheckupManagement() {
         label: (
           <span>
             <Tag color="red">Inactive Student Checkups</Tag>
-            <Badge count={state.studentCheckups.filter(c => c.status === "Inactive").length} style={{ backgroundColor: "#ff4d4f" }} />
+            <Badge
+              count={
+                state.studentCheckups.filter((c) => c.status === "Inactive")
+                  .length
+              }
+              style={{ backgroundColor: "#ff4d4f" }}
+            />
           </span>
         ),
         children: (
           <CheckupList
-            checkups={filteredCheckups.filter(c => c.status === "Inactive") as EnhancedStudentCheckup[]}
+            checkups={
+              filteredCheckups.filter(
+                (c) => c.status === "Inactive"
+              ) as EnhancedStudentCheckup[]
+            }
             type="student"
             actionLoading={state.actionLoading}
             onViewDetails={(checkup) => {
               dispatch({ type: "SET_SELECTED_CHECKUP", payload: checkup });
-              dispatch({ type: "TOGGLE_MODAL", payload: { modal: "detail", visible: true } });
+              dispatch({
+                type: "TOGGLE_MODAL",
+                payload: { modal: "detail", visible: true },
+              });
             }}
             handleDeleteClick={handleDeleteClick}
             handleUpdateClick={handleUpdateClick}
@@ -705,17 +908,30 @@ export function PeriodicHealthCheckupManagement() {
         label: (
           <span>
             <Tag color="volcano">Inactive Staff Checkups</Tag>
-            <Badge count={state.staffCheckups.filter(c => c.status === "Inactive").length} style={{ backgroundColor: "#fa541c" }} />
+            <Badge
+              count={
+                state.staffCheckups.filter((c) => c.status === "Inactive")
+                  .length
+              }
+              style={{ backgroundColor: "#fa541c" }}
+            />
           </span>
         ),
         children: (
           <CheckupList
-            checkups={filteredCheckups.filter(c => c.status === "Inactive") as EnhancedStaffCheckup[]}
+            checkups={
+              filteredCheckups.filter(
+                (c) => c.status === "Inactive"
+              ) as EnhancedStaffCheckup[]
+            }
             type="staff"
             actionLoading={state.actionLoading}
             onViewDetails={(checkup) => {
               dispatch({ type: "SET_SELECTED_CHECKUP", payload: checkup });
-              dispatch({ type: "TOGGLE_MODAL", payload: { modal: "detail", visible: true } });
+              dispatch({
+                type: "TOGGLE_MODAL",
+                payload: { modal: "detail", visible: true },
+              });
             }}
             handleDeleteClick={handleDeleteClick}
             handleUpdateClick={handleUpdateClick}
@@ -723,19 +939,38 @@ export function PeriodicHealthCheckupManagement() {
         ),
       },
     ],
-    [filteredCheckups, state.actionLoading, state.studentTotal, state.staffTotal, state.studentCheckups, state.staffCheckups, handleDeleteClick, handleUpdateClick]
+    [
+      filteredCheckups,
+      state.actionLoading,
+      state.studentTotal,
+      state.staffTotal,
+      state.studentCheckups,
+      state.staffCheckups,
+      handleDeleteClick,
+      handleUpdateClick,
+    ]
   );
 
   const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
     { label: "Today", value: [dayjs(), dayjs()] },
-    { label: "This Week", value: [dayjs().startOf("week"), dayjs().endOf("week")] },
-    { label: "This Month", value: [dayjs().startOf("month"), dayjs().endOf("month")] },
+    {
+      label: "This Week",
+      value: [dayjs().startOf("week"), dayjs().endOf("week")],
+    },
+    {
+      label: "This Month",
+      value: [dayjs().startOf("month"), dayjs().endOf("month")],
+    },
   ];
 
   const isEnhancedStaffCheckup = (
     checkup: EnhancedStudentCheckup | EnhancedStaffCheckup | null
   ): checkup is EnhancedStaffCheckup => {
-    return checkup !== null && "hospitalName" in checkup && "reportIssuanceDate" in checkup;
+    return (
+      checkup !== null &&
+      "hospitalName" in checkup &&
+      "reportIssuanceDate" in checkup
+    );
   };
 
   if (state.loading) {
@@ -757,11 +992,19 @@ export function PeriodicHealthCheckupManagement() {
             </Title>
           </Col>
           <Col xs={24} md={12} style={{ textAlign: "right" }}>
-            <Space direction={window.innerWidth < 576 ? "vertical" : "horizontal"} size="small">
+            <Space
+              direction={window.innerWidth < 576 ? "vertical" : "horizontal"}
+              size="small"
+            >
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
-                onClick={() => dispatch({ type: "TOGGLE_MODAL", payload: { modal: "student", visible: true } })}
+                onClick={() =>
+                  dispatch({
+                    type: "TOGGLE_MODAL",
+                    payload: { modal: "student", visible: true },
+                  })
+                }
                 className="action-button"
                 block={window.innerWidth < 576}
               >
@@ -770,7 +1013,12 @@ export function PeriodicHealthCheckupManagement() {
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
-                onClick={() => dispatch({ type: "TOGGLE_MODAL", payload: { modal: "staff", visible: true } })}
+                onClick={() =>
+                  dispatch({
+                    type: "TOGGLE_MODAL",
+                    payload: { modal: "staff", visible: true },
+                  })
+                }
                 className="action-button"
                 block={window.innerWidth < 576}
               >
@@ -801,16 +1049,32 @@ export function PeriodicHealthCheckupManagement() {
         </Row>
         <Row gutter={[16, 16]} className="summary-row">
           <Col xs={24} sm={6}>
-            <Statistic title="Total Checkups" value={summaryStats.total} prefix={<UserOutlined />} />
+            <Statistic
+              title="Total Checkups"
+              value={summaryStats.total}
+              prefix={<UserOutlined />}
+            />
           </Col>
           <Col xs={24} sm={6}>
-            <Statistic title="Active" value={summaryStats.active} valueStyle={{ color: "#52c41a" }} />
+            <Statistic
+              title="Active"
+              value={summaryStats.active}
+              valueStyle={{ color: "#52c41a" }}
+            />
           </Col>
           <Col xs={24} sm={6}>
-            <Statistic title="Inactive Students" value={summaryStats.inactiveStudents} valueStyle={{ color: "#ff4d4f" }} />
+            <Statistic
+              title="Inactive Students"
+              value={summaryStats.inactiveStudents}
+              valueStyle={{ color: "#ff4d4f" }}
+            />
           </Col>
           <Col xs={24} sm={6}>
-            <Statistic title="Inactive Staff" value={summaryStats.inactiveStaff} valueStyle={{ color: "#ff4d4f" }} />
+            <Statistic
+              title="Inactive Staff"
+              value={summaryStats.inactiveStaff}
+              valueStyle={{ color: "#ff4d4f" }}
+            />
           </Col>
         </Row>
         <div className="filter-row">
@@ -829,7 +1093,11 @@ export function PeriodicHealthCheckupManagement() {
             presets={rangePresets}
             style={{ width: "100%", maxWidth: 300 }}
           />
-          <Button onClick={resetFilters} type="default" className="action-button">
+          <Button
+            onClick={resetFilters}
+            type="default"
+            className="action-button"
+          >
             Clear Filters
           </Button>
         </div>
@@ -837,7 +1105,16 @@ export function PeriodicHealthCheckupManagement() {
 
       <Tabs
         activeKey={state.activeTab}
-        onChange={(key) => dispatch({ type: "SET_ACTIVE_TAB", payload: key as "student" | "staff" | "student-inactive" | "staff-inactive" })}
+        onChange={(key) =>
+          dispatch({
+            type: "SET_ACTIVE_TAB",
+            payload: key as
+              | "student"
+              | "staff"
+              | "student-inactive"
+              | "staff-inactive",
+          })
+        }
         items={tabItems}
         tabBarStyle={{ marginBottom: 16, fontWeight: 500 }}
       />
@@ -846,11 +1123,27 @@ export function PeriodicHealthCheckupManagement() {
         <Row justify="center">
           <Col xs={24} sm={20} md={16}>
             <Pagination
-              current={state.activeTab.includes("student") ? state.studentPage : state.staffPage}
+              current={
+                state.activeTab.includes("student")
+                  ? state.studentPage
+                  : state.staffPage
+              }
               pageSize={state.pageSize}
-              total={state.activeTab.includes("student") ? state.studentTotal : state.staffTotal}
+              total={
+                state.activeTab.includes("student")
+                  ? state.studentTotal
+                  : state.staffTotal
+              }
               onChange={(newPage) =>
-                dispatch({ type: "SET_PAGE", payload: { type: state.activeTab.includes("student") ? "student" : "staff", page: newPage } })
+                dispatch({
+                  type: "SET_PAGE",
+                  payload: {
+                    type: state.activeTab.includes("student")
+                      ? "student"
+                      : "staff",
+                    page: newPage,
+                  },
+                })
               }
               showSizeChanger={false}
               className="text-center mt-4"
@@ -862,13 +1155,23 @@ export function PeriodicHealthCheckupManagement() {
 
       <AddStudentHealthCheckupModal
         visible={state.studentModalVisible}
-        onClose={() => dispatch({ type: "TOGGLE_MODAL", payload: { modal: "student", visible: false } })}
+        onClose={() =>
+          dispatch({
+            type: "TOGGLE_MODAL",
+            payload: { modal: "student", visible: false },
+          })
+        }
         onSuccess={handleRefresh}
       />
 
       <AddStaffHealthCheckupModal
         visible={state.staffModalVisible}
-        onClose={() => dispatch({ type: "TOGGLE_MODAL", payload: { modal: "staff", visible: false } })}
+        onClose={() =>
+          dispatch({
+            type: "TOGGLE_MODAL",
+            payload: { modal: "staff", visible: false },
+          })
+        }
         onSuccess={handleRefresh}
       />
 
@@ -876,20 +1179,35 @@ export function PeriodicHealthCheckupManagement() {
         <CheckupDetailStudentModal
           visible={state.detailModalVisible}
           checkup={state.selectedCheckup as EnhancedStudentCheckup}
-          onClose={() => dispatch({ type: "TOGGLE_MODAL", payload: { modal: "detail", visible: false } })}
+          onClose={() =>
+            dispatch({
+              type: "TOGGLE_MODAL",
+              payload: { modal: "detail", visible: false },
+            })
+          }
         />
       ) : (
         <CheckupDetailStaffModal
           visible={state.detailModalVisible}
           checkup={state.selectedCheckup as EnhancedStaffCheckup}
-          onClose={() => dispatch({ type: "TOGGLE_MODAL", payload: { modal: "detail", visible: false } })}
+          onClose={() =>
+            dispatch({
+              type: "TOGGLE_MODAL",
+              payload: { modal: "detail", visible: false },
+            })
+          }
         />
       )}
 
       <UpdateStudentHealthCheckup
         visible={state.updateStudentModalVisible}
         checkup={state.selectedStudentCheckup as any}
-        onClose={() => dispatch({ type: "TOGGLE_MODAL", payload: { modal: "updateStudent", visible: false } })}
+        onClose={() =>
+          dispatch({
+            type: "TOGGLE_MODAL",
+            payload: { modal: "updateStudent", visible: false },
+          })
+        }
         onSuccess={handleUpdateSuccess}
       />
 
@@ -900,7 +1218,12 @@ export function PeriodicHealthCheckupManagement() {
             ? state.selectedCheckup
             : null
         }
-        onClose={() => dispatch({ type: "TOGGLE_MODAL", payload: { modal: "updateStaff", visible: false } })}
+        onClose={() =>
+          dispatch({
+            type: "TOGGLE_MODAL",
+            payload: { modal: "updateStaff", visible: false },
+          })
+        }
         onSuccess={handleUpdateSuccess}
       />
     </div>
@@ -911,14 +1234,35 @@ interface CheckupListProps {
   checkups: (EnhancedStudentCheckup | EnhancedStaffCheckup)[];
   type: "student" | "staff";
   actionLoading: string | null;
-  onViewDetails: (checkup: EnhancedStudentCheckup | EnhancedStaffCheckup) => void;
-  handleDeleteClick: (checkup: EnhancedStudentCheckup | EnhancedStaffCheckup, e: React.MouseEvent) => void;
-  handleUpdateClick: (checkup: EnhancedStudentCheckup | EnhancedStaffCheckup, e: React.MouseEvent) => void;
+  onViewDetails: (
+    checkup: EnhancedStudentCheckup | EnhancedStaffCheckup
+  ) => void;
+  handleDeleteClick: (
+    checkup: EnhancedStudentCheckup | EnhancedStaffCheckup,
+    e: React.MouseEvent
+  ) => void;
+  handleUpdateClick: (
+    checkup: EnhancedStudentCheckup | EnhancedStaffCheckup,
+    e: React.MouseEvent
+  ) => void;
 }
 
 const CheckupList: React.FC<CheckupListProps> = React.memo(
-  ({ checkups, type, actionLoading, onViewDetails, handleDeleteClick, handleUpdateClick }) => {
-    const renderItem = ({ index, style }: { index: number; style: React.CSSProperties }) => {
+  ({
+    checkups,
+    type,
+    actionLoading,
+    onViewDetails,
+    handleDeleteClick,
+    handleUpdateClick,
+  }) => {
+    const renderItem = ({
+      index,
+      style,
+    }: {
+      index: number;
+      style: React.CSSProperties;
+    }) => {
       const checkup = checkups[index];
       return (
         <div style={{ ...style, padding: "8px 0" }} key={checkup.id}>
@@ -930,7 +1274,7 @@ const CheckupList: React.FC<CheckupListProps> = React.memo(
                 <Space>
                   <Button
                     type="text"
-                    icon={<EditOutlined style={{ color: "#1890ff" }} />}
+                    icon={<FormOutlined style={{ color: "#1890ff" }} />}
                     onClick={(e) => handleUpdateClick(checkup, e)}
                     className="action-button"
                   />
@@ -948,7 +1292,12 @@ const CheckupList: React.FC<CheckupListProps> = React.memo(
           >
             <Row justify="space-between" align="middle" gutter={[8, 8]}>
               <Col xs={24}>
-                <Space direction={window.innerWidth < 576 ? "vertical" : "horizontal"} size="small">
+                <Space
+                  direction={
+                    window.innerWidth < 576 ? "vertical" : "horizontal"
+                  }
+                  size="small"
+                >
                   <UserOutlined style={{ fontSize: 20, color: "#1890ff" }} />
                   {type === "student" && "mssv" in checkup && checkup.mssv && (
                     <Text strong type="secondary">
@@ -958,7 +1307,10 @@ const CheckupList: React.FC<CheckupListProps> = React.memo(
                   <Text strong>{checkup.fullName}</Text>
                   <Text type="secondary">{checkup.gender}</Text>
                   <Tooltip title={checkup.status}>
-                    <Tag color={getStatusColor(checkup.status)} icon={getStatusIcon(checkup.status)}>
+                    <Tag
+                      color={getStatusColor(checkup.status)}
+                      icon={getStatusIcon(checkup.status)}
+                    >
                       {checkup.status}
                     </Tag>
                   </Tooltip>
@@ -966,7 +1318,9 @@ const CheckupList: React.FC<CheckupListProps> = React.memo(
               </Col>
               <Col xs={24}>
                 <Tooltip title={checkup.conclusion}>
-                  <Text ellipsis style={{ maxWidth: "100%" }}>{checkup.conclusion || "No conclusion"}</Text>
+                  <Text ellipsis style={{ maxWidth: "100%" }}>
+                    {checkup.conclusion || "No conclusion"}
+                  </Text>
                 </Tooltip>
               </Col>
             </Row>
@@ -980,7 +1334,10 @@ const CheckupList: React.FC<CheckupListProps> = React.memo(
         {checkups.length === 0 ? (
           <Empty description={`No ${type} health checkups found.`} />
         ) : (
-          <div className="virtual-list" style={{ height: "calc(100vh - 400px)", minHeight: 300 }}>
+          <div
+            className="virtual-list"
+            style={{ height: "calc(100vh - 400px)", minHeight: 300 }}
+          >
             <AutoSizer>
               {({ height, width }) => (
                 <FixedSizeList

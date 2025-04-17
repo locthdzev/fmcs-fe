@@ -65,20 +65,27 @@ const formatDate = (date: string | undefined) => {
 
 export function VerificationList() {
   const router = useRouter();
-  const [insurances, setInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
+  const [insurances, setInsurances] = useState<HealthInsuranceResponseDTO[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState("");
-  const [selectedInsurance, setSelectedInsurance] = useState<HealthInsuranceResponseDTO | null>(null);
+  const [selectedInsurance, setSelectedInsurance] =
+    useState<HealthInsuranceResponseDTO | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [insuranceNumberOptions, setInsuranceNumberOptions] = useState<string[]>([]);
+  const [insuranceNumberOptions, setInsuranceNumberOptions] = useState<
+    string[]
+  >([]);
   const [messageApi, contextHolder] = message.useMessage();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   // Add columns visibility state
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
     policyholder: true,
     insuranceNumber: true,
     fullName: true,
@@ -207,11 +214,11 @@ export function VerificationList() {
 
   // Handle dropdown visibility
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  
+
   const handleDropdownVisibleChange = (visible: boolean) => {
     setDropdownOpen(visible);
   };
-  
+
   // Prevent dropdown from closing when clicking checkboxes
   const handleMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -233,17 +240,25 @@ export function VerificationList() {
     try {
       // Show loading
       setLoading(true);
-      
+
       // Process each selected insurance sequentially
       for (const id of selectedRowKeys) {
         const response = await verifyHealthInsurance(id as string, status);
         if (!response.isSuccess) {
-          messageApi.error(`Failed to ${status.toLowerCase()} insurance ${id}: ${response.message}`);
+          messageApi.error(
+            `Failed to ${status.toLowerCase()} insurance ${id}: ${
+              response.message
+            }`
+          );
         }
       }
-      
+
       // Successfully processed all items
-      messageApi.success(`Successfully ${status.toLowerCase()} ${selectedRowKeys.length} insurances!`);
+      messageApi.success(
+        `Successfully ${status.toLowerCase()} ${
+          selectedRowKeys.length
+        } insurances!`
+      );
       setSelectedRowKeys([]);
       fetchInsurances();
     } catch (error) {
@@ -264,7 +279,9 @@ export function VerificationList() {
       render: (record: HealthInsuranceResponseDTO) => (
         <div className="flex flex-col">
           <Typography.Text strong>{record.user.fullName}</Typography.Text>
-          <Typography.Text type="secondary" className="text-sm">{record.user.email}</Typography.Text>
+          <Typography.Text type="secondary" className="text-sm">
+            {record.user.email}
+          </Typography.Text>
         </div>
       ),
       visible: columnVisibility.policyholder,
@@ -278,7 +295,9 @@ export function VerificationList() {
       ),
       dataIndex: "healthInsuranceNumber",
       render: (text: string) => (
-        <Text strong className="text-blue-600">{text}</Text>
+        <Text strong className="text-blue-600">
+          {text}
+        </Text>
       ),
       visible: columnVisibility.insuranceNumber,
     },
@@ -290,9 +309,7 @@ export function VerificationList() {
         </span>
       ),
       dataIndex: "fullName",
-      render: (text: string) => (
-        <Text strong>{text}</Text>
-      ),
+      render: (text: string) => <Text strong>{text}</Text>,
       visible: columnVisibility.fullName,
     },
     {
@@ -546,14 +563,18 @@ export function VerificationList() {
         <div>
           {selectedRowKeys.length > 0 && (
             <Space>
-              <Text>{selectedRowKeys.length} items selected</Text>
+              <Text>{selectedRowKeys.length} Items selected</Text>
               <Popconfirm
                 title="Are you sure you want to verify these insurances?"
                 onConfirm={() => handleBatchVerify("Verified")}
                 okText="Yes"
                 cancelText="No"
               >
-                <Button type="primary" icon={<CheckCircleOutlined />} className="bg-green-500 hover:bg-green-600">
+                <Button
+                  type="primary"
+                  icon={<CheckCircleOutlined />}
+                  className="bg-green-500 hover:bg-green-600"
+                >
                   Verify Selected
                 </Button>
               </Popconfirm>
@@ -664,19 +685,23 @@ export function VerificationList() {
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         footer={[
-          <Button 
-            key="reject" 
-            danger 
+          <Button
+            key="reject"
+            danger
             icon={<CloseCircleOutlined />}
-            onClick={() => handleVerify(selectedInsurance?.id || "", "Rejected")}
+            onClick={() =>
+              handleVerify(selectedInsurance?.id || "", "Rejected")
+            }
           >
             Reject
           </Button>,
-          <Button 
-            key="verify" 
-            type="primary" 
+          <Button
+            key="verify"
+            type="primary"
             icon={<CheckCircleOutlined />}
-            onClick={() => handleVerify(selectedInsurance?.id || "", "Verified")}
+            onClick={() =>
+              handleVerify(selectedInsurance?.id || "", "Verified")
+            }
             className="bg-green-500 hover:bg-green-600"
           >
             Verify
@@ -688,13 +713,17 @@ export function VerificationList() {
         {selectedInsurance && (
           <div className="space-y-6">
             <Card className="shadow-sm">
-              <Descriptions title={
-                <div className="flex items-center space-x-2 mb-4">
-                  <IdcardOutlined className="text-blue-500" />
-                  <Text strong>Insurance Information</Text>
-                </div>
-              } bordered column={2}>
-                <Descriptions.Item 
+              <Descriptions
+                title={
+                  <div className="flex items-center space-x-2 mb-4">
+                    <IdcardOutlined className="text-blue-500" />
+                    <Text strong>Insurance Information</Text>
+                  </div>
+                }
+                bordered
+                column={2}
+              >
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <IdcardOutlined />
@@ -704,7 +733,7 @@ export function VerificationList() {
                 >
                   <Text strong>{selectedInsurance.healthInsuranceNumber}</Text>
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <UserOutlined />
@@ -714,7 +743,7 @@ export function VerificationList() {
                 >
                   <Text strong>{selectedInsurance.fullName}</Text>
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <CalendarOutlined />
@@ -724,7 +753,7 @@ export function VerificationList() {
                 >
                   {formatDate(selectedInsurance.dateOfBirth)}
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <UserOutlined />
@@ -734,7 +763,7 @@ export function VerificationList() {
                 >
                   {selectedInsurance.gender}
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <HomeOutlined />
@@ -745,7 +774,7 @@ export function VerificationList() {
                 >
                   {selectedInsurance.address}
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <MedicineBoxOutlined />
@@ -755,11 +784,15 @@ export function VerificationList() {
                   span={2}
                 >
                   <Space>
-                    <Text strong>{selectedInsurance.healthcareProviderName}</Text>
-                    <Tag color="blue">{selectedInsurance.healthcareProviderCode}</Tag>
+                    <Text strong>
+                      {selectedInsurance.healthcareProviderName}
+                    </Text>
+                    <Tag color="blue">
+                      {selectedInsurance.healthcareProviderCode}
+                    </Tag>
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <CalendarOutlined />
@@ -769,11 +802,17 @@ export function VerificationList() {
                   span={2}
                 >
                   <Space>
-                    <Badge status="processing" text={`From: ${formatDate(selectedInsurance.validFrom)}`} />
-                    <Badge status="warning" text={`To: ${formatDate(selectedInsurance.validTo)}`} />
+                    <Badge
+                      status="processing"
+                      text={`From: ${formatDate(selectedInsurance.validFrom)}`}
+                    />
+                    <Badge
+                      status="warning"
+                      text={`To: ${formatDate(selectedInsurance.validTo)}`}
+                    />
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <GlobalOutlined />
@@ -787,7 +826,7 @@ export function VerificationList() {
             </Card>
 
             {selectedInsurance.imageUrl && (
-              <Card 
+              <Card
                 title={
                   <div className="flex items-center space-x-2">
                     <FileImageOutlined className="text-blue-500" />
@@ -809,4 +848,4 @@ export function VerificationList() {
       </Modal>
     </div>
   );
-} 
+}

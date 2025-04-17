@@ -59,14 +59,18 @@ const formatDateTime = (datetime: string | undefined) => {
 
 export function SoftDeletedList() {
   const router = useRouter();
-  const [insurances, setInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
+  const [insurances, setInsurances] = useState<HealthInsuranceResponseDTO[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState("");
   const [restoringId, setRestoringId] = useState<string | null>(null);
-  const [insuranceNumberOptions, setInsuranceNumberOptions] = useState<string[]>([]);
+  const [insuranceNumberOptions, setInsuranceNumberOptions] = useState<
+    string[]
+  >([]);
   const [messageApi, contextHolder] = message.useMessage();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
@@ -144,7 +148,7 @@ export function SoftDeletedList() {
   useEffect(() => {
     fetchInsurances();
     fetchAllInsuranceNumbers();
-    
+
     const connection = setupHealthInsuranceRealTime(() => {
       fetchInsurances();
     });
@@ -176,7 +180,7 @@ export function SoftDeletedList() {
       setLoading(true);
       let successCount = 0;
       let failCount = 0;
-      
+
       // Xử lý lần lượt từng item được chọn
       for (const id of selectedRowKeys as string[]) {
         try {
@@ -190,15 +194,17 @@ export function SoftDeletedList() {
           failCount++;
         }
       }
-      
+
       if (successCount > 0) {
-        messageApi.success(`Successfully restored ${successCount} insurance(s)!`);
+        messageApi.success(
+          `Successfully restored ${successCount} insurance(s)!`
+        );
       }
-      
+
       if (failCount > 0) {
         messageApi.error(`Failed to restore ${failCount} insurance(s).`);
       }
-      
+
       // Xóa danh sách chọn và làm mới dữ liệu
       setSelectedRowKeys([]);
       fetchInsurances();
@@ -228,7 +234,9 @@ export function SoftDeletedList() {
       render: (record: HealthInsuranceResponseDTO) => (
         <div className="flex flex-col">
           <Typography.Text strong>{record.user.fullName}</Typography.Text>
-          <Typography.Text type="secondary" className="text-sm">{record.user.email}</Typography.Text>
+          <Typography.Text type="secondary" className="text-sm">
+            {record.user.email}
+          </Typography.Text>
         </div>
       ),
     },
@@ -240,7 +248,9 @@ export function SoftDeletedList() {
       ),
       dataIndex: "healthInsuranceNumber",
       render: (text: string) => (
-        <Text strong className="text-gray-600">{text}</Text>
+        <Text strong className="text-gray-600">
+          {text}
+        </Text>
       ),
     },
     {
@@ -251,7 +261,9 @@ export function SoftDeletedList() {
       ),
       render: (record: HealthInsuranceResponseDTO) => (
         <Space direction="vertical" size="small">
-          <Typography.Text>From: {formatDate(record.validFrom)}</Typography.Text>
+          <Typography.Text>
+            From: {formatDate(record.validFrom)}
+          </Typography.Text>
           <Typography.Text>To: {formatDate(record.validTo)}</Typography.Text>
         </Space>
       ),
@@ -263,9 +275,7 @@ export function SoftDeletedList() {
         </span>
       ),
       render: (record: HealthInsuranceResponseDTO) => (
-        <Tag color="default">
-          Soft Deleted
-        </Tag>
+        <Tag color="default">Soft Deleted</Tag>
       ),
     },
     {
@@ -278,7 +288,9 @@ export function SoftDeletedList() {
         <Tooltip title={moment(record.updatedAt).fromNow()}>
           <Space direction="vertical" size="small">
             <Typography.Text>{formatDate(record.updatedAt)}</Typography.Text>
-            <Typography.Text type="secondary" className="text-sm">{moment(record.updatedAt).format('HH:mm:ss')}</Typography.Text>
+            <Typography.Text type="secondary" className="text-sm">
+              {moment(record.updatedAt).format("HH:mm:ss")}
+            </Typography.Text>
           </Space>
         </Tooltip>
       ),
@@ -292,8 +304,12 @@ export function SoftDeletedList() {
       render: (record: HealthInsuranceResponseDTO) =>
         record.updatedBy ? (
           <div className="flex flex-col">
-            <Typography.Text strong>{record.updatedBy.userName}</Typography.Text>
-            <Typography.Text type="secondary" className="text-sm">{record.updatedBy.email}</Typography.Text>
+            <Typography.Text strong>
+              {record.updatedBy.userName}
+            </Typography.Text>
+            <Typography.Text type="secondary" className="text-sm">
+              {record.updatedBy.email}
+            </Typography.Text>
           </div>
         ) : (
           <Tag color="default">System</Tag>
@@ -312,7 +328,7 @@ export function SoftDeletedList() {
           onConfirm={() => handleRestore(record.id)}
           okText="Yes"
           cancelText="No"
-          icon={<ExclamationCircleOutlined style={{ color: '#52c41a' }} />}
+          icon={<ExclamationCircleOutlined style={{ color: "#52c41a" }} />}
         >
           <Button
             type="primary"
@@ -330,7 +346,7 @@ export function SoftDeletedList() {
   return (
     <div className="history-container" style={{ padding: "20px" }}>
       {contextHolder}
-      
+
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -407,16 +423,18 @@ export function SoftDeletedList() {
         <div>
           {selectedRowKeys.length > 0 && (
             <Space>
-              <Text>{selectedRowKeys.length} items selected</Text>
+              <Text>{selectedRowKeys.length} Items selected</Text>
               <Popconfirm
                 title="Restore Selected Insurances"
                 description="Are you sure you want to restore these insurances?"
                 onConfirm={handleBulkRestore}
                 okText="Yes"
                 cancelText="No"
-                icon={<ExclamationCircleOutlined style={{ color: '#52c41a' }} />}
+                icon={
+                  <ExclamationCircleOutlined style={{ color: "#52c41a" }} />
+                }
               >
-                <Button 
+                <Button
                   type="primary"
                   icon={<UndoOutlined />}
                   className="bg-green-500 hover:bg-green-600"
@@ -504,4 +522,4 @@ export function SoftDeletedList() {
       </Card>
     </div>
   );
-} 
+}

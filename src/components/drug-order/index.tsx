@@ -33,7 +33,7 @@ import {
   AppstoreOutlined,
   TagOutlined,
   ExclamationCircleOutlined,
-  EditOutlined,
+  FormOutlined,
   EyeOutlined,
   ArrowLeftOutlined,
   FileExcelOutlined,
@@ -761,7 +761,7 @@ export function DrugOrders() {
           <Tooltip title="Edit">
             <Button
               type="text"
-              icon={<EditOutlined />}
+              icon={<FormOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
                 handleOpenEditModal(record.id);
@@ -1025,7 +1025,7 @@ export function DrugOrders() {
 
     return (
       <Space>
-        <Text>{selectedRowKeys.length} items selected</Text>
+        <Text>{selectedRowKeys.length} Items selected</Text>
         <Button icon={<UndoOutlined />} onClick={() => setSelectedRowKeys([])}>
           Restore
         </Button>

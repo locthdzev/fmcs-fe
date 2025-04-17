@@ -29,7 +29,7 @@ import {
   PlusOutlined,
   SearchOutlined,
   EyeOutlined,
-  EditOutlined,
+  FormOutlined,
   ArrowLeftOutlined,
   FileExcelOutlined,
 } from "@ant-design/icons";
@@ -889,7 +889,7 @@ export function Trucks() {
               <AntTooltip title="Edit">
                 <AntButton
                   type="text"
-                  icon={<EditOutlined />}
+                  icon={<FormOutlined />}
                   onClick={() => router.push(`/truck/edit/${truck.id}`)}
                 />
               </AntTooltip>
@@ -1018,7 +1018,7 @@ export function Trucks() {
 
     return (
       <Space>
-        <Typography.Text>{selectedCount} items selected</Typography.Text>
+        <Typography.Text>{selectedCount} Items selected</Typography.Text>
         <AntButton
           icon={<UndoOutlined />}
           onClick={() => setSelectedKeys(new Set([]))}

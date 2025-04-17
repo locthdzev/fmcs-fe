@@ -37,7 +37,7 @@ import {
   HistoryOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  EditOutlined,
+  FormOutlined,
   PlusOutlined,
   CaretRightOutlined,
   LinkOutlined,
@@ -111,7 +111,7 @@ const getActionIcon = (action: string | undefined) => {
     case "created":
       return <PlusOutlined />;
     case "updated":
-      return <EditOutlined />;
+      return <FormOutlined />;
     case "cancelled":
       return <CloseCircleOutlined />;
     case "softdeleted":

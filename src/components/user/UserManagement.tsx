@@ -30,7 +30,7 @@ import {
   UploadOutlined,
   UserOutlined,
   EyeOutlined,
-  EditOutlined,
+  FormOutlined,
   DeleteOutlined,
   TagOutlined,
   TeamOutlined,

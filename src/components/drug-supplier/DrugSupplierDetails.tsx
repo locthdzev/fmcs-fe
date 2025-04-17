@@ -9,17 +9,14 @@ import {
   message,
   Row,
   Col,
-  Divider
+  Divider,
 } from "antd";
 import dayjs from "dayjs";
-import {
-  getDrugSupplierById,
-  DrugSupplierResponse,
-} from "@/api/drugsupplier";
+import { getDrugSupplierById, DrugSupplierResponse } from "@/api/drugsupplier";
 import {
   ArrowLeftOutlined,
   ShopOutlined,
-  EditOutlined
+  FormOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -29,7 +26,9 @@ interface DrugSupplierDetailProps {
   id: string;
 }
 
-export const DrugSupplierDetail: React.FC<DrugSupplierDetailProps> = ({ id }) => {
+export const DrugSupplierDetail: React.FC<DrugSupplierDetailProps> = ({
+  id,
+}) => {
   const router = useRouter();
   const [supplier, setSupplier] = useState<DrugSupplierResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,12 +44,14 @@ export const DrugSupplierDetail: React.FC<DrugSupplierDetailProps> = ({ id }) =>
     setLoading(true);
     try {
       const response = await getDrugSupplierById(id);
-      if (response && typeof response === 'object') {
-         setSupplier(response);
+      if (response && typeof response === "object") {
+        setSupplier(response);
       } else {
-         console.error("Invalid response structure:", response);
-         messageApi.error("Failed to fetch supplier details: Invalid data format");
-         setSupplier(null);
+        console.error("Invalid response structure:", response);
+        messageApi.error(
+          "Failed to fetch supplier details: Invalid data format"
+        );
+        setSupplier(null);
       }
     } catch (error) {
       console.error("Error fetching supplier details:", error);
@@ -80,9 +81,9 @@ export const DrugSupplierDetail: React.FC<DrugSupplierDetailProps> = ({ id }) =>
   const renderActionButtons = () => {
     if (!supplier) return null;
     return (
-      <Button 
+      <Button
         type="primary"
-        icon={<EditOutlined />}
+        icon={<FormOutlined />}
         onClick={() => router.push(`/drug-supplier/edit/${id}`)}
       >
         Edit Supplier
@@ -104,18 +105,18 @@ export const DrugSupplierDetail: React.FC<DrugSupplierDetailProps> = ({ id }) =>
       <div className="p-4">
         {contextHolder}
         <div className="flex items-center gap-2 mb-4">
-            <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.push("/drug-supplier")}
-                 style={{ marginRight: "8px" }}
-            >
-                Back
-            </Button>
-             <ShopOutlined style={{ fontSize: "24px" }} />
-             <h3 className="text-xl font-bold">Supplier Not Found</h3>
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.push("/drug-supplier")}
+            style={{ marginRight: "8px" }}
+          >
+            Back
+          </Button>
+          <ShopOutlined style={{ fontSize: "24px" }} />
+          <h3 className="text-xl font-bold">Supplier Not Found</h3>
         </div>
         <Card>
-           <Text>The requested drug supplier could not be found or loaded.</Text>
+          <Text>The requested drug supplier could not be found or loaded.</Text>
         </Card>
       </div>
     );
@@ -141,8 +142,8 @@ export const DrugSupplierDetail: React.FC<DrugSupplierDetailProps> = ({ id }) =>
       </div>
 
       <Row gutter={[16, 16]}>
-         <Col xs={24}>
-           <Card
+        <Col xs={24}>
+          <Card
             title={<Title level={5}>Supplier Information</Title>}
             extra={
               <Tag color={getStatusColor(supplier.status)}>
@@ -153,48 +154,64 @@ export const DrugSupplierDetail: React.FC<DrugSupplierDetailProps> = ({ id }) =>
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Supplier Name</Text>
+                  <Text strong className="block text-sm text-gray-500">
+                    Supplier Name
+                  </Text>
                   <Text className="block">{supplier.supplierName || "-"}</Text>
                 </div>
               </Col>
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Contact Number</Text>
+                  <Text strong className="block text-sm text-gray-500">
+                    Contact Number
+                  </Text>
                   <Text className="block">{supplier.contactNumber || "-"}</Text>
                 </div>
               </Col>
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Email</Text>
+                  <Text strong className="block text-sm text-gray-500">
+                    Email
+                  </Text>
                   <Text className="block">{supplier.email || "-"}</Text>
                 </div>
               </Col>
               <Col xs={24}>
                 <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Address</Text>
+                  <Text strong className="block text-sm text-gray-500">
+                    Address
+                  </Text>
                   <Text className="block">{supplier.address || "-"}</Text>
                 </div>
               </Col>
-              
+
               <Col xs={24}>
                 <Divider style={{ margin: "8px 0" }} />
               </Col>
-              
+
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Created At</Text>
-                  <Text className="block">{formatDate(supplier.createdAt)}</Text>
+                  <Text strong className="block text-sm text-gray-500">
+                    Created At
+                  </Text>
+                  <Text className="block">
+                    {formatDate(supplier.createdAt)}
+                  </Text>
                 </div>
               </Col>
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Updated At</Text>
-                  <Text className="block">{formatDate(supplier.updatedAt)}</Text>
+                  <Text strong className="block text-sm text-gray-500">
+                    Updated At
+                  </Text>
+                  <Text className="block">
+                    {formatDate(supplier.updatedAt)}
+                  </Text>
                 </div>
               </Col>
             </Row>
           </Card>
-         </Col>
+        </Col>
       </Row>
     </div>
   );
