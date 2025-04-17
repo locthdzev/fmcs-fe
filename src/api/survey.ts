@@ -5,6 +5,7 @@ export interface UserInfo {
   fullName: string;
   userName?: string;
   email: string;
+  imageURL?: string;
 }
 
 export interface StaffInfo {
@@ -12,6 +13,7 @@ export interface StaffInfo {
   fullName: string;
   userName?: string;
   email: string;
+  imageURL?: string;
 }
 
 export interface AppointmentInfo {
