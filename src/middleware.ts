@@ -12,7 +12,7 @@ const commonUserRoutes = [
   "/admin/documentation",
   "/admin/settings/general",
   "/admin/settings/security",
-  "/survey/surveyUser",
+  "/survey/MySurvey",
   "/survey/details",
   "/my-schedule",
   "/my-health-check",
@@ -43,6 +43,7 @@ const adminOnlyRoutes = [
   "/health-check-result",
   "/prescription",
   "/treatment-plan",
+  "/medicines-statitics",
 ];
 
 export function middleware(request: NextRequest) {

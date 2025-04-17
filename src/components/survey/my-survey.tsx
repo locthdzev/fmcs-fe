@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Card, Typography, Rate, Input, Button, Form, Space, Tag, Spin, notification, Progress, Avatar, List, Result, Flex, Alert } from 'antd';
 import { UserOutlined, SaveOutlined, ExclamationCircleOutlined, FrownOutlined, MehOutlined, SmileOutlined, CheckCircleFilled, CalendarOutlined, StarOutlined, ReloadOutlined } from '@ant-design/icons';
-import { getSurveyById, updateSurvey, SurveyResponse, SurveyUpdateRequest, getSurveysByUserId } from '@/api/survey';
+import { getSurveyById, updateSurvey, SurveyResponse, SurveyUpdateRequest, getSurveysByUserId, getSurveysByStaffId } from '@/api/survey';
 import { useRouter } from 'next/router';
 import moment from 'moment';
 import { UserContext } from '@/context/UserContext';
@@ -223,7 +223,7 @@ export const Survey: React.FC<SurveyProps> = ({ id, onSuccess, readOnly = false 
           <Button 
             type="primary" 
             size="large" 
-            onClick={() => router.push('/survey/surveyUser')}
+            onClick={() => router.push('/survey/MySurvey')}
             className="hover-lift"
           >
             Back to Survey Page
@@ -244,7 +244,7 @@ export const Survey: React.FC<SurveyProps> = ({ id, onSuccess, readOnly = false 
                 {getStatusEmoji(survey.status)} Survey Feedback Form
               </Title>
               <Text style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
-                Survey ID: {surveyId.substring(0, 8)}...
+                Survey ID: {surveyId?.substring(0, 8)}...
               </Text>
             </div>
             <Tag 
@@ -261,7 +261,7 @@ export const Survey: React.FC<SurveyProps> = ({ id, onSuccess, readOnly = false 
         <div className="p-6">
           {/* Appointment info card */}
           <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Staff card */}
+            {/* Staff info for user view */}
             <Card 
               className="bg-blue-50 border border-blue-100 card-clean"
             >
@@ -546,7 +546,7 @@ export const SurveyList: React.FC<SurveyListProps> = ({ userId, onSelectSurvey }
     UPDATED: "UpdatedAfterSubmission"
   };
   
-  // Sử dụng user ID từ prop hoặc từ context
+  // Get user ID from prop or from context
   const userIdToUse = userId || (userContext?.user?.userId);
   
   useEffect(() => {
@@ -569,13 +569,14 @@ export const SurveyList: React.FC<SurveyListProps> = ({ userId, onSelectSurvey }
     try {
       setLoading(true);
       setError(null);
+      
+      // For regular users, fetch their surveys
       const response = await getSurveysByUserId(userIdToUse, {
         page: 1,
         pageSize: 50,
       });
+      console.log('User Survey API Response:', JSON.stringify(response));
 
-      console.log('API Response:', JSON.stringify(response));
-      
       if (response && response.isSuccess) {
         console.log('Response data:', JSON.stringify(response.data));
         
@@ -606,13 +607,13 @@ export const SurveyList: React.FC<SurveyListProps> = ({ userId, onSelectSurvey }
           setError('You don\'t have any surveys yet.');
         }
         
-        // Cập nhật số lượng khảo sát theo trạng thái
+        // Update survey counts by status
         const pendingCount = surveyItems.filter(s => s.status === SURVEY_STATUS.PENDING).length;
         const completedCount = surveyItems.filter(s => s.status === SURVEY_STATUS.SUBMITTED || s.status === SURVEY_STATUS.UPDATED).length;
         setPendingCount(pendingCount);
         setCompletedCount(completedCount);
         
-        // Cập nhật trạng thái khảo sát trong context sau khi fetch hoàn tất
+        // Update survey status in context after fetch is complete
         if (surveyRequiredContext) {
           setTimeout(() => {
             surveyRequiredContext.checkPendingSurveys();
@@ -748,7 +749,7 @@ export const SurveyList: React.FC<SurveyListProps> = ({ userId, onSelectSurvey }
         title={
           <div className="flex items-center">
             <StarOutlined className="text-yellow-500 mr-2" />
-            <span className="text-lg font-semibold">Your Surveys</span>
+            <span className="text-lg font-semibold">My Surveys</span>
           </div>
         }
         className="shadow-md"
@@ -757,7 +758,7 @@ export const SurveyList: React.FC<SurveyListProps> = ({ userId, onSelectSurvey }
         <div className="bg-gradient-to-r from-teal-500 to-blue-600 rounded-lg shadow-md p-6 text-white">
           <div className="mb-4">
             <Title level={2} style={{ color: 'white', margin: 0 }}>
-              Your Feedback Dashboard
+              My Surveys
             </Title>
           </div>
           <Paragraph style={{ color: 'rgba(255, 255, 255, 0.85)', marginBottom: 20 }}>
