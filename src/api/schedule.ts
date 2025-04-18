@@ -26,6 +26,20 @@ export interface ScheduleTodayResponse {
   shiftEndTime?: string;
 }
 
+export interface StaffScheduleResponse {
+  id: string;
+  shiftId: string;
+  workDate: string;
+  note?: string;
+  status?: string;
+  createdAt: string;
+  updatedAt?: string;
+  shiftName?: string;
+  startTime?: string;
+  endTime?: string;
+  dayOfWeek?: string;
+}
+
 export interface ScheduleCreateRequest {
   staffId: string;
   shiftId: string;
@@ -87,6 +101,23 @@ export const getStaffSchedulesForToday = async () => {
     const response = await api.get(
       "/schedule-management/schedules/staff/today"
     );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getCurrentUserSchedules = async (
+  startDate: string,
+  endDate: string
+) => {
+  try {
+    const response = await api.get("/schedule-management/schedules/me", {
+      params: {
+        startDate,
+        endDate,
+      },
+    });
     return response.data;
   } catch (error) {
     throw error;

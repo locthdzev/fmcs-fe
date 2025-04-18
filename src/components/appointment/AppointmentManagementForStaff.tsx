@@ -65,7 +65,7 @@ import {
   InfoCircleOutlined,
   UserSwitchOutlined,
   FilterOutlined,
-  EditOutlined,
+  FormOutlined,
 } from "@ant-design/icons";
 import { UserContext } from "@/context/UserContext";
 import AppointmentUserDetails from "./AppointmentUserDetails";
@@ -749,7 +749,7 @@ export function AppointmentManagementForStaff() {
     // if (["Scheduled", "Happening", "Missed", "Finished"].includes(appointment.status)) {
     items.push({
       key: "update",
-      icon: <EditOutlined style={{ color: "#1890ff" }} />,
+      icon: <FormOutlined style={{ color: "#1890ff" }} />,
       disabled: isAnyActionLoading,
       label: (
         <span

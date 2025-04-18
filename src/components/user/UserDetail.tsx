@@ -27,7 +27,7 @@ import {
   TagOutlined,
   CheckCircleOutlined,
   StopOutlined,
-  EditOutlined,
+  FormOutlined,
   SaveOutlined,
   CloseOutlined,
 } from "@ant-design/icons";
@@ -197,7 +197,7 @@ export function UserDetail({ id }: UserDetailProps) {
                   </Button>
                 </Space>
               ) : (
-                <Button icon={<EditOutlined />} onClick={handleEdit}>
+                <Button icon={<FormOutlined />} onClick={handleEdit}>
                   Edit
                 </Button>
               )

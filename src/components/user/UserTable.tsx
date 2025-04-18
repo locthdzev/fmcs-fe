@@ -17,14 +17,17 @@ import {
   Dropdown,
   message,
   TableProps,
+  Menu,
+  Form,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
-  EditOutlined,
+  FormOutlined,
   EyeOutlined,
   CheckCircleOutlined,
   StopOutlined,
   DownOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { UserResponseDTO } from "@/api/user";
@@ -100,8 +103,11 @@ const UserTable: React.FC<UserTableProps> = ({
           hasInactive: false,
         });
         return;
-      } 
-      if (selectedOption === "all-inactive" || selectedOption === "page-inactive") {
+      }
+      if (
+        selectedOption === "all-inactive" ||
+        selectedOption === "page-inactive"
+      ) {
         setSelectedItemTypes({
           hasActive: false,
           hasInactive: true,
@@ -111,14 +117,14 @@ const UserTable: React.FC<UserTableProps> = ({
     }
 
     // For "select all" checkbox or individual selections
-    const visibleSelectedUsers = users.filter((user) => 
+    const visibleSelectedUsers = users.filter((user) =>
       selectedUsers.includes(user.id)
     );
-    
+
     const hasActiveInCurrentPage = visibleSelectedUsers.some(
       (user) => user.status === "Active"
     );
-    
+
     const hasInactiveInCurrentPage = visibleSelectedUsers.some(
       (user) => user.status === "Inactive"
     );
@@ -127,7 +133,7 @@ const UserTable: React.FC<UserTableProps> = ({
     if (visibleSelectedUsers.length < selectedUsers.length) {
       // Show both buttons when select all is used (assuming mixed statuses)
       setSelectedItemTypes({
-        hasActive: true, 
+        hasActive: true,
         hasInactive: true,
       });
     } else {
@@ -149,19 +155,25 @@ const UserTable: React.FC<UserTableProps> = ({
   // Get status tag color
   const getStatusColor = (status: string) => {
     switch (status.toUpperCase()) {
-      case "ACTIVE": return "success";
-      case "INACTIVE": return "error";
-      default: return "default";
+      case "ACTIVE":
+        return "success";
+      case "INACTIVE":
+        return "error";
+      default:
+        return "default";
     }
   };
 
   // Render status tag
   const renderStatusTag = (status: string) => {
     const color = getStatusColor(status);
-    const icon = status.toUpperCase() === "ACTIVE" 
-      ? <CheckCircleOutlined /> 
-      : <StopOutlined />;
-      
+    const icon =
+      status.toUpperCase() === "ACTIVE" ? (
+        <CheckCircleOutlined />
+      ) : (
+        <StopOutlined />
+      );
+
     return (
       <Tag color={color} icon={icon}>
         {status}
@@ -172,12 +184,18 @@ const UserTable: React.FC<UserTableProps> = ({
   // Helper to render role with proper formatting
   const renderRole = (role: string) => {
     switch (role) {
-      case "Admin": return "Admin";
-      case "Manager": return "Manager";
-      case "Healthcare Staff": return "HealthcareStaff";
-      case "Canteen Staff": return "CanteenStaff";
-      case "User": return "User";
-      default: return role;
+      case "Admin":
+        return "Admin";
+      case "Manager":
+        return "Manager";
+      case "Healthcare Staff":
+        return "HealthcareStaff";
+      case "Canteen Staff":
+        return "CanteenStaff";
+      case "User":
+        return "User";
+      default:
+        return role;
     }
   };
 
@@ -241,26 +259,28 @@ const UserTable: React.FC<UserTableProps> = ({
         if (getAllUserIdsByStatus) {
           allIds = await getAllUserIdsByStatus(["Active", "Inactive"]);
         } else {
-          allIds = users.map(user => user.id);
+          allIds = users.map((user) => user.id);
         }
-        
+
         // Clear dropdown selection
         setSelectedOption(null);
-        
+
         // Select all users
         onUserSelect(allIds);
-        
+
         // Check if we have any inactive users
-        const hasInactiveUsers = users.some(user => user.status === "Inactive");
+        const hasInactiveUsers = users.some(
+          (user) => user.status === "Inactive"
+        );
         // Check if we have any active users
-        const hasActiveUsers = users.some(user => user.status === "Active");
-        
+        const hasActiveUsers = users.some((user) => user.status === "Active");
+
         // Show buttons based on actual user statuses
         setSelectedItemTypes({
           hasActive: hasActiveUsers,
           hasInactive: hasInactiveUsers,
         });
-        
+
         setIsLoadingAllItems(false);
       } catch (error) {
         console.error("Error selecting all users:", error);
@@ -329,10 +349,14 @@ const UserTable: React.FC<UserTableProps> = ({
   const renderSelectAll = () => {
     // Count users by status to determine which options to show
     const activeCount = users.filter((user) => user.status === "Active").length;
-    const inactiveCount = users.filter((user) => user.status === "Inactive").length;
+    const inactiveCount = users.filter(
+      (user) => user.status === "Inactive"
+    ).length;
 
-    const isSelectAll = selectedUsers.length > 0 && selectedUsers.length === users.length;
-    const isIndeterminate = selectedUsers.length > 0 && selectedUsers.length < users.length;
+    const isSelectAll =
+      selectedUsers.length > 0 && selectedUsers.length === users.length;
+    const isIndeterminate =
+      selectedUsers.length > 0 && selectedUsers.length < users.length;
 
     // Create dropdown menu items
     const items = [];
@@ -352,7 +376,9 @@ const UserTable: React.FC<UserTableProps> = ({
         label: (
           <div>
             {isLoadingAllItems && selectedOption === "all-active" ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
                 <Spin size="small" />
                 <span>Loading all Active users...</span>
               </div>
@@ -379,7 +405,9 @@ const UserTable: React.FC<UserTableProps> = ({
         label: (
           <div>
             {isLoadingAllItems && selectedOption === "all-inactive" ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
                 <Spin size="small" />
                 <span>Loading all Inactive users...</span>
               </div>
@@ -438,15 +466,15 @@ const UserTable: React.FC<UserTableProps> = ({
 
     return (
       <>
-        <Text type="secondary">
-          {selectedUsers.length} items selected
-        </Text>
+        <Text type="secondary">{selectedUsers.length} Items selected</Text>
 
         {/* Show Activate button only if there are inactive users in selection */}
         {hasInactive && (
           <Tooltip title="Activate selected inactive users">
             <Popconfirm
-              title={<div style={{ padding: "0 10px" }}>Activate selected users</div>}
+              title={
+                <div style={{ padding: "0 10px" }}>Activate selected users</div>
+              }
               description={
                 <p style={{ padding: "10px 40px 10px 18px" }}>
                   Are you sure you want to activate selected inactive users?
@@ -455,9 +483,11 @@ const UserTable: React.FC<UserTableProps> = ({
               onConfirm={async () => {
                 try {
                   const inactiveUserIds = selectedUsers;
-                  
+
                   if (inactiveUserIds.length > 0) {
-                    await Promise.all(inactiveUserIds.map((id) => onActivate(id)));
+                    await Promise.all(
+                      inactiveUserIds.map((id) => onActivate(id))
+                    );
                     messageApi.success("Users activated successfully");
                     clearAllSelections();
                   } else {
@@ -473,21 +503,25 @@ const UserTable: React.FC<UserTableProps> = ({
               cancelText="Cancel"
               placement="rightBottom"
             >
-              <Button 
+              <Button
                 icon={<CheckCircleOutlined />}
-                style={{ color: "#52c41a" }}
+                style={{ color: "#52c41a", borderColor: "#52c41a" }}
               >
                 Activate
               </Button>
             </Popconfirm>
           </Tooltip>
         )}
-        
+
         {/* Show Deactivate button only if there are active users in selection */}
         {hasActive && (
           <Tooltip title="Deactivate selected active users">
             <Popconfirm
-              title={<div style={{ padding: "0 10px" }}>Deactivate selected users</div>}
+              title={
+                <div style={{ padding: "0 10px" }}>
+                  Deactivate selected users
+                </div>
+              }
               description={
                 <p style={{ padding: "10px 40px 10px 18px" }}>
                   Are you sure you want to deactivate selected active users?
@@ -496,9 +530,11 @@ const UserTable: React.FC<UserTableProps> = ({
               onConfirm={async () => {
                 try {
                   const activeUserIds = selectedUsers;
-                  
+
                   if (activeUserIds.length > 0) {
-                    await Promise.all(activeUserIds.map((id) => onDeactivate(id)));
+                    await Promise.all(
+                      activeUserIds.map((id) => onDeactivate(id))
+                    );
                     messageApi.success("Users deactivated successfully");
                     clearAllSelections();
                   } else {
@@ -514,10 +550,7 @@ const UserTable: React.FC<UserTableProps> = ({
               cancelText="Cancel"
               placement="rightBottom"
             >
-              <Button
-                danger
-                icon={<StopOutlined />}
-              >
+              <Button danger icon={<StopOutlined />}>
                 Deactivate
               </Button>
             </Popconfirm>
@@ -531,7 +564,11 @@ const UserTable: React.FC<UserTableProps> = ({
   // Define table columns
   const columns: ColumnsType<UserResponseDTO> = [
     {
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>FULL NAME</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          FULL NAME
+        </span>
+      ),
       dataIndex: "fullName",
       key: "fullName",
       ellipsis: true,
@@ -553,21 +590,33 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
     },
     {
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>USERNAME</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          USERNAME
+        </span>
+      ),
       dataIndex: "userName",
       key: "userName",
       ellipsis: true,
       width: 150,
     },
     {
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>EMAIL</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          EMAIL
+        </span>
+      ),
       dataIndex: "email",
       key: "email",
       ellipsis: true,
       width: 250,
     },
     {
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>PHONE</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          PHONE
+        </span>
+      ),
       dataIndex: "phone",
       key: "phone",
       ellipsis: true,
@@ -575,28 +624,44 @@ const UserTable: React.FC<UserTableProps> = ({
       align: "center" as const,
     },
     {
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>GENDER</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          GENDER
+        </span>
+      ),
       dataIndex: "gender",
       key: "gender",
       width: 90,
       align: "center" as const,
     },
     {
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>DOB</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          DOB
+        </span>
+      ),
       dataIndex: "dob",
       key: "dob",
       width: 120,
       render: (date: string) => formatDate(date).split(" ")[0],
     },
     {
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>ADDRESS</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          ADDRESS
+        </span>
+      ),
       dataIndex: "address",
       key: "address",
       ellipsis: true,
       width: 200,
     },
     {
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>ROLES</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          ROLES
+        </span>
+      ),
       dataIndex: "roles",
       key: "roles",
       width: 100,
@@ -628,11 +693,21 @@ const UserTable: React.FC<UserTableProps> = ({
         // Select color for role tag
         let color = "default";
         switch (primaryRole) {
-          case "Admin": color = "red"; break;
-          case "Manager": color = "orange"; break;
-          case "Healthcare Staff": color = "blue"; break;
-          case "Canteen Staff": color = "purple"; break;
-          case "User": color = "green"; break;
+          case "Admin":
+            color = "red";
+            break;
+          case "Manager":
+            color = "orange";
+            break;
+          case "Healthcare Staff":
+            color = "blue";
+            break;
+          case "Canteen Staff":
+            color = "purple";
+            break;
+          case "User":
+            color = "green";
+            break;
         }
 
         // Display primary role with count of additional roles
@@ -656,7 +731,11 @@ const UserTable: React.FC<UserTableProps> = ({
       },
     },
     {
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>STATUS</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          STATUS
+        </span>
+      ),
       dataIndex: "status",
       key: "status",
       width: 120,
@@ -668,14 +747,22 @@ const UserTable: React.FC<UserTableProps> = ({
       ),
     },
     {
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>CREATED AT</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          CREATED AT
+        </span>
+      ),
       dataIndex: "createdAt",
       key: "createdAt",
       width: 180,
       render: (date: string) => formatDate(date),
     },
     {
-      title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>UPDATED AT</span>,
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          UPDATED AT
+        </span>
+      ),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 180,
@@ -683,12 +770,14 @@ const UserTable: React.FC<UserTableProps> = ({
     },
     {
       title: (
-        <span style={{
-          textTransform: "uppercase",
-          fontWeight: "bold",
-          display: "flex",
-          justifyContent: "center",
-        }}>
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
           ACTIONS
         </span>
       ),
@@ -696,54 +785,43 @@ const UserTable: React.FC<UserTableProps> = ({
       fixed: "right" as const,
       width: 120,
       render: (text: string, record: UserResponseDTO) => (
-        <Space style={{ display: "flex", justifyContent: "center" }}>
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => onEdit?.(record)}
-            />
-          </Tooltip>
-          {record.status === "Active" ? (
-            <Popconfirm
-              title={<div style={{ padding: "0 10px" }}>Deactivate User</div>}
-              description={
-                <p style={{ padding: "10px 40px 10px 18px" }}>
-                  Are you sure you want to deactivate this user?
-                </p>
-              }
-              onConfirm={() => onDeactivate(record.id)}
-              okText="Yes"
-              cancelText="No"
-              placement="topLeft"
-            >
-              <Tooltip title="Deactivate">
-                <Button type="text" icon={<StopOutlined />} danger />
-              </Tooltip>
-            </Popconfirm>
-          ) : (
-            <Popconfirm
-              title={<div style={{ padding: "0 10px" }}>Activate User</div>}
-              description={
-                <p style={{ padding: "10px 40px 10px 18px" }}>
-                  Are you sure you want to activate this user?
-                </p>
-              }
-              onConfirm={() => onActivate(record.id)}
-              okText="Yes"
-              cancelText="No"
-              placement="topLeft"
-            >
-              <Tooltip title="Activate">
-                <Button
-                  type="text"
-                  icon={<CheckCircleOutlined />}
-                  style={{ color: "#52c41a" }}
-                />
-              </Tooltip>
-            </Popconfirm>
-          )}
-        </Space>
+        <div style={{ textAlign: "center" }}>
+          <Dropdown
+            overlay={
+              <Menu>
+                <Menu.Item
+                  key="edit"
+                  icon={<FormOutlined />}
+                  onClick={() => onEdit?.(record)}
+                >
+                  Edit
+                </Menu.Item>
+                {record.status === "Active" ? (
+                  <Menu.Item
+                    key="deactivate"
+                    icon={<StopOutlined />}
+                    onClick={() => onDeactivate(record.id)}
+                    danger
+                  >
+                    Deactivate
+                  </Menu.Item>
+                ) : (
+                  <Menu.Item
+                    key="activate"
+                    icon={<CheckCircleOutlined />}
+                    onClick={() => onActivate(record.id)}
+                    style={{ color: "#52c41a" }}
+                  >
+                    Activate
+                  </Menu.Item>
+                )}
+              </Menu>
+            }
+            placement="bottomCenter"
+          >
+            <Button icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </div>
       ),
       align: "center" as const,
     },
@@ -760,7 +838,10 @@ const UserTable: React.FC<UserTableProps> = ({
     selectedRowKeys: selectedUsers,
     onChange: (selectedRowKeys: React.Key[]) => {
       // Reset selectedOption if selection count changes or all are deselected
-      if (selectedRowKeys.length === 0 || selectedRowKeys.length !== selectedUsers.length) {
+      if (
+        selectedRowKeys.length === 0 ||
+        selectedRowKeys.length !== selectedUsers.length
+      ) {
         setSelectedOption(null);
       }
       onUserSelect(selectedRowKeys);
@@ -776,7 +857,9 @@ const UserTable: React.FC<UserTableProps> = ({
   if (loading) {
     return (
       <Card className="shadow-sm">
-        <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
+        <div
+          style={{ display: "flex", justifyContent: "center", padding: "40px" }}
+        >
           <Spin tip="Loading..." />
         </div>
       </Card>

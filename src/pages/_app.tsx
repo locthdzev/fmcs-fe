@@ -43,11 +43,11 @@ function MyApp({ Component, pageProps }: AppProps) {
                     {(context) => {
                       const user = context?.user;
 
-                      // Kiểm tra nếu đang ở trang login
-                      const isLoginPage = router.pathname === "/";
+                      // Kiểm tra nếu đang ở trang login, recover password hoặc reset password
+                      const isAuthPage = router.pathname === "/" || router.pathname.includes("/auth/recover-password") || router.pathname.includes("/auth/reset-password");
 
-                      // Nếu chưa đăng nhập hoặc đang ở trang login, không hiển thị Sidebar và Header
-                      if (!user?.auth || isLoginPage) {
+                      // Nếu chưa đăng nhập hoặc đang ở trang auth, không hiển thị Sidebar và Header
+                      if (!user?.auth || isAuthPage) {
                         return (
                           <>
                             <main className="bg-white flex-1">

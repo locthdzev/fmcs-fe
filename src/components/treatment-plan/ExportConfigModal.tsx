@@ -257,7 +257,11 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
 
   return (
     <Modal
-      title="Export Configuration"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Export Configuration
+        </Title>
+      }
       open={visible}
       onCancel={handleCancel}
       width={800}

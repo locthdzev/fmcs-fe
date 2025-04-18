@@ -20,7 +20,7 @@ import {
 import {
   exportCanteenItemsToExcel,
   CanteenItemExportConfigDTO,
-  CanteenItemResponse
+  CanteenItemResponse,
 } from "@/api/canteenitems";
 import {
   SortAscendingOutlined,
@@ -35,7 +35,8 @@ const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 // UI-specific version of the config with additional properties
-export interface CanteenItemExportConfigWithUI extends CanteenItemExportConfigDTO {
+export interface CanteenItemExportConfigWithUI
+  extends CanteenItemExportConfigDTO {
   exportAllPages: boolean;
 }
 
@@ -60,11 +61,17 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
   onClose,
   config,
   onChange,
-  filters = { filterValue: "", statusFilter: [], advancedFilters: {}, currentPage: 1, pageSize: 10 },
+  filters = {
+    filterValue: "",
+    statusFilter: [],
+    advancedFilters: {},
+    currentPage: 1,
+    pageSize: 10,
+  },
   canteenItems = [],
   statusOptions = [
     { label: "Active", value: "Active" },
-    { label: "Inactive", value: "Inactive" }
+    { label: "Inactive", value: "Inactive" },
   ],
 }) => {
   const [form] = Form.useForm();
@@ -90,15 +97,22 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
           values.filterMaxPrice ||
           (values.filterAvailability && values.filterAvailability.length > 0) ||
           (values.filterStatus && values.filterStatus.length > 0) ||
-          (values.filterCreatedDateRange && (values.filterCreatedDateRange[0] || values.filterCreatedDateRange[1])) ||
-          (values.filterUpdatedDateRange && (values.filterUpdatedDateRange[0] || values.filterUpdatedDateRange[1])) ||
+          (values.filterCreatedDateRange &&
+            (values.filterCreatedDateRange[0] ||
+              values.filterCreatedDateRange[1])) ||
+          (values.filterUpdatedDateRange &&
+            (values.filterUpdatedDateRange[0] ||
+              values.filterUpdatedDateRange[1])) ||
           filters.filterValue ||
           (filters.statusFilter && filters.statusFilter.length > 0) ||
-          (filters.advancedFilters?.priceRange && (filters.advancedFilters.priceRange[0] || filters.advancedFilters.priceRange[1]));
+          (filters.advancedFilters?.priceRange &&
+            (filters.advancedFilters.priceRange[0] ||
+              filters.advancedFilters.priceRange[1]));
 
         if (!hasAnyFilter) {
           messageApi.error({
-            content: "Please select 'Export all data' or apply at least one filter",
+            content:
+              "Please select 'Export all data' or apply at least one filter",
             duration: 10,
           });
           setLoading(false);
@@ -117,7 +131,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         includeCreatedAt: values.includeCreatedAt,
         includeUpdatedAt: values.includeUpdatedAt,
         includeStatus: values.includeStatus,
-        fileName: "CanteenItems_Export"
+        fileName: "CanteenItems_Export",
       };
 
       // Call the API to export with filters
@@ -125,7 +139,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
 
       // Handle response
       console.log("Export response:", response);
-      
+
       // Kiểm tra nếu response không tồn tại
       if (!response) {
         messageApi.error({
@@ -135,58 +149,79 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         setLoading(false);
         return;
       }
-      
+
       // Xác định cấu trúc phản hồi và tìm URL
-      let fileUrl = '';
+      let fileUrl = "";
       let isSuccess = false;
-      
+
       // Kiểm tra trường isSuccess
-      if (typeof response.isSuccess === 'boolean') {
+      if (typeof response.isSuccess === "boolean") {
         isSuccess = response.isSuccess;
-      } else if (typeof response.success === 'boolean') {
+      } else if (typeof response.success === "boolean") {
         isSuccess = response.success;
       } else {
         // Giả định thành công nếu có data
         isSuccess = !!response.data;
       }
-      
+
       // Tìm URL trong data
       if (response.data) {
-        if (typeof response.data === 'string') {
+        if (typeof response.data === "string") {
           // Nếu data trực tiếp là string, đó có thể là URL
           fileUrl = response.data;
-        } else if (response.data.fileUrl && typeof response.data.fileUrl === 'string') {
+        } else if (
+          response.data.fileUrl &&
+          typeof response.data.fileUrl === "string"
+        ) {
           // Nếu data có trường fileUrl
           fileUrl = response.data.fileUrl;
-        } else if (response.data.url && typeof response.data.url === 'string') {
+        } else if (response.data.url && typeof response.data.url === "string") {
           // Nếu data có trường url
           fileUrl = response.data.url;
-        } else if (response.data.file && typeof response.data.file === 'string') {
+        } else if (
+          response.data.file &&
+          typeof response.data.file === "string"
+        ) {
           // Nếu data có trường file
           fileUrl = response.data.file;
-        } else if (response.fileUrl && typeof response.fileUrl === 'string') {
+        } else if (response.fileUrl && typeof response.fileUrl === "string") {
           // Nếu response có trường fileUrl ở root
           fileUrl = response.fileUrl;
-        } else if (typeof response.data === 'object') {
+        } else if (typeof response.data === "object") {
           // Tìm kiếm bất kỳ trường nào có thể chứa URL
-          const urlFields = ['path', 'downloadUrl', 'excelUrl', 'excel', 'downloadPath'];
+          const urlFields = [
+            "path",
+            "downloadUrl",
+            "excelUrl",
+            "excel",
+            "downloadPath",
+          ];
           for (const field of urlFields) {
-            if (response.data[field] && typeof response.data[field] === 'string') {
+            if (
+              response.data[field] &&
+              typeof response.data[field] === "string"
+            ) {
               fileUrl = response.data[field];
               break;
             }
           }
         }
-      } else if (response.fileUrl && typeof response.fileUrl === 'string') {
+      } else if (response.fileUrl && typeof response.fileUrl === "string") {
         // Nếu response có trường fileUrl ở root
         fileUrl = response.fileUrl;
       }
-      
+
       // Kiểm tra fileUrl
       if (!fileUrl && isSuccess) {
-        console.warn("Could not find file URL in response, but export was successful", response);
-        messageApi.success("Export successful, but could not determine file URL", 10);
-        
+        console.warn(
+          "Could not find file URL in response, but export was successful",
+          response
+        );
+        messageApi.success(
+          "Export successful, but could not determine file URL",
+          10
+        );
+
         // Save config settings for next time
         const configValues = {
           exportAllPages: values.exportAllPages,
@@ -201,12 +236,12 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
           includeStatus: values.includeStatus,
         };
         onChange(configValues);
-        
+
         setLoading(false);
         onClose();
         return;
       }
-      
+
       // Kiểm tra nếu export không thành công
       if (!isSuccess) {
         const errorMessage = response.message || "Failed to export Excel file";
@@ -217,13 +252,13 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         setLoading(false);
         return;
       }
-      
+
       // Tiếp tục xử lý nếu có URL
       if (fileUrl) {
         // Open URL in new tab
         window.open(fileUrl, "_blank");
         messageApi.success("Canteen items exported to Excel successfully", 10);
-        
+
         // Save config settings for next time
         const configValues = {
           exportAllPages: values.exportAllPages,
@@ -238,7 +273,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
           includeStatus: values.includeStatus,
         };
         onChange(configValues);
-        
+
         setLoading(false);
         onClose();
       } else {
@@ -268,16 +303,20 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
 
   return (
     <Modal
-      title="Export Configuration"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Export Configuration
+        </Title>
+      }
       open={visible}
       onCancel={handleCancel}
       width={800}
       footer={[
-        <Button 
-          key="reset" 
-          onClick={handleReset} 
+        <Button
+          key="reset"
+          onClick={handleReset}
           icon={<ReloadOutlined />}
-          style={{ display: 'right', alignItems: 'center', gap: '8px' }}
+          style={{ display: "right", alignItems: "center", gap: "8px" }}
         >
           Reset
         </Button>,
@@ -293,7 +332,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
       destroyOnClose={true}
     >
       {contextHolder}
-      <Spin spinning={loading} tip="Generating Excel file..."> 
+      <Spin spinning={loading} tip="Generating Excel file...">
         <Form
           form={form}
           layout="vertical"
@@ -308,7 +347,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
             includeImageUrl: true,
             includeCreatedAt: true,
             includeUpdatedAt: true,
-            includeStatus: true
+            includeStatus: true,
           }}
           onValuesChange={(changedValues, allValues) => {
             // Notify parent component of the change
@@ -316,11 +355,11 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
               ...allValues,
               // Ensure we keep other fields that might not be in the form
               ...config,
-              ...changedValues
+              ...changedValues,
             });
-            
+
             // Handle when "Export all data" is toggled
-            if ('exportAllPages' in changedValues) {
+            if ("exportAllPages" in changedValues) {
               if (changedValues.exportAllPages === true) {
                 // When checked, select all fields
                 const allSelectedFields = {
@@ -350,63 +389,100 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                 };
                 form.setFieldsValue(allUnselectedFields);
               }
-              console.log("Export all pages toggled:", changedValues.exportAllPages);
+              console.log(
+                "Export all pages toggled:",
+                changedValues.exportAllPages
+              );
             }
           }}
           preserve={false}
         >
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: "20px" }}>
             <Divider orientation="left">Basic Options</Divider>
-            
-            <Form.Item name="exportAllPages" valuePropName="checked" style={{ marginBottom: '16px' }}>
-              <Checkbox onChange={(e) => {
-                console.log("Checkbox changed:", e.target.checked);
-                // When checked, select all fields
-                if (e.target.checked) {
-                  const allSelectedFields = {
-                    includeId: true,
-                    includeItemName: true,
-                    includeDescription: true,
-                    includeUnitPrice: true,
-                    includeAvailable: true,
-                    includeImageUrl: true,
-                    includeCreatedAt: true,
-                    includeUpdatedAt: true,
-                    includeStatus: true,
-                  };
-                  form.setFieldsValue(allSelectedFields);
-                } else {
-                  // When unchecked, unselect all fields
-                  const allUnselectedFields = {
-                    includeId: false,
-                    includeItemName: false,
-                    includeDescription: false,
-                    includeUnitPrice: false,
-                    includeAvailable: false,
-                    includeImageUrl: false,
-                    includeCreatedAt: false,
-                    includeUpdatedAt: false,
-                    includeStatus: false,
-                  };
-                  form.setFieldsValue(allUnselectedFields);
-                }
-              }}>Export all data (ignore pagination)</Checkbox>
+
+            <Form.Item
+              name="exportAllPages"
+              valuePropName="checked"
+              style={{ marginBottom: "16px" }}
+            >
+              <Checkbox
+                onChange={(e) => {
+                  console.log("Checkbox changed:", e.target.checked);
+                  // When checked, select all fields
+                  if (e.target.checked) {
+                    const allSelectedFields = {
+                      includeId: true,
+                      includeItemName: true,
+                      includeDescription: true,
+                      includeUnitPrice: true,
+                      includeAvailable: true,
+                      includeImageUrl: true,
+                      includeCreatedAt: true,
+                      includeUpdatedAt: true,
+                      includeStatus: true,
+                    };
+                    form.setFieldsValue(allSelectedFields);
+                  } else {
+                    // When unchecked, unselect all fields
+                    const allUnselectedFields = {
+                      includeId: false,
+                      includeItemName: false,
+                      includeDescription: false,
+                      includeUnitPrice: false,
+                      includeAvailable: false,
+                      includeImageUrl: false,
+                      includeCreatedAt: false,
+                      includeUpdatedAt: false,
+                      includeStatus: false,
+                    };
+                    form.setFieldsValue(allUnselectedFields);
+                  }
+                }}
+              >
+                Export all data (ignore pagination)
+              </Checkbox>
             </Form.Item>
-            
+
             <div>
-              <Typography.Text style={{ fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+              <Typography.Text
+                style={{
+                  fontSize: "14px",
+                  marginBottom: "8px",
+                  display: "block",
+                }}
+              >
                 Sort direction
               </Typography.Text>
               <Form.Item name="filterSortDirection" noStyle>
-                <Radio.Group buttonStyle="solid" style={{ width: '100%' }}>
-                  <Radio.Button value="asc" style={{ width: '50%', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                <Radio.Group buttonStyle="solid" style={{ width: "100%" }}>
+                  <Radio.Button
+                    value="asc"
+                    style={{ width: "50%", textAlign: "center" }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                      }}
+                    >
                       <SortAscendingOutlined />
                       <span>Oldest First</span>
                     </div>
                   </Radio.Button>
-                  <Radio.Button value="desc" style={{ width: '50%', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <Radio.Button
+                    value="desc"
+                    style={{ width: "50%", textAlign: "center" }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                      }}
+                    >
                       <SortDescendingOutlined />
                       <span>Newest First</span>
                     </div>
@@ -421,9 +497,9 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
             {({ getFieldValue }) => {
               const exportAll = getFieldValue("exportAllPages");
               return !exportAll ? (
-                <div style={{ marginBottom: '20px' }}>
+                <div style={{ marginBottom: "20px" }}>
                   <Divider orientation="left">Data Filters</Divider>
-                  
+
                   <Row gutter={[16, 16]}>
                     <Col span={12}>
                       <Form.Item label="Item Name" name="filterItemName">
@@ -432,10 +508,15 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                           style={{ width: "100%" }}
                           allowClear
                           showSearch
-                          filterOption={(input, option) => 
-                            (option?.label?.toString().toLowerCase() ?? '').includes(input.toLowerCase())
+                          filterOption={(input, option) =>
+                            (
+                              option?.label?.toString().toLowerCase() ?? ""
+                            ).includes(input.toLowerCase())
                           }
-                          options={canteenItems.map((item) => ({ value: item.itemName, label: item.itemName }))}
+                          options={canteenItems.map((item) => ({
+                            value: item.itemName,
+                            label: item.itemName,
+                          }))}
                         />
                       </Form.Item>
                     </Col>
@@ -448,7 +529,7 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                           allowClear
                           options={[
                             { value: "true", label: "Available" },
-                            { value: "false", label: "Out of Stock" }
+                            { value: "false", label: "Out of Stock" },
                           ]}
                         />
                       </Form.Item>
@@ -487,7 +568,10 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                     </Col>
 
                     <Col span={12}>
-                      <Form.Item label="Created Date Range" name="filterCreatedDateRange">
+                      <Form.Item
+                        label="Created Date Range"
+                        name="filterCreatedDateRange"
+                      >
                         <RangePicker
                           style={{ width: "100%" }}
                           placeholder={["From date", "To date"]}
@@ -497,7 +581,10 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
                     </Col>
 
                     <Col span={12}>
-                      <Form.Item label="Updated Date Range" name="filterUpdatedDateRange">
+                      <Form.Item
+                        label="Updated Date Range"
+                        name="filterUpdatedDateRange"
+                      >
                         <RangePicker
                           style={{ width: "100%" }}
                           placeholder={["From date", "To date"]}
@@ -512,52 +599,88 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
           </Form.Item>
 
           {/* Include Fields Section */}
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: "20px" }}>
             <Divider orientation="left">Include Fields</Divider>
-            
+
             <Row gutter={[24, 16]}>
               <Col span={8}>
-                <Form.Item name="includeId" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeId"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>ID</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeItemName" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeItemName"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Item Name</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeDescription" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeDescription"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Description</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeUnitPrice" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeUnitPrice"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Unit Price</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeAvailable" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeAvailable"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Availability</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeImageUrl" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeImageUrl"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Image URL</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeCreatedAt" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeCreatedAt"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Created At</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeUpdatedAt" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeUpdatedAt"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Updated At</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name="includeStatus" valuePropName="checked" style={{ marginBottom: '8px' }}>
+                <Form.Item
+                  name="includeStatus"
+                  valuePropName="checked"
+                  style={{ marginBottom: "8px" }}
+                >
                   <Checkbox>Status</Checkbox>
                 </Form.Item>
               </Col>
@@ -576,13 +699,15 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
               gap: "8px",
             }}
           >
-            <InfoCircleOutlined style={{ color: '#1890ff', marginTop: '2px' }} />
+            <InfoCircleOutlined
+              style={{ color: "#1890ff", marginTop: "2px" }}
+            />
             <Form.Item dependencies={["exportAllPages"]} noStyle>
               {({ getFieldValue }) => {
                 const exportAll = getFieldValue("exportAllPages");
                 return (
                   <Typography.Text style={{ fontSize: "14px" }}>
-                    {exportAll 
+                    {exportAll
                       ? "Select which fields you want to include in the Excel file. The export will include all canteen items."
                       : "Please select 'Export all data' or apply at least one filter before exporting. This ensures you get the exact data you need."}
                   </Typography.Text>

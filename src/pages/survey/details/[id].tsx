@@ -1,13 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/router';
-import { Survey } from '@/components/survey';
-import { Spin, Button } from 'antd';
+import { Survey as UserSurvey } from '@/components/survey/my-survey';
+import { Survey as StaffSurvey } from '@/components/survey/staff-survey';
+import { Spin, Button, Alert } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import { UserContext } from '@/context/UserContext';
 
 export default function SurveyDetailsPage() {
   const router = useRouter();
-  const { id } = router.query;
+  const { id, from } = router.query;
   const [isPageLoaded, setIsPageLoaded] = useState(false);
+  const userContext = useContext(UserContext);
+  
+  // Check roles
+  const isHealthcareStaff = userContext?.user?.role?.includes("Healthcare Staff") || false;
+  const isAdmin = userContext?.user?.role?.includes("Admin") || false;
+  const isFromManagement = from === 'management';
 
   // Set page loaded after initial render to trigger animations
   useEffect(() => {
@@ -17,6 +25,17 @@ export default function SurveyDetailsPage() {
     
     return () => clearTimeout(timer);
   }, []);
+
+  // Handle back button click
+  const handleBackClick = () => {
+    if (isFromManagement) {
+      router.push('/survey/management');
+    } else if (isHealthcareStaff) {
+      router.push('/survey/StaffSurvey');
+    } else {
+      router.push('/survey/MySurvey');
+    }
+  };
 
   // Display loading when router is initializing
   if (router.isReady === false) {
@@ -30,22 +49,55 @@ export default function SurveyDetailsPage() {
     );
   }
 
+  // If user is not authenticated, show loading while redirecting to login
+  if (!userContext?.user || !userContext.user.auth) {
+    // Redirect to login
+    router.push('/auth/login');
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <Spin size="large" />
+          <p className="mt-4 text-gray-500">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`container mx-auto py-8 px-4 max-w-6xl ${isPageLoaded ? 'animate-fadeIn' : 'opacity-0'}`}>
       <div className="mb-6">
         <Button 
           className="flex items-center text-blue-600 hover:text-blue-800 border-none shadow-none bg-white hover:bg-blue-50 transition-standard"
-          onClick={() => router.push('/survey/surveyUser')}
+          onClick={handleBackClick}
           icon={<ArrowLeftOutlined />}
           size="large"
         >
-          Back to Survey List
+          {isFromManagement ? 'Back to Survey Management' : 'Back to Survey List'}
         </Button>
       </div>
       
       <div className={`${isPageLoaded ? 'animate-slideUp' : 'opacity-0'}`} style={{ animationDelay: '100ms' }}>
         {id ? (
-          <Survey id={id as string} onSuccess={() => router.push('/survey/surveyUser')} />
+          isHealthcareStaff ? (
+            // Staff view - always readonly
+            <StaffSurvey 
+              id={id as string} 
+              onSuccess={handleBackClick} 
+            />
+          ) : isAdmin || isFromManagement ? (
+            // Admin view or from management - always readonly
+            <UserSurvey 
+              id={id as string} 
+              onSuccess={handleBackClick} 
+              readOnly={true}
+            />
+          ) : (
+            // Regular user view - can update
+            <UserSurvey 
+              id={id as string} 
+              onSuccess={handleBackClick}
+            />
+          )
         ) : (
           <div className="bg-white rounded-lg shadow-md p-8 text-center card-clean">
             <div className="text-red-500 text-5xl mb-4">⚠️</div>
@@ -54,10 +106,10 @@ export default function SurveyDetailsPage() {
             <Button 
               type="primary" 
               size="large" 
-              onClick={() => router.push('/survey/surveyUser')}
+              onClick={handleBackClick}
               className="hover-lift"
             >
-              Go to Survey Page
+              Go Back
             </Button>
           </div>
         )}

@@ -14,6 +14,9 @@ import {
   Space,
   Tag,
   Popconfirm,
+  Row,
+  Col,
+  Divider,
 } from "antd";
 import {
   PlusOutlined,
@@ -27,7 +30,7 @@ import {
   UploadOutlined,
   UserOutlined,
   EyeOutlined,
-  EditOutlined,
+  FormOutlined,
   DeleteOutlined,
   TagOutlined,
   TeamOutlined,
@@ -903,20 +906,21 @@ export function UserManagement() {
       <Card
         className="shadow mb-4"
         bodyStyle={{ padding: "16px" }}
-        title={
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "16px",
-            }}
-          >
-            <AppstoreOutlined />
-            <span>Toolbar</span>
-          </div>
-        }
+        style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
       >
+        <Row align="middle" gutter={[16, 16]}>
+          <Col span={24}>
+            <Title level={4} style={{ margin: 0 }}>
+              <AppstoreOutlined
+                style={{ marginRight: "8px", fontSize: "20px" }}
+              />
+              Toolbar
+            </Title>
+          </Col>
+        </Row>
+
+        <Divider style={{ margin: "16px 0" }} />
+
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Full Name or Email Search */}
@@ -1023,9 +1027,7 @@ export function UserManagement() {
                 icon={<UndoOutlined />}
                 onClick={handleReset}
                 disabled={!(isMainFiltersApplied() || isFiltersApplied())}
-              >
-                Reset
-              </Button>
+              />
             </Tooltip>
 
             {/* Column Settings */}
@@ -1040,7 +1042,7 @@ export function UserManagement() {
                           checked={areAllColumnsVisible()}
                           onChange={(e) => toggleAllColumns(e.target.checked)}
                         >
-                          <strong>Show All Columns</strong>
+                          Toggle All
                         </Checkbox>
                       </div>
                     ),

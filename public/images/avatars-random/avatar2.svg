@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="90" fill="#f2f2f2"/>
+  
+  <!-- FPT Orange Uniform -->
+  <path d="M60,100 L60,160 C60,170 80,180 100,180 C120,180 140,170 140,160 L140,100 Z" fill="#ff5e00"/>
+  <path d="M60,110 L140,110" stroke="white" stroke-width="2"/>
+  
+  <!-- FPT Logo -->
+  <text x="95" y="140" font-family="Arial" font-size="16" font-weight="bold" fill="white" text-anchor="middle">FPT</text>
+  
+  <!-- Head -->
+  <circle cx="100" cy="70" r="40" fill="#ffdbac"/>
+  
+  <!-- Hair - Long Brown -->
+  <path d="M100,30 C70,30 65,60 65,75 C60,80 60,70 60,70 C60,40 75,20 100,20 C125,20 140,40 140,70 C140,70 140,80 135,75 C135,60 130,30 100,30 Z" fill="#8b4513"/>
+  <!-- Long hair strands -->
+  <path d="M65,75 C65,95 70,120 70,150 C70,160 80,170 80,170" fill="none" stroke="#8b4513" stroke-width="8"/>
+  <path d="M135,75 C135,95 130,120 130,150 C130,160 120,170 120,170" fill="none" stroke="#8b4513" stroke-width="8"/>
+  
+  <!-- Eyes -->
+  <ellipse cx="85" cy="65" rx="5" ry="6" fill="#2d2d2d"/>
+  <ellipse cx="115" cy="65" rx="5" ry="6" fill="#2d2d2d"/>
+  <!-- Eyelashes -->
+  <line x1="80" y1="60" x2="75" y2="58" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="85" y1="59" x2="85" y2="55" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="90" y1="60" x2="95" y2="58" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="110" y1="60" x2="105" y2="58" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="115" y1="59" x2="115" y2="55" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="120" y1="60" x2="125" y2="58" stroke="#2d2d2d" stroke-width="1"/>
+  
+  <!-- Medical Mask -->
+  <path d="M70,80 C70,90 130,90 130,80" fill="#c3e6ff" stroke="#5d9cec" stroke-width="1"/>
+  <path d="M70,80 C70,95 130,95 130,80" fill="#c3e6ff" stroke="#5d9cec" stroke-width="1"/>
+  <!-- Mask straps -->
+  <path d="M70,85 C60,85 55,70 55,70" fill="none" stroke="#5d9cec" stroke-width="1"/>
+  <path d="M130,85 C140,85 145,70 145,70" fill="none" stroke="#5d9cec" stroke-width="1"/>
+  
+  <!-- Ears -->
+  <path d="M60,70 Q55,70 58,80" fill="#ffdbac"/>
+  <path d="M140,70 Q145,70 142,80" fill="#ffdbac"/>
+</svg> 

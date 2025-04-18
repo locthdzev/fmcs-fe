@@ -33,7 +33,7 @@ import {
   TreatmentPlanHistoryResponseDTO,
 } from "@/api/treatment-plan";
 import {
-  EditOutlined,
+  FormOutlined,
   DeleteOutlined,
   UndoOutlined,
   FilePdfOutlined,
@@ -92,21 +92,21 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
         console.warn("Treatment plan ID is missing, cannot fetch data");
         return;
       }
-      
+
       const response = await getTreatmentPlanById(id);
       if (response.success) {
         setTreatmentPlan(response.data);
       } else {
         messageApi.error({
           content: response.message || "Failed to fetch treatment plan",
-          duration: 5
+          duration: 5,
         });
       }
     } catch (error) {
       console.error("Error fetching treatment plan:", error);
       messageApi.error({
         content: "Failed to fetch treatment plan",
-        duration: 5
+        duration: 5,
       });
     } finally {
       setLoading(false);
@@ -121,21 +121,21 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
         console.warn("Treatment plan ID is missing, cannot fetch histories");
         return;
       }
-      
+
       const response = await getTreatmentPlanHistoriesByTreatmentPlanId(id);
       if (response.success) {
         setHistories(response.data);
       } else {
         messageApi.error({
           content: response.message || "Failed to fetch histories",
-          duration: 5
+          duration: 5,
         });
       }
     } catch (error) {
       console.error("Error fetching histories:", error);
       messageApi.error({
         content: "Failed to fetch histories",
-        duration: 5
+        duration: 5,
       });
     } finally {
       setLoading(false);
@@ -354,7 +354,7 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
       case "created":
         return <PlusOutlined />;
       case "updated":
-        return <EditOutlined />;
+        return <FormOutlined />;
       case "cancelled":
         return <CloseCircleOutlined />;
       case "softdeleted":
@@ -395,7 +395,7 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
     return (
       <Space>
         <Button
-          icon={<EditOutlined />}
+          icon={<FormOutlined />}
           disabled={!canEditTreatmentPlan(treatmentPlan.status)}
           onClick={() => {
             form.setFieldsValue({
@@ -532,8 +532,13 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
               {treatmentPlan.healthCheckResult ? (
                 <Button
                   type="link"
-                  onClick={() => treatmentPlan.healthCheckResult?.id && router.push(`/health-check-result/${treatmentPlan.healthCheckResult.id}`)}
-                  style={{ paddingLeft: '8px', margin: 0, height: 'auto' }}
+                  onClick={() =>
+                    treatmentPlan.healthCheckResult?.id &&
+                    router.push(
+                      `/health-check-result/${treatmentPlan.healthCheckResult.id}`
+                    )
+                  }
+                  style={{ paddingLeft: "8px", margin: 0, height: "auto" }}
                 >
                   {treatmentPlan.healthCheckResult.healthCheckResultCode}
                 </Button>

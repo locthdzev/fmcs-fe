@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { IoNotificationsOutline } from "react-icons/io5";
 import {
-  Modal,
   Badge,
   Drawer,
   Button,
@@ -9,16 +8,12 @@ import {
   Typography,
   Space,
   message,
-  Divider,
   Empty,
   Avatar,
   Spin,
 } from "antd";
 import {
   CheckOutlined,
-  BellOutlined,
-  ClockCircleOutlined,
-  FileTextOutlined,
   MailOutlined,
 } from "@ant-design/icons";
 import {
@@ -29,14 +24,27 @@ import {
   setupNotificationRealTime,
   getUnreadNotificationCount,
 } from "@/api/notification";
-import Cookies from "js-cookie";
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/en";
+import { NotificationDetailModal } from "@/components/notification";
+
+dayjs.extend(relativeTime);
+dayjs.locale("en");
 
 const { Text, Title, Paragraph } = Typography;
 
 interface NotificationDropdownProps {
   maxItems?: number;
   initialBatchSize?: number;
+}
+
+interface GroupedNotifications {
+  new: NotificationResponseDTO[];
+  today: NotificationResponseDTO[];
+  older: {
+    [key: string]: NotificationResponseDTO[];
+  };
 }
 
 export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
@@ -56,7 +64,26 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
-    return dayjs(dateString).format("DD/MM/YYYY HH:mm:ss");
+    const date = dayjs(dateString);
+    const now = dayjs();
+    const diffMinutes = now.diff(date, "minute");
+
+    // Display relative time format
+    if (diffMinutes < 60) {
+      // Less than 1 hour: show minutes
+      return diffMinutes <= 1 ? 'Just now' : `${diffMinutes} minutes ago`;
+    } else if (diffMinutes < 1440) {
+      // Less than 24 hours: show hours
+      const diffHours = Math.floor(diffMinutes / 60);
+      return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+    } else if (diffMinutes < 10080) {
+      // Less than 1 week: show days
+      const diffDays = Math.floor(diffMinutes / 1440);
+      return diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
+    } else {
+      // Older: show date and time
+      return date.format("DD/MM/YYYY HH:mm");
+    }
   };
 
   const fetchNotifications = async (page = 1, pageSize = initialBatchSize) => {
@@ -64,6 +91,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       setLoading(true);
       const result = await getNotificationsByUserId(page, pageSize);
 
+      // Backend đã lọc notifications theo status="Active"
       if (page === 1) {
         setNotifications(result.data);
       } else {
@@ -74,8 +102,9 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       setHasMore(result.data.length >= pageSize);
       setCurrentPage(page);
 
-      const count = await getUnreadNotificationCount();
-      setUnreadCount(count);
+      // Cập nhật số lượng thông báo chưa đọc từ API
+      const unreadCountResult = await getUnreadNotificationCount();
+      setUnreadCount(unreadCountResult);
     } catch (error) {
       console.error("Error fetching notifications:", error);
       message.error("Không thể tải thông báo");
@@ -103,8 +132,15 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
             data
           );
 
+          // Xử lý cập nhật unreadCount
+          if (data.unreadCount !== undefined) {
+            console.log("Updating unread count to:", data.unreadCount);
+            setUnreadCount(data.unreadCount);
+          }
+
+          // Xử lý notification status updates
           if (data.id && data.title) {
-            console.log("Adding/updating notification in list:", data.id);
+            console.log("Adding/updating notification:", data.id);
             setNotifications((prev) => {
               const exists = prev.find((n) => n.id === data.id);
               if (exists) {
@@ -121,12 +157,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               }
             });
 
+            // Refresh notifications when new notification comes in
             fetchNotifications();
-          }
-
-          if (data.unreadCount !== undefined) {
-            console.log("Updating unread count to:", data.unreadCount);
-            setUnreadCount(data.unreadCount);
           }
         } else if (data === "AllNotificationsRead") {
           console.log("Marking all notifications as read");
@@ -187,7 +219,196 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   };
 
   const loadMoreNotifications = () => {
-    fetchNotifications(currentPage + 1);
+    const nextPage = currentPage + 1;
+    console.log(`Loading more notifications, page ${nextPage}`);
+    fetchNotifications(nextPage);
+  };
+
+  // Nhóm thông báo theo thời gian
+  const groupedNotifications = useMemo(() => {
+    const now = dayjs();
+    const threeHoursAgo = now.subtract(3, "hour");
+    const startOfToday = now.startOf("day");
+
+    const grouped: GroupedNotifications = {
+      new: [],
+      today: [],
+      older: {},
+    };
+
+    notifications.forEach((notification) => {
+      const notificationDate = dayjs(notification.createdAt);
+
+      // Thông báo trong 3 giờ qua
+      if (notificationDate.isAfter(threeHoursAgo)) {
+        grouped.new.push(notification);
+      }
+      // Thông báo trong ngày nhưng hơn 3 giờ
+      else if (notificationDate.isAfter(startOfToday)) {
+        grouped.today.push(notification);
+      }
+      // Thông báo cũ hơn, nhóm theo ngày
+      else {
+        const dateKey = notificationDate.format("YYYY-MM-DD");
+        if (!grouped.older[dateKey]) {
+          grouped.older[dateKey] = [];
+        }
+        grouped.older[dateKey].push(notification);
+      }
+    });
+
+    return grouped;
+  }, [notifications]);
+
+  // Hiển thị thông tin về số lượng thông báo
+  const renderNotificationInfo = () => {
+    if (notifications.length > 0) {
+      return (
+        <div className="flex justify-between mb-3 items-center">
+          <Text type="secondary">
+            {notifications.length}{" "}
+            {notifications.length === 1 ? "notification" : "notifications"}
+          </Text>
+          <Button
+            type="text"
+            onClick={handleMarkAllAsRead}
+            icon={<CheckOutlined />}
+            size="small"
+          >
+            Mark all as read
+          </Button>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Render một nhóm thông báo
+  const renderNotificationGroup = (
+    notifications: NotificationResponseDTO[],
+    title: string
+  ) => {
+    if (notifications.length === 0) return null;
+
+    return (
+      <div className="mb-4">
+        <div className="mb-2">
+          <Text strong className="text-gray-600">
+            {title}
+          </Text>
+        </div>
+        <List
+          dataSource={notifications}
+          renderItem={(n) => (
+            <List.Item
+              className={`cursor-pointer rounded-md transition-all duration-200 mb-2 ${
+                !n.isRead ? "bg-blue-50 hover:bg-blue-100" : "hover:bg-gray-50"
+              }`}
+              onClick={() => handleNotificationClick(n.id)}
+              style={{
+                padding: "12px",
+                border: "1px solid #f0f0f0",
+                marginBottom: "8px",
+                borderRadius: "8px",
+              }}
+            >
+              <List.Item.Meta
+                avatar={
+                  <Avatar
+                    icon={<MailOutlined />}
+                    style={{
+                      backgroundColor: !n.isRead ? "#1890ff" : "#d9d9d9",
+                      color: "white",
+                    }}
+                  />
+                }
+                title={
+                  <div className="flex justify-between items-start">
+                    <Text
+                      style={{
+                        fontSize: "14px",
+                        maxWidth: "220px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        fontWeight: 500,
+                      }}
+                      title={n.title}
+                    >
+                      {n.title}
+                    </Text>
+                    <Text
+                      type="secondary"
+                      style={{
+                        fontSize: "12px",
+                        marginLeft: "8px",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {formatDate(n.createdAt)}
+                    </Text>
+                  </div>
+                }
+                description={
+                  <Space
+                    direction="vertical"
+                    style={{ width: "100%" }}
+                    size={2}
+                  >
+                    {n.content ? (
+                      <div 
+                        className="notification-preview"
+                        style={{
+                          fontSize: "13px",
+                          lineHeight: "1.5",
+                          color: !n.isRead ? "#4a4a4a" : "#8c8c8c",
+                          maxHeight: "40px",
+                          overflow: "hidden",
+                          position: "relative",
+                        }}
+                      >
+                        {/* Hiển thị nội dung đã lọc bỏ các tag HTML để tạo preview ngắn gọn */}
+                        <Text
+                          style={{
+                            fontSize: "13px",
+                            lineHeight: "1.5",
+                          }}
+                          ellipsis={{ tooltip: "Click to view full content" }}
+                        >
+                          {/* Loại bỏ tất cả các thẻ HTML để hiển thị text thuần túy trong preview */}
+                          {n.content.replace(/<[^>]*>/g, ' ').trim()}
+                        </Text>
+                        {/* Hiệu ứng gradient mờ dần ở cuối */}
+                        <div 
+                          style={{
+                            position: "absolute",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: "20px",
+                            background: "linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1))",
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <span style={{ fontStyle: "italic", opacity: 0.7 }}>
+                        Click to view details
+                      </span>
+                    )}
+                  </Space>
+                }
+              />
+            </List.Item>
+          )}
+        />
+      </div>
+    );
+  };
+
+  // Đóng modal chi tiết thông báo
+  const handleCloseModal = () => {
+    setSelectedNotification(null);
   };
 
   return (
@@ -221,22 +442,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
           </Title>
         </div>
         <div className="p-4">
-          {notifications.length > 0 && (
-            <div className="flex justify-between mb-3 items-center">
-              <Text type="secondary">
-                {notifications.length}{" "}
-                {notifications.length === 1 ? "notification" : "notifications"}
-              </Text>
-              <Button
-                type="text"
-                onClick={handleMarkAllAsRead}
-                icon={<CheckOutlined />}
-                size="small"
-              >
-                Mark all as read
-              </Button>
-            </div>
-          )}
+          {renderNotificationInfo()}
 
           {notifications.length === 0 ? (
             <Empty
@@ -249,93 +455,29 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               className="my-8"
             />
           ) : (
-            <List
-              dataSource={notifications}
-              loading={loading && currentPage > 1}
-              renderItem={(n) => (
-                <List.Item
-                  className={`cursor-pointer rounded-md transition-all duration-200 mb-2 ${
-                    !n.isRead
-                      ? "bg-blue-50 hover:bg-blue-100"
-                      : "hover:bg-gray-50"
-                  }`}
-                  onClick={() => handleNotificationClick(n.id)}
-                  style={{
-                    padding: "12px",
-                    border: "1px solid #f0f0f0",
-                    marginBottom: "8px",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <List.Item.Meta
-                    avatar={
-                      <Avatar
-                        icon={<MailOutlined />}
-                        style={{
-                          backgroundColor: !n.isRead ? "#1890ff" : "#d9d9d9",
-                          color: "white",
-                        }}
-                      />
-                    }
-                    title={
-                      <div className="flex justify-between items-start">
-                        <Text
-                          style={{
-                            fontSize: "14px",
-                            maxWidth: "220px",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            fontWeight: 500,
-                          }}
-                          title={n.title}
-                        >
-                          {n.title}
-                        </Text>
-                        <Text
-                          type="secondary"
-                          style={{
-                            fontSize: "12px",
-                            marginLeft: "8px",
-                            whiteSpace: "nowrap",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {formatDate(n.createdAt)}
-                        </Text>
-                      </div>
-                    }
-                    description={
-                      <Space
-                        direction="vertical"
-                        style={{ width: "100%" }}
-                        size={2}
-                      >
-                        <Text
-                          style={{
-                            fontSize: "13px",
-                            lineHeight: "1.5",
-                            color: !n.isRead ? "#4a4a4a" : "#8c8c8c",
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                          ellipsis={{ tooltip: "Click to view full content" }}
-                        >
-                          {n.content || (
-                            <span style={{ fontStyle: "italic", opacity: 0.7 }}>
-                              Click to view details
-                            </span>
-                          )}
-                        </Text>
-                      </Space>
-                    }
-                  />
-                </List.Item>
+            <div>
+              {/* Thông báo trong 3 giờ gần đây */}
+              {renderNotificationGroup(groupedNotifications.new, "New")}
+
+              {/* Thông báo trong ngày nhưng quá 3 giờ */}
+              {renderNotificationGroup(groupedNotifications.today, "Today")}
+
+              {/* Thông báo cũ hơn theo ngày */}
+              {Object.keys(groupedNotifications.older).length > 0 && (
+                <>
+                  {Object.entries(groupedNotifications.older).map(
+                    ([dateKey, dateNotifications]) => (
+                      <React.Fragment key={dateKey}>
+                        {renderNotificationGroup(
+                          dateNotifications,
+                          dayjs(dateKey).format("DD/MM/YYYY")
+                        )}
+                      </React.Fragment>
+                    )
+                  )}
+                </>
               )}
-            />
+            </div>
           )}
 
           {hasMore && (
@@ -353,82 +495,13 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
         </div>
       </Drawer>
 
-      <Modal
-        title={null}
-        open={!!selectedNotification}
-        onCancel={() => setSelectedNotification(null)}
-        footer={null}
-        width={600}
-        style={{ borderRadius: "8px", overflow: "hidden" }}
-        bodyStyle={{ padding: 0 }}
-        closeIcon={
-          <button className="absolute top-4 right-4 z-10 text-black w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200">
-            ✕
-          </button>
-        }
-      >
-        <div>
-          <div className="bg-gray-100 border-b p-6">
-            <Title level={4} style={{ margin: 0 }}>
-              {selectedNotification?.title}
-            </Title>
-            <div className="flex items-center mt-2">
-              <ClockCircleOutlined
-                style={{ color: "#8c8c8c", marginRight: "8px" }}
-              />
-              <Text type="secondary">
-                {selectedNotification?.createdAt &&
-                  formatDate(selectedNotification.createdAt)}
-              </Text>
-            </div>
-          </div>
-
-          <Spin spinning={loading} tip="Loading details...">
-            <div className="p-6">
-              {selectedNotification?.content ? (
-                <Paragraph style={{ fontSize: "16px", lineHeight: "1.8" }}>
-                  {selectedNotification.content}
-                </Paragraph>
-              ) : (
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
-                  <Text type="secondary" style={{ fontSize: "14px" }}>
-                    This notification has no additional content.
-                  </Text>
-                </div>
-              )}
-
-              {selectedNotification?.attachment && (
-                <div className="mt-6 p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center mb-3">
-                    <FileTextOutlined className="text-blue-600 mr-2" />
-                    <Text strong>Attachment</Text>
-                  </div>
-
-                  {selectedNotification.attachment.match(
-                    /\.(jpg|jpeg|png|gif)$/i
-                  ) ? (
-                    <img
-                      src={selectedNotification.attachment}
-                      alt="Attachment"
-                      className="max-w-full rounded-md border border-gray-200"
-                    />
-                  ) : (
-                    <Button
-                      type="primary"
-                      icon={<FileTextOutlined />}
-                      href={selectedNotification.attachment}
-                      download
-                      className="mt-2"
-                    >
-                      Download Attachment
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-          </Spin>
-        </div>
-      </Modal>
+      {/* Sử dụng component NotificationDetailModal */}
+      <NotificationDetailModal
+        notification={selectedNotification}
+        visible={!!selectedNotification}
+        loading={loading}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 };

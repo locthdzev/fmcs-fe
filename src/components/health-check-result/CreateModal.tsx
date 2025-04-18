@@ -11,9 +11,10 @@ import {
   Space,
   Typography,
   message,
+  Tooltip,
 } from "antd";
 import { toast } from "react-toastify";
-import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
+import { PlusOutlined, MinusCircleOutlined, UserOutlined } from "@ant-design/icons";
 import moment from "moment";
 import { HealthCheckResultsCreateRequestDTO } from "@/api/healthcheckresult";
 import { createHealthCheckResult } from "@/api/healthcheckresult";
@@ -85,6 +86,18 @@ const CreateModal: React.FC<CreateModalProps> = ({
     onClose();
   };
 
+  // Custom render cho option trong Select
+  const renderUserOption = (user: { id: string; fullName: string; email: string }) => ({
+    value: user.id,
+    label: (
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div><strong>{user.fullName}</strong></div>
+        <div style={{ fontSize: '12px', color: '#888' }}>{user.email}</div>
+        <div style={{ fontSize: '11px', color: '#aaa' }}>ID: {user.id}</div>
+      </div>
+    ),
+  });
+
   return (
     <Modal
       title="Tạo kết quả khám mới"
@@ -122,16 +135,35 @@ const CreateModal: React.FC<CreateModalProps> = ({
           <Select
             showSearch
             placeholder="Chọn bệnh nhân"
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              (option?.label as string)
-                .toLowerCase()
-                .indexOf(input.toLowerCase()) >= 0
-            }
-            options={userOptions.map((user) => ({
+            optionFilterProp="label"
+            optionLabelProp="label"
+            filterOption={(input, option) => {
+              const optionData = userOptions.find(u => u.id === option?.value);
+              if (!optionData) return false;
+              
+              const fullName = optionData.fullName.toLowerCase();
+              const email = optionData.email.toLowerCase();
+              const id = optionData.id.toLowerCase();
+              const searchValue = input.toLowerCase();
+              
+              return fullName.includes(searchValue) || 
+                     email.includes(searchValue) ||
+                     id.includes(searchValue);
+            }}
+            options={userOptions.map(user => ({
               value: user.id,
               label: `${user.fullName} (${user.email})`,
             }))}
+            dropdownRender={menu => (
+              <div>
+                <div style={{ padding: '8px', fontSize: '12px', borderBottom: '1px solid #eee' }}>
+                  <Tooltip title="Tìm theo tên, email hoặc ID">
+                    <UserOutlined /> Tổng số {userOptions.length} bệnh nhân
+                  </Tooltip>
+                </div>
+                {menu}
+              </div>
+            )}
           />
         </Form.Item>
 
