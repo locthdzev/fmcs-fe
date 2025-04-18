@@ -890,7 +890,9 @@ export function Trucks() {
                 <AntButton
                   type="text"
                   icon={<FormOutlined />}
-                  onClick={() => router.push(`/truck/edit/${truck.id}`)}
+                  onClick={() =>
+                    router.push(`/delivery-truck/edit/${truck.id}`)
+                  }
                 />
               </AntTooltip>
             </Space>
