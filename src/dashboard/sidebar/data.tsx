@@ -322,7 +322,7 @@ export const data = [
       {
         title: "My Periodic Checkups",
         icon: <PeriodicHealthCheckupsIcon />,
-        link: "/my-scheduled-appointment",
+        link: "/my-periodic-checkup",
       },
       {
         title: "My Insurance",
