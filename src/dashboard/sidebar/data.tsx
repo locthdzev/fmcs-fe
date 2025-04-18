@@ -37,55 +37,30 @@ export const data = [
     items: [
       { title: "Home", icon: <HomeIcon />, link: "/home" },
       {
-        title: "My Schedule",
-        icon: <ScheduleIcon />,
-        link: "/my-schedule",
-      },
-      {
-        title: "Statitics",
+        title: "Statistics",
         icon: <StatusIcon />,
         submenu: [
           {
-            title: "Users",
+            title: "User Statistics",
             icon: <StatusIcon />,
-            link: "/statitics/user-statitics",
+            link: "/statistics/user",
           },
           {
-            title: "Treatment Plans",
+            title: "Treatment Plan Statistics",
             icon: <StatusIcon />,
-            link: "/statitics/treatment-plan-statitics",
+            link: "/statistics/treatment-plan",
           },
           {
-            title: "Medicines",
+            title: "Drug Statistics",
             icon: <StatisticsofalldrugsIcon />,
-            link: "/statitics/medicines-statitics",
+            link: "/statistics/drug",
           },
           {
             title: "Survey Statistics",
             icon: <SurveyStatisticsIcon />,
-            link: "/statitics/survey-statistics",
+            link: "/statistics/survey",
           },
         ],
-      },
-      {
-        title: "My Insurance",
-        icon: <HealthIcon />,
-        link: "/my-health-insurance",
-      },
-      {
-        title: "My Health Check Results",
-        icon: <PeriodicHealthCheckupsIcon />,
-        link: "/my-health-check",
-      },
-      {
-        title: "My Survey",
-        icon: <SurveyForUserIcon />,
-        link: "/survey/MySurvey",
-      },
-      {
-        title: "Staff's Survey",
-        icon: <SurveyForStaffIcon />,
-        link: "/survey/StaffSurvey",
       },
     ],
   },
@@ -96,111 +71,27 @@ export const data = [
       {
         title: "Drugs",
         icon: <DrugIcon />,
-        // link: "/admin/settings",
         submenu: [
+          { title: "Drug List", icon: <DrugIcon />, link: "/drug" },
           {
-            title: "Drugs",
-            icon: <DrugIcon />,
-            link: "/drug",
-          },
-          {
-            title: "DrugGroups",
+            title: "Drug Groups",
             icon: <DrugGroupIcon />,
             link: "/drug-group",
           },
           {
-            title: "DrugOrders",
+            title: "Drug Orders",
             icon: <DrugOrderIcon />,
             link: "/drug-order",
           },
           {
-            title: "DrugSuppliers",
+            title: "Drug Suppliers",
             icon: <DrugSupplierIcon />,
             link: "/drug-supplier",
           },
-        ],
-      },
-      {
-        title: "Canteens",
-        icon: <CanteenIcon />,
-        // link: "/admin/settings",
-        submenu: [
           {
-            title: "CanteenItems",
-            icon: <CanteenItemIcon />,
-            link: "/canteen-item",
-          },
-          {
-            title: "CanteenInspections",
-            icon: <CanteenInspection />,
-            link: "/admin/settings/general",
-          },
-          {
-            title: "CanteenOrders",
-            icon: <CanteenOrder />,
-            link: "/canteen-order",
-          },
-          {
-            title: "Trucks",
-            icon: <TrucksIcon />,
-            link: "/truck",
-          },
-        ],
-      },
-
-      {
-        title: "Manage Appointments",
-        icon: <AppointmentIcon />,
-        submenu: [
-          {
-            title: "Appointments",
-            icon: <AppointmentIcon />,
-            link: "/appointment/management",
-          },
-          {
-            title: "Schedule Appointment",
-            icon: <AppointmentIcon />,
-            link: "/appointment",
-          },
-          {
-            title: "Healthcare Officer Appointment Management",
-            icon: <AppointmentIcon />,
-            link: "/appointment/manageforstaff",
-          },
-        ],
-      },
-
-      {
-        title: "Manage Periodic health checkup",
-        icon: <PeriodicHealthCheckupsIcon />,
-        submenu: [
-          {
-            title: "Periodic Health Checkups",
-            icon: <PeriodicHealthCheckupsIcon />,
-            link: "/periodic-health-checkup/periodichealthcheckups",
-          },
-          {
-            title: "Healthcare Officer Checkups Management",
-            icon: <PeriodicHealthCheckupsIcon />,
-            link: "/periodic-health-checkup/management",
-          },
-        ],
-      },
-
-      {
-        title: "Schedules",
-        icon: <ScheduleIcon />,
-        // link: "/admin/settings",
-        submenu: [
-          {
-            title: "Schedules",
-            icon: <ScheduleIcon />,
-            link: "/schedule",
-          },
-          {
-            title: "Shifts",
-            icon: <ShiftIcon />,
-            link: "/shift",
+            title: "Batch Numbers",
+            icon: <BatchNumberIcon />,
+            link: "/batch-number",
           },
         ],
       },
@@ -209,11 +100,6 @@ export const data = [
         icon: <InventoriesIcon />,
         submenu: [
           {
-            title: "Batch Numbers",
-            icon: <BatchNumberIcon />,
-            link: "/batch-number",
-          },
-          {
             title: "Inventory Records",
             icon: <InventoryRecordIcon />,
             link: "/inventory-record",
@@ -221,31 +107,109 @@ export const data = [
           {
             title: "Inventory History",
             icon: <InventoryHistoryIcon />,
-            link: "/inventory-history",
+            link: "/inventory-record/history",
           },
         ],
       },
       {
-        title: "Notifications",
-        icon: <NotificationIcon />,
-        link: "/notification/management",
+        title: "Appointments",
+        icon: <AppointmentIcon />,
+        link: "/appointment",
       },
       {
-        title: "Survey Management",
+        title: "Surveys",
         icon: <SurveyManagementIcon />,
-        link: "/survey/management",
+        link: "/survey",
       },
       {
-        title: "HealthInsurances",
+        title: "Health Check Results",
+        icon: <PeriodicHealthCheckupsIcon />,
+        submenu: [
+          {
+            title: "Manage Results",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result",
+          },
+          {
+            title: "Pending Approval",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/pending",
+          },
+          {
+            title: "Follow-up Required",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/follow-up",
+          },
+          {
+            title: "No Follow-up",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/no-follow-up",
+          },
+          {
+            title: "Cancelled for Adjustment",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/adjustment",
+          },
+          {
+            title: "Soft Deleted",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/soft-deleted",
+          },
+          {
+            title: "Result History",
+            icon: <PeriodicHealthCheckupsIcon />,
+            link: "/health-check-result/history",
+          },
+        ],
+      },
+      {
+        title: "Prescriptions",
+        icon: <DrugIcon />,
+        submenu: [
+          {
+            title: "Manage Prescriptions",
+            icon: <DrugIcon />,
+            link: "/prescription",
+          },
+          {
+            title: "Prescription History",
+            icon: <ArchiveIcon />,
+            link: "/prescription/history",
+          },
+        ],
+      },
+      {
+        title: "Treatment Plans",
+        icon: <HealthIcon />,
+        submenu: [
+          {
+            title: "Manage Plans",
+            icon: <HealthIcon />,
+            link: "/treatment-plan",
+          },
+          {
+            title: "Plan History",
+            icon: <ArchiveIcon />,
+            link: "/treatment-plan/history",
+          },
+        ],
+      },
+      {
+        title: "Periodic Checkups",
+        icon: <PeriodicHealthCheckupsIcon />,
+        link: "/periodic-health-checkup",
+      },
+      {
+        title: "Health Insurance",
         icon: <HealthInsuranceIcon />,
         submenu: [
           {
-            title: "List",
+            title: "Insurance List",
             icon: <HealthInsuranceIcon />,
             link: "/health-insurance",
           },
           {
-            title: "Initial",
+            title: "Initial Registration",
             icon: <HealthInsuranceIcon />,
             link: "/health-insurance/initial",
           },
@@ -265,7 +229,7 @@ export const data = [
             link: "/health-insurance/verification",
           },
           {
-            title: "No Insurance",
+            title: "Uninsured",
             icon: <HealthInsuranceIcon />,
             link: "/health-insurance/no-insurance",
           },
@@ -275,108 +239,104 @@ export const data = [
             link: "/health-insurance/update-requests",
           },
           {
-            title: "History",
+            title: "Insurance History",
             icon: <HealthInsuranceIcon />,
             link: "/health-insurance/history",
           },
         ],
       },
       {
-        title: "Health Check Results",
-        icon: <PeriodicHealthCheckupsIcon />,
+        title: "Schedules",
+        icon: <ScheduleIcon />,
         submenu: [
+          { title: "Shifts", icon: <ShiftIcon />, link: "/shift" },
           {
-            title: "Management",
-            icon: <PeriodicHealthCheckupsIcon />,
-            link: "/health-check-result",
-          },
-          {
-            title: "Waiting for Approval",
-            icon: <PeriodicHealthCheckupsIcon />,
-            link: "/health-check-result/pending",
-          },
-          {
-            title: "Follow-up Required",
-            icon: <PeriodicHealthCheckupsIcon />,
-            link: "/health-check-result/follow-up",
-          },
-          {
-            title: "No Follow-up Required",
-            icon: <PeriodicHealthCheckupsIcon />,
-            link: "/health-check-result/no-follow-up",
-          },
-          {
-            title: "Cancelled for Adjustment",
-            icon: <PeriodicHealthCheckupsIcon />,
-            link: "/health-check-result/adjustment",
-          },
-          {
-            title: "Soft Deleted",
-            icon: <PeriodicHealthCheckupsIcon />,
-            link: "/health-check-result/soft-deleted",
-          },
-          {
-            title: "History",
-            icon: <PeriodicHealthCheckupsIcon />,
-            link: "/health-check-result/history",
+            title: "Staff Schedules",
+            icon: <ScheduleIcon />,
+            link: "/schedule",
           },
         ],
       },
+
       {
-        title: "Prescriptions",
-        icon: <DrugIcon />,
-        submenu: [
-          {
-            title: "Management",
-            icon: <DrugIcon />,
-            link: "/prescription",
-          },
-          {
-            title: "History",
-            icon: <ArchiveIcon />,
-            link: "/prescription/history",
-          },
-        ],
+        title: "Notifications",
+        icon: <NotificationIcon />,
+        link: "/notification",
       },
       {
-        title: "Treatment Plans",
-        icon: <HealthIcon />,
+        title: "Canteen Management",
+        icon: <CanteenIcon />,
         submenu: [
           {
-            title: "Management",
-            icon: <HealthIcon />,
-            link: "/treatment-plan",
+            title: "Canteen Items",
+            icon: <CanteenItemIcon />,
+            link: "/canteen-item",
           },
           {
-            title: "History",
-            icon: <ArchiveIcon />,
-            link: "/treatment-plan/history",
+            title: "Canteen Orders",
+            icon: <CanteenOrder />,
+            link: "/canteen-order",
+          },
+          {
+            title: "Delivery Trucks",
+            icon: <TrucksIcon />,
+            link: "/delivery-truck",
           },
         ],
       },
     ],
   },
   {
-    groupTitle: "Others",
+    groupTitle: "Individuals",
     items: [
       {
-        title: "Settings",
-        icon: <SettingsIcon />,
-        // link: "/admin/settings",
-        submenu: [
-          {
-            title: "General",
-            icon: <SettingsIcon />,
-            link: "/admin/settings/general",
-          },
-          { title: "Security", link: "/admin/settings/security" },
-        ],
+        title: "Schedule Appointment",
+        icon: <AppointmentIcon />,
+        link: "/schedule-appointment",
       },
       {
-        title: "Documentation",
-        icon: <DocIcon />,
-        link: "/admin/documentation",
+        title: "My Scheduled Appointment",
+        icon: <AppointmentIcon />,
+        link: "/my-scheduled-appointment",
       },
+      {
+        title: "My Appointment",
+        icon: <AppointmentIcon />,
+        link: "/my-appointment",
+      },
+      {
+        title: "My Submitted Surveys",
+        icon: <SurveyForUserIcon />,
+        link: "/my-submitted-survey",
+      },
+      {
+        title: "My Assigned Surveys",
+        icon: <SurveyForStaffIcon />,
+        link: "/my-assigned-survey",
+      },
+      {
+        title: "My Health Check Results",
+        icon: <PeriodicHealthCheckupsIcon />,
+        link: "/my-health-check",
+      },
+      {
+        title: "My Periodic Checkups",
+        icon: <PeriodicHealthCheckupsIcon />,
+        link: "/my-scheduled-appointment",
+      },
+      {
+        title: "My Insurance",
+        icon: <HealthIcon />,
+        link: "/my-health-insurance",
+      },
+      { title: "My Schedule", icon: <ScheduleIcon />, link: "/my-schedule" },
+    ],
+  },
+  {
+    groupTitle: "Others",
+    items: [
+      { title: "Settings", icon: <SettingsIcon />, link: "/settings" },
+      { title: "Documentation", icon: <DocIcon />, link: "/documentation" },
     ],
   },
 ];
