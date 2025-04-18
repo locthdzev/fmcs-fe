@@ -28,9 +28,15 @@ const { Title } = Typography;
 
 interface TruckEditFormProps {
   truckId: string;
+  onClose: () => void;
+  onUpdate: () => void;
 }
 
-export const TruckEditForm: React.FC<TruckEditFormProps> = ({ truckId }) => {
+export const TruckEditForm: React.FC<TruckEditFormProps> = ({
+  truckId,
+  onClose,
+  onUpdate,
+}) => {
   const [form] = Form.useForm();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -58,6 +64,14 @@ export const TruckEditForm: React.FC<TruckEditFormProps> = ({ truckId }) => {
           
           if (truckData.truckImage) {
             setCurrentImageUrl(truckData.truckImage);
+            setFileList([
+              {
+                uid: '-1',
+                name: 'Current Truck Image',
+                status: 'done',
+                url: truckData.truckImage,
+              },
+            ]);
           }
           setOriginalCreatedAt(truckData.createdAt);
         } else {
@@ -74,51 +88,77 @@ export const TruckEditForm: React.FC<TruckEditFormProps> = ({ truckId }) => {
     fetchTruckData();
   }, [truckId, form, messageApi]);
 
-  const handleSubmit = async () => {
-    if (!originalCreatedAt) {
-      messageApi.error("Original data not fully loaded. Please wait and try again.", 5);
-      return;
-    }
-    
+  const handleUpdate = async () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
 
+      // Log debugging information
+      console.log("File list:", fileList);
+      console.log("File list length:", fileList.length);
+      if (fileList.length > 0) {
+        console.log("File object:", fileList[0]);
+        console.log("originFileObj exists:", !!fileList[0].originFileObj);
+      }
+
+      // Create FormData for the request
       const formDataToSend = new FormData();
+      
+      // Add all form values except imageFile (handled separately)
       Object.entries(values).forEach(([key, value]) => {
         if (value !== undefined && value !== null && key !== 'imageFile') {
           formDataToSend.append(key, value as string);
         }
       });
+
+      // Add standard fields
+      formDataToSend.append("updatedAt", new Date().toISOString());
       
-      // Preserve the original createdAt date
-      formDataToSend.append("createdAt", originalCreatedAt);
+      // Important: Always append truckImage field, even if empty
+      formDataToSend.append("truckImage", currentImageUrl || "");
 
       // Append the image file if it exists
       if (fileList.length > 0 && fileList[0].originFileObj) {
         formDataToSend.append("imageFile", fileList[0].originFileObj);
+        console.log("Uploading file:", fileList[0].name);
+        console.log("File type:", fileList[0].type);
+        console.log("File size:", fileList[0].size, "bytes");
+      } else {
+        console.log("No file selected for upload or originFileObj is undefined");
+        console.log("fileList details:", JSON.stringify(fileList, null, 2));
+        
+        // Check if we have a file in fileList but no originFileObj
+        if (fileList.length > 0 && !fileList[0].originFileObj && fileList[0].url) {
+          console.log("File has URL but no originFileObj. URL:", fileList[0].url);
+          
+          // Don't try to fetch the image from URL which may cause CORS issues
+          // Instead, just send the form data and let the server keep the existing image
+          console.log("Keeping existing image URL:", currentImageUrl);
+          
+          // If the URL is from our own server (not an object URL), we can just send the truckImage field
+          if (typeof currentImageUrl === 'string' && !currentImageUrl.startsWith('blob:')) {
+            console.log("Using existing image URL instead of fetching it");
+            // The truckImage field is already added to formData above, so no need to do anything else
+          }
+        }
       }
+
+      // Log the FormData content
+      let formDataContent = "";
+      for (const [key, value] of formDataToSend.entries()) {
+        formDataContent += `${key}: ${value instanceof File ? `File (${value.name}, ${value.size} bytes)` : value}\n`;
+      }
+      console.log("FormData contents:\n", formDataContent);
+      console.log("FormData contains imageFile:", formDataToSend.has("imageFile"));
 
       try {
         const response = await updateTruck(truckId, formDataToSend);
-        
-        if (response.isSuccess) {
-          messageApi.success(response.message || "Truck updated successfully", 5);
-          // Navigate back to the truck detail page
-          setTimeout(() => {
-            router.push(`/truck/${truckId}`);
-          }, 2000);
-        } else {
-          if (response.code === 409) {
-            messageApi.error(response.message || "License plate already exists", 5);
-            form.setFields([{
-              name: 'licensePlate',
-              errors: ['License plate already exists']
-            }]);
-          } else {
-            messageApi.error(response.message || "Failed to update truck", 5);
-            console.error("Error updating truck:", response);
-          }
+        messageApi.success("Truck updated successfully", 5);
+        if (typeof onUpdate === 'function') {
+          onUpdate();
+        }
+        if (typeof onClose === 'function') {
+          onClose();
         }
       } catch (error: any) {
         messageApi.error(error.message || "Failed to update truck", 5);
@@ -132,8 +172,9 @@ export const TruckEditForm: React.FC<TruckEditFormProps> = ({ truckId }) => {
     }
   };
 
-  const handleCancel = () => {
-    router.push(`/truck/${truckId}`);
+  const handleReset = () => {
+    form.resetFields();
+    setFileList([]);
   };
 
   const uploadProps: UploadProps = {
@@ -148,12 +189,24 @@ export const TruckEditForm: React.FC<TruckEditFormProps> = ({ truckId }) => {
         messageApi.error('Image must be smaller than 2MB!');
         return Upload.LIST_IGNORE;
       }
-      setFileList([file]);
+      
+      // Create a new file list with the new file
+      const newFile = {
+        ...file,
+        uid: file.uid,
+        name: file.name,
+        status: 'done',
+        url: URL.createObjectURL(file),
+        originFileObj: file,
+      } as UploadFile;
+      
+      setFileList([newFile]);
       return false; // Prevent auto upload
     },
     fileList,
     onRemove: () => {
       setFileList([]);
+      setCurrentImageUrl(null);
     },
     maxCount: 1,
   };
@@ -165,7 +218,14 @@ export const TruckEditForm: React.FC<TruckEditFormProps> = ({ truckId }) => {
         <div style={{ marginBottom: "20px", display: "flex", alignItems: "center" }}>
           <Button 
             icon={<ArrowLeftOutlined />} 
-            onClick={handleCancel}
+            onClick={() => {
+              if (typeof onClose === 'function') {
+                onClose();
+              } else {
+                // If onClose is not available, navigate back using router
+                router.back();
+              }
+            }}
             style={{ marginRight: "15px" }}
           >
             Back
@@ -179,7 +239,7 @@ export const TruckEditForm: React.FC<TruckEditFormProps> = ({ truckId }) => {
           <Form 
             form={form} 
             layout="vertical" 
-            onFinish={handleSubmit}
+            onFinish={handleUpdate}
             style={{ maxWidth: "800px", margin: "0 auto" }}
           >
             <Row gutter={16}>
@@ -267,8 +327,8 @@ export const TruckEditForm: React.FC<TruckEditFormProps> = ({ truckId }) => {
 
             <Form.Item>
               <Space style={{ display: "flex", justifyContent: "flex-end" }}>
-                <Button onClick={handleCancel}>
-                  Cancel
+                <Button onClick={handleReset}>
+                  Reset
                 </Button>
                 <Button type="primary" htmlType="submit" loading={loading}>
                   Update Truck

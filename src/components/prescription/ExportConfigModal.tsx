@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-  Modal,
-  Form,
-  Checkbox,
-  Button,
-  Typography,
-  message,
-} from "antd";
+import { Modal, Form, Checkbox, Button, Typography, message } from "antd";
 import { toast } from "react-toastify";
 import {
   exportPrescriptionsToExcelWithConfig,
@@ -69,8 +62,10 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         updatedDateRange,
       } = filters;
 
-      const prescriptionStartDate = prescriptionDateRange[0]?.format("YYYY-MM-DD");
-      const prescriptionEndDate = prescriptionDateRange[1]?.format("YYYY-MM-DD");
+      const prescriptionStartDate =
+        prescriptionDateRange[0]?.format("YYYY-MM-DD");
+      const prescriptionEndDate =
+        prescriptionDateRange[1]?.format("YYYY-MM-DD");
       const createdStartDate = createdDateRange[0]?.format("YYYY-MM-DD");
       const createdEndDate = createdDateRange[1]?.format("YYYY-MM-DD");
       const updatedStartDate = updatedDateRange[0]?.format("YYYY-MM-DD");
@@ -112,7 +107,11 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
 
   return (
     <Modal
-      title="Export Configuration"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Export Configuration
+        </Title>
+      }
       open={visible}
       onCancel={handleCancel}
       width={600}
@@ -130,89 +129,52 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
         </Button>,
       ]}
     >
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={config}
-      >
+      <Form form={form} layout="vertical" initialValues={config}>
         <Title level={5}>Export Options</Title>
-        
-        <Form.Item
-          name="exportAllPages"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="exportAllPages" valuePropName="checked">
           <Checkbox>Export all pages (not just current page)</Checkbox>
         </Form.Item>
 
         <Title level={5}>Include Columns</Title>
-        
-        <Form.Item
-          name="includePrescriptionCode"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includePrescriptionCode" valuePropName="checked">
           <Checkbox>Prescription Code</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includeHealthCheckCode"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includeHealthCheckCode" valuePropName="checked">
           <Checkbox>Health Check Code</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includePatient"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includePatient" valuePropName="checked">
           <Checkbox>Patient Details</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includePrescriptionDate"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includePrescriptionDate" valuePropName="checked">
           <Checkbox>Prescription Date</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includeHealthcareStaff"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includeHealthcareStaff" valuePropName="checked">
           <Checkbox>Healthcare Staff</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includeMedications"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includeMedications" valuePropName="checked">
           <Checkbox>Medications</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includeStatus"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includeStatus" valuePropName="checked">
           <Checkbox>Status</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includeCreatedAt"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includeCreatedAt" valuePropName="checked">
           <Checkbox>Created At</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includeUpdatedAt"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includeUpdatedAt" valuePropName="checked">
           <Checkbox>Updated At</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includeUpdatedBy"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includeUpdatedBy" valuePropName="checked">
           <Checkbox>Updated By</Checkbox>
         </Form.Item>
       </Form>
@@ -220,4 +182,4 @@ const ExportConfigModal: React.FC<ExportConfigModalProps> = ({
   );
 };
 
-export default ExportConfigModal; 
+export default ExportConfigModal;

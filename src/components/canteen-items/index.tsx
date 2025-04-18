@@ -1,4 +1,43 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import {
+  message,
+  Table,
+  Input,
+  Button,
+  Dropdown,
+  Menu,
+  Tag,
+  Pagination,
+  Modal,
+  Card,
+  Select,
+  Checkbox,
+  Tooltip,
+  Space,
+  Typography,
+  TableProps,
+  TablePaginationConfig,
+  Row,
+  InputNumber,
+  Col,
+  Spin,
+} from "antd";
+import {
+  PlusOutlined,
+  SearchOutlined,
+  DownOutlined,
+  UndoOutlined,
+  FilterOutlined,
+  SettingOutlined,
+  AppstoreOutlined,
+  TagOutlined,
+  ExclamationCircleOutlined,
+  FormOutlined,
+  EyeOutlined,
+  ArrowLeftOutlined,
+  FileExcelOutlined,
+} from "@ant-design/icons";
+import type { CheckboxChangeEvent } from "antd/es/checkbox";
 import { toast } from "react-toastify";
 import {
   getAllCanteenItems,
@@ -6,512 +45,1816 @@ import {
   activateCanteenItems,
   deactivateCanteenItems,
 } from "@/api/canteenitems";
-import {
-  Card,
-  CardHeader,
-  CardBody,
-  CardFooter,
-  Image,
-  Button,
-  Input,
-  Pagination,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Checkbox,
-} from "@heroui/react";
-import { EditCanteenItemForm } from "./EditCanteenItemForm";
 import { CreateCanteenItemForm } from "./CreateCanteenItemForm";
-import {
-  PlusIcon,
-  SearchIcon,
-  ChevronDownIcon,
-  CanteenItemIcon,
-} from "./Icons";
+import { CanteenItemIcon } from "./Icons";
+import { useRouter } from "next/router";
+import dayjs from "dayjs";
+import type { FilterValue, SorterResult } from "antd/es/table/interface";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import { ChipProps } from "@heroui/react";
+import CanteenItemFilterModal from "./CanteenItemFilterModal";
+import ExportConfigModal, {
+  CanteenItemExportConfigWithUI,
+} from "./ExportConfigModal";
+import type { MenuProps } from "antd";
+import type {
+  ItemType,
+  MenuItemType,
+  MenuDividerType,
+  MenuItemGroupType,
+} from "antd/es/menu/interface";
+
+// Extend dayjs with the plugins
+dayjs.extend(isSameOrBefore);
+dayjs.extend(isSameOrAfter);
+
+const { Option } = Select;
+const { confirm } = Modal;
+const { Text, Title } = Typography;
+
+const staticColumns = [
+  {
+    title: (
+      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        Item Name
+      </span>
+    ),
+    dataIndex: "itemName",
+    key: "itemName",
+    sorter: (a: CanteenItemResponse, b: CanteenItemResponse) =>
+      a.itemName.localeCompare(b.itemName),
+    sortDirections: ["ascend", "descend"] as ("ascend" | "descend")[],
+  },
+  {
+    title: (
+      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        Description
+      </span>
+    ),
+    dataIndex: "description",
+    key: "description",
+  },
+  {
+    title: (
+      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        Price
+      </span>
+    ),
+    dataIndex: "unitPrice",
+    key: "unitPrice",
+    sorter: (a: CanteenItemResponse, b: CanteenItemResponse) =>
+      parseFloat(String(a.unitPrice)) - parseFloat(String(b.unitPrice)),
+    sortDirections: ["ascend", "descend"] as ("ascend" | "descend")[],
+  },
+  {
+    title: (
+      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        Availability
+      </span>
+    ),
+    dataIndex: "available",
+    key: "available",
+  },
+  {
+    title: (
+      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        Created At
+      </span>
+    ),
+    dataIndex: "createdAt",
+    key: "createdAt",
+    sorter: (a: CanteenItemResponse, b: CanteenItemResponse) =>
+      dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix(),
+    render: (date: string) => (date ? dayjs(date).format("DD/MM/YYYY") : "-"),
+    sortDirections: ["ascend", "descend"] as ("ascend" | "descend")[],
+  },
+  {
+    title: (
+      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        Status
+      </span>
+    ),
+    dataIndex: "status",
+    key: "status",
+  },
+  {
+    title: (
+      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        Actions
+      </span>
+    ),
+    key: "actions",
+    align: "center" as const,
+  },
+];
+
+const statusOptions = [
+  { label: "Active", value: "Active" },
+  { label: "Inactive", value: "Inactive" },
+];
+
+const INITIAL_COLUMN_VISIBILITY: Record<string, boolean> = {
+  itemName: true,
+  description: true,
+  unitPrice: true,
+  available: true,
+  createdAt: true,
+  status: true,
+  actions: true,
+};
+
+const statusColorMap: Record<string, ChipProps["color"]> = {
+  Active: "success",
+  Inactive: "danger",
+};
+
+const INITIAL_VISIBLE_COLUMNS = [
+  "itemName",
+  "description",
+  "unitPrice",
+  "available",
+  "createdAt",
+  "status",
+  "actions",
+];
+
+export function capitalize(s: string) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
+}
 
 export function CanteenItems() {
+  const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState(
+    "Loading canteen items..."
+  );
+
+  // Data states
   const [canteenItems, setCanteenItems] = useState<CanteenItemResponse[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [filterValue, setFilterValue] = useState("");
-  const [statusFilter, setStatusFilter] = useState(new Set(["Active"]));
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [sorter, setSorter] = useState<
+    SorterResult<CanteenItemResponse> | SorterResult<CanteenItemResponse>[]
+  >();
 
-  const statusOptions = [
-    { uid: "Active", name: "Active" },
-    { uid: "Inactive", name: "Inactive" },
-  ];
-  const capitalize = (str: string) =>
-    str.charAt(0).toUpperCase() + str.slice(1);
+  // Selection states
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [showActivateButton, setShowActivateButton] = useState(false);
+  const [showDeactivateButton, setShowDeactivateButton] = useState(false);
 
-  const [page, setPage] = React.useState(1);
-  const [rowsPerPage] = useState(8);
-  const [selectedCanteenItem, setSelectedCanteenItem] = useState<string | null>(
-    null
-  );
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [imgErrorMap, setImgErrorMap] = useState<{ [key: string]: boolean }>(
-    {}
-  );
+  // Modal states
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [itemToDeactivate, setItemToDeactivate] = useState<string | null>(null);
-  const [isConfirmActivateModalOpen, setIsConfirmActivateModalOpen] =
-    useState(false);
-  const [itemToActivate, setItemToActivate] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<
+    "activate" | "deactivate" | null
+  >(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
-  const [isAllSelected, setIsAllSelected] = useState(false);
 
-  const [showActivate, setShowActivate] = useState(false);
-  const [showDeactivate, setShowDeactivate] = useState(false);
-  const statusColorMap: Record<"Active" | "Inactive", string> = {
-    Active: "bg-green-100 text-green-700",
-    Inactive: "bg-gray-100 text-gray-700",
-  };
-  const filteredItems = (canteenItems || []).filter((item) => {
-    const statusKeys = Array.from(statusFilter);
+  // Export to Excel states
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportConfig, setExportConfig] =
+    useState<CanteenItemExportConfigWithUI>({
+      exportAllPages: true,
+      includeId: true,
+      includeItemName: true,
+      includeDescription: true,
+      includeUnitPrice: true,
+      includeAvailable: true,
+      includeImageUrl: true,
+      includeCreatedAt: true,
+      includeUpdatedAt: true,
+      includeStatus: true,
+      fileName: "CanteenItems_Export",
+    });
 
-    // Nếu item.status là undefined, gán giá trị mặc định là ""
-    const itemStatus = item.status ?? "";
+  // Column visibility state
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >(INITIAL_COLUMN_VISIBILITY);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
-    return (
-      item.itemName.toLowerCase().includes(filterValue.toLowerCase()) &&
-      (statusKeys.includes("All") || statusKeys.includes(itemStatus))
-    );
+  // Selected Option for bulk selection
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isLoadingAllItems, setIsLoadingAllItems] = useState<boolean>(false);
+
+  // Filter modal states
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [filters, setFilters] = useState({
+    itemName: "",
+    priceRange: [null, null] as [number | null, number | null],
+    availability: null as string | null,
+    status: null as string | null,
+    createdDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+    updatedDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+    sortBy: "CreatedAt",
+    ascending: false,
   });
+
+  // Fetch canteen items
+  const fetchCanteenItems = useCallback(async () => {
+    if (initialLoading) {
+      setLoadingMessage("Loading canteen items...");
+    }
+    setLoading(true);
+    try {
+      const response = await getAllCanteenItems();
+      setCanteenItems(response || []);
+      setTotalItems(response?.length || 0);
+    } catch (error) {
+      messageApi.error("Failed to fetch canteen items");
+      console.error("Fetch error:", error);
+    } finally {
+      setLoading(false);
+      setInitialLoading(false);
+    }
+  }, [messageApi, initialLoading]);
+
   useEffect(() => {
     fetchCanteenItems();
-    let selected: CanteenItemResponse[] = [];
+  }, [fetchCanteenItems]);
 
-    if (selectedKeys.size === canteenItems.length) {
-      selected = filteredItems;
+  // Monitor selected items to update action buttons
+  useEffect(() => {
+    if (selectedRowKeys.length > 0) {
+      const selectedItemsData = canteenItems.filter((item) =>
+        selectedRowKeys.includes(item.id)
+      );
+
+      // Count status types among selected items
+      const inactiveCount = selectedItemsData.filter(
+        (item) => item.status === "Inactive"
+      ).length;
+      const activeCount = selectedItemsData.filter(
+        (item) => item.status === "Active"
+      ).length;
+
+      // Only show activate button if ALL selected items are inactive
+      setShowActivateButton(inactiveCount > 0 && activeCount === 0);
+
+      // Only show deactivate button if ALL selected items are active
+      setShowDeactivateButton(activeCount > 0 && inactiveCount === 0);
     } else {
-      selected = canteenItems.filter((item) => selectedKeys.has(item.id));
+      setShowActivateButton(false);
+      setShowDeactivateButton(false);
+    }
+  }, [selectedRowKeys, canteenItems]);
+
+  // Filter and sort items
+  const filteredAndSortedItems = useMemo(() => {
+    let processedItems = [...canteenItems];
+
+    // Apply basic search filter
+    if (filterValue) {
+      processedItems = processedItems.filter((item) =>
+        item.itemName?.toLowerCase().includes(filterValue.toLowerCase())
+      );
     }
 
-    const hasActive = selected.some((item) => item.status === "Active");
-    const hasInactive = selected.some((item) => item.status === "Inactive");
-    setIsAllSelected(
-      selectedKeys.size > 0 && selectedKeys.size === filteredItems.length
+    // Apply status filter from toolbar
+    if (statusFilter.length > 0) {
+      processedItems = processedItems.filter(
+        (item) => item.status && statusFilter.includes(item.status)
+      );
+    }
+
+    // Apply advanced filters
+    if (filters) {
+      // Apply item name filter from advanced filters
+      if (filters.itemName) {
+        processedItems = processedItems.filter((item) =>
+          item.itemName?.toLowerCase().includes(filters.itemName.toLowerCase())
+        );
+      }
+
+      // Apply price range filter
+      if (
+        filters.priceRange &&
+        (filters.priceRange[0] !== null || filters.priceRange[1] !== null)
+      ) {
+        const [minPrice, maxPrice] = filters.priceRange;
+        processedItems = processedItems.filter((item) => {
+          const price = parseFloat(item.unitPrice.toString());
+          if (minPrice !== null && maxPrice !== null) {
+            return price >= minPrice && price <= maxPrice;
+          } else if (minPrice !== null) {
+            return price >= minPrice;
+          } else if (maxPrice !== null) {
+            return price <= maxPrice;
+          }
+          return true;
+        });
+      }
+
+      // Apply availability filter
+      if (filters.availability !== null) {
+        const isAvailable = filters.availability === "true";
+        processedItems = processedItems.filter(
+          (item) => item.available === isAvailable
+        );
+      }
+
+      // Apply status filter from advanced filters
+      if (filters.status !== null) {
+        processedItems = processedItems.filter(
+          (item) => item.status === filters.status
+        );
+      }
+
+      // Apply created date range filter
+      if (
+        filters.createdDateRange &&
+        (filters.createdDateRange[0] !== null ||
+          filters.createdDateRange[1] !== null)
+      ) {
+        processedItems = processedItems.filter((item) => {
+          const itemDate = dayjs(item.createdAt);
+          const startDate = filters.createdDateRange[0];
+          const endDate = filters.createdDateRange[1];
+
+          if (startDate && endDate) {
+            return (
+              itemDate.isAfter(startDate.startOf("day")) &&
+              itemDate.isBefore(endDate.endOf("day"))
+            );
+          } else if (startDate) {
+            return itemDate.isAfter(startDate.startOf("day"));
+          } else if (endDate) {
+            return itemDate.isBefore(endDate.endOf("day"));
+          }
+          return true;
+        });
+      }
+
+      // Apply updated date range filter
+      if (
+        filters.updatedDateRange &&
+        (filters.updatedDateRange[0] !== null ||
+          filters.updatedDateRange[1] !== null)
+      ) {
+        processedItems = processedItems.filter((item) => {
+          if (!item.updatedAt) return false;
+
+          const itemDate = dayjs(item.updatedAt);
+          const startDate = filters.updatedDateRange[0];
+          const endDate = filters.updatedDateRange[1];
+
+          if (startDate && endDate) {
+            return (
+              itemDate.isAfter(startDate.startOf("day")) &&
+              itemDate.isBefore(endDate.endOf("day"))
+            );
+          } else if (startDate) {
+            return itemDate.isAfter(startDate.startOf("day"));
+          } else if (endDate) {
+            return itemDate.isBefore(endDate.endOf("day"));
+          }
+          return true;
+        });
+      }
+    }
+
+    // Use advanced filter sorting if specified, otherwise use table sorter
+    let sortField: keyof CanteenItemResponse = "createdAt";
+    let sortOrder: "ascend" | "descend" = "descend";
+
+    // First check if we have filters.sortBy set
+    if (filters && filters.sortBy) {
+      // Map the filter sortBy values to actual field names
+      const fieldMapping: Record<string, keyof CanteenItemResponse> = {
+        ItemName: "itemName",
+        UnitPrice: "unitPrice",
+        CreatedAt: "createdAt",
+        UpdatedAt: "updatedAt",
+      };
+
+      sortField = fieldMapping[filters.sortBy] || "createdAt";
+      sortOrder = filters.ascending ? "ascend" : "descend";
+    } else {
+      // Fall back to table sorter if no filter sorting specified
+      const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+      if (currentSorter?.field) {
+        sortField = currentSorter.field as keyof CanteenItemResponse;
+        sortOrder = currentSorter.order || "descend";
+      }
+    }
+
+    // Apply sorting
+    if (sortField) {
+      processedItems.sort((a, b) => {
+        const valA = a[sortField] ?? null;
+        const valB = b[sortField] ?? null;
+
+        if (valA === null && valB === null) return 0;
+        if (valA === null) return sortOrder === "ascend" ? 1 : -1;
+        if (valB === null) return sortOrder === "ascend" ? -1 : 1;
+
+        let comparison = 0;
+        if (typeof valA === "string" && typeof valB === "string") {
+          if (sortField === "createdAt" || sortField === "updatedAt") {
+            const dateA = dayjs(valA);
+            const dateB = dayjs(valB);
+            if (dateA.isValid() && dateB.isValid()) {
+              comparison = dateA.unix() - dateB.unix();
+            } else {
+              comparison = valA.localeCompare(valB);
+            }
+          } else {
+            comparison = valA.localeCompare(valB);
+          }
+        } else if (sortField === "unitPrice") {
+          const priceA = parseFloat(valA as string) || 0;
+          const priceB = parseFloat(valB as string) || 0;
+          comparison = priceA - priceB;
+        } else if (typeof valA === "boolean" && typeof valB === "boolean") {
+          comparison = valA === valB ? 0 : valA ? 1 : -1;
+        } else {
+          comparison = String(valA).localeCompare(String(valB));
+        }
+        return sortOrder === "descend" ? comparison * -1 : comparison;
+      });
+    } else {
+      // Default sort by CreatedAt
+      processedItems.sort((a, b) => {
+        return dayjs(b.createdAt).unix() - dayjs(a.createdAt).unix();
+      });
+    }
+
+    return processedItems;
+  }, [canteenItems, filterValue, statusFilter, sorter, filters]);
+
+  // Paginate items
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredAndSortedItems.slice(start, end);
+  }, [filteredAndSortedItems, currentPage, pageSize]);
+
+  // Calculate total pages
+  const pages = useMemo(() => {
+    return Math.ceil(filteredAndSortedItems.length / pageSize);
+  }, [filteredAndSortedItems.length, pageSize]);
+
+  // Table change handler
+  const handleTableChange: TableProps<CanteenItemResponse>["onChange"] = (
+    pagination: TablePaginationConfig,
+    filters: Record<string, FilterValue | null>,
+    newSorter:
+      | SorterResult<CanteenItemResponse>
+      | SorterResult<CanteenItemResponse>[]
+  ) => {
+    const statusFilters = (filters.status as FilterValue) || [];
+    setStatusFilter(statusFilters.map(String));
+
+    // Update sorter state from table changes
+    setSorter(newSorter);
+
+    // Reset page to 1 when filters or sorter change
+    setCurrentPage(1);
+  };
+
+  // Confirmation dialog
+  const showConfirm = (action: "activate" | "deactivate", onOk: () => void) => {
+    const selectedItemsData = canteenItems.filter((item) =>
+      selectedRowKeys.includes(item.id)
     );
+    const targetStatus = action === "activate" ? "Inactive" : "Active";
+    const count = selectedItemsData.filter(
+      (item) => item.status === targetStatus
+    ).length;
 
-    setShowActivate(hasInactive);
-    setShowDeactivate(hasActive);
-  }, [selectedKeys, canteenItems, filteredItems]);
+    if (count === 0) {
+      messageApi.warning(`No items with status '${targetStatus}' selected.`, 5);
+      return;
+    }
 
+    setConfirmAction(action);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmAction === "activate") {
+      handleActivate();
+    } else if (confirmAction === "deactivate") {
+      handleDeactivate();
+    }
+
+    setIsConfirmModalOpen(false);
+    setConfirmAction(null);
+  };
+
+  // Bulk actions
   const handleActivate = async () => {
-    const ids = Array.from(selectedKeys).filter((id) =>
-      canteenItems.find((item) => item.id === id && item.status === "Inactive")
-    );
+    const idsToActivate = canteenItems
+      .filter(
+        (item) =>
+          selectedRowKeys.includes(item.id) && item.status === "Inactive"
+      )
+      .map((item) => item.id);
 
-    if (ids.length === 0) return;
+    if (idsToActivate.length === 0) return;
 
+    setLoadingMessage("Activating items...");
+    setLoading(true);
     try {
-      await activateCanteenItems(ids);
-      toast.success("Items activated successfully");
-      fetchCanteenItems();
-      setSelectedKeys(new Set());
+      await activateCanteenItems(idsToActivate);
+      messageApi.success("Items activated successfully", 5);
+
+      // Update local state instead of refetching
+      setCanteenItems((prevItems) =>
+        prevItems.map((item) =>
+          idsToActivate.includes(item.id)
+            ? {
+                ...item,
+                status: "Active",
+                updatedAt: new Date().toISOString(),
+              }
+            : item
+        )
+      );
+
+      setSelectedRowKeys([]); // Clear selection
     } catch (error) {
-      toast.error("Failed to activate items");
+      messageApi.error("Failed to activate items", 5);
+      console.error("Error activating items:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDeactivate = async () => {
-    const ids = Array.from(selectedKeys).filter((id) =>
-      canteenItems.find((item) => item.id === id && item.status === "Active")
-    );
+    const idsToDeactivate = canteenItems
+      .filter(
+        (item) => selectedRowKeys.includes(item.id) && item.status === "Active"
+      )
+      .map((item) => item.id);
 
-    if (ids.length === 0) return;
+    if (idsToDeactivate.length === 0) return;
 
+    setLoadingMessage("Deactivating items...");
+    setLoading(true);
     try {
-      await deactivateCanteenItems(ids);
-      toast.success("Items deactivated successfully");
-      fetchCanteenItems();
-      setSelectedKeys(new Set());
-    } catch (error) {
-      toast.error("Failed to deactivate items");
-    }
-  };
+      await deactivateCanteenItems(idsToDeactivate);
+      messageApi.success("Items deactivated successfully", 5);
 
-  const fetchCanteenItems = async () => {
-    try {
-      const response = await getAllCanteenItems();
-      setCanteenItems(response || []);
-      setIsReady(true);
-    } catch (error) {
-      toast.error("Failed to fetch canteen items");
-    }
-  };
-
-  const handleUpdateSuccess = async (updatedItem: CanteenItemResponse) => {
-    setCanteenItems((prevItems) => {
-      const updatedItems = prevItems.map((item) =>
-        item.id === updatedItem.id ? { ...updatedItem } : item
-      );
-      return [...updatedItems]; // Đảm bảo tạo một object mới để trigger re-render
-    });
-    await fetchCanteenItems(); // Gọi lại API để lấy dữ liệu mới
-    setIsEditModalOpen(false);
-  };
-
-  const handleActivateConfirm = async () => {
-    if (!itemToActivate) return;
-
-    try {
-      await activateCanteenItems([itemToActivate]);
-      toast.success("Item activated successfully");
+      // Update local state instead of refetching
       setCanteenItems((prevItems) =>
         prevItems.map((item) =>
-          item.id === itemToActivate ? { ...item, status: "Active" } : item
+          idsToDeactivate.includes(item.id)
+            ? {
+                ...item,
+                status: "Inactive",
+                updatedAt: new Date().toISOString(),
+              }
+            : item
         )
       );
-      setIsConfirmActivateModalOpen(false);
-      setItemToActivate(null);
+
+      setSelectedRowKeys([]); // Clear selection
     } catch (error) {
-      toast.error("Failed to activate item");
+      messageApi.error("Failed to deactivate items", 5);
+      console.error("Error deactivating items:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeactivateConfirm = async () => {
-    if (!itemToDeactivate) return;
-
-    try {
-      await deactivateCanteenItems([itemToDeactivate]);
-      toast.success("Item deactivated successfully");
-      setCanteenItems((prevItems) =>
-        prevItems.map((item) =>
-          item.id === itemToDeactivate ? { ...item, status: "Inactive" } : item
-        )
-      );
-      setIsConfirmModalOpen(false);
-      setItemToDeactivate(null);
-    } catch (error) {
-      toast.error("Failed to deactivate item");
+  const onNextPage = useCallback(() => {
+    if (currentPage < pages) {
+      setCurrentPage(currentPage + 1);
     }
+  }, [currentPage, pages]);
+
+  const onPreviousPage = useCallback(() => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  }, [currentPage]);
+
+  const onSearchChange = useCallback((value?: string) => {
+    setFilterValue(value || "");
+    setCurrentPage(1);
+  }, []);
+
+  const onPageSizeChange = useCallback((newSize: number) => {
+    setPageSize(newSize);
+    setCurrentPage(1);
+  }, []);
+
+  const onClear = useCallback(() => {
+    setFilterValue("");
+    setStatusFilter([]);
+    setCurrentPage(1);
+  }, []);
+
+  // Format functions
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
+      date.getMinutes()
+    ).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
   };
 
-  const pages = Math.ceil(filteredItems.length / rowsPerPage);
-  const displayedItems = filteredItems.slice(
-    (page - 1) * rowsPerPage,
-    page * rowsPerPage
+  const formatPrice = (price: string | number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Number(price));
+  };
+
+  // Cell rendering
+  const renderCell = useCallback(
+    (item: CanteenItemResponse, columnKey: React.Key) => {
+      const cellValue = item[columnKey as keyof CanteenItemResponse];
+
+      switch (columnKey) {
+        case "itemName":
+          return (
+            <div className="flex flex-col items-start">
+              <div className="flex items-center">
+                <img
+                  src={item.imageUrl || "/images/placeholder.jpg"}
+                  alt={item.itemName}
+                  className="w-8 h-8 mr-2 rounded cursor-pointer"
+                  onClick={() => router.push(`/canteen-item/${item.id}`)}
+                />
+                <p
+                  className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
+                  onClick={() => router.push(`/canteen-item/${item.id}`)}
+                >
+                  {cellValue as string}
+                </p>
+              </div>
+            </div>
+          );
+        case "unitPrice":
+          return formatPrice(cellValue as string | number);
+        case "available":
+          return (
+            <Tag color={item.available ? "success" : "error"}>
+              {item.available ? "Available" : "Out of Stock"}
+            </Tag>
+          );
+        case "status":
+          return (
+            <Tag color={item.status === "Active" ? "success" : "error"}>
+              {cellValue as string}
+            </Tag>
+          );
+        case "createdAt":
+          return cellValue ? formatDate(cellValue as string) : "-";
+        case "actions":
+          return (
+            <div className="relative flex justify-end gap-2">
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: "edit",
+                      label: "Edit",
+                      onClick: () => {
+                        router.push(`/canteen-item/edit/${item.id}`);
+                      },
+                    },
+                    {
+                      key: item.status === "Active" ? "deactivate" : "activate",
+                      label:
+                        item.status === "Active" ? "Deactivate" : "Activate",
+                      className:
+                        item.status === "Active"
+                          ? "text-danger"
+                          : "text-success",
+                      onClick: () => {
+                        setIsConfirmModalOpen(true);
+                      },
+                    },
+                  ],
+                }}
+                trigger={["click"]}
+              >
+                <Button type="text" icon={<SettingOutlined />} />
+              </Dropdown>
+            </div>
+          );
+        default:
+          return typeof cellValue === "object"
+            ? JSON.stringify(cellValue)
+            : cellValue;
+      }
+    },
+    [router]
   );
 
-  return (
-    <>
-      <div className="flex items-center gap-2 mb-4 ml-4">
-        <CanteenItemIcon />
-        <h3 className="text-2xl font-bold">Canteen Items Management</h3>
-      </div>
-      {/* Header Section */}
-      <div className="flex justify-between items-center mb-6 px-4">
-        <Input
-          placeholder="Search by item name..."
-          startContent={<SearchIcon />}
-          value={filterValue}
-          onChange={(e) => setFilterValue(e.target.value)}
-          className="w-full sm:max-w-[44%]"
-        />
-        <div className="flex items-center gap-4 px-4">
-          {selectedKeys.size > 0 && (
-            <Button
-              color="primary"
-              variant="flat"
-              onClick={() => {
-                if (isAllSelected) {
-                  setSelectedKeys(new Set()); // Bỏ chọn tất cả
-                } else {
-                  setSelectedKeys(
-                    new Set(filteredItems.map((item) => item.id))
-                  ); // Chọn tất cả
-                }
-              }}
-            >
-              {isAllSelected ? "Deselect All" : "Select All"}
-            </Button>
-          )}
-          {showActivate && (
-            <Button
-              radius="sm"
-              variant="bordered"
-              className="bg-success-100 text-success-600"
-              onClick={handleActivate}
-            >
-              Activate Selected
-            </Button>
-          )}
-          {showDeactivate && (
-            <Button
-              radius="sm"
-              variant="bordered"
-              className="bg-danger-100 text-danger-600"
-              onClick={handleDeactivate}
-            >
-              Deactivate Selected
-            </Button>
-          )}
+  // Function to handle item details view
+  const handleItemDetails = (id: string) => {
+    router.push(`/canteen-item/${id}`);
+  };
 
-          {/* Dropdown filter */}
-          <Dropdown>
-            <DropdownTrigger className="hidden sm:flex">
-              <Button
-                radius="sm"
-                endContent={<ChevronDownIcon className="text-small" />}
-                variant="bordered"
+  // Navigation
+  const handleBack = () => {
+    router.back();
+  };
+
+  // Render the custom select all dropdown
+  const renderSelectAll = () => {
+    // Count items by status
+    const activeCount = paginatedItems.filter(
+      (item) => item.status === "Active"
+    ).length;
+    const inactiveCount = paginatedItems.filter(
+      (item) => item.status === "Inactive"
+    ).length;
+
+    // Count items by availability
+    const availableCount = paginatedItems.filter(
+      (item) => item.available === true
+    ).length;
+    const outOfStockCount = paginatedItems.filter(
+      (item) => item.available === false
+    ).length;
+
+    // Count selectable items
+    const selectableItems = paginatedItems;
+
+    const isSelectAll =
+      selectableItems.length > 0 &&
+      selectableItems.every((item) => selectedRowKeys.includes(item.id));
+
+    const isIndeterminate =
+      selectedRowKeys.length > 0 &&
+      !isSelectAll &&
+      selectableItems.some((item) => selectedRowKeys.includes(item.id));
+
+    // Create dropdown menu items
+    const items: ItemType[] = [];
+
+    // Add group label for Status as MenuItemGroupType
+    const statusGroup: MenuItemGroupType = {
+      type: "group",
+      key: "status-group",
+      label: <strong>Filter by Status</strong>,
+      children: [],
+    };
+    items.push(statusGroup);
+
+    // Add Active options
+    if (activeCount > 0) {
+      items.push({
+        key: "page-active",
+        label: (
+          <div
+            className={
+              selectedOption === "page-active"
+                ? "ant-dropdown-menu-item-active"
+                : ""
+            }
+          >
+            Select all Active on this page ({activeCount})
+          </div>
+        ),
+        disabled: selectedOption?.includes("inactive"),
+      } as MenuItemType);
+
+      items.push({
+        key: "all-active",
+        label: (
+          <div
+            className={
+              selectedOption === "all-active"
+                ? "ant-dropdown-menu-item-active"
+                : ""
+            }
+          >
+            {isLoadingAllItems && selectedOption === "all-active" ? (
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                Status
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              disallowEmptySelection
-              aria-label="Table Columns"
-              closeOnSelect={false}
-              selectedKeys={statusFilter}
-              selectionMode="multiple"
-              onSelectionChange={(keys) => {
-                const selectedKeys = new Set(
-                  (keys as unknown as Set<string>).values()
-                );
-                setStatusFilter(selectedKeys);
+                <Spin size="small" />
+                <span>Loading all Active...</span>
+              </div>
+            ) : (
+              <span>Select all Active (all pages)</span>
+            )}
+          </div>
+        ),
+        disabled: selectedOption?.includes("inactive"),
+      } as MenuItemType);
+    }
+
+    // Add Inactive options
+    if (inactiveCount > 0) {
+      items.push({
+        key: "page-inactive",
+        label: (
+          <div
+            className={
+              selectedOption === "page-inactive"
+                ? "ant-dropdown-menu-item-active"
+                : ""
+            }
+          >
+            Select all Inactive on this page ({inactiveCount})
+          </div>
+        ),
+        disabled: selectedOption?.includes("active"),
+      } as MenuItemType);
+
+      items.push({
+        key: "all-inactive",
+        label: (
+          <div
+            className={
+              selectedOption === "all-inactive"
+                ? "ant-dropdown-menu-item-active"
+                : ""
+            }
+          >
+            {isLoadingAllItems && selectedOption === "all-inactive" ? (
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <Spin size="small" />
+                <span>Loading all Inactive...</span>
+              </div>
+            ) : (
+              <span>Select all Inactive (all pages)</span>
+            )}
+          </div>
+        ),
+        disabled: selectedOption?.includes("active"),
+      } as MenuItemType);
+    }
+
+    // Add a divider
+    items.push({
+      type: "divider",
+    } as MenuDividerType);
+
+    // Add group label for Availability as MenuItemGroupType
+    const availabilityGroup: MenuItemGroupType = {
+      type: "group",
+      key: "availability-group",
+      label: <strong>Filter by Availability</strong>,
+      children: [],
+    };
+    items.push(availabilityGroup);
+
+    // Add Available options
+    if (availableCount > 0) {
+      items.push({
+        key: "page-available",
+        label: (
+          <div
+            className={
+              selectedOption === "page-available"
+                ? "ant-dropdown-menu-item-active"
+                : ""
+            }
+          >
+            Select all Available on this page ({availableCount})
+          </div>
+        ),
+        disabled: selectedOption?.includes("outofstock"),
+      } as MenuItemType);
+
+      items.push({
+        key: "all-available",
+        label: (
+          <div
+            className={
+              selectedOption === "all-available"
+                ? "ant-dropdown-menu-item-active"
+                : ""
+            }
+          >
+            {isLoadingAllItems && selectedOption === "all-available" ? (
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <Spin size="small" />
+                <span>Loading all Available...</span>
+              </div>
+            ) : (
+              <span>Select all Available (all pages)</span>
+            )}
+          </div>
+        ),
+        disabled: selectedOption?.includes("outofstock"),
+      } as MenuItemType);
+    }
+
+    // Add Out of Stock options
+    if (outOfStockCount > 0) {
+      items.push({
+        key: "page-outofstock",
+        label: (
+          <div
+            className={
+              selectedOption === "page-outofstock"
+                ? "ant-dropdown-menu-item-active"
+                : ""
+            }
+          >
+            Select all Out of Stock on this page ({outOfStockCount})
+          </div>
+        ),
+        disabled: selectedOption?.includes("available"),
+      } as MenuItemType);
+
+      items.push({
+        key: "all-outofstock",
+        label: (
+          <div
+            className={
+              selectedOption === "all-outofstock"
+                ? "ant-dropdown-menu-item-active"
+                : ""
+            }
+          >
+            {isLoadingAllItems && selectedOption === "all-outofstock" ? (
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <Spin size="small" />
+                <span>Loading all Out of Stock...</span>
+              </div>
+            ) : (
+              <span>Select all Out of Stock (all pages)</span>
+            )}
+          </div>
+        ),
+        disabled: selectedOption?.includes("available"),
+      } as MenuItemType);
+    }
+
+    // Handle select all toggle
+    const handleSelectAllToggle = (e: CheckboxChangeEvent) => {
+      // Disabled function
+      return;
+    };
+
+    return (
+      <>
+        <Checkbox
+          checked={false}
+          indeterminate={false}
+          onChange={handleSelectAllToggle}
+          disabled={true}
+        />
+
+        {items.length > 0 && (
+          <Dropdown
+            menu={{
+              items,
+              onClick: ({ key }) => handleSelectByStatus(key),
+              selectable: true,
+              selectedKeys: selectedOption ? [selectedOption] : [],
+            }}
+            placement="bottomLeft"
+            trigger={["click"]}
+          >
+            <Button
+              type="text"
+              size="small"
+              className="select-all-dropdown"
+              style={{
+                marginLeft: 0,
+                padding: "0 4px",
+                position: "absolute",
+                top: "50%",
+                transform: "translateY(-50%)",
+                left: "30px",
+                right: "auto",
+                zIndex: 10,
               }}
             >
-              {statusOptions.map((status) => (
-                <DropdownItem key={status.uid} className="capitalize">
-                  {capitalize(status.name)}
-                </DropdownItem>
-              ))}
-            </DropdownMenu>
+              <DownOutlined />
+            </Button>
+          </Dropdown>
+        )}
+      </>
+    );
+  };
+
+  // Configure the row selection
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (keys: React.Key[]) => {
+      setSelectedRowKeys(keys);
+    },
+    columnTitle: renderSelectAll,
+  };
+
+  // Render selected items info
+  const renderSelectedInfo = () => {
+    if (selectedRowKeys.length === 0) return null;
+
+    return (
+      <Space>
+        <Text>{selectedRowKeys.length} Items selected</Text>
+        <Button icon={<UndoOutlined />} onClick={() => setSelectedRowKeys([])}>
+          Restore
+        </Button>
+
+        {showActivateButton && (
+          <Button
+            className="bg-success-100 text-success border-success"
+            onClick={() => showConfirm("activate", handleActivate)}
+            disabled={loading}
+          >
+            Activate Selected
+          </Button>
+        )}
+
+        {showDeactivateButton && (
+          <Button
+            className="bg-danger-100 text-danger border-danger"
+            onClick={() => showConfirm("deactivate", handleDeactivate)}
+            disabled={loading}
+          >
+            Deactivate Selected
+          </Button>
+        )}
+      </Space>
+    );
+  };
+
+  // Render rows per page selector
+  const renderRowsPerPage = () => {
+    return (
+      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <Text type="secondary">Rows per page:</Text>
+        <Select
+          value={pageSize}
+          onChange={(value) => onPageChange(1, value)}
+          style={{ width: "80px" }}
+        >
+          <Option value={5}>5</Option>
+          <Option value={10}>10</Option>
+          <Option value={15}>15</Option>
+          <Option value={20}>20</Option>
+        </Select>
+      </div>
+    );
+  };
+
+  // Handle Export Config modal
+  const handleOpenExportConfig = () => {
+    setExportModalVisible(true);
+  };
+
+  const handleExportConfigChange = (
+    newConfig: Partial<CanteenItemExportConfigWithUI>
+  ) => {
+    setExportConfig((prev) => ({ ...prev, ...newConfig }));
+  };
+
+  // Hàm kiểm tra xem có áp dụng bộ lọc nâng cao nào không
+  const hasAdvancedFilters = useMemo(() => {
+    if (!filters) return false;
+
+    // Kiểm tra từng loại bộ lọc
+    return (
+      !!filters.itemName ||
+      (filters.priceRange &&
+        (filters.priceRange[0] !== null || filters.priceRange[1] !== null)) ||
+      filters.availability !== null ||
+      filters.status !== null ||
+      (filters.createdDateRange &&
+        (filters.createdDateRange[0] !== null ||
+          filters.createdDateRange[1] !== null)) ||
+      (filters.updatedDateRange &&
+        (filters.updatedDateRange[0] !== null ||
+          filters.updatedDateRange[1] !== null))
+    );
+  }, [filters]);
+
+  // Đếm số bộ lọc đang áp dụng
+  const activeFilterCount = useMemo(() => {
+    if (!filters) return 0;
+
+    let count = 0;
+    if (filters.itemName) count++;
+    if (
+      filters.priceRange &&
+      (filters.priceRange[0] !== null || filters.priceRange[1] !== null)
+    )
+      count++;
+    if (filters.availability !== null) count++;
+    if (filters.status !== null) count++;
+    if (
+      filters.createdDateRange &&
+      (filters.createdDateRange[0] !== null ||
+        filters.createdDateRange[1] !== null)
+    )
+      count++;
+    if (
+      filters.updatedDateRange &&
+      (filters.updatedDateRange[0] !== null ||
+        filters.updatedDateRange[1] !== null)
+    )
+      count++;
+
+    return count;
+  }, [filters]);
+
+  // Cập nhật nội dung top toolbar để hiển thị số lượng bộ lọc đang áp dụng
+  const topContent = () => (
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-between items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Input
+            placeholder="Search by name..."
+            prefix={<SearchOutlined />}
+            value={filterValue}
+            onChange={(e) => handleSearchSelectChange(e.target.value)}
+            style={{ width: "300px" }}
+            allowClear
+          />
+
+          <Select
+            mode="multiple"
+            allowClear
+            style={{ width: "120px" }}
+            placeholder={
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <TagOutlined style={{ marginRight: 8 }} />
+                <span>Status</span>
+              </div>
+            }
+            value={statusFilter}
+            onChange={handleStatusFilterChange}
+            options={statusOptions}
+            maxTagCount="responsive"
+          />
+
+          <Tooltip title="Advanced Filters">
+            <Button
+              icon={
+                <FilterOutlined
+                  style={{
+                    color: hasAdvancedFilters ? "#1890ff" : undefined,
+                  }}
+                />
+              }
+              onClick={handleFilterModalOpen}
+            >
+              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+            </Button>
+          </Tooltip>
+
+          <Tooltip title="Reset All Filters">
+            <Button
+              icon={<UndoOutlined />}
+              onClick={handleResetFilters}
+              disabled={
+                !filterValue && statusFilter.length === 0 && !hasAdvancedFilters
+              }
+            >
+              Reset
+            </Button>
+          </Tooltip>
+
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "selectAll",
+                  label: (
+                    <Checkbox
+                      checked={areAllColumnsVisible()}
+                      onChange={(e) => toggleAllColumns(e.target.checked)}
+                    >
+                      Toggle All
+                    </Checkbox>
+                  ),
+                },
+                {
+                  type: "divider",
+                },
+                ...staticColumns
+                  .filter((col) => col.key && col.key !== "actions")
+                  .map((column) => ({
+                    key: column.key as string,
+                    label: (
+                      <Checkbox
+                        checked={!!columnVisibility[column.key as string]}
+                        onChange={() =>
+                          handleColumnVisibilityChange(column.key as string)
+                        }
+                      >
+                        <span
+                          style={{ color: "dimgray", fontWeight: "normal" }}
+                        >
+                          {capitalize((column.key as string).toString())}
+                        </span>
+                      </Checkbox>
+                    ),
+                  })),
+                {
+                  key: "actions",
+                  label: (
+                    <Checkbox
+                      checked={!!columnVisibility["actions"]}
+                      onChange={() => handleColumnVisibilityChange("actions")}
+                    >
+                      <span style={{ color: "dimgray", fontWeight: "normal" }}>
+                        Actions
+                      </span>
+                    </Checkbox>
+                  ),
+                },
+              ],
+              onClick: (e) => e.domEvent.stopPropagation(),
+            }}
+            trigger={["click"]}
+          >
+            <Button icon={<SettingOutlined />}>Columns</Button>
           </Dropdown>
 
-          {/* Nút Add New Item */}
           <Button
-            radius="sm"
-            color="primary"
-            endContent={<PlusIcon />}
-            onPress={() => setIsCreateModalOpen(true)}
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setIsCreateModalOpen(true)}
           >
             Create
           </Button>
         </div>
       </div>
-      <div className="flex justify-between items-center px-4 mb-4">
-        <span className="text-gray-500">
-          Total {canteenItems.length} canteen items
-        </span>
-        <span className="text-gray-500">
-          {selectedKeys.size === canteenItems.length
-            ? "All items selected"
-            : `${selectedKeys.size} of ${filteredItems.length} selected`}
-        </span>
-      </div>
+    </div>
+  );
 
-      {/* Card Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 px-6">
-        {displayedItems.map((item) => (
-          <Card
-            key={item.id}
-            className="relative shadow-lg rounded-xl overflow-hidden transition-transform transform hover:scale-105 duration-300"
+  // Input handlers
+  const handleSearchSelectChange = (selectedValue: string | undefined) => {
+    setFilterValue(selectedValue || "");
+    setCurrentPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setFilterValue("");
+    setStatusFilter([]);
+    setSorter(undefined);
+    setCurrentPage(1);
+  };
+
+  const handleStatusFilterChange = (value: string[]) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  const onPageChange = (page: number, newPageSize?: number) => {
+    setCurrentPage(page);
+    if (newPageSize && newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+    }
+  };
+
+  // Build bottom content for the table
+  const bottomContent = useMemo(() => {
+    const renderContent = () => (
+      <div className="py-2 px-2 flex justify-between items-center">
+        <span className="text-small text-default-400">
+          Total {totalItems} items
+        </span>
+        <Pagination
+          current={currentPage}
+          pageSize={pageSize}
+          total={filteredAndSortedItems.length}
+          onChange={(page) => onPageChange(page, pageSize)}
+          showSizeChanger={false}
+        />
+      </div>
+    );
+
+    return renderContent;
+  }, [
+    currentPage,
+    pageSize,
+    totalItems,
+    filteredAndSortedItems.length,
+    onPageChange,
+  ]);
+
+  const headerColumns = useMemo(() => {
+    return staticColumns.filter(
+      (column) => columnVisibility[column.key] || column.key === "actions"
+    );
+  }, [columnVisibility]);
+
+  // CRUD operations
+  const handleCreateSuccess = () => {
+    setIsCreateModalOpen(false);
+    fetchCanteenItems();
+    messageApi.success("Canteen item added successfully", 5);
+  };
+
+  // Column visibility handlers
+  const handleColumnVisibilityChange = (key: string) => {
+    setColumnVisibility((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const toggleAllColumns = (checked: boolean) => {
+    const newVisibility = { ...columnVisibility };
+    staticColumns.forEach((col) => {
+      if (col.key && col.key !== "actions") {
+        newVisibility[col.key] = checked;
+      }
+    });
+    newVisibility["actions"] = checked;
+    setColumnVisibility(newVisibility);
+  };
+
+  const areAllColumnsVisible = () => {
+    return staticColumns.every(
+      (col) => !col.key || col.key === "actions" || columnVisibility[col.key]
+    );
+  };
+
+  const handleDropdownVisibleChange = (visible: boolean) => {
+    setDropdownOpen(visible);
+  };
+
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  // Bulk selection handlers
+  const getItemIdsByStatus = async (
+    statuses: string[],
+    currentPageOnly: boolean
+  ): Promise<React.Key[]> => {
+    try {
+      if (currentPageOnly) {
+        // Only get IDs from the current page by status
+        return paginatedItems
+          .filter((item) => item.status && statuses.includes(item.status))
+          .map((item) => item.id);
+      } else {
+        // Get IDs from all pages
+        setIsLoadingAllItems(true);
+        const result = filteredAndSortedItems
+          .filter((item) => item.status && statuses.includes(item.status))
+          .map((item) => item.id);
+
+        setIsLoadingAllItems(false);
+        return result;
+      }
+    } catch (error) {
+      console.error("Error getting item IDs by status:", error);
+      setIsLoadingAllItems(false);
+      return [];
+    }
+  };
+
+  // Get item IDs by availability
+  const getItemIdsByAvailability = async (
+    available: boolean,
+    currentPageOnly: boolean
+  ): Promise<React.Key[]> => {
+    try {
+      if (currentPageOnly) {
+        // Only get IDs from the current page by availability
+        return paginatedItems
+          .filter((item) => item.available === available)
+          .map((item) => item.id);
+      } else {
+        // Get IDs from all pages
+        setIsLoadingAllItems(true);
+        const result = filteredAndSortedItems
+          .filter((item) => item.available === available)
+          .map((item) => item.id);
+
+        setIsLoadingAllItems(false);
+        return result;
+      }
+    } catch (error) {
+      console.error("Error getting item IDs by availability:", error);
+      setIsLoadingAllItems(false);
+      return [];
+    }
+  };
+
+  // Handle status-based selection
+  const handleSelectByStatus = async (key: string) => {
+    // Check if this option is already selected
+    if (selectedOption === key) {
+      // If already selected, deselect and clear selections
+      setSelectedOption(null);
+      setSelectedRowKeys([]);
+    } else {
+      // If not, select it and apply the selection
+      setSelectedOption(key);
+
+      // Clear previous selections
+      setSelectedRowKeys([]);
+
+      switch (key) {
+        case "page-active":
+          // Select Active items on current page
+          const pageActiveIds = await getItemIdsByStatus(["Active"], true);
+          setSelectedRowKeys(pageActiveIds);
+          break;
+        case "all-active":
+          // Select all Active items across all pages
+          const allActiveIds = await getItemIdsByStatus(["Active"], false);
+          setSelectedRowKeys(allActiveIds);
+          break;
+        case "page-inactive":
+          // Select Inactive items on current page
+          const pageInactiveIds = await getItemIdsByStatus(["Inactive"], true);
+          setSelectedRowKeys(pageInactiveIds);
+          break;
+        case "all-inactive":
+          // Select all Inactive items across all pages
+          const allInactiveIds = await getItemIdsByStatus(["Inactive"], false);
+          setSelectedRowKeys(allInactiveIds);
+          break;
+        case "page-available":
+          // Select Available items on current page
+          const pageAvailableIds = await getItemIdsByAvailability(true, true);
+          setSelectedRowKeys(pageAvailableIds);
+          break;
+        case "all-available":
+          // Select all Available items across all pages
+          const allAvailableIds = await getItemIdsByAvailability(true, false);
+          setSelectedRowKeys(allAvailableIds);
+          break;
+        case "page-outofstock":
+          // Select Out of Stock items on current page
+          const pageOutOfStockIds = await getItemIdsByAvailability(false, true);
+          setSelectedRowKeys(pageOutOfStockIds);
+          break;
+        case "all-outofstock":
+          // Select all Out of Stock items across all pages
+          const allOutOfStockIds = await getItemIdsByAvailability(false, false);
+          setSelectedRowKeys(allOutOfStockIds);
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
+  // Build columns for the table
+  const columns: TableProps<CanteenItemResponse>["columns"] = useMemo(() => {
+    const actionColumn = {
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          ACTIONS
+        </span>
+      ),
+      key: "actions",
+      align: "center" as const,
+      render: (_: any, record: CanteenItemResponse) => (
+        <Space
+          size="small"
+          style={{ display: "flex", justifyContent: "center" }}
+        >
+          <Tooltip title="Edit">
+            <Button
+              type="text"
+              icon={<FormOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/canteen-item/edit/${record.id}`);
+              }}
+            />
+          </Tooltip>
+        </Space>
+      ),
+    };
+
+    const visibleCols = staticColumns
+      .filter(
+        (col) => col.key && col.key !== "actions" && columnVisibility[col.key]
+      )
+      .map((col) => {
+        if (col.key === "itemName") {
+          return {
+            ...col,
+            render: (text: string, record: CanteenItemResponse) => (
+              <div className="flex items-center">
+                <img
+                  src={record.imageUrl || "/images/placeholder.jpg"}
+                  alt={record.itemName}
+                  className="w-8 h-8 mr-2 rounded cursor-pointer"
+                  onClick={() => router.push(`/canteen-item/${record.id}`)}
+                />
+                <span
+                  className="text-primary cursor-pointer hover:underline"
+                  onClick={() => router.push(`/canteen-item/${record.id}`)}
+                >
+                  {text}
+                </span>
+              </div>
+            ),
+          };
+        }
+        if (col.key === "status") {
+          return {
+            ...col,
+            render: (status: string) => (
+              <Tag color={status === "Active" ? "success" : "error"}>
+                {status ? status.toUpperCase() : ""}
+              </Tag>
+            ),
+          };
+        }
+        if (col.key === "unitPrice") {
+          return {
+            ...col,
+            render: (price: string) => (
+              <span>
+                {new Intl.NumberFormat("vi-VN", {
+                  style: "currency",
+                  currency: "VND",
+                  minimumFractionDigits: 0,
+                }).format(Number(price))}
+              </span>
+            ),
+          };
+        }
+        if (col.key === "available") {
+          return {
+            ...col,
+            render: (available: boolean) => (
+              <Tag color={available ? "success" : "error"}>
+                {available ? "Available" : "Out of Stock"}
+              </Tag>
+            ),
+          };
+        }
+        return col;
+      });
+
+    if (columnVisibility.actions) {
+      return [...visibleCols, actionColumn];
+    }
+    return visibleCols;
+  }, [columnVisibility, router]);
+
+  // Handle filter modal
+  const handleFilterModalOpen = () => {
+    setIsFilterModalVisible(true);
+  };
+
+  const handleFilterModalCancel = () => {
+    setIsFilterModalVisible(false);
+  };
+
+  const handleFilterModalApply = (appliedFilters: any) => {
+    console.log("Applied filters:", appliedFilters);
+
+    // Cập nhật state filters với giá trị mới từ modal
+    setFilters(appliedFilters);
+
+    // Đóng modal
+    setIsFilterModalVisible(false);
+
+    // Hiển thị thông báo để người dùng biết bộ lọc đã được áp dụng
+    messageApi.success("Filters applied successfully");
+
+    // Đặt lại trang hiện tại về 1 khi thay đổi bộ lọc
+    setCurrentPage(1);
+  };
+
+  const handleFilterModalReset = () => {
+    // Reset filters về giá trị mặc định
+    const defaultFilters = {
+      itemName: "",
+      priceRange: [null, null] as [number | null, number | null],
+      availability: null as string | null,
+      status: null as string | null,
+      createdDateRange: [null, null] as [
+        dayjs.Dayjs | null,
+        dayjs.Dayjs | null
+      ],
+      updatedDateRange: [null, null] as [
+        dayjs.Dayjs | null,
+        dayjs.Dayjs | null
+      ],
+      sortBy: "CreatedAt",
+      ascending: false,
+    };
+
+    // Cập nhật state
+    setFilters(defaultFilters);
+
+    // Đóng modal
+    setIsFilterModalVisible(false);
+
+    // Hiển thị thông báo
+    messageApi.success("All filters have been reset");
+
+    // Đặt lại trang hiện tại về 1
+    setCurrentPage(1);
+  };
+
+  return (
+    <div style={{ padding: "20px" }}>
+      {contextHolder}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={handleBack}
+            style={{ marginRight: "8px" }}
           >
-            {/* Góc trên bên phải - Trạng thái Status */}
-            <div
-              className={`absolute top-2 right-2 px-3 py-1 text-xs font-semibold rounded-lg ${
-                statusColorMap[item.status as "Active" | "Inactive"] ||
-                "bg-gray-200 text-gray-700"
-              }`}
+            Back
+          </Button>
+          <CanteenItemIcon />
+          <h3 className="text-xl font-bold">Canteen Items Management</h3>
+        </div>
+      </div>
+
+      {initialLoading ? (
+        <div style={{ textAlign: "center", padding: "50px" }}>
+          <Spin size="large" tip="Loading canteen items..." />
+        </div>
+      ) : (
+        <div>
+          <Spin spinning={loading} tip={loadingMessage}>
+            <Card
+              className="shadow mb-4"
+              bodyStyle={{ padding: "16px" }}
+              title={
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "16px 0 0 0",
+                  }}
+                >
+                  <AppstoreOutlined />
+                  <span>Toolbar</span>
+                </div>
+              }
             >
-              {item.status ?? "Unknown"}
-            </div>
-            <div className="top-2 left-2 px-3 py-1">
-              <Checkbox
-                isSelected={selectedKeys.has(item.id)}
-                onChange={() => {
-                  const newSelection = new Set(selectedKeys);
-                  if (newSelection.has(item.id)) {
-                    newSelection.delete(item.id);
-                  } else {
-                    newSelection.add(item.id);
-                  }
-                  setSelectedKeys(newSelection);
-                }}
-              />
-            </div>
-            <CardHeader className="flex flex-col items-center gap-3 p-4">
-              <Image
-                src={
-                  imgErrorMap[item.id]
-                    ? "/images/placeholder.jpg"
-                    : item.imageUrl || "/images/placeholder.jpg"
-                }
-                alt={item.itemName}
-                width={150}
-                height={150}
-                className="rounded-lg object-cover shadow-md"
-                onError={() =>
-                  setImgErrorMap((prev) => ({ ...prev, [item.id]: true }))
-                }
-              />
-              <h3 className="text-lg font-bold text-gray-900 text-center">
-                {item.itemName}
-              </h3>
-            </CardHeader>
+              {topContent()}
+            </Card>
 
-            <CardBody className="p-4">
-              <p className="text-sm text-gray-500 mb-2">
-                {item.description || "No description available."}
-              </p>
-              <p className="font-semibold text-gray-900 text-lg">
-                ${item.unitPrice}
-              </p>
-              <p className="text-sm text-gray-400">Created: {item.createdAt}</p>
-
-              {/* Available - Đưa xuống gần mô tả */}
-              <div
-                className={`mt-2 px-3 py-1 text-xs font-semibold rounded-lg w-fit ${
-                  item.available
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
-                }`}
-              >
-                {item.available ? "Available" : "Out of Stock"}
+            {/* Container for selected info and rows per page */}
+            <div className="mb-4 py-2 flex justify-between items-center">
+              <div>
+                {selectedRowKeys.length > 0 ? renderSelectedInfo() : null}
               </div>
-            </CardBody>
+              <div>{renderRowsPerPage()}</div>
+            </div>
 
-            <CardFooter className="flex justify-between p-4 bg-gray-50 border-t border-gray-200">
-              <Button
-                color={item.status === "Active" ? "danger" : "success"}
-                size="sm"
-                onPress={() => {
-                  if (item.status === "Active") {
-                    setItemToDeactivate(item.id);
-                    setIsConfirmModalOpen(true);
-                  } else {
-                    setItemToActivate(item.id);
-                    setIsConfirmActivateModalOpen(true);
-                  }
-                }}
-              >
-                {item.status === "Active" ? "Deactivate" : "Activate"}
-              </Button>
-
-              <Button
-                color="primary"
-                size="sm"
-                onPress={() => {
-                  setSelectedCanteenItem(item.id);
-                  setIsEditModalOpen(true);
-                }}
-              >
-                Edit
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-
-      {/* Pagination */}
-      <div className="flex justify-center mt-6">
-        {isReady && (
-          <Pagination
-            key={page}
-            showControls
-            page={page}
-            total={pages}
-            onChange={(newPage) => setPage(newPage)}
-            color="primary"
-          />
-        )}
-      </div>
-
-      {/* Edit Modal */}
-      {isEditModalOpen && selectedCanteenItem && (
-        <Modal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-        >
-          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
-            <ModalHeader>Edit Item</ModalHeader>
-            <ModalBody>
-              <EditCanteenItemForm
-                canteenItemId={selectedCanteenItem}
-                onClose={() => setIsEditModalOpen(false)}
-                onUpdate={handleUpdateSuccess}
-              />
-            </ModalBody>
-          </ModalContent>
-        </Modal>
+            <Card
+              className="mt-4 shadow-sm"
+              bodyStyle={{ padding: "8px 16px" }}
+            >
+              <div style={{ overflowX: "auto" }}>
+                <Table<CanteenItemResponse>
+                  rowKey="id"
+                  columns={columns}
+                  dataSource={paginatedItems}
+                  loading={loading}
+                  rowSelection={rowSelection}
+                  pagination={false}
+                  onChange={handleTableChange}
+                  scroll={{ x: "max-content" }}
+                  bordered
+                  onRow={(record) => ({
+                    onClick: () => handleItemDetails(record.id),
+                    style: { cursor: "pointer" },
+                  })}
+                />
+              </div>
+              <Card className="mt-4 shadow-sm">
+                <Row justify="center" align="middle">
+                  <Space size="large" align="center">
+                    <Text type="secondary">
+                      Total {filteredAndSortedItems.length} items
+                    </Text>
+                    <Space align="center" size="large">
+                      <Pagination
+                        current={currentPage}
+                        pageSize={pageSize}
+                        total={filteredAndSortedItems.length}
+                        onChange={(page) => onPageChange(page, pageSize)}
+                        showSizeChanger={false}
+                        showTotal={() => ""}
+                      />
+                      <Space align="center">
+                        <Text type="secondary">Go to page:</Text>
+                        <InputNumber
+                          min={1}
+                          max={Math.max(
+                            1,
+                            Math.ceil(filteredAndSortedItems.length / pageSize)
+                          )}
+                          value={currentPage}
+                          onPressEnter={(
+                            e: React.KeyboardEvent<HTMLInputElement>
+                          ) => {
+                            const value = Number(
+                              (e.target as HTMLInputElement).value
+                            );
+                            if (
+                              value > 0 &&
+                              value <=
+                                Math.ceil(
+                                  filteredAndSortedItems.length / pageSize
+                                )
+                            ) {
+                              onPageChange(value, pageSize);
+                            }
+                          }}
+                          onChange={(value) => {
+                            if (
+                              value &&
+                              Number(value) > 0 &&
+                              Number(value) <=
+                                Math.ceil(
+                                  filteredAndSortedItems.length / pageSize
+                                )
+                            ) {
+                              onPageChange(Number(value), pageSize);
+                            }
+                          }}
+                          style={{ width: "60px" }}
+                        />
+                      </Space>
+                    </Space>
+                  </Space>
+                </Row>
+              </Card>
+            </Card>
+          </Spin>
+        </div>
       )}
 
-      {/* Create Modal */}
-      {isCreateModalOpen && (
-        <Modal
-          isOpen={isCreateModalOpen}
+      <Modal
+        title="Add New Canteen Item"
+        open={isCreateModalOpen}
+        onCancel={() => setIsCreateModalOpen(false)}
+        footer={null}
+        destroyOnClose
+        width={500}
+      >
+        <CreateCanteenItemForm
           onClose={() => setIsCreateModalOpen(false)}
-        >
-          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
-            <ModalHeader>Create New Item</ModalHeader>
-            <ModalBody>
-              <CreateCanteenItemForm
-                onClose={() => setIsCreateModalOpen(false)}
-                onCreate={fetchCanteenItems}
-              />
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )}
+          onCreate={handleCreateSuccess}
+        />
+      </Modal>
 
-      {/* Confirm Deactivate Modal */}
-      {isConfirmModalOpen && (
-        <Modal
-          isOpen={isConfirmModalOpen}
-          onClose={() => setIsConfirmModalOpen(false)}
-        >
-          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
-            <ModalHeader>Confirm Deactivation</ModalHeader>
-            <ModalBody>
-              <p>Are you sure you want to deactivate this item?</p>
-              <div className="flex justify-end mt-4">
-                <Button
-                  variant="flat"
-                  onPress={() => setIsConfirmModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button color="danger" onPress={handleDeactivateConfirm}>
-                  Yes
-                </Button>
-              </div>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )}
+      <Modal
+        title={`Confirm ${
+          confirmAction === "activate" ? "Activation" : "Deactivation"
+        }`}
+        open={isConfirmModalOpen}
+        onCancel={() => setIsConfirmModalOpen(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsConfirmModalOpen(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="confirm"
+            type={confirmAction === "activate" ? "primary" : "primary"}
+            danger={confirmAction === "deactivate"}
+            onClick={handleConfirmAction}
+          >
+            Confirm
+          </Button>,
+        ]}
+      >
+        <p>
+          Are you sure you want to{" "}
+          {confirmAction === "activate" ? "activate" : "deactivate"} the
+          selected items?
+        </p>
+      </Modal>
 
-      {/* Confirm Activate Modal */}
-      {isConfirmActivateModalOpen && (
-        <Modal
-          isOpen={isConfirmActivateModalOpen}
-          onClose={() => setIsConfirmActivateModalOpen(false)}
-        >
-          <ModalContent className="max-w-[500px] rounded-lg shadow-lg border border-gray-200 bg-white">
-            <ModalHeader>Confirm Activation</ModalHeader>
-            <ModalBody>
-              <p>Are you sure you want to activate this item?</p>
-              <div className="flex justify-end mt-4">
-                <Button
-                  variant="flat"
-                  onPress={() => setIsConfirmActivateModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button color="success" onPress={handleActivateConfirm}>
-                  Yes
-                </Button>
-              </div>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )}
-    </>
+      <CanteenItemFilterModal
+        visible={isFilterModalVisible}
+        onCancel={handleFilterModalCancel}
+        onApply={handleFilterModalApply}
+        onReset={handleFilterModalReset}
+        filters={filters}
+        itemNames={canteenItems
+          .map((item) => item.itemName)
+          .filter((name, index, self) => self.indexOf(name) === index)}
+      />
+
+      <ExportConfigModal
+        visible={exportModalVisible}
+        onClose={() => setExportModalVisible(false)}
+        config={exportConfig}
+        onChange={handleExportConfigChange}
+      />
+    </div>
   );
 }

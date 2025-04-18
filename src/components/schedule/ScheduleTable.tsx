@@ -1,10 +1,9 @@
 import React from "react";
-import { Table, Tag, Button } from "antd";
+import { Table, Tag, Button, message } from "antd";
 import dayjs from "dayjs";
 import { ScheduleResponse } from "@/api/schedule";
 import { ShiftResponse } from "@/api/shift";
 import { UserProfile } from "@/api/user";
-import { toast } from "react-toastify";
 
 interface ScheduleTableProps {
   viewMode: "staff" | "shift";
@@ -27,6 +26,8 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
   staffs,
   onDelete,
 }) => {
+  const [messageApi, contextHolder] = message.useMessage();
+
   const getScheduleForCell = (rowId: string, date: Date) => {
     return schedules.filter(
       (s) =>
@@ -38,9 +39,15 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
   const handleDelete = (id: string) => {
     try {
       onDelete(id);
-      toast.success("Schedule deleted successfully");
+      messageApi.success({
+        content: "Schedule deleted successfully",
+        duration: 5,
+      });
     } catch (error) {
-      toast.error("Failed to delete schedule");
+      messageApi.error({
+        content: "Failed to delete schedule",
+        duration: 5,
+      });
     }
   };
 
@@ -48,7 +55,10 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
     try {
       onAdd(date, rowId);
     } catch (error) {
-      toast.error("Failed to add schedule");
+      messageApi.error({
+        content: "Failed to add schedule",
+        duration: 5,
+      });
     }
   };
 
@@ -172,6 +182,8 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
       title: viewMode === "staff" ? "STAFF" : "SHIFT",
       dataIndex: "id",
       key: "id",
+      fixed: 'left' as const,
+      width: 200,
       render: (id: string, record: any) => (
         <div>
           {viewMode === "staff" ? (
@@ -278,13 +290,17 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
       : rowData;
 
   return (
-    <Table
-      dataSource={filteredRowData}
-      columns={columns}
-      rowKey="id"
-      bordered
-      pagination={false}
-    />
+    <>
+      {contextHolder}
+      <Table
+        dataSource={filteredRowData}
+        columns={columns}
+        rowKey="id"
+        bordered
+        pagination={false}
+        scroll={{ x: 'max-content' }}
+      />
+    </>
   );
 };
 

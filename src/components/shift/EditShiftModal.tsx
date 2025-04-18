@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Button } from "antd";
+import { Modal, Form, Input, Button, message } from "antd";
 import { ShiftResponse, ShiftUpdateRequest, updateShift } from "@/api/shift";
-import { toast } from "react-toastify";
 
 interface EditShiftModalProps {
   visible: boolean;
@@ -18,6 +17,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [totalTime, setTotalTime] = useState<string>("");
+  const [messageApi, contextHolder] = message.useMessage();
 
   useEffect(() => {
     if (shift) {
@@ -37,21 +37,33 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       values.startTime === shift.startTime &&
       values.endTime === shift.endTime
     ) {
-      toast.info("No changes were made to the shift");
+      messageApi.info({
+        content: "No changes were made to the shift",
+        duration: 5,
+      });
       onClose();
       return;
     }
     try {
       const response = await updateShift(shift.id, values);
       if (response.isSuccess) {
-        toast.success("Shift updated successfully!");
+        messageApi.success({
+          content: "Shift updated successfully!",
+          duration: 5,
+        });
         onSuccess();
         onClose();
       } else {
-        toast.error(response.message || "Failed to update shift");
+        messageApi.error({
+          content: response.message || "Failed to update shift",
+          duration: 5,
+        });
       }
     } catch {
-      toast.error("Failed to update shift");
+      messageApi.error({
+        content: "Failed to update shift",
+        duration: 5,
+      });
     }
   };
 
@@ -87,6 +99,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
         </Button>,
       ]}
     >
+      {contextHolder}
       <Form form={form} onFinish={handleSubmit} layout="vertical">
         <Form.Item
           name="shiftName"

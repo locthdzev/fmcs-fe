@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, ModalBody, ModalContent, ModalHeader, ModalFooter, Button } from "@heroui/react";
+import { Modal, Button, Space } from "antd";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -21,23 +21,20 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   cancelText = "Cancel",
 }) => {
   return (
-    <Modal isOpen={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <ModalContent className="max-w-[500px]">
-        <ModalHeader className="border-b pb-3">{title}</ModalHeader>
-        <ModalBody>
-          <p className="text-gray-700">{message}</p>
-        </ModalBody>
-        <ModalFooter className="border-t pt-4">
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="flat" onClick={onClose}>
-              {cancelText}
-            </Button>
-            <Button type="button" color="primary" onClick={onConfirm}>
-              {confirmText}
-            </Button>
-          </div>
-        </ModalFooter>
-      </ModalContent>
+    <Modal
+      title={title}
+      open={isOpen}
+      onCancel={onClose}
+      footer={[
+        <Button key="cancel" onClick={onClose}>
+          {cancelText}
+        </Button>,
+        <Button key="confirm" type="primary" onClick={onConfirm}>
+          {confirmText}
+        </Button>
+      ]}
+    >
+      <p className="text-gray-700">{message}</p>
     </Modal>
   );
 };

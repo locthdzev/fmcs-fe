@@ -1,5 +1,5 @@
 import React from "react";
-import { TreatmentPlanDetail } from "@/components/treatment-plan/treatment-plan-detail";
+import { TreatmentPlanDetail } from "@/components/treatment-plan/TreatmentPlanDetail";
 import { useRouter } from "next/router";
 import { Spin } from "antd";
 
@@ -17,4 +17,4 @@ export default function TreatmentPlanDetailPage() {
   }
 
   return <TreatmentPlanDetail id={id as string} />;
-} 
+}

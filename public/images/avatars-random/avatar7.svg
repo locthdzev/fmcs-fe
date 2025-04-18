@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="90" fill="#f2f2f2"/>
+  
+  <!-- FPT Orange Uniform -->
+  <path d="M60,100 L60,160 C60,170 80,180 100,180 C120,180 140,170 140,160 L140,100 Z" fill="#ff5e00"/>
+  <path d="M60,110 L140,110" stroke="white" stroke-width="2"/>
+  
+  <!-- FPT Logo -->
+  <text x="95" y="140" font-family="Arial" font-size="16" font-weight="bold" fill="white" text-anchor="middle">FPT</text>
+  
+  <!-- Head -->
+  <circle cx="100" cy="70" r="40" fill="#ffdbac"/>
+  
+  <!-- Hair - Black Undercut -->
+  <path d="M100,30 C75,30 65,45 65,65 C65,70 70,80 75,85 C65,75 65,65 65,65 C65,40 80,20 100,20 C120,20 135,40 135,65 C135,65 135,75 125,85 C130,80 135,70 135,65 C135,45 125,30 100,30 Z" fill="#2d2d2d"/>
+  <!-- Undercut shaved sides -->
+  <path d="M65,65 C70,75 75,80 80,85" fill="none" stroke="#2d2d2d" stroke-width="1"/>
+  <path d="M135,65 C130,75 125,80 120,85" fill="none" stroke="#2d2d2d" stroke-width="1"/>
+  <!-- Top hair detail -->
+  <path d="M80,40 C90,35 110,35 120,40" fill="none" stroke="#2d2d2d" stroke-width="8"/>
+  <path d="M100,30 C100,35 100,40 95,45" fill="none" stroke="#2d2d2d" stroke-width="5"/>
+  
+  <!-- Eyes -->
+  <circle cx="85" cy="65" r="5" fill="#2d2d2d"/>
+  <circle cx="115" cy="65" r="5" fill="#2d2d2d"/>
+  
+  <!-- Surgical Mask - Medical element -->
+  <path d="M70,85 C70,95 130,95 130,85" fill="#57b0ff" stroke="#4a93d1" stroke-width="1"/>
+  <path d="M70,85 C70,100 130,100 130,85" fill="#57b0ff" stroke="#4a93d1" stroke-width="1"/>
+  <!-- Mask details -->
+  <line x1="100" y1="85" x2="100" y2="95" stroke="#4a93d1" stroke-width="1"/>
+  <path d="M90,90 L110,90" stroke="#4a93d1" stroke-width="0.5" stroke-dasharray="2,2"/>
+  <path d="M85,87 L115,87" stroke="#4a93d1" stroke-width="0.5" stroke-dasharray="2,2"/>
+  <path d="M80,93 L120,93" stroke="#4a93d1" stroke-width="0.5" stroke-dasharray="2,2"/>
+  <!-- Mask straps -->
+  <path d="M70,90 C60,90 55,70 55,70" fill="none" stroke="#4a93d1" stroke-width="1"/>
+  <path d="M130,90 C140,90 145,70 145,70" fill="none" stroke="#4a93d1" stroke-width="1"/>
+  
+  <!-- Ears -->
+  <path d="M60,70 Q55,70 58,80" fill="#ffdbac"/>
+  <path d="M140,70 Q145,70 142,80" fill="#ffdbac"/>
+  
+  <!-- Simple medical cap (indicating surgeon) -->
+  <path d="M60,45 C60,30 80,15 100,15 C120,15 140,30 140,45 C140,50 125,55 100,55 C75,55 60,50 60,45 Z" fill="#57b0ff" stroke="#4a93d1" stroke-width="1"/>
+</svg> 

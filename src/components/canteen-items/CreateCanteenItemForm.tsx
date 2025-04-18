@@ -1,186 +1,199 @@
 import React, { useState } from "react";
-import { Button, Input, Textarea, Checkbox } from "@heroui/react";
+import {
+  Form,
+  Input,
+  Button,
+  message,
+  Spin,
+  Upload,
+  Switch,
+  InputNumber
+} from "antd";
+import { InboxOutlined } from "@ant-design/icons";
 import { createCanteenItem } from "@/api/canteenitems";
-import { toast } from "react-toastify";
+import type { UploadFile, UploadProps } from "antd/es/upload/interface";
+
+const { TextArea } = Input;
+const { Dragger } = Upload;
 
 interface CreateCanteenItemFormProps {
   onClose: () => void;
   onCreate: () => void;
 }
 
-const initialFormState = {
-  itemName: "",
-  description: "",
-  unitPrice: 0, // ✅ Chuyển từ string thành number
-  available: false, // ✅ Chuyển từ string thành boolean
-  createdAt: new Date().toISOString(),
-  status: "Active",
-  imageFile: undefined as File | undefined,
-};
-
 export const CreateCanteenItemForm: React.FC<CreateCanteenItemFormProps> = ({
   onClose,
   onCreate,
 }) => {
-  const [formData, setFormData] = useState(initialFormState);
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null); // ✅ Thêm preview ảnh
+  const [messageApi, contextHolder] = message.useMessage();
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "unitPrice" ? parseFloat(value) || 0 : value, // ✅ Chuyển unitPrice thành số
-    }));
-  };
-
-  const handleCheckboxChange = (isSelected: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      available: isSelected, // ✅ Chuyển đổi đúng kiểu boolean
-    }));
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files ? e.target.files[0] : undefined;
-
-    if (file) {
-      // ✅ Kiểm tra xem file có phải là ảnh không
-      if (!file.type.startsWith("image/")) {
-        toast.error("Only image files are allowed.");
-        return;
-      }
-
-      setFormData((prev) => ({
-        ...prev,
-        imageFile: file,
-      }));
-
-      // ✅ Hiển thị preview ảnh
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     try {
+      const values = await form.validateFields();
       setLoading(true);
 
-      // Gửi API với dữ liệu form và file ảnh
-      await createCanteenItem(
-        {
-          itemName: formData.itemName,
-          description: formData.description,
-          unitPrice: formData.unitPrice, // ✅ Gửi dưới dạng số
-          available: formData.available, // ✅ Boolean chính xác
-          createdAt: new Date().toISOString(),
-          status: formData.status,
-        },
-        formData.imageFile
-      );
+      const itemData = {
+        itemName: values.itemName,
+        description: values.description || "",
+        unitPrice: values.unitPrice,
+        available: values.available || false,
+        createdAt: new Date().toISOString(),
+        status: "Active"
+      };
 
-      toast.success("Canteen item created successfully!");
-      onCreate();
-      onClose();
-    } catch (error) {
-      console.error("API Error:", error);
-      toast.error("Failed to create canteen item.");
+      let imageFile: File | undefined = undefined;
+      
+      if (fileList.length > 0 && fileList[0].originFileObj) {
+        console.log("Using image file:", {
+          name: fileList[0].name,
+          type: fileList[0].type,
+          size: fileList[0].size
+        });
+        imageFile = fileList[0].originFileObj;
+      }
+
+      try {
+        await createCanteenItem(itemData, imageFile);
+        messageApi.success("Canteen item created successfully");
+        onCreate();
+        onClose();
+      } catch (error: any) {
+        messageApi.error(error.message || "Failed to create canteen item");
+        console.error("Error creating canteen item:", error);
+      }
+    } catch (errorInfo) {
+      console.error("Form validation failed:", errorInfo);
+      messageApi.error("Failed to validate form. Please check your input and try again.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleReset = () => {
-    setFormData(initialFormState);
-    setImagePreview(null); // ✅ Xóa preview ảnh khi reset form
+    form.resetFields();
+    setFileList([]);
+  };
+
+  const uploadProps: UploadProps = {
+    beforeUpload: (file) => {
+      const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+      if (!isJpgOrPng) {
+        messageApi.error('You can only upload JPG/PNG file!');
+        return Upload.LIST_IGNORE;
+      }
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        messageApi.error('Image must be smaller than 2MB!');
+        return Upload.LIST_IGNORE;
+      }
+      
+      // Tạo một file mới từ file ban đầu để đảm bảo nó có thể được sử dụng
+      const newFile = new File([file], file.name, { type: file.type });
+      
+      // Tạo đối tượng upload file
+      const uploadFile = {
+        uid: Date.now().toString(),
+        name: newFile.name,
+        size: newFile.size,
+        type: newFile.type,
+        originFileObj: newFile  // Thêm trường originFileObj
+      } as UploadFile;
+      
+      console.log("File selected for upload:", {
+        name: uploadFile.name,
+        type: uploadFile.type,
+        size: uploadFile.size,
+        hasOriginFileObj: !!uploadFile.originFileObj
+      });
+      
+      setFileList([uploadFile]);
+      return false; // Prevent auto upload
+    },
+    fileList,
+    onRemove: () => {
+      console.log("File removed from list");
+      setFileList([]);
+    },
+    maxCount: 1,
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="space-y-4">
-        <Input
-        isClearable
-        radius="sm"
-        variant="bordered"
-          label="Item Name"
-          name="itemName"
-          value={formData.itemName}
-          onChange={handleInputChange}
-          onClear={() => setFormData({ ...formData, itemName: "" })}
-          required
-        />
+    <>
+      {contextHolder}
+      <Spin spinning={loading} tip="Creating canteen item...">
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <Form.Item
+            name="itemName"
+            label="Item Name"
+            rules={[{ required: true, message: "Please enter item name" }]}
+          >
+            <Input placeholder="Enter item name" />
+          </Form.Item>
 
-        <Textarea
-        isClearable
-        radius="sm"
-        variant="bordered"
-          label="Description"
-          name="description"
-          value={formData.description}
-          onChange={handleInputChange}
-          onClear={() => setFormData({ ...formData, description: "" })}
-        />
+          <Form.Item
+            name="description"
+            label="Description"
+          >
+            <TextArea rows={3} placeholder="Enter description" />
+          </Form.Item>
 
-        <Input
-        radius="sm"
-        variant="bordered"
-          label="Unit Price"
-          name="unitPrice"
-          type="number" // ✅ Đúng kiểu input cho số
-          value={formData.unitPrice.toString()}
-          onChange={handleInputChange}
-          required
-        />
-
-        {/* ✅ Checkbox để chọn Available */}
-        <Checkbox
-          isSelected={formData.available} // ✅ Đúng cách để chọn giá trị ban đầu
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-            setFormData((prev) => ({ ...prev, available: event.target.checked })) // ✅ Lấy `event.target.checked`
-          }
-          color="success"
-        >
-          Available
-        </Checkbox>
-
-
-        {/* ✅ Upload hình ảnh */}
-        <Input
-          label="Upload Image"
-          name="imageFile"
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-        />
-
-        {/* ✅ Hiển thị preview ảnh nếu có */}
-        {imagePreview && (
-          <div className="mt-4">
-            <p className="text-gray-500">Image Preview:</p>
-            <img
-              src={imagePreview}
-              alt="Preview"
-              className="w-32 h-32 object-cover rounded-md border"
+          <Form.Item
+            name="unitPrice"
+            label="Price"
+            rules={[
+              { required: true, message: "Please enter price" },
+              { type: 'number', min: 0, message: "Price must be a positive number" }
+            ]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              placeholder="Enter price"
+              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={(value) => value?.replace(/\$\s?|(,*)/g, '') || ''}
+              suffix="VND"
             />
-          </div>
-        )}
-      </div>
+          </Form.Item>
 
-      <div className="flex justify-end space-x-2 mt-4">
-        <Button type="button" variant="flat" onClick={handleReset}>
-          Reset
-        </Button>
-        <Button type="submit" color="primary" isLoading={loading}>
-          Create Canteen Item
-        </Button>
-      </div>
-    </form>
+          <Form.Item
+            name="available"
+            label="Availability"
+            valuePropName="checked"
+            initialValue={false}
+          >
+            <Switch checkedChildren="Available" unCheckedChildren="Out of Stock" />
+          </Form.Item>
+
+          <Form.Item label="Item Image">
+            <Dragger 
+              {...uploadProps} 
+              name="imageFile"
+              accept="image/png,image/jpeg"
+            >
+              <p className="ant-upload-drag-icon">
+                <InboxOutlined />
+              </p>
+              <p className="ant-upload-text">Click or drag file to this area to upload</p>
+              <p className="ant-upload-hint">
+                Support for a single image upload. Please upload JPG/PNG file only.
+              </p>
+            </Dragger>
+          </Form.Item>
+
+          <Form.Item>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button key="reset" htmlType="button" onClick={handleReset}>
+                Reset
+              </Button>
+              <Button key="submit" type="primary" htmlType="submit" loading={loading}>
+                Create
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+      </Spin>
+    </>
   );
 };

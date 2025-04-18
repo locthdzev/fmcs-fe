@@ -20,7 +20,7 @@ import {
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
-  EditOutlined,
+  FormOutlined,
   ExclamationCircleOutlined,
   FileImageOutlined,
   InfoCircleOutlined,
@@ -30,6 +30,7 @@ import {
 import dayjs from "dayjs";
 import {
   getCurrentUserHealthInsurance,
+  getCurrentUserPendingUpdateRequests,
 } from "@/api/healthinsurance";
 import { formatDate } from "@/utils/dateUtils";
 import UpdateRequestModal from "./UpdateRequestModal";
@@ -40,21 +41,38 @@ export function UserHealthInsurance() {
   const [loading, setLoading] = useState(true);
   const [insurance, setInsurance] = useState<any>(null);
   const [updateModalVisible, setUpdateModalVisible] = useState(false);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
 
   useEffect(() => {
-    fetchInsurance();
+    fetchData();
   }, []);
 
-  const fetchInsurance = async () => {
+  const fetchData = async () => {
     try {
-      const response = await getCurrentUserHealthInsurance();
-      if (response.isSuccess) {
-        setInsurance(response.data);
+      setLoading(true);
+      const [insuranceResponse, pendingRequestsResponse] = await Promise.all([
+        getCurrentUserHealthInsurance(),
+        getCurrentUserPendingUpdateRequests(),
+      ]);
+
+      if (insuranceResponse.isSuccess) {
+        setInsurance(insuranceResponse.data);
+      }
+
+      if (
+        pendingRequestsResponse.isSuccess &&
+        pendingRequestsResponse.data &&
+        pendingRequestsResponse.data.length > 0
+      ) {
+        setHasPendingRequest(true);
+      } else {
+        setHasPendingRequest(false);
       }
     } catch (error) {
       Modal.error({
-        title: 'Error',
-        content: 'Failed to fetch insurance information. Please try again later.',
+        title: "Error",
+        content:
+          "Failed to fetch insurance information. Please try again later.",
       });
     } finally {
       setLoading(false);
@@ -63,13 +81,15 @@ export function UserHealthInsurance() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Completed':
+      case "Completed":
         return <Badge status="success" text={<Text strong>{status}</Text>} />;
-      case 'Pending':
-        return <Badge status="processing" text={<Text strong>{status}</Text>} />;
-      case 'Submitted':
+      case "Pending":
+        return (
+          <Badge status="processing" text={<Text strong>{status}</Text>} />
+        );
+      case "Submitted":
         return <Badge status="warning" text={<Text strong>{status}</Text>} />;
-      case 'Expired':
+      case "Expired":
         return <Badge status="error" text={<Text strong>{status}</Text>} />;
       default:
         return <Badge status="default" text={<Text strong>{status}</Text>} />;
@@ -78,11 +98,11 @@ export function UserHealthInsurance() {
 
   const getVerificationBadge = (status: string) => {
     switch (status) {
-      case 'Verified':
+      case "Verified":
         return <Badge status="success" text={<Text strong>{status}</Text>} />;
-      case 'Unverified':
+      case "Unverified":
         return <Badge status="warning" text={<Text strong>{status}</Text>} />;
-      case 'Rejected':
+      case "Rejected":
         return <Badge status="error" text={<Text strong>{status}</Text>} />;
       default:
         return <Badge status="default" text={<Text strong>{status}</Text>} />;
@@ -91,12 +111,19 @@ export function UserHealthInsurance() {
 
   const handleUpdateSuccess = () => {
     setUpdateModalVisible(false);
-    fetchInsurance();
+    fetchData();
   };
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "80vh",
+        }}
+      >
         <Spin size="large" tip="Loading your insurance information..." />
       </div>
     );
@@ -117,27 +144,30 @@ export function UserHealthInsurance() {
     );
   }
 
-  const isExpired = insurance.validTo && dayjs(insurance.validTo).isBefore(dayjs());
-  const isExpiringSoon = insurance.validTo && 
-    dayjs(insurance.validTo).isAfter(dayjs()) && 
-    dayjs(insurance.validTo).diff(dayjs(), 'day') <= 30;
+  const isExpired =
+    insurance.validTo && dayjs(insurance.validTo).isBefore(dayjs());
+  const isExpiringSoon =
+    insurance.validTo &&
+    dayjs(insurance.validTo).isAfter(dayjs()) &&
+    dayjs(insurance.validTo).diff(dayjs(), "day") <= 30;
 
   return (
     <>
-      <Card 
+      <Card
         title={
           <Title level={4}>
             <MedicineBoxOutlined /> My Health Insurance
           </Title>
         }
         extra={
-          <Button 
-            type="primary" 
-            icon={<EditOutlined />} 
+          <Button
+            type="primary"
+            icon={<FormOutlined />}
             onClick={() => setUpdateModalVisible(true)}
+            disabled={hasPendingRequest}
           >
-            {insurance.verificationStatus === "Verified" 
-              ? "Request Update" 
+            {insurance.verificationStatus === "Verified"
+              ? "Request Update"
               : "Update Information"}
           </Button>
         }
@@ -156,10 +186,23 @@ export function UserHealthInsurance() {
         {isExpiringSoon && (
           <Alert
             message="Insurance Expiring Soon"
-            description={`Your health insurance will expire on ${formatDate(insurance.validTo)}. Please consider renewing it soon.`}
+            description={`Your health insurance will expire on ${formatDate(
+              insurance.validTo
+            )}. Please consider renewing it soon.`}
             type="warning"
             showIcon
             icon={<WarningOutlined />}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        {insurance.status === "Submitted" && (
+          <Alert
+            message="Verification Pending"
+            description="Your insurance information has been submitted and is pending verification."
+            type="warning"
+            showIcon
+            icon={<InfoCircleOutlined />}
             style={{ marginBottom: 16 }}
           />
         )}
@@ -175,26 +218,43 @@ export function UserHealthInsurance() {
           />
         )}
 
+        {hasPendingRequest && (
+          <Alert
+            message="Update Request Pending"
+            description="Your request to update insurance information has been submitted and is awaiting approval from an administrator. Your information will be updated once approved."
+            type="info"
+            showIcon
+            icon={<InfoCircleOutlined />}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
         <Row gutter={[24, 24]}>
           <Col xs={24} md={16}>
-            <Card 
-              type="inner" 
-              title={<Text strong><InfoCircleOutlined /> Insurance Status</Text>}
+            <Card
+              type="inner"
+              title={
+                <Text strong>
+                  <InfoCircleOutlined /> Insurance Status
+                </Text>
+              }
               style={{ marginBottom: 16 }}
             >
               <Row gutter={[16, 16]}>
                 <Col span={12}>
-                  <Statistic 
-                    title="Status" 
-                    value={insurance.status} 
+                  <Statistic
+                    title="Status"
+                    value={insurance.status}
                     valueRender={() => getStatusBadge(insurance.status)}
                   />
                 </Col>
                 <Col span={12}>
-                  <Statistic 
-                    title="Verification" 
-                    value={insurance.verificationStatus} 
-                    valueRender={() => getVerificationBadge(insurance.verificationStatus)}
+                  <Statistic
+                    title="Verification"
+                    value={insurance.verificationStatus}
+                    valueRender={() =>
+                      getVerificationBadge(insurance.verificationStatus)
+                    }
                   />
                 </Col>
                 {insurance.deadline && (
@@ -203,7 +263,9 @@ export function UserHealthInsurance() {
                       message={
                         <Space>
                           <ClockCircleOutlined />
-                          <Text strong>Deadline: {formatDate(insurance.deadline)}</Text>
+                          <Text strong>
+                            Deadline: {formatDate(insurance.deadline)}
+                          </Text>
                         </Space>
                       }
                       type="info"
@@ -215,9 +277,13 @@ export function UserHealthInsurance() {
             </Card>
 
             {insurance.hasInsurance && (
-              <Card 
-                type="inner" 
-                title={<Text strong><CheckCircleOutlined /> Insurance Details</Text>}
+              <Card
+                type="inner"
+                title={
+                  <Text strong>
+                    <CheckCircleOutlined /> Insurance Details
+                  </Text>
+                }
               >
                 <Descriptions bordered column={{ xs: 1, sm: 2 }} size="small">
                   <Descriptions.Item label="Insurance Number" span={2}>
@@ -238,7 +304,9 @@ export function UserHealthInsurance() {
                   <Descriptions.Item label="Healthcare Provider" span={2}>
                     <div>
                       <div>{insurance.healthcareProviderName}</div>
-                      <Text type="secondary">Code: {insurance.healthcareProviderCode}</Text>
+                      <Text type="secondary">
+                        Code: {insurance.healthcareProviderCode}
+                      </Text>
                     </div>
                   </Descriptions.Item>
                   <Descriptions.Item label="Valid From">
@@ -248,7 +316,9 @@ export function UserHealthInsurance() {
                     <Space>
                       {formatDate(insurance.validTo)}
                       {isExpired && <Tag color="red">Expired</Tag>}
-                      {isExpiringSoon && <Tag color="orange">Expiring Soon</Tag>}
+                      {isExpiringSoon && (
+                        <Tag color="orange">Expiring Soon</Tag>
+                      )}
                     </Space>
                   </Descriptions.Item>
                   <Descriptions.Item label="Issue Date">
@@ -260,22 +330,30 @@ export function UserHealthInsurance() {
           </Col>
 
           <Col xs={24} md={8}>
-            <Card 
-              type="inner" 
-              title={<Text strong><FileImageOutlined /> Insurance Card</Text>}
-              style={{ height: '100%' }}
+            <Card
+              type="inner"
+              title={
+                <Text strong>
+                  <FileImageOutlined /> Insurance Card
+                </Text>
+              }
+              style={{ height: "100%" }}
             >
               {insurance.imageUrl ? (
-                <div style={{ textAlign: 'center' }}>
-                  <Image 
-                    src={insurance.imageUrl} 
-                    alt="Insurance Card" 
-                    style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain' }}
+                <div style={{ textAlign: "center" }}>
+                  <Image
+                    src={insurance.imageUrl}
+                    alt="Insurance Card"
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: "300px",
+                      objectFit: "contain",
+                    }}
                   />
                 </div>
               ) : (
-                <Empty 
-                  image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
                   description="No insurance image uploaded"
                 />
               )}
@@ -288,8 +366,9 @@ export function UserHealthInsurance() {
         <Row>
           <Col span={24}>
             <Paragraph type="secondary">
-              <InfoCircleOutlined /> Last updated: {formatDate(insurance.updatedAt || insurance.createdAt)}
-              {insurance.updatedBy ? ` by ${insurance.updatedBy.userName}` : ''}
+              <InfoCircleOutlined /> Last updated:{" "}
+              {formatDate(insurance.updatedAt || insurance.createdAt)}
+              {insurance.updatedBy ? ` by ${insurance.updatedBy.userName}` : ""}
             </Paragraph>
           </Col>
         </Row>
@@ -303,4 +382,4 @@ export function UserHealthInsurance() {
       />
     </>
   );
-} 
+}

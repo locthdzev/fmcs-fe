@@ -1,9 +1,30 @@
-import React, { useState } from 'react';
-import { Modal, Form, Input, DatePicker, Select, Button, Row, Col, Upload, Image, Descriptions, Divider, Card, Typography, Space, Avatar } from 'antd';
-import { HealthInsuranceResponseDTO, updateHealthInsuranceByAdmin, requestHealthInsuranceUpdate } from '@/api/healthinsurance';
-import { toast } from 'react-toastify';
-import moment from 'moment';
-import { 
+import React, { useState } from "react";
+import {
+  Modal,
+  Form,
+  Input,
+  DatePicker,
+  Select,
+  Button,
+  Row,
+  Col,
+  Upload,
+  Image,
+  Descriptions,
+  Divider,
+  Card,
+  Typography,
+  Space,
+  Avatar,
+} from "antd";
+import {
+  HealthInsuranceResponseDTO,
+  updateHealthInsuranceByAdmin,
+  requestHealthInsuranceUpdate,
+} from "@/api/healthinsurance";
+import { toast } from "react-toastify";
+import moment from "moment";
+import {
   UploadOutlined,
   UserOutlined,
   IdcardOutlined,
@@ -13,10 +34,10 @@ import {
   NumberOutlined,
   FileImageOutlined,
   UserSwitchOutlined,
-  EditOutlined,
-  MailOutlined
-} from '@ant-design/icons';
-import type { UploadFile } from 'antd/es/upload/interface';
+  FormOutlined,
+  MailOutlined,
+} from "@ant-design/icons";
+import type { UploadFile } from "antd/es/upload/interface";
 
 interface EditModalProps {
   visible: boolean;
@@ -26,7 +47,13 @@ interface EditModalProps {
   isAdmin?: boolean;
 }
 
-export default function EditModal({ visible, insurance, onClose, onSuccess, isAdmin = true }: EditModalProps) {
+export default function EditModal({
+  visible,
+  insurance,
+  onClose,
+  onSuccess,
+  isAdmin = true,
+}: EditModalProps) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File>();
@@ -37,7 +64,9 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
       form.setFieldsValue({
         healthInsuranceNumber: insurance.healthInsuranceNumber,
         fullName: insurance.fullName,
-        dateOfBirth: insurance.dateOfBirth ? moment(insurance.dateOfBirth) : null,
+        dateOfBirth: insurance.dateOfBirth
+          ? moment(insurance.dateOfBirth)
+          : null,
         gender: insurance.gender,
         address: insurance.address,
         healthcareProviderName: insurance.healthcareProviderName,
@@ -50,9 +79,9 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
       if (insurance.imageUrl) {
         setFileList([
           {
-            uid: '-1',
-            name: 'Current Image',
-            status: 'done',
+            uid: "-1",
+            name: "Current Image",
+            status: "done",
             url: insurance.imageUrl,
           },
         ]);
@@ -67,27 +96,58 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
       const values = await form.validateFields();
       setLoading(true);
 
+      // Ensure all fields are included and properly formatted
       const formattedValues = {
         hasInsurance: true,
-        ...values,
-        dateOfBirth: values.dateOfBirth?.format('YYYY-MM-DD'),
-        validFrom: values.validFrom?.format('YYYY-MM-DD'),
-        validTo: values.validTo?.format('YYYY-MM-DD'),
-        issueDate: values.issueDate?.format('YYYY-MM-DD'),
+        healthInsuranceNumber: values.healthInsuranceNumber || "",
+        fullName: values.fullName || "",
+        dateOfBirth: values.dateOfBirth?.format("YYYY-MM-DD") || null,
+        gender: values.gender || "",
+        address: values.address || "",
+        healthcareProviderName: values.healthcareProviderName || "",
+        healthcareProviderCode: values.healthcareProviderCode || "",
+        validFrom: values.validFrom?.format("YYYY-MM-DD") || null,
+        validTo: values.validTo?.format("YYYY-MM-DD") || null,
+        issueDate: values.issueDate?.format("YYYY-MM-DD") || null,
       };
 
-      const submitFunc = isAdmin ? updateHealthInsuranceByAdmin : requestHealthInsuranceUpdate;
-      const response = await submitFunc(insurance!.id, formattedValues, imageFile);
-      
+      console.log("Form values:", values);
+      console.log("Formatted values for API:", formattedValues);
+      console.log("Image file:", imageFile);
+
+      // Log FormData details to debug
+      const formData = new FormData();
+      Object.entries(formattedValues).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          const pascalCaseKey = key.charAt(0).toUpperCase() + key.slice(1);
+          formData.append(pascalCaseKey, value.toString());
+          console.log(`FormData entry: ${pascalCaseKey} = ${value.toString()}`);
+        }
+      });
+      if (imageFile) formData.append("imageFile", imageFile);
+
+      const submitFunc = isAdmin
+        ? updateHealthInsuranceByAdmin
+        : requestHealthInsuranceUpdate;
+      const response = await submitFunc(
+        insurance!.id,
+        formattedValues,
+        imageFile
+      );
+
       if (response.isSuccess) {
-        toast.success(isAdmin ? 'Insurance updated successfully!' : 'Update request sent successfully!');
+        toast.success(
+          isAdmin
+            ? "Insurance updated successfully!"
+            : "Update request sent successfully!"
+        );
         onSuccess();
         onClose();
       } else {
         toast.error(response.message);
       }
     } catch (error) {
-      toast.error('Failed to update insurance');
+      toast.error("Failed to update insurance");
     } finally {
       setLoading(false);
     }
@@ -98,7 +158,7 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
     newFileList = newFileList.slice(-1);
     setFileList(newFileList);
 
-    if (info.file.status === 'done') {
+    if (info.file.status === "done") {
       setImageFile(info.file.originFileObj);
     }
   };
@@ -110,8 +170,8 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
       title={
         <Typography.Title level={4} style={{ margin: 0 }}>
           <Space>
-            <EditOutlined />
-            {isAdmin ? 'Edit Health Insurance' : 'Request Insurance Update'}
+            <FormOutlined />
+            {isAdmin ? "Edit Health Insurance" : "Request Insurance Update"}
           </Space>
         </Typography.Title>
       }
@@ -121,8 +181,13 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
         <Button key="cancel" onClick={onClose}>
           Cancel
         </Button>,
-        <Button key="submit" type="primary" loading={loading} onClick={handleSubmit}>
-          {isAdmin ? 'Save Changes' : 'Submit Request'}
+        <Button
+          key="submit"
+          type="primary"
+          loading={loading}
+          onClick={handleSubmit}
+        >
+          {isAdmin ? "Save Changes" : "Submit Request"}
         </Button>,
       ]}
       width={1200}
@@ -147,13 +212,17 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
         </Row>
       </Card>
 
-      <Form
-        form={form}
-        layout="vertical"
-      >
+      <Form form={form} layout="vertical">
         <Row gutter={24}>
           <Col span={8}>
-            <Card title={<Space><UserOutlined /> Personal Information</Space>} className="shadow-sm">
+            <Card
+              title={
+                <Space>
+                  <UserOutlined /> Personal Information
+                </Space>
+              }
+              className="shadow-sm"
+            >
               <Form.Item
                 name="healthInsuranceNumber"
                 label={
@@ -162,7 +231,9 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
                     Insurance Number
                   </Space>
                 }
-                rules={[{ required: true, message: 'Please input insurance number!' }]}
+                rules={[
+                  { required: true, message: "Please input insurance number!" },
+                ]}
               >
                 <Input placeholder="Enter insurance number" />
               </Form.Item>
@@ -175,7 +246,7 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
                     Full Name
                   </Space>
                 }
-                rules={[{ required: true, message: 'Please input full name!' }]}
+                rules={[{ required: true, message: "Please input full name!" }]}
               >
                 <Input placeholder="Enter full name" />
               </Form.Item>
@@ -188,9 +259,11 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
                     Date of Birth
                   </Space>
                 }
-                rules={[{ required: true, message: 'Please select date of birth!' }]}
+                rules={[
+                  { required: true, message: "Please select date of birth!" },
+                ]}
               >
-                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
               </Form.Item>
 
               <Form.Item
@@ -201,7 +274,7 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
                     Gender
                   </Space>
                 }
-                rules={[{ required: true, message: 'Please select gender!' }]}
+                rules={[{ required: true, message: "Please select gender!" }]}
               >
                 <Select placeholder="Select gender">
                   <Select.Option value="Male">Male</Select.Option>
@@ -213,7 +286,14 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
           </Col>
 
           <Col span={8}>
-            <Card title={<Space><HomeOutlined /> Contact Information</Space>} className="shadow-sm">
+            <Card
+              title={
+                <Space>
+                  <HomeOutlined /> Contact Information
+                </Space>
+              }
+              className="shadow-sm"
+            >
               <Form.Item
                 name="address"
                 label={
@@ -223,10 +303,10 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
                   </Space>
                 }
               >
-                <Input.TextArea 
-                  rows={4} 
+                <Input.TextArea
+                  rows={4}
                   placeholder="Enter address"
-                  style={{ resize: 'none' }}
+                  style={{ resize: "none" }}
                 />
               </Form.Item>
 
@@ -257,7 +337,14 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
           </Col>
 
           <Col span={8}>
-            <Card title={<Space><CalendarOutlined /> Insurance Details</Space>} className="shadow-sm">
+            <Card
+              title={
+                <Space>
+                  <CalendarOutlined /> Insurance Details
+                </Space>
+              }
+              className="shadow-sm"
+            >
               <Form.Item
                 name="validFrom"
                 label={
@@ -266,9 +353,11 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
                     Valid From
                   </Space>
                 }
-                rules={[{ required: true, message: 'Please select valid from date!' }]}
+                rules={[
+                  { required: true, message: "Please select valid from date!" },
+                ]}
               >
-                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
               </Form.Item>
 
               <Form.Item
@@ -279,9 +368,11 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
                     Valid To
                   </Space>
                 }
-                rules={[{ required: true, message: 'Please select valid to date!' }]}
+                rules={[
+                  { required: true, message: "Please select valid to date!" },
+                ]}
               >
-                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
               </Form.Item>
 
               <Form.Item
@@ -292,12 +383,14 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
                     Issue Date
                   </Space>
                 }
-                rules={[{ required: true, message: 'Please select issue date!' }]}
+                rules={[
+                  { required: true, message: "Please select issue date!" },
+                ]}
               >
-                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
               </Form.Item>
 
-              <Form.Item 
+              <Form.Item
                 label={
                   <Space>
                     <FileImageOutlined />
@@ -319,12 +412,18 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
                 </Upload>
                 {insurance?.imageUrl && !fileList.length && (
                   <Card className="mt-4">
-                    <Typography.Text type="secondary">Current Image:</Typography.Text>
+                    <Typography.Text type="secondary">
+                      Current Image:
+                    </Typography.Text>
                     <div className="mt-2">
                       <Image
                         src={insurance.imageUrl}
                         alt="Current Insurance"
-                        style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "200px",
+                          objectFit: "contain",
+                        }}
                       />
                     </div>
                   </Card>
@@ -336,4 +435,4 @@ export default function EditModal({ visible, insurance, onClose, onSuccess, isAd
       </Form>
     </Modal>
   );
-} 
+}

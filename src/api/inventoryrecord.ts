@@ -2,13 +2,17 @@ import api, { setupSignalRConnection } from "./customize-axios";
 
 export interface InventoryRecordResponseDTO {
   id: string;
-  drug: { id: string; drugCode: string; name: string };
+  drug: { 
+    id: string; 
+    drugCode: string; 
+    name: string;
+  };
   batchCode: string;
   quantityInStock: number;
   reorderLevel: number;
-  lastUpdated?: string;
+  lastUpdated: string | null;
   createdAt: string;
-  status?: string;
+  status: string;
 }
 
 export interface InventoryRecordUpdateRequestDTO {
@@ -30,10 +34,17 @@ export const getAllInventoryRecords = async (
 };
 
 export const getInventoryRecordById = async (id: string) => {
-  const response = await api.get(
-    `/inventoryrecord-management/inventoryrecords/${id}`
-  );
-  return response.data.data;
+  try {
+    const response = await api.get(
+      `/inventoryrecord-management/inventoryrecords/${id}`
+    );
+    
+    // The API returns a wrapper object with isSuccess, data, etc.
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching inventory record with ID ${id}:`, error);
+    throw error;
+  }
 };
 
 export const updateInventoryRecord = async (

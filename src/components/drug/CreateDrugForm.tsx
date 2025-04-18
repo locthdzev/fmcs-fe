@@ -58,17 +58,26 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           }
           else {
             console.error("Unexpected response format:", response);
-            messageApi.error("Failed to load drug groups: Unexpected data format", 5);
+            messageApi.error({
+              content: "Failed to load drug groups: Unexpected data format",
+              duration: 10
+            });
             setDrugGroups([]);
           }
         } else {
           console.error("Invalid response:", response);
-          messageApi.error("Failed to load drug groups: Invalid response", 5);
+          messageApi.error({
+            content: "Failed to load drug groups: Invalid response",
+            duration: 10
+          });
           setDrugGroups([]);
         }
       } catch (error) {
         console.error("Error fetching drug groups:", error);
-        messageApi.error("Failed to load drug groups", 5);
+        messageApi.error({
+          content: "Failed to load drug groups",
+          duration: 10
+        });
         setDrugGroups([]);
       }
     };
@@ -89,26 +98,72 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
 
       formDataToSend.append("status", "Active");
       formDataToSend.append("createdAt", new Date().toISOString());
+      
+      // Thêm ImageUrl vào FormData - trường không thể thiếu khi gửi lên server
+      formDataToSend.append("ImageUrl", "");
 
-      // Append the image file if it exists
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        formDataToSend.append("imageFile", fileList[0].originFileObj);
+      // Kiểm tra và thêm file nếu có
+      if (fileList.length > 0) {
+        console.log("FileList details:", {
+          file: fileList[0],
+          hasOriginFileObj: !!fileList[0].originFileObj,
+          fileType: fileList[0].type,
+          fileSize: fileList[0].size,
+          fileKeys: Object.keys(fileList[0])
+        });
+        
+        // Kiểm tra xem file có originFileObj không
+        if (fileList[0].originFileObj) {
+          console.log("Adding file from originFileObj");
+          formDataToSend.append("imageFile", fileList[0].originFileObj);
+        } else {
+          console.warn("File selected but no originFileObj found");
+          messageApi.warning({
+            content: "Could not process the selected file",
+            duration: 10
+          });
+        }
+      } else {
+        console.log("No image file to upload");
       }
 
-      try {
-        await createDrug(formDataToSend);
-        messageApi.success("Drug created successfully", 5);
-        onCreate();
-        onClose();
-      } catch (error: any) {
-        messageApi.error(error.message || "Failed to create drug", 5);
-        console.error("Error creating drug:", error);
+      // Debug formData
+      console.log("FormData entries to be sent:");
+      for (let pair of formDataToSend.entries()) {
+        const value = pair[1];
+        console.log(`${pair[0]}: ${value instanceof File ? 
+          `File (${(value as File).name}, ${(value as File).type}, ${(value as File).size} bytes)` : 
+          value}`);
       }
+
+      // Use promise chaining for better error handling
+      createDrug(formDataToSend)
+        .then((result) => {
+          setLoading(false);
+          messageApi.success({
+            content: "Drug created successfully",
+            duration: 10
+          });
+          onCreate();
+          onClose();
+        })
+        .catch((error: any) => {
+          setLoading(false);
+          console.error("Drug creation error:", error);
+          
+          // Display the error message from the API
+          messageApi.error({
+            content: error.message || "Failed to create drug",
+            duration: 10
+          });
+        });
+
     } catch (errorInfo) {
       console.error("Form validation failed:", errorInfo);
-      messageApi.error("Failed to validate form. Please check your input and try again.", 5);
-    } finally {
-      setLoading(false);
+      messageApi.error({
+        content: "Please check the form for errors",
+        duration: 10
+      });
     }
   };
 
@@ -121,19 +176,46 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
     beforeUpload: (file) => {
       const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
       if (!isJpgOrPng) {
-        messageApi.error('You can only upload JPG/PNG file!');
+        messageApi.error({
+          content: 'You can only upload JPG/PNG file!',
+          duration: 10
+        });
         return Upload.LIST_IGNORE;
       }
       const isLt2M = file.size / 1024 / 1024 < 2;
       if (!isLt2M) {
-        messageApi.error('Image must be smaller than 2MB!');
+        messageApi.error({
+          content: 'Image must be smaller than 2MB!',
+          duration: 10
+        });
         return Upload.LIST_IGNORE;
       }
-      setFileList([file]);
+      
+      // Tạo một file mới từ file ban đầu để đảm bảo nó có thể được sử dụng
+      const newFile = new File([file], file.name, { type: file.type });
+      
+      // Tạo đối tượng upload file
+      const uploadFile = {
+        uid: Date.now().toString(),
+        name: newFile.name,
+        size: newFile.size,
+        type: newFile.type,
+        originFileObj: newFile  // Thêm trường originFileObj
+      } as UploadFile;
+      
+      console.log("File selected for upload:", {
+        name: uploadFile.name,
+        type: uploadFile.type,
+        size: uploadFile.size,
+        hasOriginFileObj: !!uploadFile.originFileObj
+      });
+      
+      setFileList([uploadFile]);
       return false; // Prevent auto upload
     },
     fileList,
     onRemove: () => {
+      console.log("File removed from list");
       setFileList([]);
     },
     maxCount: 1,
@@ -221,7 +303,11 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           </Form.Item>
 
           <Form.Item label="Drug Image">
-            <Dragger {...uploadProps}>
+            <Dragger 
+              {...uploadProps} 
+              name="imageFile" 
+              accept="image/png,image/jpeg"
+            >
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>

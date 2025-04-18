@@ -12,9 +12,34 @@ export interface InventoryHistoryResponseDTO {
   remarks?: string;
   userId: string;
   userName: string;
+  user?: {
+    id: string;
+    userName: string;
+    fullName: string;
+    email: string;
+  };
   status?: string;
   batchCode: string;
   drug: { id: string; drugCode: string; name: string };
+}
+
+export interface GroupedInventoryHistoriesDTO {
+  totalInventoryRecords: number;
+  items: InventoryHistoryGroup[];
+}
+
+export interface InventoryHistoryGroup {
+  inventoryRecord: InventoryRecordInfo;
+  histories: InventoryHistoryResponseDTO[];
+}
+
+export interface InventoryRecordInfo {
+  id: string;
+  batchCode: string;
+  drug: { id: string; drugCode: string; name: string };
+  quantityInStock: number;
+  reorderLevel: number;
+  status?: string;
 }
 
 export const getAllInventoryHistories = async (
@@ -45,6 +70,47 @@ export const getInventoryHistoriesByInventoryRecordId = async (
     `/inventoryhistory-management/inventoryhistories/by-record/${inventoryRecordId}`
   );
   return response.data.data;
+};
+
+export const getGroupedInventoryHistories = async (
+  page: number = 1,
+  pageSize: number = 10,
+  changeType?: string,
+  startChangeDate?: string,
+  endChangeDate?: string,
+  userSearch?: string,
+  sortBy: string = "ChangeDate",
+  ascending: boolean = false,
+  batchCodeSearch?: string,
+  drugNameSearch?: string
+) => {
+  try {
+    const response = await api.get(
+      "/inventoryhistory-management/inventoryhistories/grouped",
+      {
+        params: {
+          page,
+          pageSize,
+          changeType,
+          startChangeDate,
+          endChangeDate,
+          userSearch,
+          sortBy,
+          ascending,
+          batchCodeSearch,
+          drugNameSearch,
+        },
+      }
+    );
+    const data = response.data;
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching grouped inventory histories:", error);
+    throw error;
+  }
 };
 
 export const getInventoryHistoriesByDateRange = async (

@@ -27,12 +27,19 @@ import {
   TagOutlined,
   CheckCircleOutlined,
   StopOutlined,
-  EditOutlined,
+  FormOutlined,
   SaveOutlined,
   CloseOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { UserResponseDTO, getUserById, updateUser, assignRoleToUser, unassignRoleFromUser, getAllRoles } from "@/api/user";
+import {
+  UserResponseDTO,
+  getUserById,
+  updateUser,
+  assignRoleToUser,
+  unassignRoleFromUser,
+  getAllRoles,
+} from "@/api/user";
 
 const { Text, Title } = Typography;
 const { Option } = Select;
@@ -190,7 +197,7 @@ export function UserDetail({ id }: UserDetailProps) {
                   </Button>
                 </Space>
               ) : (
-                <Button icon={<EditOutlined />} onClick={handleEdit}>
+                <Button icon={<FormOutlined />} onClick={handleEdit}>
                   Edit
                 </Button>
               )
@@ -247,7 +254,6 @@ export function UserDetail({ id }: UserDetailProps) {
                     <Select disabled={!editing}>
                       <Option value="Male">Male</Option>
                       <Option value="Female">Female</Option>
-                      <Option value="Other">Other</Option>
                     </Select>
                   </Form.Item>
                 </Col>
@@ -257,10 +263,7 @@ export function UserDetail({ id }: UserDetailProps) {
                     label="Date of Birth"
                     rules={[{ required: true }]}
                   >
-                    <DatePicker
-                      style={{ width: "100%" }}
-                      disabled={!editing}
-                    />
+                    <DatePicker style={{ width: "100%" }} disabled={!editing} />
                   </Form.Item>
                 </Col>
               </Row>
@@ -310,4 +313,4 @@ export function UserDetail({ id }: UserDetailProps) {
       </Row>
     </div>
   );
-} 
+}

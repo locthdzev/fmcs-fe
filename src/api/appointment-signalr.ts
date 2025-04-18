@@ -93,7 +93,7 @@ export const setupAppointmentRealTime = (
     const userId = decodedToken.sub || decodedToken.id || decodedToken.userid;
     const role = decodedToken.role;
 
-    if (userId && (role === "HealthcareStaff" || role === "ADMIN")) {
+    if (userId && (role === "Healthcare Staff" || role === "Admin")) {
       signalRManager.subscribeToGroup(`Staff_${userId}`).catch((err) => console.error("Subscription failed:", err));
     }
   }
@@ -106,7 +106,7 @@ export const setupAppointmentRealTime = (
       const decodedToken = jwtDecode<{ sub?: string; id?: string; userid?: string; role?: string }>(token);
       const userId = decodedToken.sub || decodedToken.id || decodedToken.userid;
       const role = decodedToken.role;
-      if (userId && (role === "HealthcareStaff" || role === "ADMIN")) {
+      if (userId && (role === "Healthcare Staff" || role === "Admin")) {
         signalRManager.unsubscribeFromGroup(`Staff_${userId}`).catch((err) => console.error("Unsubscription failed:", err));
       }
     }

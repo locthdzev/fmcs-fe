@@ -11,14 +11,11 @@ import {
   Col,
   Modal,
   Image,
-  Divider
+  Divider,
 } from "antd";
 import dayjs from "dayjs";
 import { getTruckById, TruckResponse } from "@/api/truck";
-import {
-  ArrowLeftOutlined,
-  EditOutlined
-} from "@ant-design/icons";
+import { ArrowLeftOutlined, FormOutlined } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import { TrucksIcon } from "./Icons";
 
@@ -45,12 +42,12 @@ export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
     setLoading(true);
     try {
       const response = await getTruckById(id);
-      if (response && typeof response === 'object') {
-         setTruck(response);
+      if (response && typeof response === "object") {
+        setTruck(response);
       } else {
-         console.error("Invalid response structure:", response);
-         messageApi.error("Failed to fetch truck details: Invalid data format");
-         setTruck(null);
+        console.error("Invalid response structure:", response);
+        messageApi.error("Failed to fetch truck details: Invalid data format");
+        setTruck(null);
       }
     } catch (error) {
       console.error("Error fetching truck details:", error);
@@ -80,10 +77,10 @@ export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
   const renderActionButtons = () => {
     if (!truck) return null;
     return (
-      <Button 
+      <Button
         type="primary"
         onClick={() => router.push(`/truck/edit/${id}`)}
-        icon={<EditOutlined />}
+        icon={<FormOutlined />}
       >
         Edit Truck
       </Button>
@@ -104,18 +101,18 @@ export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
       <div className="p-4">
         {contextHolder}
         <div className="flex items-center gap-2 mb-4">
-            <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.push("/truck")}
-                style={{ marginRight: "8px" }}
-            >
-                Back
-            </Button>
-            <TrucksIcon />
-            <h3 className="text-xl font-bold">Truck Not Found</h3>
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.push("/truck")}
+            style={{ marginRight: "8px" }}
+          >
+            Back
+          </Button>
+          <TrucksIcon />
+          <h3 className="text-xl font-bold">Truck Not Found</h3>
         </div>
         <Card>
-           <Text>The requested truck could not be found or loaded.</Text>
+          <Text>The requested truck could not be found or loaded.</Text>
         </Card>
       </div>
     );
@@ -124,17 +121,17 @@ export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
   return (
     <div className="p-4">
       {contextHolder}
-      <Modal 
-        open={!!previewImage} 
-        footer={null} 
+      <Modal
+        open={!!previewImage}
+        footer={null}
         onCancel={() => setPreviewImage(null)}
         width={800}
         centered
       >
-        <img 
-          alt="Truck Preview" 
-          style={{ width: '100%' }} 
-          src={previewImage || ''} 
+        <img
+          alt="Truck Preview"
+          style={{ width: "100%" }}
+          src={previewImage || ""}
         />
       </Modal>
 
@@ -166,42 +163,56 @@ export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">License Plate</Text>
+                  <Text strong className="block text-sm text-gray-500">
+                    License Plate
+                  </Text>
                   <Text className="block">{truck.licensePlate || "-"}</Text>
                 </div>
               </Col>
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Driver Name</Text>
+                  <Text strong className="block text-sm text-gray-500">
+                    Driver Name
+                  </Text>
                   <Text className="block">{truck.driverName || "-"}</Text>
                 </div>
               </Col>
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Driver Contact</Text>
+                  <Text strong className="block text-sm text-gray-500">
+                    Driver Contact
+                  </Text>
                   <Text className="block">{truck.driverContact || "-"}</Text>
                 </div>
               </Col>
               <Col xs={24}>
                 <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Description</Text>
-                  <Text className="block">{truck.description || "No description available."}</Text>
+                  <Text strong className="block text-sm text-gray-500">
+                    Description
+                  </Text>
+                  <Text className="block">
+                    {truck.description || "No description available."}
+                  </Text>
                 </div>
               </Col>
-              
+
               <Col xs={24}>
                 <Divider style={{ margin: "8px 0" }} />
               </Col>
-              
+
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Created At</Text>
+                  <Text strong className="block text-sm text-gray-500">
+                    Created At
+                  </Text>
                   <Text className="block">{formatDate(truck.createdAt)}</Text>
                 </div>
               </Col>
               <Col xs={24} sm={12}>
                 <div className="border rounded-md p-3">
-                  <Text strong className="block text-sm text-gray-500">Updated At</Text>
+                  <Text strong className="block text-sm text-gray-500">
+                    Updated At
+                  </Text>
                   <Text className="block">{formatDate(truck.updatedAt)}</Text>
                 </div>
               </Col>
@@ -211,21 +222,17 @@ export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
         <Col xs={24} md={8}>
           <Card title={<Title level={5}>Truck Image</Title>}>
             {truck.truckImage ? (
-              <div 
-                style={{ cursor: 'pointer' }} 
-                onClick={() => setPreviewImage(truck.truckImage || null)}
-                className="flex justify-center"
-              >
-                <img
+              <div className="flex justify-center">
+                <Image
                   src={truck.truckImage}
                   alt={truck.licensePlate}
-                  style={{ 
-                    maxWidth: '100%', 
-                    maxHeight: '300px', 
-                    objectFit: 'contain',
-                    transition: 'transform 0.3s ease',
+                  style={{
+                    maxHeight: "300px",
+                    objectFit: "contain",
                   }}
-                  className="hover:scale-105"
+                  preview={{
+                    src: truck.truckImage,
+                  }}
                 />
               </div>
             ) : (
@@ -363,4 +370,3 @@ const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
 const TruckDetailsModal = () => null;
 
 export default TruckDetailsModal;
-

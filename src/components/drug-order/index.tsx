@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { toast } from "react-toastify";
 import {
   message,
   Table,
@@ -34,7 +33,7 @@ import {
   AppstoreOutlined,
   TagOutlined,
   ExclamationCircleOutlined,
-  EditOutlined,
+  FormOutlined,
   EyeOutlined,
   ArrowLeftOutlined,
   FileExcelOutlined,
@@ -49,20 +48,26 @@ import {
   completeDrugOrders,
   DrugOrderQueryParams,
   exportDrugOrdersToExcel,
-  DrugOrderExportConfigDTO
+  DrugOrderExportConfigDTO,
 } from "@/api/drugorder";
 import api from "@/api/customize-axios";
 import { CreateDrugOrderForm } from "./CreateForm";
 import { EditDrugOrderForm } from "./EditForm";
 import { useRouter } from "next/router";
-import { DrugSupplierResponse, getDrugSupplierById, getDrugSuppliers } from "@/api/drugsupplier";
+import {
+  DrugSupplierResponse,
+  getDrugSupplierById,
+  getDrugSuppliers,
+} from "@/api/drugsupplier";
 import DrugSupplierDetailsModal from "../drug-supplier/DrugSupplierDetailsModal";
 import type { FilterValue, SorterResult } from "antd/es/table/interface";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import { DrugOrderIcon } from "./Icons";
 import ExportConfigModal from "./ExportConfigModal";
-import DrugOrderFilterModal, { DrugOrderAdvancedFilters } from "./DrugOrderFilterModal";
+import DrugOrderFilterModal, {
+  DrugOrderAdvancedFilters,
+} from "./DrugOrderFilterModal";
 
 // Extend dayjs with the plugins
 dayjs.extend(isSameOrBefore);
@@ -74,6 +79,31 @@ const { Text, Title } = Typography;
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
+}
+
+// Helper function to convert camelCase field names to PascalCase for backend API
+function convertToPascalCase(fieldName: string): string {
+  if (!fieldName) return "";
+  
+  // Handle known field mappings
+  const fieldMappings: Record<string, string> = {
+    "orderDate": "OrderDate",
+    "drugOrderCode": "DrugOrderCode",
+    "totalQuantity": "TotalQuantity",
+    "totalPrice": "TotalPrice",
+    "createdAt": "CreatedAt",
+    "updatedAt": "UpdatedAt",
+    "status": "Status", 
+    "supplier": "Supplier"
+  };
+  
+  // Return direct mapping if available
+  if (fieldMappings[fieldName]) {
+    return fieldMappings[fieldName];
+  }
+  
+  // Otherwise convert camelCase to PascalCase
+  return fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
 }
 
 const staticColumns = [
@@ -112,7 +142,8 @@ const staticColumns = [
     sorter: (a: DrugOrderResponse, b: DrugOrderResponse) =>
       dayjs(a.orderDate).unix() - dayjs(b.orderDate).unix(),
     render: (date: string) => (date ? dayjs(date).format("DD/MM/YYYY") : "-"),
-    sortDirections: ["ascend", "descend"] as ("ascend" | "descend")[],
+    sortDirections: ["descend", "ascend"] as ("ascend" | "descend")[],
+    defaultSortOrder: "descend" as "descend",
   },
   {
     title: (
@@ -210,6 +241,13 @@ function formatPrice(price: number) {
   }).format(price);
 }
 
+// Define type for drug order code options
+export interface DrugOrderCodeOption {
+  value: string;
+  label: string;
+  orderDate: string;
+}
+
 export function DrugOrders() {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
@@ -227,7 +265,10 @@ export function DrugOrders() {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [sorter, setSorter] = useState<
     SorterResult<DrugOrderResponse> | SorterResult<DrugOrderResponse>[]
-  >();
+  >({
+    field: "orderDate",
+    order: "descend",
+  } as SorterResult<DrugOrderResponse>);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [showApproveButton, setShowApproveButton] = useState(false);
   const [showRejectButton, setShowRejectButton] = useState(false);
@@ -247,8 +288,10 @@ export function DrugOrders() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // State for supplier details modal
-  const [selectedSupplier, setSelectedSupplier] = useState<DrugSupplierResponse | null>(null);
-  const [isSupplierDetailsModalOpen, setIsSupplierDetailsModalOpen] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] =
+    useState<DrugSupplierResponse | null>(null);
+  const [isSupplierDetailsModalOpen, setIsSupplierDetailsModalOpen] =
+    useState(false);
 
   // Selection helper variables
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -267,29 +310,34 @@ export function DrugOrders() {
     includeCreatedBy: true,
     includeCreatedAt: true,
     includeUpdatedAt: true,
-    includeStatus: true
+    includeStatus: true,
   });
-  
+
   // State for filter data in export modal
-  const [drugOrderCodes, setDrugOrderCodes] = useState<string[]>([]);
-  const [supplierOptions, setSupplierOptions] = useState<{ id: string; supplierName: string }[]>([]);
+  const [drugOrderCodes, setDrugOrderCodes] = useState<DrugOrderCodeOption[]>(
+    []
+  );
+  const [supplierOptions, setSupplierOptions] = useState<
+    { id: string; supplierName: string }[]
+  >([]);
 
   // Add the advanced filter state
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState<DrugOrderAdvancedFilters>({
-    orderDateRange: [null, null],
-    createdDateRange: [null, null],
-    updatedDateRange: [null, null],
-    sortBy: "createdAt",
-    ascending: false
-  });
-  
+  const [advancedFilters, setAdvancedFilters] =
+    useState<DrugOrderAdvancedFilters>({
+      orderDateRange: [null, null],
+      createdDateRange: [null, null],
+      updatedDateRange: [null, null],
+      sortBy: "OrderDate",
+      ascending: false,
+    });
+
   const initialAdvancedFilters: DrugOrderAdvancedFilters = {
     orderDateRange: [null, null],
     createdDateRange: [null, null],
     updatedDateRange: [null, null],
-    sortBy: "createdAt",
-    ascending: false
+    sortBy: "OrderDate",
+    ascending: false,
   };
 
   const fetchDrugOrders = useCallback(async () => {
@@ -304,26 +352,46 @@ export function DrugOrders() {
         pageSize: pageSize,
         drugOrderCodeSearch: filterValue || undefined,
         status: statusFilter.length > 0 ? statusFilter[0] : undefined,
-        sortBy: advancedFilters.sortBy || (Array.isArray(sorter) ? 'createdAt' : (sorter?.field as string) || 'createdAt'),
-        ascending: advancedFilters.ascending !== undefined ? advancedFilters.ascending : 
-                  (Array.isArray(sorter) ? false : sorter?.order === 'ascend'),
+        sortBy:
+          advancedFilters.sortBy ||
+          (Array.isArray(sorter) || !sorter.field
+            ? "OrderDate" // Default to OrderDate if no sorting is specified
+            : convertToPascalCase(sorter?.field as string)),
+        ascending:
+          advancedFilters.ascending !== undefined
+            ? advancedFilters.ascending
+            : Array.isArray(sorter) || !sorter.order
+            ? false // Default to false (descending) if no sort order specified
+            : sorter?.order === "ascend",
         supplierId: advancedFilters.supplierId,
         minTotalPrice: advancedFilters.minTotalPrice,
         maxTotalPrice: advancedFilters.maxTotalPrice,
-        orderStartDate: advancedFilters.orderDateRange[0] ? 
-                        advancedFilters.orderDateRange[0].format('YYYY-MM-DD') : undefined,
-        orderEndDate: advancedFilters.orderDateRange[1] ? 
-                      advancedFilters.orderDateRange[1].format('YYYY-MM-DD') : undefined,
-        createdStartDate: advancedFilters.createdDateRange[0] ? 
-                          advancedFilters.createdDateRange[0].format('YYYY-MM-DD') : undefined,
-        createdEndDate: advancedFilters.createdDateRange[1] ? 
-                        advancedFilters.createdDateRange[1].format('YYYY-MM-DD') : undefined,
-        updatedStartDate: advancedFilters.updatedDateRange[0] ? 
-                          advancedFilters.updatedDateRange[0].format('YYYY-MM-DD') : undefined,
-        updatedEndDate: advancedFilters.updatedDateRange[1] ? 
-                        advancedFilters.updatedDateRange[1].format('YYYY-MM-DD') : undefined
+        orderStartDate: advancedFilters.orderDateRange[0]
+          ? advancedFilters.orderDateRange[0].format("YYYY-MM-DD")
+          : undefined,
+        orderEndDate: advancedFilters.orderDateRange[1]
+          ? advancedFilters.orderDateRange[1].format("YYYY-MM-DD")
+          : undefined,
+        createdStartDate: advancedFilters.createdDateRange[0]
+          ? advancedFilters.createdDateRange[0].format("YYYY-MM-DD")
+          : undefined,
+        createdEndDate: advancedFilters.createdDateRange[1]
+          ? advancedFilters.createdDateRange[1].format("YYYY-MM-DD")
+          : undefined,
+        updatedStartDate: advancedFilters.updatedDateRange[0]
+          ? advancedFilters.updatedDateRange[0].format("YYYY-MM-DD")
+          : undefined,
+        updatedEndDate: advancedFilters.updatedDateRange[1]
+          ? advancedFilters.updatedDateRange[1].format("YYYY-MM-DD")
+          : undefined,
       };
-      
+
+      // Ghi log để kiểm tra xem các tham số đã đúng chưa
+      console.log("API request params:", {
+        sortBy: queryParams.sortBy,
+        ascending: queryParams.ascending,
+      });
+
       const response = await getDrugOrders(queryParams);
       if (response.isSuccess) {
         setDrugOrders(response.data);
@@ -338,11 +406,32 @@ export function DrugOrders() {
       setLoading(false);
       setInitialLoading(false);
     }
-  }, [messageApi, initialLoading, currentPage, pageSize, filterValue, statusFilter, sorter, advancedFilters]);
+  }, [
+    messageApi,
+    initialLoading,
+    currentPage,
+    pageSize,
+    filterValue,
+    statusFilter,
+    sorter,
+    advancedFilters,
+  ]);
 
   useEffect(() => {
     fetchDrugOrders();
   }, [fetchDrugOrders]);
+
+  // Thêm useEffect mới để đảm bảo thứ tự sắp xếp mặc định khi tải trang
+  useEffect(() => {
+    // Chỉ thực hiện khi lần đầu tiên tải trang
+    if (initialLoading) {
+      // Thiết lập sắp xếp mặc định là orderDate giảm dần
+      setSorter({
+        field: "orderDate",
+        order: "descend",
+      } as SorterResult<DrugOrderResponse>);
+    }
+  }, [initialLoading]);
 
   useEffect(() => {
     if (selectedRowKeys.length > 0) {
@@ -377,8 +466,8 @@ export function DrugOrders() {
   const headerColumns = React.useMemo(() => {
     if (areAllColumnsVisible()) return staticColumns;
 
-    return staticColumns.filter((column) =>
-      columnVisibility[column.key as string]
+    return staticColumns.filter(
+      (column) => columnVisibility[column.key as string]
     );
   }, [columnVisibility]);
 
@@ -402,8 +491,20 @@ export function DrugOrders() {
     const statusFilters = (filters.status as FilterValue) || [];
     setStatusFilter(statusFilters.map(String));
 
-    // Update sorter state from table changes
-    setSorter(newSorter);
+    // Log the sorter info for debugging
+    console.log("Table sort changed:", newSorter);
+
+    // Xử lý trường hợp người dùng bỏ chọn sắp xếp (trở về mặc định)
+    if (Array.isArray(newSorter) || !newSorter.order) {
+      // Nếu không có sắp xếp, thiết lập về mặc định là orderDate giảm dần
+      setSorter({
+        field: "orderDate",
+        order: "descend",
+      } as SorterResult<DrugOrderResponse>);
+    } else {
+      // Nếu có sắp xếp, cập nhật sorter state
+      setSorter(newSorter);
+    }
 
     // Reset page to 1 when filters or sorter change
     setCurrentPage(1);
@@ -417,7 +518,10 @@ export function DrugOrders() {
   const handleResetFilters = () => {
     setFilterValue("");
     setStatusFilter([]);
-    setSorter(undefined);
+    setSorter({
+      field: "orderDate",
+      order: "descend",
+    } as SorterResult<DrugOrderResponse>);
     setAdvancedFilters(initialAdvancedFilters);
     setCurrentPage(1);
   };
@@ -425,6 +529,26 @@ export function DrugOrders() {
   const handleStatusFilterChange = (value: string[]) => {
     setStatusFilter(value);
     setCurrentPage(1);
+  };
+
+  const updatePageInUrl = (newPage: number) => {
+    const query = { ...router.query };
+
+    if (newPage === 1) {
+      // Remove page parameter if it's the default page
+      delete query.page;
+    } else {
+      query.page = newPage.toString();
+    }
+
+    router.push(
+      {
+        pathname: router.pathname,
+        query: query,
+      },
+      undefined,
+      { shallow: true }
+    );
   };
 
   const onPageChange = (page: number, newPageSize?: number) => {
@@ -463,31 +587,35 @@ export function DrugOrders() {
     }
   };
 
-  const showConfirm = (action: "approve" | "reject" | "complete", onOk: () => void) => {
+  const showConfirm = (
+    action: "approve" | "reject" | "complete",
+    onOk: () => void
+  ) => {
     const selectedOrdersData = drugOrders.filter((o) =>
       selectedRowKeys.includes(o.id)
     );
-    
+
     let targetStatus = "";
     let count = 0;
-    
+
     if (action === "approve") {
       targetStatus = "Pending";
-      count = selectedOrdersData.filter(o => o.status === targetStatus).length;
+      count = selectedOrdersData.filter(
+        (o) => o.status === targetStatus
+      ).length;
     } else if (action === "reject") {
-      count = selectedOrdersData.filter(o => 
-        o.status === "Pending" || o.status === "Approved"
+      count = selectedOrdersData.filter(
+        (o) => o.status === "Pending" || o.status === "Approved"
       ).length;
     } else if (action === "complete") {
       targetStatus = "Approved";
-      count = selectedOrdersData.filter(o => o.status === targetStatus).length;
+      count = selectedOrdersData.filter(
+        (o) => o.status === targetStatus
+      ).length;
     }
 
     if (count === 0) {
-      messageApi.warning(
-        `No orders with valid status selected.`,
-        5
-      );
+      messageApi.warning(`No orders with valid status selected.`, 5);
       return;
     }
 
@@ -545,9 +673,10 @@ export function DrugOrders() {
 
   const handleReject = async () => {
     const idsToReject = drugOrders
-      .filter((o) => 
-        selectedRowKeys.includes(o.id) && 
-        (o.status === "Pending" || o.status === "Approved")
+      .filter(
+        (o) =>
+          selectedRowKeys.includes(o.id) &&
+          (o.status === "Pending" || o.status === "Approved")
       )
       .map((o) => o.id);
 
@@ -623,26 +752,6 @@ export function DrugOrders() {
     }
   }, [router.query.page, currentPage]);
 
-  const updatePageInUrl = (newPage: number) => {
-    const query = { ...router.query };
-    
-    if (newPage === 1) {
-      // Remove page parameter if it's the default page
-      delete query.page;
-    } else {
-      query.page = newPage.toString();
-    }
-    
-    router.push(
-      {
-        pathname: router.pathname,
-        query: query,
-      },
-      undefined,
-      { shallow: true }
-    );
-  };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return `${date.toLocaleDateString("vi-VN")} ${date.getHours()}:${String(
@@ -677,7 +786,7 @@ export function DrugOrders() {
           <Tooltip title="Edit">
             <Button
               type="text"
-              icon={<EditOutlined />}
+              icon={<FormOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
                 handleOpenEditModal(record.id);
@@ -698,9 +807,11 @@ export function DrugOrders() {
           return {
             ...col,
             render: (text: string, record: DrugOrderResponse) => (
-              <span 
-                className="text-primary cursor-pointer hover:underline" 
-                onClick={() => router.push(`/drug-order/details?id=${record.id}`)}
+              <span
+                className="text-primary cursor-pointer hover:underline"
+                onClick={() =>
+                  router.push(`/drug-order/details?id=${record.id}`)
+                }
               >
                 {text}
               </span>
@@ -711,8 +822,8 @@ export function DrugOrders() {
           return {
             ...col,
             render: (supplier: any, record: DrugOrderResponse) => (
-              <span 
-                className="text-primary cursor-pointer hover:underline" 
+              <span
+                className="text-primary cursor-pointer hover:underline"
                 onClick={() => handleOpenDetails(supplier.id)}
               >
                 {supplier.supplierName}
@@ -724,7 +835,9 @@ export function DrugOrders() {
           return {
             ...col,
             render: (status: string) => (
-              <Tag color={statusColorMap[status as keyof typeof statusColorMap]}>
+              <Tag
+                color={statusColorMap[status as keyof typeof statusColorMap]}
+              >
                 {status ? status.toUpperCase() : ""}
               </Tag>
             ),
@@ -737,7 +850,7 @@ export function DrugOrders() {
               <div>
                 <div>{createdBy.userName}</div>
                 <Tag color="blue">{createdBy.role}</Tag>
-            </div>
+              </div>
             ),
           };
         }
@@ -747,7 +860,11 @@ export function DrugOrders() {
             render: (price: number) => formatPrice(price),
           };
         }
-        if (col.key === "orderDate" || col.key === "createdAt" || col.key === "updatedAt") {
+        if (
+          col.key === "orderDate" ||
+          col.key === "createdAt" ||
+          col.key === "updatedAt"
+        ) {
           return {
             ...col,
             render: (date: string) =>
@@ -765,24 +882,24 @@ export function DrugOrders() {
 
   const renderSelectAll = () => {
     // Count orders by status
-    const pendingCount = paginatedOrders.filter(order => order.status === "Pending").length;
-    const approvedCount = paginatedOrders.filter(order => order.status === "Approved").length;
+    const pendingCount = paginatedOrders.filter(
+      (order) => order.status === "Pending"
+    ).length;
+    const approvedCount = paginatedOrders.filter(
+      (order) => order.status === "Approved"
+    ).length;
 
     // Count selectable orders
     const selectableOrders = paginatedOrders;
 
     const isSelectAll =
       selectableOrders.length > 0 &&
-      selectableOrders.every((order) =>
-        selectedRowKeys.includes(order.id)
-      );
+      selectableOrders.every((order) => selectedRowKeys.includes(order.id));
 
     const isIndeterminate =
       selectedRowKeys.length > 0 &&
       !isSelectAll &&
-      selectableOrders.some((order) =>
-        selectedRowKeys.includes(order.id)
-      );
+      selectableOrders.some((order) => selectedRowKeys.includes(order.id));
 
     // Create dropdown menu items
     const items = [];
@@ -800,7 +917,7 @@ export function DrugOrders() {
             }
           >
             Select all Pending on this page ({pendingCount})
-            </div>
+          </div>
         ),
       });
 
@@ -820,8 +937,8 @@ export function DrugOrders() {
               >
                 <Spin size="small" />
                 <span>Loading all Pending...</span>
-            </div>
-          ) : (
+              </div>
+            ) : (
               <span>Select all Pending (all pages)</span>
             )}
           </div>
@@ -862,7 +979,7 @@ export function DrugOrders() {
               >
                 <Spin size="small" />
                 <span>Loading all Approved...</span>
-            </div>
+              </div>
             ) : (
               <span>Select all Approved (all pages)</span>
             )}
@@ -885,7 +1002,7 @@ export function DrugOrders() {
           onChange={handleSelectAllToggle}
           disabled={true}
         />
-        
+
         {items.length > 0 && (
           <Dropdown
             menu={{
@@ -930,46 +1047,43 @@ export function DrugOrders() {
 
   const renderSelectedInfo = () => {
     if (selectedRowKeys.length === 0) return null;
-    
+
     return (
       <Space>
-        <Text>{selectedRowKeys.length} items selected</Text>
-                <Button
-          icon={<UndoOutlined />}
-          onClick={() => setSelectedRowKeys([])}
-        >
+        <Text>{selectedRowKeys.length} Items selected</Text>
+        <Button icon={<UndoOutlined />} onClick={() => setSelectedRowKeys([])}>
           Restore
         </Button>
-        
+
         {showApproveButton && (
           <Button
             className="bg-success-100 text-primary border-primary"
             onClick={() => showConfirm("approve", handleApprove)}
             disabled={loading}
-                >
-                  Approve Selected
-                </Button>
-              )}
-        
+          >
+            Approve Selected
+          </Button>
+        )}
+
         {showRejectButton && (
-                <Button
+          <Button
             className="bg-danger-100 text-danger border-danger"
             onClick={() => showConfirm("reject", handleReject)}
             disabled={loading}
-                >
-                  Reject Selected
-                </Button>
-              )}
-        
+          >
+            Reject Selected
+          </Button>
+        )}
+
         {showCompleteButton && (
-                <Button
+          <Button
             className="bg-success-100 text-success border-success"
             onClick={() => showConfirm("complete", handleComplete)}
             disabled={loading}
-                >
-                  Complete Selected
-                </Button>
-              )}
+          >
+            Complete Selected
+          </Button>
+        )}
       </Space>
     );
   };
@@ -989,7 +1103,7 @@ export function DrugOrders() {
           <Option value={15}>15</Option>
           <Option value={20}>20</Option>
         </Select>
-            </div>
+      </div>
     );
   };
 
@@ -1028,9 +1142,7 @@ export function DrugOrders() {
       if (currentPageOnly) {
         // Only get IDs on the current page by status
         return paginatedOrders
-          .filter(
-            (order) => order.status && statuses.includes(order.status)
-          )
+          .filter((order) => order.status && statuses.includes(order.status))
           .map((order) => order.id);
       } else {
         // For getting all items, we need to make a separate API call to fetch all items matching status
@@ -1039,11 +1151,11 @@ export function DrugOrders() {
           const allStatusParams = {
             page: 1,
             pageSize: 1000, // A large value to get all items, backend should handle this properly
-            status: statuses.length > 0 ? statuses[0] : undefined
+            status: statuses.length > 0 ? statuses[0] : undefined,
           };
           const response = await getDrugOrders(allStatusParams);
           setIsLoadingAllItems(false);
-          return response.data.map(order => order.id);
+          return response.data.map((order) => order.id);
         } catch (error) {
           console.error("Error fetching all items by status:", error);
           setIsLoadingAllItems(false);
@@ -1099,18 +1211,32 @@ export function DrugOrders() {
           page: 1,
           pageSize: 1000,
         });
-        
+
         if (response.isSuccess) {
-          const codes = response.data.map(order => order.drugOrderCode);
-          setDrugOrderCodes([...new Set(codes)]); // Remove duplicates
+          // Create code options with the consistent format
+          const codeOptions = response.data.map((order) => ({
+            value: order.drugOrderCode,
+            label: order.drugOrderCode,
+            orderDate: order.orderDate,
+          }));
+
+          // Sort by order date, newest first
+          codeOptions.sort(
+            (a, b) =>
+              new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
+          );
+
+          setDrugOrderCodes(codeOptions);
         }
 
         // Get suppliers
         const suppliersData = await getDrugSuppliers();
-        setSupplierOptions(suppliersData.map((supplier: DrugSupplierResponse) => ({
-          id: supplier.id,
-          supplierName: supplier.supplierName
-        })));
+        setSupplierOptions(
+          suppliersData.map((supplier: DrugSupplierResponse) => ({
+            id: supplier.id,
+            supplierName: supplier.supplierName,
+          }))
+        );
       } catch (error) {
         console.error("Error loading export options:", error);
       }
@@ -1123,34 +1249,38 @@ export function DrugOrders() {
   const handleExportToExcel = async () => {
     try {
       setExportLoading(true);
-      
+
       // Create query parameters similar to fetchDrugOrders
       const queryParams = {
         page: exportConfig.exportAllPages ? 1 : currentPage,
         pageSize: exportConfig.exportAllPages ? 1000 : pageSize, // Large number to get all if exportAllPages is true
         drugOrderCodeSearch: filterValue || undefined,
         status: statusFilter.length > 0 ? statusFilter[0] : undefined,
-        sortBy: Array.isArray(sorter) ? 'createdAt' : (sorter?.field as string) || 'createdAt',
-        ascending: Array.isArray(sorter) ? false : sorter?.order === 'ascend',
+        sortBy: Array.isArray(sorter) || !sorter.field
+          ? "OrderDate" // Default to OrderDate if no sorting is specified
+          : convertToPascalCase(sorter?.field as string),
+        ascending: Array.isArray(sorter) || !sorter.order
+          ? false // Default to false (descending) if no sort order specified
+          : sorter?.order === "ascend",
         orderStartDate: undefined,
         orderEndDate: undefined,
         createdStartDate: undefined,
         createdEndDate: undefined,
         updatedStartDate: undefined,
-        updatedEndDate: undefined
+        updatedEndDate: undefined,
       };
-      
+
       // Request the export URL from the API
       const response = await exportDrugOrdersToExcel(exportConfig, queryParams);
-      
+
       console.log("Export response in component:", response);
-      
+
       if (response.success || response.isSuccess) {
         messageApi.success("Drug orders exported to Excel successfully");
         setIsExportModalOpen(false);
-        
+
         // If we have a URL in the data property, open it
-        if (response.data && typeof response.data === 'string') {
+        if (response.data && typeof response.data === "string") {
           console.log("Opening URL:", response.data);
           window.open(response.data, "_blank");
         } else {
@@ -1204,19 +1334,35 @@ export function DrugOrders() {
     );
   };
 
+  // Add an additional useEffect that runs only once when the component mounts
+  useEffect(() => {
+    // Apply default sorting when the component mounts
+    const orderDateColumn = staticColumns.find(
+      (col) => col.key === "orderDate"
+    );
+    if (orderDateColumn) {
+      setSorter({
+        field: "orderDate",
+        order: "descend",
+      } as SorterResult<DrugOrderResponse>);
+    }
+  }, []); // Empty dependency array ensures this runs only once
+
   return (
     <div style={{ padding: "20px" }}>
       {contextHolder}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-                <Button
+          <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.back()}
             style={{ marginRight: "8px" }}
           >
             Back
-                </Button>
-          <span style={{ fontSize: "24px" }}><DrugOrderIcon /></span>
+          </Button>
+          <span style={{ fontSize: "24px" }}>
+            <DrugOrderIcon />
+          </span>
           <h3 className="text-xl font-bold">Drug Order Management</h3>
         </div>
       </div>
@@ -1248,15 +1394,26 @@ export function DrugOrders() {
               <div className="flex flex-col gap-4">
                 <div className="flex justify-between items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Input
-                      placeholder="Search by order code..."
-                      prefix={<SearchOutlined />}
-                      value={filterValue}
-                      onChange={(e) => handleSearchChange(e.target.value)}
-                      style={{ width: "300px" }}
+                    <Select
+                      showSearch
                       allowClear
+                      placeholder={
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          <SearchOutlined style={{ marginRight: 8 }} />
+                          <span>Search by order code...</span>
+                        </div>
+                      }
+                      style={{ width: "300px" }}
+                      value={filterValue || undefined}
+                      onChange={handleSearchChange}
+                      options={drugOrderCodes}
+                      filterOption={(input, option) =>
+                        (option?.label?.toString() || "")
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
+                      }
                     />
-                    
+
                     <Select
                       mode="multiple"
                       allowClear
@@ -1278,10 +1435,9 @@ export function DrugOrders() {
                         icon={
                           <FilterOutlined
                             style={{
-                              color:
-                                hasAdvancedFilters()
-                                  ? "#1890ff"
-                                  : undefined,
+                              color: hasAdvancedFilters()
+                                ? "#1890ff"
+                                : undefined,
                             }}
                           />
                         }
@@ -1316,7 +1472,7 @@ export function DrugOrders() {
                                 toggleAllColumns(e.target.checked)
                               }
                             >
-                              <strong>Show All Columns</strong>
+                              Toggle All
                             </Checkbox>
                           </Menu.Item>
                           <Menu.Divider />
@@ -1378,7 +1534,7 @@ export function DrugOrders() {
                         <Button icon={<SettingOutlined />}>Columns</Button>
                       </Tooltip>
                     </Dropdown>
-                    
+
                     <Button
                       type="primary"
                       icon={<PlusOutlined />}
@@ -1388,7 +1544,7 @@ export function DrugOrders() {
                       Create
                     </Button>
                   </div>
-                  
+
                   <div className="flex items-center">
                     <Tooltip title="Export to Excel">
                       <Button
@@ -1406,12 +1562,8 @@ export function DrugOrders() {
 
             {/* Container for selected info and rows per page */}
             <div className="mb-4 py-2 flex justify-between items-center">
-              <div>
-                {renderSelectedInfo()}
-      </div>
-              <div>
-                {renderRowsPerPage()}
-              </div>
+              <div>{renderSelectedInfo()}</div>
+              <div>{renderRowsPerPage()}</div>
             </div>
 
             <Card
@@ -1434,9 +1586,7 @@ export function DrugOrders() {
               <Card className="mt-4 shadow-sm">
                 <Row justify="center" align="middle">
                   <Space size="large" align="center">
-                    <Text type="secondary">
-                      Total {totalItems} items
-                    </Text>
+                    <Text type="secondary">Total {totalItems} items</Text>
                     <Space align="center" size="large">
                       <Pagination
                         current={currentPage}
@@ -1450,21 +1600,17 @@ export function DrugOrders() {
                         <Text type="secondary">Go to page:</Text>
                         <InputNumber
                           min={1}
-                          max={Math.max(
-                            1,
-                            Math.ceil(
-                              totalItems / pageSize
-                            )
-                          )}
+                          max={Math.max(1, Math.ceil(totalItems / pageSize))}
                           value={currentPage}
-                          onPressEnter={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                            const value = Number((e.target as HTMLInputElement).value);
+                          onPressEnter={(
+                            e: React.KeyboardEvent<HTMLInputElement>
+                          ) => {
+                            const value = Number(
+                              (e.target as HTMLInputElement).value
+                            );
                             if (
                               value > 0 &&
-                              value <=
-                                Math.ceil(
-                                  totalItems / pageSize
-                                )
+                              value <= Math.ceil(totalItems / pageSize)
                             ) {
                               onPageChange(value, pageSize);
                             }
@@ -1473,10 +1619,7 @@ export function DrugOrders() {
                             if (
                               value &&
                               Number(value) > 0 &&
-                              Number(value) <=
-                                Math.ceil(
-                                  totalItems / pageSize
-                                )
+                              Number(value) <= Math.ceil(totalItems / pageSize)
                             ) {
                               onPageChange(Number(value), pageSize);
                             }
@@ -1514,7 +1657,11 @@ export function DrugOrders() {
 
       <Modal
         title={`Confirm ${
-          confirmAction === "approve" ? "Approval" : confirmAction === "reject" ? "Rejection" : "Completion"
+          confirmAction === "approve"
+            ? "Approval"
+            : confirmAction === "reject"
+            ? "Rejection"
+            : "Completion"
         }`}
         open={isConfirmModalOpen}
         onCancel={() => setIsConfirmModalOpen(false)}
@@ -1534,18 +1681,21 @@ export function DrugOrders() {
       >
         {confirmAction === "approve" ? (
           <p>
-            Are you sure you want to approve the selected drug orders? Once approved, 
-            you can no longer edit the order, but you can reject or complete it.
+            Are you sure you want to approve the selected drug orders? Once
+            approved, you can no longer edit the order, but you can reject or
+            complete it.
           </p>
         ) : confirmAction === "reject" ? (
           <p>
-            Are you sure you want to reject the selected drug orders? Once rejected, 
-            the order and its details will be marked inactive and no further actions can be performed.
+            Are you sure you want to reject the selected drug orders? Once
+            rejected, the order and its details will be marked inactive and no
+            further actions can be performed.
           </p>
         ) : (
           <p>
-            Are you sure you want to complete the selected drug orders? Once completed, 
-            the order will be finalized, and stock will be updated in the inventory.
+            Are you sure you want to complete the selected drug orders? Once
+            completed, the order will be finalized, and stock will be updated in
+            the inventory.
           </p>
         )}
       </Modal>
@@ -1556,15 +1706,21 @@ export function DrugOrders() {
         onClose={() => setIsExportModalOpen(false)}
         loading={exportLoading}
         config={exportConfig}
-        onChange={(newConfig) => setExportConfig({...exportConfig, ...newConfig})}
+        onChange={(newConfig) =>
+          setExportConfig({ ...exportConfig, ...newConfig })
+        }
         onExport={handleExportToExcel}
         filters={{
           currentPage,
           pageSize,
           drugOrderCodeSearch: filterValue,
           status: statusFilter.length > 0 ? statusFilter[0] : undefined,
-          sortBy: Array.isArray(sorter) ? 'createdAt' : (sorter?.field as string) || 'createdAt',
-          ascending: Array.isArray(sorter) ? false : sorter?.order === 'ascend',
+          sortBy: Array.isArray(sorter) || !sorter.field 
+            ? "OrderDate" 
+            : convertToPascalCase(sorter?.field as string),
+          ascending: Array.isArray(sorter) || !sorter.order 
+            ? false 
+            : sorter?.order === "ascend",
           orderDateRange: [null, null],
           createdDateRange: [null, null],
           updatedDateRange: [null, null],

@@ -11,9 +11,9 @@ import {
   InputNumber,
   Space,
   Spin,
+  message,
 } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
-import { toast } from "react-toastify";
 import moment from "moment";
 import {
   createPrescription,
@@ -21,10 +21,10 @@ import {
   PrescriptionDetailsCreateRequestDTO,
 } from "@/api/prescription";
 import { DrugResponse } from "@/api/drug";
-import { 
+import {
   getAllHealthCheckResults,
   getHealthCheckResultById,
-  HealthCheckResultsResponseDTO 
+  HealthCheckResultsResponseDTO,
 } from "@/api/healthcheckresult";
 
 const { Option } = Select;
@@ -51,10 +51,9 @@ interface HealthCheckResultOption {
   };
 }
 
-// Define status constants to match backend values
 const HEALTH_CHECK_STATUSES = {
   FOLLOW_UP_REQUIRED: "FollowUpRequired",
-  NO_FOLLOW_UP_REQUIRED: "NoFollowUpRequired"
+  NO_FOLLOW_UP_REQUIRED: "NoFollowUpRequired",
 };
 
 const CreateModal: React.FC<CreateModalProps> = ({
@@ -66,11 +65,15 @@ const CreateModal: React.FC<CreateModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [loadingHealthCheckResults, setLoadingHealthCheckResults] = useState(false);
-  const [selectedHealthCheckResultId, setSelectedHealthCheckResultId] = useState<string | null>(null);
-  const [healthCheckResultOptions, setHealthCheckResultOptions] = useState<HealthCheckResultOption[]>([]);
+  const [loadingHealthCheckResults, setLoadingHealthCheckResults] =
+    useState(false);
+  const [selectedHealthCheckResultId, setSelectedHealthCheckResultId] =
+    useState<string | null>(null);
+  const [healthCheckResultOptions, setHealthCheckResultOptions] = useState<
+    HealthCheckResultOption[]
+  >([]);
+  const [messageApi, contextHolder] = message.useMessage();
 
-  // Reset form when modal is closed
   useEffect(() => {
     if (!visible) {
       form.resetFields();
@@ -78,7 +81,6 @@ const CreateModal: React.FC<CreateModalProps> = ({
     }
   }, [visible, form]);
 
-  // Fetch health check results when modal opens
   useEffect(() => {
     if (visible) {
       fetchHealthCheckResults();
@@ -89,67 +91,81 @@ const CreateModal: React.FC<CreateModalProps> = ({
     setLoadingHealthCheckResults(true);
     try {
       console.log("Fetching all health check results");
-      // Call the API without filtering by status to get all results
       const response = await getAllHealthCheckResults(
-        1, // page
-        500, // pageSize - using a large number to get all results
-        undefined, // codeSearch
-        undefined, // userSearch
-        undefined, // staffSearch
-        "CheckupDate", // sortBy
-        false, // ascending
-        undefined, // status - don't filter by status in API call
-        undefined, // checkupStartDate
-        undefined, // checkupEndDate
-        undefined, // followUpRequired
-        undefined, // followUpStartDate
-        undefined  // followUpEndDate
+        1,
+        500,
+        undefined,
+        undefined,
+        undefined,
+        "CheckupDate",
+        false,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
       );
 
       console.log("Health check API full response:", response);
 
       if (response.success) {
-        // Check if data is an array directly or is contained in items property
-        const allResults = Array.isArray(response.data) 
-          ? response.data 
-          : (response.data?.items || []);
-          
+        const allResults = Array.isArray(response.data)
+          ? response.data
+          : response.data?.items || [];
+
         console.log("All results:", allResults);
-        console.log("All statuses in response:", 
-          [...new Set(allResults.map((r: HealthCheckResultsResponseDTO) => r.status))]);
-        
-        // Filter results with the required statuses using exact backend status values
-        const filteredResults = allResults.filter((result: HealthCheckResultsResponseDTO) => 
-          result.status === HEALTH_CHECK_STATUSES.FOLLOW_UP_REQUIRED || 
-          result.status === HEALTH_CHECK_STATUSES.NO_FOLLOW_UP_REQUIRED
+        console.log("All statuses in response:", [
+          ...new Set(
+            allResults.map((r: HealthCheckResultsResponseDTO) => r.status)
+          ),
+        ]);
+
+        const filteredResults = allResults.filter(
+          (result: HealthCheckResultsResponseDTO) =>
+            result.status === HEALTH_CHECK_STATUSES.FOLLOW_UP_REQUIRED ||
+            result.status === HEALTH_CHECK_STATUSES.NO_FOLLOW_UP_REQUIRED
         );
-        
+
         console.log("Filtered results (client-side):", filteredResults);
-        console.log("Filtered statuses found:", 
-          [...new Set(filteredResults.map((r: HealthCheckResultsResponseDTO) => r.status))]);
-        
+        console.log("Filtered statuses found:", [
+          ...new Set(
+            filteredResults.map((r: HealthCheckResultsResponseDTO) => r.status)
+          ),
+        ]);
+
         if (filteredResults.length === 0) {
-          toast.info(`No health check results found with required statuses (${HEALTH_CHECK_STATUSES.FOLLOW_UP_REQUIRED} or ${HEALTH_CHECK_STATUSES.NO_FOLLOW_UP_REQUIRED})`);
+          messageApi.info({
+            content: `No health check results found with required statuses (${HEALTH_CHECK_STATUSES.FOLLOW_UP_REQUIRED} or ${HEALTH_CHECK_STATUSES.NO_FOLLOW_UP_REQUIRED})`,
+            duration: 5,
+          });
         }
-        
-        // Map the API response to our health check result options format
-        const options: HealthCheckResultOption[] = filteredResults.map((result: HealthCheckResultsResponseDTO) => ({
-          id: result.id,
-          healthCheckResultCode: result.healthCheckResultCode,
-          checkupDate: result.checkupDate,
-          status: result.status,
-          user: result.user
-        }));
-        
+
+        const options: HealthCheckResultOption[] = filteredResults.map(
+          (result: HealthCheckResultsResponseDTO) => ({
+            id: result.id,
+            healthCheckResultCode: result.healthCheckResultCode,
+            checkupDate: result.checkupDate,
+            status: result.status,
+            user: result.user,
+          })
+        );
+
         setHealthCheckResultOptions(options);
       } else {
         console.error("API returned error:", response);
-        toast.error(response.message || "Failed to fetch health check results");
+        messageApi.error({
+          content: response.message || "Failed to fetch health check results",
+          duration: 5,
+        });
         setHealthCheckResultOptions([]);
       }
     } catch (error) {
       console.error("Error fetching health check results:", error);
-      toast.error("Failed to fetch health check results");
+      messageApi.error({
+        content: "Failed to fetch health check results",
+        duration: 5,
+      });
       setHealthCheckResultOptions([]);
     } finally {
       setLoadingHealthCheckResults(false);
@@ -161,7 +177,6 @@ const CreateModal: React.FC<CreateModalProps> = ({
       const values = await form.validateFields();
       setLoading(true);
 
-      // Transform the form data to match the API structure
       const requestData: PrescriptionsCreateRequestDTO = {
         healthCheckResultId: values.healthCheckResultId,
         prescriptionDate: values.prescriptionDate.format("YYYY-MM-DD"),
@@ -180,16 +195,25 @@ const CreateModal: React.FC<CreateModalProps> = ({
       console.log("Create prescription response:", response);
 
       if (response.success || response.isSuccess) {
-        toast.success("Prescription created successfully");
+        messageApi.success({
+          content: "Prescription created successfully",
+          duration: 5,
+        });
         form.resetFields();
         onClose();
         onSuccess();
       } else {
-        toast.error(response.message || "Failed to create prescription");
+        messageApi.error({
+          content: response.message || "Failed to create prescription",
+          duration: 5,
+        });
       }
     } catch (error) {
       console.error("Form validation error:", error);
-      toast.error("Please check the form for errors");
+      messageApi.error({
+        content: "Please check the form for errors",
+        duration: 5,
+      });
     } finally {
       setLoading(false);
     }
@@ -201,12 +225,16 @@ const CreateModal: React.FC<CreateModalProps> = ({
   };
 
   const formatDate = (date: string | undefined) => {
-    if (!date) return '';
-    return moment(date).format('DD/MM/YYYY');
+    if (!date) return "";
+    return moment(date).format("DD/MM/YYYY");
   };
 
-  const formatUserInfo = (user?: {id: string; fullName: string; email: string}) => {
-    if (!user) return '';
+  const formatUserInfo = (user?: {
+    id: string;
+    fullName: string;
+    email: string;
+  }) => {
+    if (!user) return "";
     return `${user.fullName} (${user.email})`;
   };
 
@@ -230,6 +258,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
         </Button>,
       ]}
     >
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"
@@ -243,7 +272,9 @@ const CreateModal: React.FC<CreateModalProps> = ({
         <Form.Item
           name="healthCheckResultId"
           label="Health Check Result"
-          rules={[{ required: true, message: "Please select a health check result" }]}
+          rules={[
+            { required: true, message: "Please select a health check result" },
+          ]}
         >
           <Select
             showSearch
@@ -258,7 +289,9 @@ const CreateModal: React.FC<CreateModalProps> = ({
             }
             options={healthCheckResultOptions.map((hcr) => ({
               value: hcr.id,
-              label: `${hcr.healthCheckResultCode} (${formatDate(hcr.checkupDate)}) - ${formatUserInfo(hcr.user)} - ${hcr.status}`,
+              label: `${hcr.healthCheckResultCode} (${formatDate(
+                hcr.checkupDate
+              )}) - ${formatUserInfo(hcr.user)} - ${hcr.status}`,
             }))}
             notFoundContent={
               loadingHealthCheckResults ? (
@@ -292,7 +325,9 @@ const CreateModal: React.FC<CreateModalProps> = ({
               {fields.map(({ key, name, ...restField }) => (
                 <div key={key} className="mb-4 border p-4 rounded">
                   <div className="flex justify-between mb-2">
-                    <Typography.Text strong>Medication #{key + 1}</Typography.Text>
+                    <Typography.Text strong>
+                      Medication #{key + 1}
+                    </Typography.Text>
                     {fields.length > 1 && (
                       <Button
                         type="text"
@@ -309,7 +344,9 @@ const CreateModal: React.FC<CreateModalProps> = ({
                     {...restField}
                     name={[name, "drugId"]}
                     label="Medicine"
-                    rules={[{ required: true, message: "Please select a medicine" }]}
+                    rules={[
+                      { required: true, message: "Please select a medicine" },
+                    ]}
                   >
                     <Select
                       showSearch
@@ -340,18 +377,29 @@ const CreateModal: React.FC<CreateModalProps> = ({
                     {...restField}
                     name={[name, "quantity"]}
                     label="Quantity"
-                    rules={[{ required: true, message: "Please enter quantity" }]}
+                    rules={[
+                      { required: true, message: "Please enter quantity" },
+                    ]}
                   >
-                    <InputNumber min={1} placeholder="Quantity" style={{ width: "100%" }} />
+                    <InputNumber
+                      min={1}
+                      placeholder="Quantity"
+                      style={{ width: "100%" }}
+                    />
                   </Form.Item>
 
                   <Form.Item
                     {...restField}
                     name={[name, "instructions"]}
                     label="Instructions"
-                    rules={[{ required: true, message: "Please enter instructions" }]}
+                    rules={[
+                      { required: true, message: "Please enter instructions" },
+                    ]}
                   >
-                    <TextArea rows={2} placeholder="Instructions for taking this medicine" />
+                    <TextArea
+                      rows={2}
+                      placeholder="Instructions for taking this medicine"
+                    />
                   </Form.Item>
                 </div>
               ))}
