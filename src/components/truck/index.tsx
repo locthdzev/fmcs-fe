@@ -1083,7 +1083,7 @@ export function Trucks() {
             </AntButton>
           </span>
           <TrucksIcon />
-          <h3 className="text-xl font-bold">Truck Management</h3>
+          <h3 className="text-xl font-bold">Delivery Truck Management</h3>
         </div>
       </div>
 

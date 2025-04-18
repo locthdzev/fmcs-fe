@@ -122,7 +122,6 @@ const INITIAL_VISIBLE_COLUMNS = [
   "drugGroup",
   "unit",
   "price",
-  "manufacturer",
   "createdAt",
   "status",
   "actions",
