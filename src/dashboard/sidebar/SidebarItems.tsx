@@ -20,21 +20,193 @@ const style = {
   submenuIcon: "mr-3 text-lg",
 };
 
+// Danh sách route được phép cho từng vai trò
+const roleRoutes = {
+  Admin: [
+    "/home",
+    "/statistics/user",
+    "/statistics/treatment-plan",
+    "/statistics/drug",
+    "/statistics/survey",
+    "/user",
+    "/drug",
+    "/drug-group",
+    "/drug-order",
+    "/drug-supplier",
+    "/batch-number",
+    "/inventory-record",
+    "/inventory-record/history",
+    "/appointment",
+    "/survey",
+    "/health-check-result",
+    "/health-check-result/pending",
+    "/health-check-result/follow-up",
+    "/health-check-result/no-follow-up",
+    "/health-check-result/adjustment",
+    "/health-check-result/soft-deleted",
+    "/health-check-result/history",
+    "/prescription",
+    "/prescription/history",
+    "/treatment-plan",
+    "/treatment-plan/history",
+    "/periodic-health-checkup",
+    "/health-insurance",
+    "/health-insurance/initial",
+    "/health-insurance/expired-update",
+    "/health-insurance/soft-deleted",
+    "/health-insurance/verification",
+    "/health-insurance/no-insurance",
+    "/health-insurance/update-requests",
+    "/health-insurance/history",
+    "/shift",
+    "/schedule",
+    "/notification",
+    "/canteen-item",
+    "/canteen-order",
+    "/delivery-truck",
+    "/schedule-appointment",
+    "/my-appointment",
+    "/my-health-check",
+    "/my-health-insurance",
+    "/settings",
+    "/documentation",
+  ],
+  Manager: [
+    "/home",
+    "/statistics/user",
+    "/statistics/treatment-plan",
+    "/statistics/drug",
+    "/statistics/survey",
+    "/user",
+    "/drug",
+    "/drug-group",
+    "/drug-order",
+    "/drug-supplier",
+    "/batch-number",
+    "/inventory-record",
+    "/inventory-record/history",
+    "/appointment",
+    "/survey",
+    "/health-check-result",
+    "/health-check-result/pending",
+    "/health-check-result/follow-up",
+    "/health-check-result/no-follow-up",
+    "/health-check-result/adjustment",
+    "/health-check-result/soft-deleted",
+    "/health-check-result/history",
+    "/prescription",
+    "/prescription/history",
+    "/treatment-plan",
+    "/treatment-plan/history",
+    "/periodic-health-checkup",
+    "/health-insurance",
+    "/health-insurance/initial",
+    "/health-insurance/expired-update",
+    "/health-insurance/soft-deleted",
+    "/health-insurance/verification",
+    "/health-insurance/no-insurance",
+    "/health-insurance/update-requests",
+    "/health-insurance/history",
+    "/shift",
+    "/schedule",
+    "/notification",
+    "/canteen-item",
+    "/canteen-order",
+    "/delivery-truck",
+    "/schedule-appointment",
+    "/my-appointment",
+    "/my-health-check",
+    "/my-health-insurance",
+    "/settings",
+    "/documentation",
+  ],
+  "Healthcare Staff": [
+    "/home",
+    "/statistics/treatment-plan",
+    "/statistics/drug",
+    "/drug",
+    "/drug-group",
+    "/drug-order",
+    "/drug-supplier",
+    "/batch-number",
+    "/inventory-record",
+    "/inventory-record/history",
+    "/health-check-result",
+    "/health-check-result/pending",
+    "/health-check-result/follow-up",
+    "/health-check-result/no-follow-up",
+    "/health-check-result/adjustment",
+    "/health-check-result/soft-deleted",
+    "/health-check-result/history",
+    "/prescription",
+    "/prescription/history",
+    "/treatment-plan",
+    "/treatment-plan/history",
+    "/periodic-health-checkup",
+    "/health-insurance",
+    "/health-insurance/initial",
+    "/health-insurance/expired-update",
+    "/health-insurance/soft-deleted",
+    "/health-insurance/verification",
+    "/health-insurance/no-insurance",
+    "/health-insurance/update-requests",
+    "/health-insurance/history",
+    "/notification",
+    "/canteen-item",
+    "/canteen-order",
+    "/delivery-truck",
+    "/schedule-appointment",
+    "/my-assigned-appointment",
+    "/my-appointment",
+    "/my-assigned-survey",
+    "/my-health-check",
+    "/my-periodic-checkup",
+    "/my-health-insurance",
+    "/my-schedule",
+    "/settings",
+    "/documentation",
+  ],
+  "Canteen Staff": [
+    "/home",
+    "/canteen-item",
+    "/canteen-order",
+    "/delivery-truck",
+    "/settings",
+    "/documentation",
+  ],
+  User: [
+    "/home",
+    "/schedule-appointment",
+    "/my-appointment",
+    "/my-submitted-survey",
+    "/my-health-check",
+    "/my-periodic-checkup",
+    "/my-health-insurance",
+    "/settings",
+    "/documentation",
+  ],
+};
+
 export function SidebarItems() {
   const { pathname } = useRouter();
   const { sidebarOpen } = useDashboardContext();
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const [submenuPosition, setSubmenuPosition] = useState({ top: 0, left: 0 });
   const userContext = useContext(UserContext);
-  
-  // Get user roles and check if admin
-  const userRoles = userContext?.user?.role || [];
-  const isAdmin = Array.isArray(userRoles) ? userRoles.includes("Admin") : userRoles === "Admin";
-  const isHealthcareStaff = Array.isArray(userRoles) ? userRoles.includes("Healthcare Staff") : userRoles === "Healthcare Staff";
 
+  // Get user roles, đảm bảo luôn là mảng
+  const userRoles = Array.isArray(userContext?.user?.role)
+    ? userContext.user.role
+    : typeof userContext?.user?.role === "string"
+    ? [userContext.user.role]
+    : [];
   console.log("User roles in sidebar:", userRoles);
-  console.log("Is admin:", isAdmin);
-  console.log("Is healthcare staff:", isHealthcareStaff);
+
+  // Nếu chưa đăng nhập hoặc không có vai trò, không render sidebar
+  if (!userContext?.user?.auth || userRoles.length === 0) {
+    console.log("User not authenticated or no roles, skipping sidebar render");
+    return null;
+  }
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -50,63 +222,43 @@ export function SidebarItems() {
     setOpenSubmenu(null);
   };
 
-  // Filter items based on user role
+  // Hàm kiểm tra xem route có được phép hiển thị cho vai trò hiện tại không
+  const isRouteAllowed = (link: string) => {
+    return userRoles.some((role) =>
+      roleRoutes[role as keyof typeof roleRoutes]?.includes(link)
+    );
+  };
+
+  // Hàm lọc submenu để chỉ hiển thị các mục được phép
+  const filterSubmenu = (submenu: any[]) => {
+    return submenu.filter((subItem) => isRouteAllowed(subItem.link));
+  };
+
+  // Hàm lọc items dựa trên vai trò
   const filterItemsByRole = (groupTitle: string, item: any) => {
-    // Show Home, My Insurance, and My Health Check Results in Main group for all users
-    if (groupTitle === "Main" && (item.title === "Home" || item.title === "My Insurance" || item.title === "My Health Check Results")) {
-      return true;
-    }
-    
-    // Show My Schedule only for healthcare staff
-    if (groupTitle === "Main" && item.title === "My Schedule") {
-      return isHealthcareStaff;
+    // Nếu item có submenu, kiểm tra xem có subitem nào được phép không
+    if (item.submenu) {
+      const allowedSubmenu = filterSubmenu(item.submenu);
+      return allowedSubmenu.length > 0;
     }
 
-    // Show My Survey only for normal users
-    if (groupTitle === "Main" && item.title === "My Survey") {
-      // Check if user only has the User role and no other roles
-      const isOnlyUser = Array.isArray(userRoles) 
-        ? userRoles.length === 1 && userRoles.includes("User") 
-        : userRoles === "User";
-      return isOnlyUser;
-    }
-    
-    // Show Staff's Survey only for healthcare staff
-    if (groupTitle === "Main" && item.title === "Staff's Survey") {
-      return isHealthcareStaff;
-    }
-    
-    // Always show items in Others group
-    if (groupTitle === "Others") {
-      return true;
-    }
-    
-    // Show Survey Management only for admin in Management group
-    if (groupTitle === "Management" && item.title === "Survey Management") {
-      return isAdmin;
-    }
-    
-    // For other Management group items, only show to admin
-    if (groupTitle === "Management") {
-      return isAdmin;
-    }
-    
-    return isAdmin;
+    // Nếu item không có submenu, kiểm tra trực tiếp link
+    return isRouteAllowed(item.link);
   };
 
   return (
     <ul className="md:pl-3">
       {data.map((group) => {
         // Filter items based on role
-        const filteredItems = group.items.filter(item => 
+        const filteredItems = group.items.filter((item) =>
           filterItemsByRole(group.groupTitle, item)
         );
-        
+
         // Skip rendering this group if it has no visible items
         if (filteredItems.length === 0) {
           return null;
         }
-        
+
         return (
           <li key={group.groupTitle}>
             <h3
@@ -175,7 +327,7 @@ export function SidebarItems() {
                         : {}
                     }
                   >
-                    {item.submenu.map((subItem) => (
+                    {filterSubmenu(item.submenu).map((subItem) => (
                       <li key={subItem.title}>
                         <Link href={subItem.link}>
                           <span

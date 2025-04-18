@@ -36,6 +36,7 @@ export const data = [
     groupTitle: "Main",
     items: [
       { title: "Home", icon: <HomeIcon />, link: "/home" },
+
       {
         title: "Statistics",
         icon: <StatusIcon />,
@@ -68,6 +69,7 @@ export const data = [
     groupTitle: "Management",
     items: [
       { title: "Users", icon: <UsersIcon />, link: "/user" },
+
       {
         title: "Drugs",
         icon: <DrugIcon />,
@@ -95,6 +97,7 @@ export const data = [
           },
         ],
       },
+
       {
         title: "Inventories",
         icon: <InventoriesIcon />,
@@ -111,16 +114,19 @@ export const data = [
           },
         ],
       },
+
       {
         title: "Appointments",
         icon: <AppointmentIcon />,
         link: "/appointment",
       },
+
       {
         title: "Surveys",
         icon: <SurveyManagementIcon />,
         link: "/survey",
       },
+
       {
         title: "Health Check Results",
         icon: <PeriodicHealthCheckupsIcon />,
@@ -162,6 +168,7 @@ export const data = [
           },
         ],
       },
+
       {
         title: "Prescriptions",
         icon: <DrugIcon />,
@@ -178,6 +185,7 @@ export const data = [
           },
         ],
       },
+
       {
         title: "Treatment Plans",
         icon: <HealthIcon />,
@@ -194,11 +202,13 @@ export const data = [
           },
         ],
       },
+
       {
         title: "Periodic Checkups",
         icon: <PeriodicHealthCheckupsIcon />,
         link: "/periodic-health-checkup",
       },
+
       {
         title: "Health Insurance",
         icon: <HealthInsuranceIcon />,
@@ -245,6 +255,7 @@ export const data = [
           },
         ],
       },
+
       {
         title: "Schedules",
         icon: <ScheduleIcon />,
@@ -263,8 +274,9 @@ export const data = [
         icon: <NotificationIcon />,
         link: "/notification",
       },
+
       {
-        title: "Canteen Management",
+        title: "Canteens",
         icon: <CanteenIcon />,
         submenu: [
           {
@@ -294,41 +306,49 @@ export const data = [
         icon: <AppointmentIcon />,
         link: "/schedule-appointment",
       },
+
       {
-        title: "My Scheduled Appointment",
+        title: "My Assigned Appointment",
         icon: <AppointmentIcon />,
-        link: "/my-scheduled-appointment",
+        link: "/my-assigned-appointment",
       },
+
       {
         title: "My Appointment",
         icon: <AppointmentIcon />,
         link: "/my-appointment",
       },
+
       {
         title: "My Submitted Surveys",
         icon: <SurveyForUserIcon />,
         link: "/my-submitted-survey",
       },
+
       {
         title: "My Assigned Surveys",
         icon: <SurveyForStaffIcon />,
         link: "/my-assigned-survey",
       },
+
       {
         title: "My Health Check Results",
         icon: <PeriodicHealthCheckupsIcon />,
         link: "/my-health-check",
       },
+
       {
         title: "My Periodic Checkups",
         icon: <PeriodicHealthCheckupsIcon />,
         link: "/my-periodic-checkup",
       },
+
       {
         title: "My Insurance",
         icon: <HealthIcon />,
         link: "/my-health-insurance",
       },
+
       { title: "My Schedule", icon: <ScheduleIcon />, link: "/my-schedule" },
     ],
   },
@@ -336,6 +356,7 @@ export const data = [
     groupTitle: "Others",
     items: [
       { title: "Settings", icon: <SettingsIcon />, link: "/settings" },
+
       { title: "Documentation", icon: <DocIcon />, link: "/documentation" },
     ],
   },
