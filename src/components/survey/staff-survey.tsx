@@ -433,8 +433,7 @@ export const SurveyList: React.FC<SurveyListProps> = ({ userId, onSelectSurvey }
     if (onSelectSurvey) {
       onSelectSurvey(id);
     } else {
-      // Always pass readOnly=true for healthcare staff
-      router.push(`/survey/details/${id}?readOnly=true`);
+      router.push(`/my-assigned-survey/${id}`);
     }
   };
 

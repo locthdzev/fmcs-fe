@@ -325,7 +325,7 @@ export const SurveyManagement: React.FC<SurveyManagementProps> = () => {
   }, []);
 
   const handleViewDetail = (surveyId: string) => {
-    router.push(`/survey/details/${surveyId}?from=management`);
+    router.push(`/survey/${surveyId}`);
   };
 
   const handleEditInNewPage = (surveyId: string) => {

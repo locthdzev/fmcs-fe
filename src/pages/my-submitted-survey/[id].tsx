@@ -4,12 +4,12 @@ import { useRouter } from "next/router";
 import { getSurveyById, SurveyResponse } from "@/api/survey";
 import { Survey } from "@/components/survey/my-survey";
 import { Spin, Result, Button, Typography, notification } from "antd";
-import { ArrowLeftOutlined, ExclamationCircleOutlined, LoadingOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, LoadingOutlined } from "@ant-design/icons";
 import { UserContext } from "@/context/UserContext";
 
 const { Title, Text } = Typography;
 
-export default function SurveyDetailsPage() {
+export default function UserSubmittedSurveyDetailsPage() {
   const router = useRouter();
   const { id } = router.query;
   const [loading, setLoading] = useState(true);
@@ -24,14 +24,7 @@ export default function SurveyDetailsPage() {
   }, [id]);
 
   const handleBackClick = () => {
-    // Return to the appropriate page based on user role
-    if (userContext?.user?.role.includes("Admin") || userContext?.user?.role.includes("Manager")) {
-      router.push("/survey");
-    } else if (userContext?.user?.role.includes("Healthcare Staff")) {
-      router.push("/my-assigned-survey");
-    } else {
-      router.push("/my-submitted-survey");
-    }
+    router.push("/my-submitted-survey");
   };
 
   const handleSurveyDetails = async () => {
@@ -68,23 +61,23 @@ export default function SurveyDetailsPage() {
     }
   };
 
-  // Determine if current user is admin/manager viewing the survey
-  const isAdminOrManager = userContext?.user?.role?.includes("Admin") || userContext?.user?.role?.includes("Manager");
-  // Set readOnly to true when admin/manager is viewing
-  const isReadOnly = isAdminOrManager;
+  // Check if current user is the survey owner
+  const isCurrentUserSurveyOwner = survey && userContext?.user?.userId === survey.user.id;
+  // Allow editing if it's the user's own survey
+  const isReadOnly = !isCurrentUserSurveyOwner;
 
   const backButton = (
     <Button
       icon={<ArrowLeftOutlined />}
       onClick={handleBackClick}
     >
-      Back to Survey Management
+      Back to My Surveys
     </Button>
   );
 
   return (
-    <PageContainer 
-      title="Survey Details" 
+    <PageContainer
+      title="My Survey Details"
       onBack={handleBackClick}
       rightContent={backButton}
     >
@@ -100,7 +93,7 @@ export default function SurveyDetailsPage() {
           subTitle={error || "Invalid or non-existent survey ID."}
           extra={
             <Button type="primary" onClick={handleBackClick}>
-              Back to Survey List
+              Back to My Surveys
             </Button>
           }
         />
@@ -113,11 +106,11 @@ export default function SurveyDetailsPage() {
           subTitle="Could not load survey data"
           extra={
             <Button type="primary" onClick={handleBackClick}>
-              Back to Survey List
+              Back to My Surveys
             </Button>
           }
         />
       )}
     </PageContainer>
   );
-}
+} 

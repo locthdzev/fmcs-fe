@@ -417,8 +417,8 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
             cancelText="No"
           >
             <Button
-              type="primary"
               icon={<CheckCircleOutlined />}
+              style={{ color: "#52c41a", borderColor: "#52c41a" }}
               loading={statusChangeLoading}
             >
               Activate
