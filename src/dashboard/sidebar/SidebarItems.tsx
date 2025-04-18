@@ -210,16 +210,30 @@ export function SidebarItems() {
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const handleMouseEnter = (title: string, event: React.MouseEvent) => {
+  const handleMenuInteraction = (title: string, event: React.MouseEvent) => {
+    if (!sidebarOpen) {
+      // When sidebar is collapsed, still use hover behavior
+      const rect = event.currentTarget.getBoundingClientRect();
+      setSubmenuPosition({ top: rect.top, left: rect.right });
+      setOpenSubmenu(title);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (!sidebarOpen) {
+      // Only close on mouse leave when sidebar is collapsed
+      setOpenSubmenu(null);
+    }
+  };
+
+  const handleMenuClick = (title: string, event: React.MouseEvent) => {
+    // Toggle submenu on click
+    setOpenSubmenu(prev => prev === title ? null : title);
+    
     if (!sidebarOpen) {
       const rect = event.currentTarget.getBoundingClientRect();
       setSubmenuPosition({ top: rect.top, left: rect.right });
     }
-    setOpenSubmenu(title);
-  };
-
-  const handleMouseLeave = () => {
-    setOpenSubmenu(null);
   };
 
   // Hàm kiểm tra xem route có được phép hiển thị cho vai trò hiện tại không
@@ -272,11 +286,15 @@ export function SidebarItems() {
               <div
                 key={item.title}
                 ref={openSubmenu === item.title ? dropdownRef : null}
-                onMouseEnter={(e) => handleMouseEnter(item.title, e)}
+                onMouseEnter={(e) => handleMenuInteraction(item.title, e)}
                 onMouseLeave={handleMouseLeave}
               >
                 {item.submenu ? (
-                  <div className={style.link} style={{ cursor: "pointer" }}>
+                  <div 
+                    className={style.link} 
+                    style={{ cursor: "pointer" }}
+                    onClick={(e) => handleMenuClick(item.title, e)}
+                  >
                     <div className="p-2">
                       <span>{item.icon}</span>
                     </div>

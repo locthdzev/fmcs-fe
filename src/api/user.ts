@@ -41,6 +41,7 @@ export interface UserResponseDTO {
   createdAt: string;
   updatedAt: string;
   roles: string[];
+  imageURL?: string;
 }
 
 export interface UpdateAccountsStatusRequest {
