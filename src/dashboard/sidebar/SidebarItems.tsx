@@ -190,9 +190,11 @@ const roleRoutes = {
 export function SidebarItems() {
   const { pathname } = useRouter();
   const { sidebarOpen } = useDashboardContext();
-  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+  const [openSubmenus, setOpenSubmenus] = useState<Set<string>>(new Set());
+  const [hoveredSubmenu, setHoveredSubmenu] = useState<string | null>(null);
   const [submenuPosition, setSubmenuPosition] = useState({ top: 0, left: 0 });
   const userContext = useContext(UserContext);
+  const submenuRefs = useRef<{ [key: string]: HTMLElement | null }>({});
 
   // Get user roles, đảm bảo luôn là mảng
   const userRoles = Array.isArray(userContext?.user?.role)
@@ -202,38 +204,102 @@ export function SidebarItems() {
     : [];
   console.log("User roles in sidebar:", userRoles);
 
+  // Effect to close submenu when sidebar is closed
+  useEffect(() => {
+    if (!sidebarOpen) {
+      setOpenSubmenus(new Set());
+      setHoveredSubmenu(null);
+    }
+  }, [sidebarOpen]);
+
   // Nếu chưa đăng nhập hoặc không có vai trò, không render sidebar
   if (!userContext?.user?.auth || userRoles.length === 0) {
     console.log("User not authenticated or no roles, skipping sidebar render");
     return null;
   }
 
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  // Effect to handle outside clicks
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      // Kiểm tra xem click có nằm ngoài tất cả các submenus đang mở không
+      let clickedOutside = true;
+      
+      for (const title of Array.from(openSubmenus)) {
+        if (submenuRefs.current[title] && submenuRefs.current[title]?.contains(event.target as Node)) {
+          clickedOutside = false;
+          break;
+        }
+      }
+      
+      // Nếu click nằm ngoài tất cả các submenus
+      if (clickedOutside && (openSubmenus.size > 0 || hoveredSubmenu)) {
+        // Kiểm tra xem click đó có nằm trên một menu item không (để không đóng khi click vào menu item khác)
+        const isClickOnMenuItem = (event.target as Element).closest('[data-menu-item]');
+        
+        if (!isClickOnMenuItem) {
+          setOpenSubmenus(new Set());
+          setHoveredSubmenu(null);
+        }
+      }
+    }
+
+    // Add event listener
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    // Clean up
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openSubmenus, hoveredSubmenu]);
 
   const handleMenuInteraction = (title: string, event: React.MouseEvent) => {
     if (!sidebarOpen) {
       // When sidebar is collapsed, still use hover behavior
       const rect = event.currentTarget.getBoundingClientRect();
       setSubmenuPosition({ top: rect.top, left: rect.right });
-      setOpenSubmenu(title);
+      setHoveredSubmenu(title);
     }
   };
 
   const handleMouseLeave = () => {
     if (!sidebarOpen) {
       // Only close on mouse leave when sidebar is collapsed
-      setOpenSubmenu(null);
+      setHoveredSubmenu(null);
     }
   };
 
   const handleMenuClick = (title: string, event: React.MouseEvent) => {
-    // Toggle submenu on click
-    setOpenSubmenu(prev => prev === title ? null : title);
-    
-    if (!sidebarOpen) {
+    if (sidebarOpen) {
+      // When sidebar is expanded, toggle this submenu in the Set
+      setOpenSubmenus(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(title)) {
+          newSet.delete(title);
+        } else {
+          newSet.add(title);
+        }
+        return newSet;
+      });
+    } else {
+      // When sidebar is collapsed
       const rect = event.currentTarget.getBoundingClientRect();
       setSubmenuPosition({ top: rect.top, left: rect.right });
+      setHoveredSubmenu(prev => prev === title ? null : title);
     }
+    // Ngăn chặn sự kiện lan truyền để không kích hoạt handleClickOutside
+    event.stopPropagation();
+  };
+
+  // Hàm để lưu ref cho mỗi submenu
+  const setSubmenuRef = (title: string, element: HTMLElement | null) => {
+    if (element) {
+      submenuRefs.current[title] = element;
+    }
+  };
+
+  // Check if a submenu should be shown - either it's open in expanded mode or hovered in collapsed mode
+  const isSubmenuVisible = (title: string) => {
+    return sidebarOpen ? openSubmenus.has(title) : hoveredSubmenu === title;
   };
 
   // Hàm kiểm tra xem route có được phép hiển thị cho vai trò hiện tại không
@@ -285,7 +351,7 @@ export function SidebarItems() {
             {filteredItems.map((item) => (
               <div
                 key={item.title}
-                ref={openSubmenu === item.title ? dropdownRef : null}
+                data-menu-item={item.title}
                 onMouseEnter={(e) => handleMenuInteraction(item.title, e)}
                 onMouseLeave={handleMouseLeave}
               >
@@ -294,6 +360,7 @@ export function SidebarItems() {
                     className={style.link} 
                     style={{ cursor: "pointer" }}
                     onClick={(e) => handleMenuClick(item.title, e)}
+                    data-menu-item={item.title}
                   >
                     <div className="p-2">
                       <span>{item.icon}</span>
@@ -307,7 +374,7 @@ export function SidebarItems() {
                     </span>
                     <IoIosArrowDown
                       className={`ml-auto transform transition-transform duration-200 ${
-                        openSubmenu === item.title ? "rotate-180" : ""
+                        isSubmenuVisible(item.title) ? "rotate-180" : ""
                       }`}
                     />
                   </div>
@@ -331,7 +398,7 @@ export function SidebarItems() {
                     </span>
                   </Link>
                 )}
-                {item.submenu && openSubmenu === item.title && (
+                {item.submenu && isSubmenuVisible(item.title) && (
                   <ul
                     className={`${
                       sidebarOpen ? style.submenuOpen : style.submenuClose
@@ -344,6 +411,9 @@ export function SidebarItems() {
                           }
                         : {}
                     }
+                    ref={(el) => {
+                      if (el) submenuRefs.current[item.title] = el;
+                    }}
                   >
                     {filterSubmenu(item.submenu).map((subItem) => (
                       <li key={subItem.title}>
