@@ -2,14 +2,14 @@ import React, { useContext, useEffect, useState } from "react";
 import PageContainer from "@/components/shared/PageContainer";
 import { useRouter } from "next/router";
 import { getSurveyById, SurveyResponse } from "@/api/survey";
-import { Survey } from "@/components/survey/my-survey";
+import { Survey } from "@/components/survey/staff-survey";
 import { Spin, Result, Button, Typography, notification } from "antd";
-import { ArrowLeftOutlined, ExclamationCircleOutlined, LoadingOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, LoadingOutlined } from "@ant-design/icons";
 import { UserContext } from "@/context/UserContext";
 
 const { Title, Text } = Typography;
 
-export default function SurveyDetailsPage() {
+export default function StaffAssignedSurveyDetailsPage() {
   const router = useRouter();
   const { id } = router.query;
   const [loading, setLoading] = useState(true);
@@ -24,14 +24,7 @@ export default function SurveyDetailsPage() {
   }, [id]);
 
   const handleBackClick = () => {
-    // Return to the appropriate page based on user role
-    if (userContext?.user?.role.includes("Admin") || userContext?.user?.role.includes("Manager")) {
-      router.push("/survey");
-    } else if (userContext?.user?.role.includes("Healthcare Staff")) {
-      router.push("/my-assigned-survey");
-    } else {
-      router.push("/my-submitted-survey");
-    }
+    router.push("/my-assigned-survey");
   };
 
   const handleSurveyDetails = async () => {
@@ -68,39 +61,37 @@ export default function SurveyDetailsPage() {
     }
   };
 
-  // Determine if current user is admin/manager viewing the survey
-  const isAdminOrManager = userContext?.user?.role?.includes("Admin") || userContext?.user?.role?.includes("Manager");
-  // Set readOnly to true when admin/manager is viewing
-  const isReadOnly = isAdminOrManager;
+  // For staff surveys, always set readOnly to true
+  const isReadOnly = true;
 
   const backButton = (
     <Button
       icon={<ArrowLeftOutlined />}
       onClick={handleBackClick}
     >
-      Back to Survey Management
+      Back to Feedback List
     </Button>
   );
 
   return (
-    <PageContainer 
-      title="Survey Details" 
+    <PageContainer
+      title="Patient Feedback Details"
       onBack={handleBackClick}
       rightContent={backButton}
     >
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Spin indicator={<LoadingOutlined style={{ fontSize: 40 }} spin />} />
-          <p className="ml-2 mt-4">Loading survey data...</p>
+          <p className="ml-2 mt-4">Loading feedback data...</p>
         </div>
       ) : error ? (
         <Result
           status="404"
-          title="Survey Not Found"
+          title="Feedback Not Found"
           subTitle={error || "Invalid or non-existent survey ID."}
           extra={
             <Button type="primary" onClick={handleBackClick}>
-              Back to Survey List
+              Back to Feedback List
             </Button>
           }
         />
@@ -110,14 +101,14 @@ export default function SurveyDetailsPage() {
         <Result
           status="warning"
           title="No Data"
-          subTitle="Could not load survey data"
+          subTitle="Could not load feedback data"
           extra={
             <Button type="primary" onClick={handleBackClick}>
-              Back to Survey List
+              Back to Feedback List
             </Button>
           }
         />
       )}
     </PageContainer>
   );
-}
+} 

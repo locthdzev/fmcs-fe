@@ -84,15 +84,11 @@ export const Survey: React.FC<SurveyProps> = ({ id, onSuccess, readOnly = false 
       return;
     }
     
-    console.log("Form values received:", JSON.stringify(values));
-    console.log("Current Survey ID:", surveyId);
-    
     setSaving(true);
     try {
       // Ensure rating is a valid integer
       let ratingValue = parseInt(values.rating);
       if (isNaN(ratingValue) || ratingValue < 1 || ratingValue > 5) {
-        console.error("Invalid rating value from form:", values.rating);
         notification.error({
           message: 'Error',
           description: 'Please select a valid rating from 1 to 5',
@@ -108,52 +104,38 @@ export const Survey: React.FC<SurveyProps> = ({ id, onSuccess, readOnly = false 
         status: "Submitted"
       };
       
-      console.log("Prepared updateData:", JSON.stringify(updateData));
-      console.log(`Attempting to update survey with ID: ${surveyId}`);
-      
       const response = await updateSurvey(surveyId, updateData);
-      
-      console.log("API update response received:", response);
       
       if (response.isSuccess) {
         notification.success({
           message: 'Success',
-          description: 'Survey updated successfully',
+          description: 'Thank you for your feedback!',
           icon: <CheckCircleFilled style={{ color: '#52c41a' }} />,
         });
         
-        // Reload current survey data without checking other surveys
+        // Reload current survey data
         fetchSurveyData();
         
-        // Only update survey status after all other tasks are completed
-        // and only call once
+        // Only update survey status after success
         if (onSuccess) {
           onSuccess();
         }
         
-        // Update survey status in context after completing all other tasks
-        // and use a longer timeout to avoid loops
+        // Cập nhật context sau khi thành công
         if (surveyRequiredContext) {
-          setTimeout(() => {
-            surveyRequiredContext.checkPendingSurveys();
-          }, 1000);
+          surveyRequiredContext.checkPendingSurveys();
         }
       } else {
-        console.error("API update failed:", response.message);
         notification.error({
           message: 'Error',
           description: response.message || 'Could not update survey',
         });
       }
     } catch (error: any) {
-      console.error("handleSubmit Error caught:", error);
-      console.error("Error details (if available):", error.response?.data);
-      
-      // Display detailed error message
       let errorMsg = 'Could not update survey';
       if (error.response?.data?.message) {
         errorMsg = error.response.data.message;
-      } else if (error.response?.data?.title) { // Check for ASP.NET Core validation error title
+      } else if (error.response?.data?.title) {
         errorMsg = error.response.data.title;
       } else if (error.message) {
         errorMsg = error.message;
@@ -662,7 +644,7 @@ export const SurveyList: React.FC<SurveyListProps> = ({ userId, onSelectSurvey }
     if (onSelectSurvey) {
       onSelectSurvey(id);
     } else {
-      router.push(`/survey/details/${id}`);
+      router.push(`/my-submitted-survey/${id}`);
     }
   };
 
