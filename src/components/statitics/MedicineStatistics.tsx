@@ -77,7 +77,8 @@ import {
   AppstoreOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { StatisticsofalldrugsIcon } from "@/dashboard/sidebar/icons/Statisticsofalldrugs";
 import PaginationFooter from "../shared/PaginationFooter";
 
@@ -238,103 +239,254 @@ export function DrugStatistics() {
       }
       
       // Create workbook and worksheet
-      const workbook = XLSX.utils.book_new();
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "FMCS";
+      workbook.created = new Date();
       
       // Create summary sheet
-      const summaryData = [
-        { Metric: 'Total Drugs', Value: dataToExport.totalDrugs || 0 },
-        { Metric: 'Active Drugs', Value: dataToExport.drugsStatusDistribution?.Active || 0 },
-        { Metric: 'Drug Groups', Value: dataToExport.totalDrugGroups || 0 },
-        { Metric: 'Total Suppliers', Value: dataToExport.totalSuppliers || 0 },
-        { Metric: 'Total Orders', Value: dataToExport.totalDrugOrders || 0 },
-        { Metric: 'Total Order Value', Value: dataToExport.totalOrderValue || 0 },
-        { Metric: 'Total Batches', Value: dataToExport.totalBatchNumbers || 0 },
-        { Metric: 'Expired Batches', Value: dataToExport.totalExpiredBatches || 0 },
-        { Metric: 'Near Expiry Batches', Value: dataToExport.totalNearExpiryBatches || 0 },
-        { Metric: 'Total Inventory Value', Value: dataToExport.totalInventoryValue || 0 },
+      const summarySheet = workbook.addWorksheet('Summary');
+      summarySheet.columns = [
+        { header: 'Metric', key: 'metric', width: 25 },
+        { header: 'Value', key: 'value', width: 15 }
       ];
-      const summarySheet = XLSX.utils.json_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+      
+      // Format header
+      summarySheet.getRow(1).font = { bold: true };
+      summarySheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      summarySheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      
+      // Add summary data
+      const summaryData = [
+        { metric: 'Total Drugs', value: dataToExport.totalDrugs || 0 },
+        { metric: 'Active Drugs', value: dataToExport.drugsStatusDistribution?.Active || 0 },
+        { metric: 'Drug Groups', value: dataToExport.totalDrugGroups || 0 },
+        { metric: 'Total Suppliers', value: dataToExport.totalSuppliers || 0 },
+        { metric: 'Total Orders', value: dataToExport.totalDrugOrders || 0 },
+        { metric: 'Total Order Value', value: dataToExport.totalOrderValue || 0 },
+        { metric: 'Total Batches', value: dataToExport.totalBatchNumbers || 0 },
+        { metric: 'Expired Batches', value: dataToExport.totalExpiredBatches || 0 },
+        { metric: 'Near Expiry Batches', value: dataToExport.totalNearExpiryBatches || 0 },
+        { metric: 'Total Inventory Value', value: dataToExport.totalInventoryValue || 0 },
+      ];
+      
+      summaryData.forEach(item => {
+        summarySheet.addRow({ metric: item.metric, value: item.value });
+      });
       
       // Create status distribution sheet
-      const statusData = Object.entries(dataToExport.drugsStatusDistribution || {}).map(([status, count]) => ({
-        Status: status,
-        Count: count
-      }));
-      const statusSheet = XLSX.utils.json_to_sheet(statusData);
-      XLSX.utils.book_append_sheet(workbook, statusSheet, 'Status Distribution');
+      const statusSheet = workbook.addWorksheet('Status Distribution');
+      statusSheet.columns = [
+        { header: 'Status', key: 'status', width: 20 },
+        { header: 'Count', key: 'count', width: 15 }
+      ];
+      
+      // Format header
+      statusSheet.getRow(1).font = { bold: true };
+      statusSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      statusSheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      
+      // Add status data
+      Object.entries(dataToExport.drugsStatusDistribution || {}).forEach(([status, count]) => {
+        statusSheet.addRow({ status, count });
+      });
       
       // Create drug group distribution sheet
-      const drugGroupData = Object.entries(dataToExport.drugsByDrugGroup || {}).map(([group, count]) => ({
-        'Drug Group': group,
-        Count: count
-      }));
-      const drugGroupSheet = XLSX.utils.json_to_sheet(drugGroupData);
-      XLSX.utils.book_append_sheet(workbook, drugGroupSheet, 'Drug Group Distribution');
+      const drugGroupSheet = workbook.addWorksheet('Drug Group Distribution');
+      drugGroupSheet.columns = [
+        { header: 'Drug Group', key: 'drugGroup', width: 30 },
+        { header: 'Count', key: 'count', width: 15 }
+      ];
+      
+      // Format header
+      drugGroupSheet.getRow(1).font = { bold: true };
+      drugGroupSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      drugGroupSheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      
+      // Add drug group data
+      Object.entries(dataToExport.drugsByDrugGroup || {}).forEach(([group, count]) => {
+        drugGroupSheet.addRow({ drugGroup: group, count });
+      });
       
       // Create manufacturer distribution sheet
-      const manufacturerData = Object.entries(dataToExport.drugsByManufacturer || {}).map(([manufacturer, count]) => ({
-        Manufacturer: manufacturer,
-        Count: count
-      }));
-      const manufacturerSheet = XLSX.utils.json_to_sheet(manufacturerData);
-      XLSX.utils.book_append_sheet(workbook, manufacturerSheet, 'Manufacturer Distribution');
+      const manufacturerSheet = workbook.addWorksheet('Manufacturer Distribution');
+      manufacturerSheet.columns = [
+        { header: 'Manufacturer', key: 'manufacturer', width: 30 },
+        { header: 'Count', key: 'count', width: 15 }
+      ];
+      
+      // Format header
+      manufacturerSheet.getRow(1).font = { bold: true };
+      manufacturerSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      manufacturerSheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      
+      // Add manufacturer data
+      Object.entries(dataToExport.drugsByManufacturer || {}).forEach(([manufacturer, count]) => {
+        manufacturerSheet.addRow({ manufacturer, count });
+      });
       
       // Create monthly creation sheet
-      const monthlyData = Object.entries(dataToExport.drugsMonthlyCreation || {}).map(([month, count]) => ({
-        Month: month,
-        Count: count
-      }));
-      const monthlySheet = XLSX.utils.json_to_sheet(monthlyData);
-      XLSX.utils.book_append_sheet(workbook, monthlySheet, 'Monthly Creation');
+      const monthlySheet = workbook.addWorksheet('Monthly Creation');
+      monthlySheet.columns = [
+        { header: 'Month', key: 'month', width: 20 },
+        { header: 'Count', key: 'count', width: 15 }
+      ];
+      
+      // Format header
+      monthlySheet.getRow(1).font = { bold: true };
+      monthlySheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      monthlySheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      
+      // Add monthly data
+      Object.entries(dataToExport.drugsMonthlyCreation || {}).forEach(([month, count]) => {
+        monthlySheet.addRow({ month, count });
+      });
       
       // Create price distribution sheet
-      const priceData = Object.entries(dataToExport.priceDistribution || {}).map(([range, count]) => ({
-        'Price Range': range,
-        Count: count
-      }));
-      const priceSheet = XLSX.utils.json_to_sheet(priceData);
-      XLSX.utils.book_append_sheet(workbook, priceSheet, 'Price Distribution');
+      const priceSheet = workbook.addWorksheet('Price Distribution');
+      priceSheet.columns = [
+        { header: 'Price Range', key: 'priceRange', width: 20 },
+        { header: 'Count', key: 'count', width: 15 }
+      ];
+      
+      // Format header
+      priceSheet.getRow(1).font = { bold: true };
+      priceSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      priceSheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      
+      // Add price data
+      Object.entries(dataToExport.priceDistribution || {}).forEach(([range, count]) => {
+        priceSheet.addRow({ priceRange: range, count });
+      });
       
       // Create supplier distribution sheet
-      const supplierData = Object.entries(dataToExport.ordersBySupplier || {}).map(([supplier, count]) => ({
-        Supplier: supplier,
-        Count: count
-      }));
-      const supplierSheet = XLSX.utils.json_to_sheet(supplierData);
-      XLSX.utils.book_append_sheet(workbook, supplierSheet, 'Supplier Distribution');
+      const supplierSheet = workbook.addWorksheet('Supplier Distribution');
+      supplierSheet.columns = [
+        { header: 'Supplier', key: 'supplier', width: 30 },
+        { header: 'Count', key: 'count', width: 15 }
+      ];
+      
+      // Format header
+      supplierSheet.getRow(1).font = { bold: true };
+      supplierSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      supplierSheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      
+      // Add supplier data
+      Object.entries(dataToExport.ordersBySupplier || {}).forEach(([supplier, count]) => {
+        supplierSheet.addRow({ supplier, count });
+      });
       
       // Create batch status sheet
-      const batchData = Object.entries(dataToExport.batchStatusDistribution || {}).map(([status, count]) => ({
-        'Batch Status': status,
-        Count: count
-      }));
-      const batchSheet = XLSX.utils.json_to_sheet(batchData);
-      XLSX.utils.book_append_sheet(workbook, batchSheet, 'Batch Status');
+      const batchSheet = workbook.addWorksheet('Batch Status');
+      batchSheet.columns = [
+        { header: 'Batch Status', key: 'batchStatus', width: 20 },
+        { header: 'Count', key: 'count', width: 15 }
+      ];
+      
+      // Format header
+      batchSheet.getRow(1).font = { bold: true };
+      batchSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      batchSheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      
+      // Add batch data
+      Object.entries(dataToExport.batchStatusDistribution || {}).forEach(([status, count]) => {
+        batchSheet.addRow({ batchStatus: status, count });
+      });
 
       // Create top priced drugs sheet
-      const topDrugsData = dataToExport.topPricedDrugs?.map(drug => ({
-        'Drug Name': drug.name,
-        'Drug Code': drug.drugCode,
-        'Drug Group': drug.drugGroup?.groupName || '',
-        'Price': drug.price,
-        'Manufacturer': drug.manufacturer || '',
-        'Status': drug.status || '',
-        'Created At': dayjs(drug.createdAt).format('DD/MM/YYYY')
-      })) || [];
-      const topDrugsSheet = XLSX.utils.json_to_sheet(topDrugsData);
-      XLSX.utils.book_append_sheet(workbook, topDrugsSheet, 'Top Priced Drugs');
+      const topDrugsSheet = workbook.addWorksheet('Top Priced Drugs');
+      topDrugsSheet.columns = [
+        { header: 'Drug Name', key: 'drugName', width: 30 },
+        { header: 'Drug Code', key: 'drugCode', width: 15 },
+        { header: 'Drug Group', key: 'drugGroup', width: 20 },
+        { header: 'Price', key: 'price', width: 15 },
+        { header: 'Manufacturer', key: 'manufacturer', width: 25 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Created At', key: 'createdAt', width: 15 }
+      ];
+      
+      // Format header
+      topDrugsSheet.getRow(1).font = { bold: true };
+      topDrugsSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      topDrugsSheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      
+      // Add top drugs data
+      dataToExport.topPricedDrugs?.forEach(drug => {
+        topDrugsSheet.addRow({
+          drugName: drug.name,
+          drugCode: drug.drugCode,
+          drugGroup: drug.drugGroup?.groupName || '',
+          price: drug.price,
+          manufacturer: drug.manufacturer || '',
+          status: drug.status || '',
+          createdAt: dayjs(drug.createdAt).format('DD/MM/YYYY')
+        });
+      });
 
       // Create top drug groups sheet
-      const topGroupsData = dataToExport.topDrugGroups?.map(group => ({
-        'Group Name': group.groupName,
-        'Drug Count': group.drugCount,
-        'Description': group.description || '',
-        'Status': group.status || '',
-        'Created At': dayjs(group.createdAt).format('DD/MM/YYYY')
-      })) || [];
-      const topGroupsSheet = XLSX.utils.json_to_sheet(topGroupsData);
-      XLSX.utils.book_append_sheet(workbook, topGroupsSheet, 'Top Drug Groups');
+      const topGroupsSheet = workbook.addWorksheet('Top Drug Groups');
+      topGroupsSheet.columns = [
+        { header: 'Group Name', key: 'groupName', width: 30 },
+        { header: 'Drug Count', key: 'drugCount', width: 15 },
+        { header: 'Description', key: 'description', width: 40 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Created At', key: 'createdAt', width: 15 }
+      ];
+      
+      // Format header
+      topGroupsSheet.getRow(1).font = { bold: true };
+      topGroupsSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      topGroupsSheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      
+      // Add top groups data
+      dataToExport.topDrugGroups?.forEach(group => {
+        topGroupsSheet.addRow({
+          groupName: group.groupName,
+          drugCount: group.drugCount,
+          description: group.description || '',
+          status: group.status || '',
+          createdAt: dayjs(group.createdAt).format('DD/MM/YYYY')
+        });
+      });
       
       // Generate filename with date
       const dateStr = startDate && endDate 
@@ -343,7 +495,10 @@ export function DrugStatistics() {
       const fileName = `drug_statistics${dateStr}.xlsx`;
       
       // Export to file
-      XLSX.writeFile(workbook, fileName);
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, fileName);
+      
       messageApi.success("Tệp Excel đã được tải xuống thành công");
       setExportModalVisible(false);
     } catch (error) {

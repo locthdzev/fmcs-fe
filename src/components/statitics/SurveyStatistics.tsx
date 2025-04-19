@@ -49,7 +49,8 @@ import {
 } from 'recharts';
 import { SurveyResponse } from '@/api/survey';
 import { useRouter } from 'next/router';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import dayjs from 'dayjs';
 
 const { Title, Text, Paragraph } = Typography;
@@ -512,59 +513,114 @@ export const SurveyStatistics: React.FC<SurveyStatisticsProps> = ({ surveys, sta
         return surveyDate >= startDate && surveyDate <= endDate;
       });
 
-      // Prepare workbook with multiple sheets
-      const workbook = XLSX.utils.book_new();
+      // Create a new workbook
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'FMCS';
+      workbook.created = new Date();
       
-      // Survey Summary Sheet
-      const summaryData = [
-        { Category: 'Total Surveys', Count: filteredSurveys.length },
-        { Category: 'Pending Surveys', Count: filteredSurveys.filter(s => s.status === SURVEY_STATUS.PENDING).length },
-        { Category: 'Submitted Surveys', Count: filteredSurveys.filter(s => s.status === SURVEY_STATUS.SUBMITTED).length },
-        { Category: 'Updated Surveys', Count: filteredSurveys.filter(s => s.status === SURVEY_STATUS.UPDATED).length },
-        { Category: 'High Ratings (≥ 4)', Count: filteredSurveys.filter(s => s.rating && s.rating >= 4).length },
-        { Category: 'Low Ratings (≤ 2)', Count: filteredSurveys.filter(s => s.rating && s.rating <= 2).length },
+      // Create Summary Sheet
+      const summarySheet = workbook.addWorksheet('Summary');
+      summarySheet.columns = [
+        { header: 'Category', key: 'category', width: 25 },
+        { header: 'Count', key: 'count', width: 15 }
       ];
+      
+      // Format header row
+      summarySheet.getRow(1).font = { bold: true };
+      summarySheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      summarySheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      
+      // Add summary data
+      summarySheet.addRow({ category: 'Total Surveys', count: filteredSurveys.length });
+      summarySheet.addRow({ category: 'Pending Surveys', count: filteredSurveys.filter(s => s.status === SURVEY_STATUS.PENDING).length });
+      summarySheet.addRow({ category: 'Submitted Surveys', count: filteredSurveys.filter(s => s.status === SURVEY_STATUS.SUBMITTED).length });
+      summarySheet.addRow({ category: 'Updated Surveys', count: filteredSurveys.filter(s => s.status === SURVEY_STATUS.UPDATED).length });
+      summarySheet.addRow({ category: 'High Ratings (≥ 4)', count: filteredSurveys.filter(s => s.rating && s.rating >= 4).length });
+      summarySheet.addRow({ category: 'Low Ratings (≤ 2)', count: filteredSurveys.filter(s => s.rating && s.rating <= 2).length });
 
-      // Rating Distribution Sheet
-      const ratingData = [
-        { Rating: '1 Star', Count: filteredSurveys.filter(s => s.rating === 1).length },
-        { Rating: '2 Stars', Count: filteredSurveys.filter(s => s.rating === 2).length },
-        { Rating: '3 Stars', Count: filteredSurveys.filter(s => s.rating === 3).length },
-        { Rating: '4 Stars', Count: filteredSurveys.filter(s => s.rating === 4).length },
-        { Rating: '5 Stars', Count: filteredSurveys.filter(s => s.rating === 5).length },
+      // Create Rating Distribution Sheet
+      const ratingSheet = workbook.addWorksheet('Rating Distribution');
+      ratingSheet.columns = [
+        { header: 'Rating', key: 'rating', width: 20 },
+        { header: 'Count', key: 'count', width: 15 }
       ];
+      
+      // Format header row
+      ratingSheet.getRow(1).font = { bold: true };
+      ratingSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      ratingSheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      
+      // Add rating data
+      ratingSheet.addRow({ rating: '1 Star', count: filteredSurveys.filter(s => s.rating === 1).length });
+      ratingSheet.addRow({ rating: '2 Stars', count: filteredSurveys.filter(s => s.rating === 2).length });
+      ratingSheet.addRow({ rating: '3 Stars', count: filteredSurveys.filter(s => s.rating === 3).length });
+      ratingSheet.addRow({ rating: '4 Stars', count: filteredSurveys.filter(s => s.rating === 4).length });
+      ratingSheet.addRow({ rating: '5 Stars', count: filteredSurveys.filter(s => s.rating === 5).length });
 
-      // Status Distribution Sheet
-      const statusData = [
-        { Status: 'Pending', Count: filteredSurveys.filter(s => s.status === SURVEY_STATUS.PENDING).length },
-        { Status: 'Submitted', Count: filteredSurveys.filter(s => s.status === SURVEY_STATUS.SUBMITTED).length },
-        { Status: 'Updated', Count: filteredSurveys.filter(s => s.status === SURVEY_STATUS.UPDATED).length },
+      // Create Status Distribution Sheet
+      const statusSheet = workbook.addWorksheet('Status Distribution');
+      statusSheet.columns = [
+        { header: 'Status', key: 'status', width: 20 },
+        { header: 'Count', key: 'count', width: 15 }
       ];
+      
+      // Format header row
+      statusSheet.getRow(1).font = { bold: true };
+      statusSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      statusSheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      
+      // Add status data
+      statusSheet.addRow({ status: 'Pending', count: filteredSurveys.filter(s => s.status === SURVEY_STATUS.PENDING).length });
+      statusSheet.addRow({ status: 'Submitted', count: filteredSurveys.filter(s => s.status === SURVEY_STATUS.SUBMITTED).length });
+      statusSheet.addRow({ status: 'Updated', count: filteredSurveys.filter(s => s.status === SURVEY_STATUS.UPDATED).length });
 
-      // Detailed Surveys Sheet
-      const detailedData = filteredSurveys.map((survey, index) => ({
-        'No.': index + 1,
-        'ID': survey.id || 'N/A',
-        'Patient': survey.user?.fullName || 'N/A',
-        'Status': survey.status || 'N/A',
-        'Rating': survey.rating || 'N/A',
-        'Feedback': survey.feedback || 'N/A',
-        'Created At': survey.createdAt ? dayjs(survey.createdAt).format('YYYY-MM-DD HH:mm') : 'N/A',
-        'Updated At': survey.updatedAt ? dayjs(survey.updatedAt).format('YYYY-MM-DD HH:mm') : 'N/A',
-      }));
-
-      // Add sheets to workbook
-      const summarySheet = XLSX.utils.json_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+      // Create Detailed Surveys Sheet
+      const detailedSheet = workbook.addWorksheet('Detailed Surveys');
+      detailedSheet.columns = [
+        { header: 'No.', key: 'no', width: 5 },
+        { header: 'ID', key: 'id', width: 10 },
+        { header: 'Patient', key: 'patient', width: 25 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Rating', key: 'rating', width: 10 },
+        { header: 'Feedback', key: 'feedback', width: 40 },
+        { header: 'Created At', key: 'createdAt', width: 20 },
+        { header: 'Updated At', key: 'updatedAt', width: 20 }
+      ];
       
-      const ratingSheet = XLSX.utils.json_to_sheet(ratingData);
-      XLSX.utils.book_append_sheet(workbook, ratingSheet, 'Rating Distribution');
+      // Format header row
+      detailedSheet.getRow(1).font = { bold: true };
+      detailedSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      detailedSheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
       
-      const statusSheet = XLSX.utils.json_to_sheet(statusData);
-      XLSX.utils.book_append_sheet(workbook, statusSheet, 'Status Distribution');
-      
-      const detailedSheet = XLSX.utils.json_to_sheet(detailedData);
-      XLSX.utils.book_append_sheet(workbook, detailedSheet, 'Detailed Surveys');
+      // Add detailed data
+      filteredSurveys.forEach((survey, index) => {
+        detailedSheet.addRow({
+          no: index + 1,
+          id: survey.id || 'N/A',
+          patient: survey.user?.fullName || 'N/A',
+          status: survey.status || 'N/A',
+          rating: survey.rating || 'N/A',
+          feedback: survey.feedback || 'N/A',
+          createdAt: survey.createdAt ? dayjs(survey.createdAt).format('YYYY-MM-DD HH:mm') : 'N/A',
+          updatedAt: survey.updatedAt ? dayjs(survey.updatedAt).format('YYYY-MM-DD HH:mm') : 'N/A'
+        });
+      });
 
       // Generate Excel file name with date range if provided
       let fileName = 'Survey_Statistics';
@@ -574,8 +630,12 @@ export const SurveyStatistics: React.FC<SurveyStatisticsProps> = ({ surveys, sta
       fileName += '.xlsx';
 
       // Export the file
-      XLSX.writeFile(workbook, fileName);
-      message.success('Excel file exported successfully!');
+      workbook.xlsx.writeBuffer()
+        .then(buffer => {
+          const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          saveAs(blob, fileName);
+          message.success('Excel file exported successfully!');
+        });
     } catch (error) {
       console.error('Error exporting to Excel:', error);
       message.error('Failed to export Excel file.');
