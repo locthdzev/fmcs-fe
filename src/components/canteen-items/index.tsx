@@ -1287,6 +1287,21 @@ export function CanteenItems() {
             Create
           </Button>
         </div>
+
+        <div>
+          <Button
+            type="primary"
+            icon={<FileExcelOutlined />}
+            onClick={handleOpenExportConfig}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+          >
+            Export to Excel
+          </Button>
+        </div>
       </div>
     </div>
   );
