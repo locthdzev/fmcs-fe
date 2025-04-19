@@ -1030,7 +1030,11 @@ export function Trucks() {
 
         {selectedItemTypes.hasInactive && (
           <AntButton
-            className="bg-success-100 text-success border-success"
+            style={{ 
+              backgroundColor: "#f6ffed", 
+              color: "#52c41a", 
+              borderColor: "#b7eb8f" 
+            }}
             onClick={() => handleOpenConfirmBulkAction("activate")}
             disabled={loading}
           >
@@ -1040,7 +1044,11 @@ export function Trucks() {
 
         {selectedItemTypes.hasActive && (
           <AntButton
-            className="bg-danger-100 text-danger border-danger"
+            style={{ 
+              backgroundColor: "#fff2f0", 
+              color: "#ff4d4f", 
+              borderColor: "#ffccc7" 
+            }}
             onClick={() => handleOpenConfirmBulkAction("deactivate")}
             disabled={loading}
           >
