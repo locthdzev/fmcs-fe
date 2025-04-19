@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="90" fill="#f2f2f2"/>
+  
+  <!-- FPT Orange Uniform -->
+  <path d="M60,100 L60,160 C60,170 80,180 100,180 C120,180 140,170 140,160 L140,100 Z" fill="#ff5e00"/>
+  <path d="M60,110 L140,110" stroke="white" stroke-width="2"/>
+  
+  <!-- FPT Logo -->
+  <text x="95" y="140" font-family="Arial" font-size="16" font-weight="bold" fill="white" text-anchor="middle">FPT</text>
+  
+  <!-- Head -->
+  <circle cx="100" cy="70" r="40" fill="#ffdbac"/>
+  
+  <!-- Hair - Curly Brown -->
+  <path d="M100,30 C70,30 65,60 65,75 C65,80 70,90 75,95 C60,95 60,70 60,70 C60,40 75,20 100,20 C125,20 140,40 140,70 C140,70 140,95 125,95 C130,90 135,80 135,75 C135,60 130,30 100,30 Z" fill="#8b4513"/>
+  <!-- Curly details -->
+  <path d="M70,40 C65,45 70,50 65,55" fill="none" stroke="#8b4513" stroke-width="5" stroke-linecap="round"/>
+  <path d="M85,35 C80,40 85,45 80,50" fill="none" stroke="#8b4513" stroke-width="5" stroke-linecap="round"/>
+  <path d="M100,30 C95,35 100,40 95,45" fill="none" stroke="#8b4513" stroke-width="5" stroke-linecap="round"/>
+  <path d="M115,35 C110,40 115,45 110,50" fill="none" stroke="#8b4513" stroke-width="5" stroke-linecap="round"/>
+  <path d="M130,40 C125,45 130,50 125,55" fill="none" stroke="#8b4513" stroke-width="5" stroke-linecap="round"/>
+  
+  <!-- Eyes -->
+  <circle cx="85" cy="65" r="5" fill="#2d2d2d"/>
+  <circle cx="115" cy="65" r="5" fill="#2d2d2d"/>
+  
+  <!-- Smile -->
+  <path d="M85,80 C90,90 110,90 115,80" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Health Tracker Wristband - Medical element -->
+  <rect x="120" y="115" width="15" height="25" rx="5" ry="5" fill="#3498db" stroke="#2980b9" stroke-width="1"/>
+  <!-- Screen -->
+  <rect x="122" y="118" width="11" height="15" rx="2" ry="2" fill="#ecf0f1"/>
+  <!-- Heart rate on screen -->
+  <polyline points="123,125 125,125 127,120 129,130 131,125 133,125" fill="none" stroke="#e74c3c" stroke-width="1"/>
+  <!-- Wristband strap -->
+  <path d="M120,127 L110,127 C105,127 105,120 110,120 L120,120" fill="#3498db" stroke="#2980b9" stroke-width="1"/>
+  
+  <!-- Ears -->
+  <path d="M60,70 Q55,70 58,80" fill="#ffdbac"/>
+  <path d="M140,70 Q145,70 142,80" fill="#ffdbac"/>
+</svg> 

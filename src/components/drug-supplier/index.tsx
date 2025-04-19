@@ -33,7 +33,7 @@ import {
   AppstoreOutlined,
   TagOutlined,
   ExclamationCircleOutlined,
-  EditOutlined,
+  FormOutlined,
   EyeOutlined,
   ArrowLeftOutlined,
   FileExcelOutlined,
@@ -46,9 +46,8 @@ import {
   activateDrugSuppliers,
   deactivateDrugSuppliers,
   getDrugSupplierById,
-} from "@/api/drugsupplier";
+} from "../../api/drugsupplier";
 import { CreateDrugSupplierForm } from "./DrugSupplierCreateForm";
-import { EditDrugSupplierForm } from "./DrugSupplierEditForm";
 import DrugSupplierFilterModal, {
   DrugSupplierAdvancedFilters,
 } from "./DrugSupplierFilterModal";
@@ -81,6 +80,7 @@ const staticColumns = [
     sorter: (a: DrugSupplierResponse, b: DrugSupplierResponse) =>
       a.supplierName.localeCompare(b.supplierName),
     sortDirections: ["ascend", "descend"] as ("ascend" | "descend")[],
+    fixed: "left" as const,
   },
   {
     title: (
@@ -139,6 +139,7 @@ const staticColumns = [
     ),
     key: "actions",
     align: "center" as const,
+    fixed: "right" as const,
   },
 ];
 
@@ -412,8 +413,7 @@ export function DrugSuppliers() {
   };
 
   const handleOpenEditModal = (id: string) => {
-    setEditingSupplierId(id);
-    setIsEditModalOpen(true);
+    router.push(`/drug-supplier/${id}?edit=true`);
   };
 
   const handleCreateSuccess = () => {
@@ -572,16 +572,17 @@ export function DrugSuppliers() {
       ),
       key: "actions",
       align: "center" as const,
+      fixed: "right" as const,
+      width: 100,
       render: (_: any, record: DrugSupplierResponse) => (
         <Space
           size="small"
           style={{ display: "flex", justifyContent: "center" }}
         >
-        
           <Tooltip title="Edit">
             <Button
               type="text"
-              icon={<EditOutlined />}
+              icon={<FormOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
                 handleOpenEditModal(record.id);
@@ -600,9 +601,11 @@ export function DrugSuppliers() {
         if (col.key === "supplierName") {
           return {
             ...col,
+            fixed: "left" as const,
+            width: 200,
             render: (text: string, record: DrugSupplierResponse) => (
-              <span 
-                className="text-primary cursor-pointer hover:underline" 
+              <span
+                className="text-primary cursor-pointer hover:underline"
                 onClick={() => router.push(`/drug-supplier/${record.id}`)}
               >
                 {text}
@@ -750,8 +753,12 @@ export function DrugSuppliers() {
   // Hàm hiển thị trình đơn thả xuống tùy chỉnh
   const renderSelectAll = () => {
     // Đếm nhà cung cấp theo trạng thái
-    const activeCount = paginatedSuppliers.filter(supplier => supplier.status === "Active").length;
-    const inactiveCount = paginatedSuppliers.filter(supplier => supplier.status === "Inactive").length;
+    const activeCount = paginatedSuppliers.filter(
+      (supplier) => supplier.status === "Active"
+    ).length;
+    const inactiveCount = paginatedSuppliers.filter(
+      (supplier) => supplier.status === "Inactive"
+    ).length;
 
     // Đếm nhà cung cấp có thể chọn
     const selectableSuppliers = paginatedSuppliers;
@@ -870,7 +877,7 @@ export function DrugSuppliers() {
           onChange={handleSelectAllToggle}
           disabled={true}
         />
-        
+
         {items.length > 0 && (
           <Dropdown
             menu={{
@@ -920,17 +927,14 @@ export function DrugSuppliers() {
 
   const renderSelectedInfo = () => {
     if (selectedRowKeys.length === 0) return null;
-    
+
     return (
       <Space>
-        <Text>{selectedRowKeys.length} items selected</Text>
-        <Button
-          icon={<UndoOutlined />}
-          onClick={() => setSelectedRowKeys([])}
-        >
+        <Text>{selectedRowKeys.length} Items selected</Text>
+        <Button icon={<UndoOutlined />} onClick={() => setSelectedRowKeys([])}>
           Restore
         </Button>
-        
+
         {showActivateButton && (
           <Button
             className="bg-success-100 text-success border-success"
@@ -940,7 +944,7 @@ export function DrugSuppliers() {
             Activate Selected
           </Button>
         )}
-        
+
         {showDeactivateButton && (
           <Button
             className="bg-danger-100 text-danger border-danger"
@@ -1026,6 +1030,7 @@ export function DrugSuppliers() {
                           <span>Search by supplier name...</span>
                         </div>
                       }
+                      prefix={<SearchOutlined style={{ color: "blue" }} />}
                       value={filterValue || undefined}
                       onChange={handleSearchSelectChange}
                       style={{ width: "300px" }}
@@ -1099,7 +1104,7 @@ export function DrugSuppliers() {
                                 toggleAllColumns(e.target.checked)
                               }
                             >
-                              <strong>Show All Columns</strong>
+                              Toggle All
                             </Checkbox>
                           </Menu.Item>
                           <Menu.Divider />
@@ -1187,12 +1192,8 @@ export function DrugSuppliers() {
 
             {/* Container cho cả selected info và rows per page */}
             <div className="mb-4 py-2 flex justify-between items-center">
-              <div>
-                {renderSelectedInfo()}
-              </div>
-              <div>
-                {renderRowsPerPage()}
-              </div>
+              <div>{renderSelectedInfo()}</div>
+              <div>{renderRowsPerPage()}</div>
             </div>
 
             <Card
@@ -1208,7 +1209,7 @@ export function DrugSuppliers() {
                   rowSelection={rowSelection}
                   pagination={false}
                   onChange={handleTableChange}
-                  scroll={{ x: "max-content" }}
+                  scroll={{ x: "max-content", y: 500 }}
                   bordered
                 />
               </div>
@@ -1238,8 +1239,12 @@ export function DrugSuppliers() {
                             )
                           )}
                           value={currentPage}
-                          onPressEnter={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                            const value = Number((e.target as HTMLInputElement).value);
+                          onPressEnter={(
+                            e: React.KeyboardEvent<HTMLInputElement>
+                          ) => {
+                            const value = Number(
+                              (e.target as HTMLInputElement).value
+                            );
                             if (
                               value > 0 &&
                               value <=
@@ -1286,23 +1291,6 @@ export function DrugSuppliers() {
           onClose={() => setIsModalOpen(false)}
           onCreate={handleCreateSuccess}
         />
-      </Modal>
-
-      <Modal
-        title="Edit Drug Supplier"
-        open={isEditModalOpen}
-        onCancel={() => setIsEditModalOpen(false)}
-        footer={null}
-        destroyOnClose
-        width={500}
-      >
-        {editingSupplierId && (
-          <EditDrugSupplierForm
-            drugSupplierId={editingSupplierId}
-            onClose={() => setIsEditModalOpen(false)}
-            onUpdate={handleUpdateSuccess}
-          />
-        )}
       </Modal>
 
       <DrugSupplierFilterModal

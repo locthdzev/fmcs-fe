@@ -29,9 +29,9 @@ import {
   PrescriptionHistoryExportConfigDTO,
   PerformedByInfo,
 } from "@/api/prescription";
-import { useRouter } from 'next/router';
-import { 
-  SearchOutlined, 
+import { useRouter } from "next/router";
+import {
+  SearchOutlined,
   ExportOutlined,
   EyeOutlined,
   FilterOutlined,
@@ -44,13 +44,13 @@ const { Title, Text } = Typography;
 
 // Helper functions
 const formatDate = (date: string | undefined) => {
-  if (!date) return '';
-  return moment(date).format('DD/MM/YYYY');
+  if (!date) return "";
+  return moment(date).format("DD/MM/YYYY");
 };
 
 const formatDateTime = (datetime: string | undefined) => {
-  if (!datetime) return '';
-  return moment(datetime).format('DD/MM/YYYY HH:mm:ss');
+  if (!datetime) return "";
+  return moment(datetime).format("DD/MM/YYYY HH:mm:ss");
 };
 
 const DEFAULT_EXPORT_CONFIG = {
@@ -66,31 +66,38 @@ const DEFAULT_EXPORT_CONFIG = {
 
 export function PrescriptionHistoryList() {
   const router = useRouter();
-  const [histories, setHistories] = useState<PrescriptionHistoryResponseDTO[]>([]);
+  const [histories, setHistories] = useState<PrescriptionHistoryResponseDTO[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [action, setAction] = useState<string | undefined>(undefined);
   const [performedBySearch, setPerformedBySearch] = useState("");
-  const [previousStatus, setPreviousStatus] = useState<string | undefined>(undefined);
+  const [previousStatus, setPreviousStatus] = useState<string | undefined>(
+    undefined
+  );
   const [newStatus, setNewStatus] = useState<string | undefined>(undefined);
   const [sortBy, setSortBy] = useState("ActionDate");
   const [ascending, setAscending] = useState(false);
   const [prescriptionCode, setPrescriptionCode] = useState("");
   const [healthCheckResultCode, setHealthCheckResultCode] = useState("");
-  const [actionDateRange, setActionDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
+  const [actionDateRange, setActionDateRange] = useState<
+    [moment.Moment | null, moment.Moment | null]
+  >([null, null]);
   const [showExportConfigModal, setShowExportConfigModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
-  const [exportConfig, setExportConfig] = useState<PrescriptionHistoryExportConfigDTO>(DEFAULT_EXPORT_CONFIG);
+  const [exportConfig, setExportConfig] =
+    useState<PrescriptionHistoryExportConfigDTO>(DEFAULT_EXPORT_CONFIG);
   const [form] = Form.useForm();
 
   // Fetch histories
   const fetchHistories = useCallback(async () => {
     setLoading(true);
     try {
-      const startActionDate = actionDateRange[0]?.format('YYYY-MM-DD');
-      const endActionDate = actionDateRange[1]?.format('YYYY-MM-DD');
+      const startActionDate = actionDateRange[0]?.format("YYYY-MM-DD");
+      const endActionDate = actionDateRange[1]?.format("YYYY-MM-DD");
 
       const response = await getAllPrescriptionHistories(
         currentPage,
@@ -107,10 +114,10 @@ export function PrescriptionHistoryList() {
         healthCheckResultCode
       );
 
-      console.log('API Response (history):', response); // Debug
+      console.log("API Response (history):", response); // Debug
 
       if (response.success) {
-        console.log('Setting histories:', response.data); // Debug
+        console.log("Setting histories:", response.data); // Debug
         setHistories(response.data.items || response.data);
         setTotal(response.data.totalCount || response.data.length || 0);
       } else {
@@ -142,12 +149,7 @@ export function PrescriptionHistoryList() {
 
   useEffect(() => {
     fetchHistories();
-  }, [
-    currentPage,
-    pageSize,
-    sortBy,
-    ascending,
-  ]);
+  }, [currentPage, pageSize, sortBy, ascending]);
 
   // Event handlers
   const handleSearch = () => {
@@ -202,8 +204,8 @@ export function PrescriptionHistoryList() {
         includeChangeDetails: values.includeChangeDetails,
       };
 
-      const startActionDate = actionDateRange[0]?.format('YYYY-MM-DD');
-      const endActionDate = actionDateRange[1]?.format('YYYY-MM-DD');
+      const startActionDate = actionDateRange[0]?.format("YYYY-MM-DD");
+      const endActionDate = actionDateRange[1]?.format("YYYY-MM-DD");
 
       await exportPrescriptionHistoriesToExcelWithConfig(
         exportConfigData,
@@ -220,7 +222,7 @@ export function PrescriptionHistoryList() {
         prescriptionCode,
         healthCheckResultCode
       );
-      
+
       // The API function already displays success or error messages,
       // so we only need to update state and close the modal
       setExportConfig(exportConfigData);
@@ -236,41 +238,41 @@ export function PrescriptionHistoryList() {
   // Status and action colors
   const getStatusColor = (status: string | undefined) => {
     switch (status) {
-      case 'Dispensed':
-        return 'processing';
-      case 'Updated':
-        return 'warning';
-      case 'Used':
-        return 'success';
-      case 'UpdatedAndUsed':
-        return 'success';
-      case 'Inactive':
-        return 'default';
-      case 'Cancelled':
-        return 'error';
-      case 'SoftDeleted':
-        return 'default';
+      case "Dispensed":
+        return "processing";
+      case "Updated":
+        return "warning";
+      case "Used":
+        return "success";
+      case "UpdatedAndUsed":
+        return "success";
+      case "Inactive":
+        return "default";
+      case "Cancelled":
+        return "error";
+      case "SoftDeleted":
+        return "default";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const getActionColor = (action: string): string => {
     switch (action) {
-      case 'Create':
-        return 'green';
-      case 'Update':
-        return 'blue';
-      case 'Cancel':
-        return 'red';
-      case 'StatusChange':
-        return 'orange';
-      case 'SoftDelete':
-        return 'gray';
-      case 'Restore':
-        return 'green';
+      case "Create":
+        return "green";
+      case "Update":
+        return "blue";
+      case "Cancel":
+        return "red";
+      case "StatusChange":
+        return "orange";
+      case "SoftDelete":
+        return "gray";
+      case "Restore":
+        return "green";
       default:
-        return 'blue';
+        return "blue";
     }
   };
 
@@ -280,39 +282,45 @@ export function PrescriptionHistoryList() {
       title: "Prescription Code",
       dataIndex: ["prescription", "prescriptionCode"],
       key: "prescriptionCode",
-      render: (text: string, record: PrescriptionHistoryResponseDTO) => (
+      render: (text: string, record: PrescriptionHistoryResponseDTO) =>
         record.prescription ? (
-          <Button 
-            type="link" 
-            onClick={() => router.push(`/prescription/${record.prescription?.id}`)}
+          <Button
+            type="link"
+            onClick={() =>
+              router.push(`/prescription/${record.prescription?.id}`)
+            }
           >
             {text}
           </Button>
-        ) : "N/A"
-      ),
+        ) : (
+          "N/A"
+        ),
     },
     {
       title: "Health Check Code",
       dataIndex: ["prescription", "healthCheckResult", "healthCheckResultCode"],
       key: "healthCheckResultCode",
-      render: (text: string, record: PrescriptionHistoryResponseDTO) => (
+      render: (text: string, record: PrescriptionHistoryResponseDTO) =>
         record.prescription?.healthCheckResult ? (
-          <Button 
-            type="link" 
-            onClick={() => router.push(`/health-check-result/${record.prescription?.healthCheckResult?.id}`)}
+          <Button
+            type="link"
+            onClick={() =>
+              router.push(
+                `/health-check-result/${record.prescription?.healthCheckResult?.id}`
+              )
+            }
           >
             {text}
           </Button>
-        ) : "N/A"
-      ),
+        ) : (
+          "N/A"
+        ),
     },
     {
       title: "Action",
       dataIndex: "action",
       key: "action",
-      render: (text: string) => (
-        <Tag color={getActionColor(text)}>{text}</Tag>
-      ),
+      render: (text: string) => <Tag color={getActionColor(text)}>{text}</Tag>,
     },
     {
       title: "Action Date",
@@ -325,56 +333,56 @@ export function PrescriptionHistoryList() {
       title: "Performed By",
       dataIndex: "performedBy",
       key: "performedBy",
-      render: (performedBy: PerformedByInfo) => (
+      render: (performedBy: PerformedByInfo) =>
         performedBy ? (
           <>
-            <div><strong>{performedBy.fullName}</strong></div>
+            <div>
+              <strong>{performedBy.fullName}</strong>
+            </div>
             <div>{performedBy.email}</div>
           </>
-        ) : "N/A"
-      ),
+        ) : (
+          "N/A"
+        ),
     },
     {
       title: "Previous Status",
       dataIndex: "previousStatus",
       key: "previousStatus",
-      render: (status: string) => (
-        status ? (
-          <Tag color={getStatusColor(status)}>{status}</Tag>
-        ) : "N/A"
-      ),
+      render: (status: string) =>
+        status ? <Tag color={getStatusColor(status)}>{status}</Tag> : "N/A",
     },
     {
       title: "New Status",
       dataIndex: "newStatus",
       key: "newStatus",
-      render: (status: string) => (
-        status ? (
-          <Tag color={getStatusColor(status)}>{status}</Tag>
-        ) : "N/A"
-      ),
+      render: (status: string) =>
+        status ? <Tag color={getStatusColor(status)}>{status}</Tag> : "N/A",
     },
     {
       title: "Change Details",
       dataIndex: "changeDetails",
       key: "changeDetails",
-      render: (text: string) => (
+      render: (text: string) =>
         text ? (
           <Tooltip title={text}>
             <div className="truncate max-w-md">{text}</div>
           </Tooltip>
-        ) : "N/A"
-      ),
+        ) : (
+          "N/A"
+        ),
     },
     {
       title: "Actions",
       key: "actions",
       render: (_: unknown, record: PrescriptionHistoryResponseDTO) => (
         <Space>
-          <Button 
-            type="text" 
-            icon={<EyeOutlined />} 
-            onClick={() => router.push(`/prescription/${record.prescription?.id}`)}
+          <Button
+            type="text"
+            icon={<EyeOutlined />}
+            onClick={() =>
+              router.push(`/prescription/${record.prescription?.id}`)
+            }
             title="View Prescription Details"
           />
         </Space>
@@ -385,7 +393,11 @@ export function PrescriptionHistoryList() {
   // Export config modal
   const renderExportConfigModal = () => (
     <Modal
-      title="Export Configuration"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Export Configuration
+        </Title>
+      }
       open={showExportConfigModal}
       onCancel={closeExportConfigModal}
       footer={[
@@ -402,67 +414,39 @@ export function PrescriptionHistoryList() {
         </Button>,
       ]}
     >
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={exportConfig}
-      >
-        <Form.Item
-          name="exportAllPages"
-          valuePropName="checked"
-        >
+      <Form form={form} layout="vertical" initialValues={exportConfig}>
+        <Form.Item name="exportAllPages" valuePropName="checked">
           <Checkbox>Export all pages (not just current page)</Checkbox>
         </Form.Item>
 
         <Divider />
         <Title level={5}>Include Columns</Title>
-        
-        <Form.Item
-          name="includePrescriptionCode"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includePrescriptionCode" valuePropName="checked">
           <Checkbox>Prescription Code</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includeHealthCheckCode"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includeHealthCheckCode" valuePropName="checked">
           <Checkbox>Health Check Code</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includeActionDate"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includeActionDate" valuePropName="checked">
           <Checkbox>Action Date</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includePerformedBy"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includePerformedBy" valuePropName="checked">
           <Checkbox>Performed By</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includePreviousStatus"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includePreviousStatus" valuePropName="checked">
           <Checkbox>Previous Status</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includeNewStatus"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includeNewStatus" valuePropName="checked">
           <Checkbox>New Status</Checkbox>
         </Form.Item>
-        
-        <Form.Item
-          name="includeChangeDetails"
-          valuePropName="checked"
-        >
+
+        <Form.Item name="includeChangeDetails" valuePropName="checked">
           <Checkbox>Change Details</Checkbox>
         </Form.Item>
       </Form>
@@ -473,19 +457,16 @@ export function PrescriptionHistoryList() {
   return (
     <div className="p-4">
       <Title level={2}>Prescription History</Title>
-      
+
       {/* Toolbar Section */}
       <div className="flex flex-wrap justify-between mb-4">
         <div className="flex flex-wrap gap-2 mb-4">
-          <Button 
-            icon={<ExportOutlined />}
-            onClick={handleOpenExportConfig}
-          >
+          <Button icon={<ExportOutlined />} onClick={handleOpenExportConfig}>
             Export to Excel
           </Button>
         </div>
       </div>
-      
+
       {/* Filters Section */}
       <div className="mb-6 bg-gray-50 p-4 rounded">
         <Title level={5}>Search & Filters</Title>
@@ -495,21 +476,21 @@ export function PrescriptionHistoryList() {
               placeholder="Search by Prescription Code"
               value={prescriptionCode}
               onChange={(e) => setPrescriptionCode(e.target.value)}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               allowClear
             />
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <Input
               placeholder="Search by Health Check Code"
               value={healthCheckResultCode}
               onChange={(e) => setHealthCheckResultCode(e.target.value)}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               allowClear
             />
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <Select
               placeholder="Filter by Action"
@@ -526,17 +507,17 @@ export function PrescriptionHistoryList() {
               <Option value="Restore">Restore</Option>
             </Select>
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <Input
               placeholder="Search by Performed By"
               value={performedBySearch}
               onChange={(e) => setPerformedBySearch(e.target.value)}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               allowClear
             />
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <Select
               placeholder="Filter by Previous Status"
@@ -554,7 +535,7 @@ export function PrescriptionHistoryList() {
               <Option value="SoftDeleted">Soft Deleted</Option>
             </Select>
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <Select
               placeholder="Filter by New Status"
@@ -572,20 +553,28 @@ export function PrescriptionHistoryList() {
               <Option value="SoftDeleted">Soft Deleted</Option>
             </Select>
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <RangePicker
               placeholder={["Action Start Date", "Action End Date"]}
               value={actionDateRange as any}
-              onChange={(dates) => setActionDateRange(dates as [moment.Moment | null, moment.Moment | null])}
+              onChange={(dates) =>
+                setActionDateRange(
+                  dates as [moment.Moment | null, moment.Moment | null]
+                )
+              }
               style={{ width: "100%" }}
               showTime
             />
           </Col>
-          
+
           <Col xs={24} sm={12} md={8} lg={6}>
             <Space>
-              <Button type="primary" onClick={handleSearch} icon={<SearchOutlined />}>
+              <Button
+                type="primary"
+                onClick={handleSearch}
+                icon={<SearchOutlined />}
+              >
                 Search
               </Button>
               <Button onClick={handleReset}>Reset</Button>
@@ -593,7 +582,7 @@ export function PrescriptionHistoryList() {
           </Col>
         </Row>
       </div>
-      
+
       {/* Table Section */}
       <div className="mb-4">
         <Table
@@ -605,12 +594,12 @@ export function PrescriptionHistoryList() {
           onChange={(pagination, filters, sorter: any) => {
             if (sorter.field) {
               setSortBy(sorter.field);
-              setAscending(sorter.order === 'ascend');
+              setAscending(sorter.order === "ascend");
               fetchHistories();
             }
           }}
         />
-        
+
         <div className="mt-4 flex justify-end">
           <Pagination
             current={currentPage}
@@ -623,9 +612,9 @@ export function PrescriptionHistoryList() {
           />
         </div>
       </div>
-      
+
       {/* Export Config Modal */}
       {renderExportConfigModal()}
     </div>
   );
-} 
+}

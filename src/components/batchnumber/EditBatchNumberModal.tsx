@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
-import { Modal, Form, DatePicker, Button } from "antd";
+import { Modal, Form, DatePicker, Button, message } from "antd";
 import { BatchNumberResponseDTO, updateBatchNumber } from "@/api/batchnumber";
-import { toast } from "react-toastify";
 import moment from "moment";
 
 interface EditBatchNumberModalProps {
@@ -18,6 +17,7 @@ const EditBatchNumberModal: React.FC<EditBatchNumberModalProps> = ({
   onSuccess,
 }) => {
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
 
   useEffect(() => {
     if (batchNumber) {
@@ -39,14 +39,23 @@ const EditBatchNumberModal: React.FC<EditBatchNumberModalProps> = ({
         expiryDate: values.expiryDate?.format("YYYY-MM-DD"),
       });
       if (response.isSuccess) {
-        toast.success("Batch number updated successfully!");
+        messageApi.success({
+          content: "Batch number updated successfully!",
+          duration: 5,
+        });
         onSuccess();
         onClose();
       } else {
-        toast.error(response.message || "Unable to update batch number");
+        messageApi.error({
+          content: response.message || "Unable to update batch number",
+          duration: 5,
+        });
       }
     } catch {
-      toast.error("Unable to update batch number");
+      messageApi.error({
+        content: "Unable to update batch number",
+        duration: 5,
+      });
     }
   };
 
@@ -64,6 +73,7 @@ const EditBatchNumberModal: React.FC<EditBatchNumberModalProps> = ({
         </Button>,
       ]}
     >
+      {contextHolder}
       <Form form={form} onFinish={handleSubmit} layout="vertical">
         <Form.Item
           name="manufacturingDate"

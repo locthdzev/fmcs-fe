@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="90" fill="#f2f2f2"/>
+  
+  <!-- FPT Orange Uniform -->
+  <path d="M60,100 L60,160 C60,170 80,180 100,180 C120,180 140,170 140,160 L140,100 Z" fill="#ff5e00"/>
+  <path d="M60,110 L140,110" stroke="white" stroke-width="2"/>
+  
+  <!-- FPT Logo -->
+  <text x="95" y="140" font-family="Arial" font-size="16" font-weight="bold" fill="white" text-anchor="middle">FPT</text>
+  
+  <!-- Head -->
+  <circle cx="100" cy="70" r="40" fill="#ffdbac"/>
+  
+  <!-- Hair - Black -->
+  <path d="M100,30 C70,30 65,60 65,75 C65,80 70,90 75,95 C60,95 60,70 60,70 C60,40 75,20 100,20 C125,20 140,40 140,70 C140,70 140,95 125,95 C130,90 135,80 135,75 C135,60 130,30 100,30 Z" fill="#2d2d2d"/>
+  
+  <!-- Eyes -->
+  <circle cx="85" cy="65" r="5" fill="#2d2d2d"/>
+  <circle cx="115" cy="65" r="5" fill="#2d2d2d"/>
+  
+  <!-- Smile -->
+  <path d="M85,80 C90,90 110,90 115,80" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Stethoscope - Medical element -->
+  <path d="M75,110 C70,105 65,105 65,110 L65,125 C65,130 70,135 75,135 L85,135" fill="none" stroke="#2d2d2d" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="85" cy="135" r="5" fill="#2d2d2d"/>
+  <path d="M85,135 Q110,120 120,135" fill="none" stroke="#2d2d2d" stroke-width="3"/>
+  
+  <!-- Ears -->
+  <path d="M60,70 Q55,70 58,80" fill="#ffdbac"/>
+  <path d="M140,70 Q145,70 142,80" fill="#ffdbac"/>
+</svg> 

@@ -10,6 +10,9 @@ import {
   Dropdown,
   Checkbox,
   Modal as AntdModal,
+  Row,
+  Col,
+  Divider,
 } from "antd";
 import {
   PlusOutlined,
@@ -29,6 +32,8 @@ import TreatmentPlanTable from "./TreatmentPlanTable";
 import CreateModal from "./CreateModal";
 import ExportConfigModal from "./ExportConfigModal";
 import TreatmentPlanFilterModal from "./TreatmentPlanFilterModal";
+import PageContainer from "../shared/PageContainer";
+import ToolbarCard from "../shared/ToolbarCard";
 
 import {
   getAllTreatmentPlans,
@@ -412,13 +417,19 @@ export function TreatmentPlanManagement() {
           );
         }
 
-        console.log(`Fetched ${allData.length} treatment plans for dropdown options`);
+        console.log(
+          `Fetched ${allData.length} treatment plans for dropdown options`
+        );
 
         // Extract dropdown options - sắp xếp theo ngày tạo mới nhất trước
-        allData.sort((a: TreatmentPlanResponseDTO, b: TreatmentPlanResponseDTO) => {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-        
+        allData.sort(
+          (a: TreatmentPlanResponseDTO, b: TreatmentPlanResponseDTO) => {
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+          }
+        );
+
         // Extract dropdown options
         extractDataFromTreatmentPlans(allData);
       } else {
@@ -839,50 +850,6 @@ export function TreatmentPlanManagement() {
     router.back();
   };
 
-  // Custom pagination with go to page
-  const itemRender = (
-    page: number,
-    type: "page" | "prev" | "next" | "jump-prev" | "jump-next",
-    originalElement: React.ReactNode
-  ) => {
-    if (type === "prev") {
-      return (
-        <Button size="small" disabled={currentPage === 1}>
-          Previous
-        </Button>
-      );
-    }
-    if (type === "next") {
-      return (
-        <Button
-          size="small"
-          disabled={currentPage === Math.ceil(totalItems / pageSize)}
-        >
-          Next
-        </Button>
-      );
-    }
-    return originalElement;
-  };
-
-  // Thêm chức năng kiểm tra xem các filter đã được áp dụng chưa
-  const isFiltersApplied = () => {
-    return (
-      healthCheckResultCodeSearch !== "" ||
-      userSearch !== "" ||
-      drugSearch !== "" ||
-      updatedBySearch !== "" ||
-      dateRange[0] !== null ||
-      dateRange[1] !== null ||
-      createdDateRange[0] !== null ||
-      createdDateRange[1] !== null ||
-      updatedDateRange[0] !== null ||
-      updatedDateRange[1] !== null ||
-      sortBy !== "CreatedAt" ||
-      ascending !== false
-    );
-  };
-
   // Handle dropdown visibility
   const handleDropdownVisibleChange = (visible: boolean) => {
     setDropdownOpen(visible);
@@ -936,43 +903,17 @@ export function TreatmentPlanManagement() {
   };
 
   return (
-    <div className="history-container" style={{ padding: "20px" }}>
+    <PageContainer
+      title="Treatment Plan Management"
+      icon={<MedicineBoxOutlined style={{ fontSize: "24px" }} />}
+      onBack={handleBack}
+    >
       {contextHolder}
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={handleBack}
-            style={{ marginRight: "8px" }}
-          >
-            Back
-          </Button>
-          <MedicineBoxOutlined style={{ fontSize: "24px" }} />
-          <h3 className="text-xl font-bold">Treatment Plan Management</h3>
-        </div>
-      </div>
 
       {/* Search and Filters Toolbar */}
-      <Card
-        className="shadow mb-4"
-        bodyStyle={{ padding: "16px" }}
-        title={
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "16px",
-            }}
-          >
-            <AppstoreOutlined />
-            <span>Toolbar</span>
-          </div>
-        }
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <ToolbarCard
+        leftContent={
+          <>
             {/* Treatment Plan Code Search */}
             <Select
               showSearch
@@ -1071,9 +1012,7 @@ export function TreatmentPlanManagement() {
                     updatedDateRange[1]
                   )
                 }
-              >
-                Reset
-              </Button>
+              />
             </Tooltip>
 
             {/* Column Settings */}
@@ -1088,7 +1027,7 @@ export function TreatmentPlanManagement() {
                           checked={areAllColumnsVisible()}
                           onChange={(e) => toggleAllColumns(e.target.checked)}
                         >
-                          <strong>Show All Columns</strong>
+                          Toggle All
                         </Checkbox>
                       </div>
                     ),
@@ -1318,20 +1257,19 @@ export function TreatmentPlanManagement() {
             >
               Create
             </Button>
-          </div>
-
-          <div>
-            <Button
-              type="primary"
-              icon={<FileExcelOutlined />}
-              onClick={handleOpenExportConfig}
-              disabled={loading}
-            >
-              Export to Excel
-            </Button>
-          </div>
-        </div>
-      </Card>
+          </>
+        }
+        rightContent={
+          <Button
+            type="primary"
+            icon={<FileExcelOutlined />}
+            onClick={handleOpenExportConfig}
+            disabled={loading}
+          >
+            Export to Excel
+          </Button>
+        }
+      />
 
       {/* Data Table */}
       <TreatmentPlanTable
@@ -1399,7 +1337,7 @@ export function TreatmentPlanManagement() {
         drugOptions={drugOptions}
         updatedByOptions={updatedByOptions}
       />
-    </div>
+    </PageContainer>
   );
 }
 

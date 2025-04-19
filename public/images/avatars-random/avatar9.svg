@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="90" fill="#f2f2f2"/>
+  
+  <!-- FPT Orange Uniform -->
+  <path d="M60,100 L60,160 C60,170 80,180 100,180 C120,180 140,170 140,160 L140,100 Z" fill="#ff5e00"/>
+  <path d="M60,110 L140,110" stroke="white" stroke-width="2"/>
+  
+  <!-- FPT Logo -->
+  <text x="95" y="140" font-family="Arial" font-size="16" font-weight="bold" fill="white" text-anchor="middle">FPT</text>
+  
+  <!-- Head -->
+  <circle cx="100" cy="70" r="40" fill="#ffdbac"/>
+  
+  <!-- Hair - Auburn (Reddish Brown) -->
+  <path d="M100,30 C80,30 70,45 70,65 C70,75 75,85 80,90 C75,90 65,85 65,65 C65,45 75,20 100,20 C125,20 135,45 135,65 C135,85 125,90 120,90 C125,85 130,75 130,65 C130,45 120,30 100,30 Z" fill="#a0522d"/>
+  <!-- Short hair details -->
+  <path d="M90,30 C80,35 75,45 75,55" fill="none" stroke="#a0522d" stroke-width="5"/>
+  <path d="M110,30 C120,35 125,45 125,55" fill="none" stroke="#a0522d" stroke-width="5"/>
+  <path d="M100,25 C95,30 95,40 95,45" fill="none" stroke="#a0522d" stroke-width="5"/>
+  
+  <!-- Eyes -->
+  <circle cx="85" cy="65" r="5" fill="#2d2d2d"/>
+  <circle cx="115" cy="65" r="5" fill="#2d2d2d"/>
+  
+  <!-- Smile -->
+  <path d="M85,80 C90,90 110,90 115,80" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Medical Headset - Medical element -->
+  <path d="M60,70 C55,70 50,90 50,100 C50,105 53,110 56,110 L60,110" fill="none" stroke="#2d2d2d" stroke-width="2"/>
+  <path d="M140,70 C145,70 150,90 150,100 C150,105 147,110 144,110 L140,110" fill="none" stroke="#2d2d2d" stroke-width="2"/>
+  <!-- Headset earpieces -->
+  <rect x="47" y="95" width="10" height="15" rx="5" ry="5" fill="#3498db" stroke="#2980b9" stroke-width="1"/>
+  <rect x="143" y="95" width="10" height="15" rx="5" ry="5" fill="#3498db" stroke="#2980b9" stroke-width="1"/>
+  <!-- Headset microphone -->
+  <path d="M60,105 C65,100 70,95 75,100 L75,105" fill="none" stroke="#2d2d2d" stroke-width="1"/>
+  <rect x="73" y="105" width="5" height="5" rx="2" ry="2" fill="#2d2d2d"/>
+  
+  <!-- Ears -->
+  <path d="M60,70 Q55,70 58,80" fill="#ffdbac"/>
+  <path d="M140,70 Q145,70 142,80" fill="#ffdbac"/>
+</svg> 

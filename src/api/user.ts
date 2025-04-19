@@ -12,6 +12,7 @@ export interface UserProfile {
   createdAt: string;
   status?: string;
   roles: string[];
+  imageURL?: string;
 }
 
 export interface UserCreateRequest {
@@ -40,6 +41,7 @@ export interface UserResponseDTO {
   createdAt: string;
   updatedAt: string;
   roles: string[];
+  imageURL?: string;
 }
 
 export interface UpdateAccountsStatusRequest {
@@ -88,13 +90,20 @@ export interface UserStatisticsDTO {
   usersByRole: Record<string, number>;
   usersWithMultipleRoles: number;
   usersByGender: Record<string, number>;
-  usersByMonthCreated?: Record<string, number>;
+  usersByMonthCreated: Record<string, number>;
   newUsersThisWeek: number;
   newUsersThisMonth: number;
   newUsersThisYear: number;
   usersInDateRange: number;
   startDate: string | null;
   endDate: string | null;
+}
+
+export interface ApiResponse<T> {
+  isSuccess: boolean;
+  code: number;
+  message?: string;
+  data: T;
 }
 
 export const getAllUsers = async (
@@ -377,21 +386,33 @@ export const exportUsersToExcelWithConfig = async (
   }
 };
 
-export const getUserStatistics = async (startDate?: Date, endDate?: Date) => {
+export const getUserStatistics = async (
+  startDate?: Date,
+  endDate?: Date
+): Promise<ApiResponse<UserStatisticsDTO>> => {
   try {
+    // Format dates for API request
+    const startDateStr = startDate ? startDate.toISOString() : undefined;
+    const endDateStr = endDate ? endDate.toISOString() : undefined;
+
+    console.log("Sending API request with params:", { startDate: startDateStr, endDate: endDateStr });
+    
+    // Build query parameters
     const params = new URLSearchParams();
-    if (startDate) params.append("startDate", startDate.toISOString());
-    if (endDate) params.append("endDate", endDate.toISOString());
-
-    const response = await api.get<{
-      isSuccess: boolean;
-      data: UserStatisticsDTO;
-      code: number;
-      message?: string;
-    }>(`/user-management/users/statistics?${params.toString()}`);
-
+    if (startDateStr) params.append("startDate", startDateStr);
+    if (endDateStr) params.append("endDate", endDateStr);
+    
+    const query = params.toString() ? `?${params.toString()}` : "";
+    
+    const response = await api.get<ApiResponse<UserStatisticsDTO>>(
+      `/user-management/users/statistics${query}`
+    );
+    
+    console.log("API response for statistics:", response.data);
+    
     return response.data;
   } catch (error) {
+    console.error("Error fetching user statistics:", error);
     throw error;
   }
 };
@@ -409,6 +430,62 @@ export const getUserById = async (userId: string): Promise<UserResponseDTO> => {
     }
     throw new Error(response.data.message || "Failed to fetch user.");
   } catch (error) {
+    throw error;
+  }
+};
+
+export const updateProfileImage = async (imageFile: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('imageFile', imageFile);
+    
+    console.log('Sending profile image update request with file:', imageFile.name, imageFile.size);
+    
+    const response = await api.put('/user-management/users/update-profile-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    console.log('Profile image update response:', response.data);
+    
+    // Kiểm tra response có cấu trúc đúng không
+    if (!response.data) {
+      throw new Error('Empty response received from server');
+    }
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('Error updating profile image:', error);
+    console.error('Error response:', error.response?.data);
+    throw error;
+  }
+};
+
+export const updateUserImage = async (userId: string, imageFile: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('imageFile', imageFile);
+    
+    console.log(`Sending user image update request with file: ${imageFile.name}, size: ${imageFile.size}, for user: ${userId}`);
+    
+    const response = await api.put(`/user-management/users/${userId}/update-image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    console.log('User image update response:', response.data);
+    
+    // Kiểm tra response có cấu trúc đúng không
+    if (!response.data) {
+      throw new Error('Empty response received from server');
+    }
+    
+    return response.data;
+  } catch (error: any) {
+    console.error(`Error updating image for user ${userId}:`, error);
+    console.error('Error response:', error.response?.data);
     throw error;
   }
 };

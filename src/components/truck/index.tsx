@@ -29,11 +29,30 @@ import {
   PlusOutlined,
   SearchOutlined,
   EyeOutlined,
-  EditOutlined,
+  FormOutlined,
   ArrowLeftOutlined,
   FileExcelOutlined,
 } from "@ant-design/icons";
-import { Card as AntCard, Select, Space, Tag, Tooltip as AntTooltip, Table as AntTable, Pagination as AntPagination, Input as AntInput, Button as AntButton, Typography, InputNumber, Row, Menu, Checkbox as AntCheckbox, Dropdown as AntDropdown, Modal as AntModal, message, Spin } from "antd";
+import {
+  Card as AntCard,
+  Select,
+  Space,
+  Tag,
+  Tooltip as AntTooltip,
+  Table as AntTable,
+  Pagination as AntPagination,
+  Input as AntInput,
+  Button as AntButton,
+  Typography,
+  InputNumber,
+  Row,
+  Menu,
+  Checkbox as AntCheckbox,
+  Dropdown as AntDropdown,
+  Modal as AntModal,
+  message,
+  Spin,
+} from "antd";
 import {
   getTrucks,
   createTruck,
@@ -76,7 +95,9 @@ import TruckFilterModal, { TruckAdvancedFilters } from "./TruckFilterModal";
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
-import ExportConfigModal, { TruckExportConfigWithUI } from "./ExportConfigModal";
+import ExportConfigModal, {
+  TruckExportConfigWithUI,
+} from "./ExportConfigModal";
 
 // Extend dayjs with the plugins
 dayjs.extend(isSameOrBefore);
@@ -160,7 +181,9 @@ export function Trucks() {
     updatedDateRange: [null, null],
     ascending: false, // Default sort: Newest first (descending)
   };
-  const [advancedFilters, setAdvancedFilters] = useState<TruckAdvancedFilters>(initialAdvancedFilters);
+  const [advancedFilters, setAdvancedFilters] = useState<TruckAdvancedFilters>(
+    initialAdvancedFilters
+  );
 
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -185,13 +208,17 @@ export function Trucks() {
 
   // Extract unique license plates for dropdown
   const uniqueLicensePlates = useMemo(() => {
-    return Array.from(new Set(trucks.map(truck => truck.licensePlate)))
-      .map(plate => ({ value: plate, label: plate }));
+    return Array.from(new Set(trucks.map((truck) => truck.licensePlate))).map(
+      (plate) => ({ value: plate, label: plate })
+    );
   }, [trucks]);
 
   // Filter function for license plate search
-  const filterOption = (input: string, option?: { label: string; value: string }) => {
-    return (option?.label ?? '').toLowerCase().includes(input.toLowerCase());
+  const filterOption = (
+    input: string,
+    option?: { label: string; value: string }
+  ) => {
+    return (option?.label ?? "").toLowerCase().includes(input.toLowerCase());
   };
 
   const fetchTrucks = useCallback(async () => {
@@ -227,14 +254,14 @@ export function Trucks() {
 
   const updatePageInUrl = (newPage: number) => {
     const query = { ...router.query };
-    
+
     // Nếu là trang 1, xóa tham số page khỏi URL
     if (newPage === 1) {
       delete query.page;
     } else {
       query.page = String(newPage);
     }
-    
+
     router.push(
       {
         pathname: router.pathname,
@@ -261,8 +288,9 @@ export function Trucks() {
 
     // Apply search filter
     if (filterValue) {
-      filteredTrucks = filteredTrucks.filter((truck) =>
-        truck.licensePlate.toLowerCase() === filterValue.toLowerCase()
+      filteredTrucks = filteredTrucks.filter(
+        (truck) =>
+          truck.licensePlate.toLowerCase() === filterValue.toLowerCase()
       );
     }
 
@@ -312,14 +340,14 @@ export function Trucks() {
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
-    
+
     // Đảm bảo rằng page không vượt quá số trang thực tế
     if (page > 1 && start >= filteredItems.length) {
       // Nếu page hiện tại vượt quá số trang thực tế, quay về trang 1
       setTimeout(() => setPage(1), 0);
       return filteredItems.slice(0, rowsPerPage);
     }
-    
+
     return filteredItems.slice(start, end);
   }, [page, rowsPerPage, filteredItems]);
 
@@ -330,7 +358,7 @@ export function Trucks() {
     if (sortDescriptor.column === "createdAt") {
       // Override direction from sortDescriptor with the one from advancedFilters
       const direction = advancedFilters.ascending ? 1 : -1;
-      
+
       sorted.sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
@@ -348,7 +376,7 @@ export function Trucks() {
         return 0;
       });
     }
-    
+
     return sorted;
   }, [sortDescriptor, items, advancedFilters.ascending]);
 
@@ -412,18 +440,25 @@ export function Trucks() {
       setSelectedKeys(newSelection);
       return;
     }
-    
+
     const selectedTruckIds = Array.from(newSelection as Set<string>);
-    const selectedTrucks = trucks.filter(truck => selectedTruckIds.includes(truck.id));
-    
-    const hasActive = selectedTrucks.some(truck => truck.status === "Active");
-    const hasInactive = selectedTrucks.some(truck => truck.status === "Inactive");
-    
+    const selectedTrucks = trucks.filter((truck) =>
+      selectedTruckIds.includes(truck.id)
+    );
+
+    const hasActive = selectedTrucks.some((truck) => truck.status === "Active");
+    const hasInactive = selectedTrucks.some(
+      (truck) => truck.status === "Inactive"
+    );
+
     if (hasActive && hasInactive) {
-      messageApi.warning("Cannot select both Active and Inactive trucks at the same time.", 3);
+      messageApi.warning(
+        "Cannot select both Active and Inactive trucks at the same time.",
+        3
+      );
       return;
     }
-    
+
     setSelectedKeys(newSelection);
   };
 
@@ -550,7 +585,13 @@ export function Trucks() {
                   {isLoadingAllItems &&
                   (item.key === "all-active" || item.key === "all-inactive") &&
                   selectedOption === item.key ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
                       <Spin size="small" />
                       <span>Loading...</span>
                     </div>
@@ -571,7 +612,7 @@ export function Trucks() {
     isLoadingAllItems,
     handleSelectByStatusAction,
     canSelectTruck,
-    messageApi
+    messageApi,
   ]);
 
   const handleOpenDetails = async (id: string) => {
@@ -648,7 +689,10 @@ export function Trucks() {
     setLoadingMessage("Activating trucks...");
     try {
       await activateTrucks(idsToActivate);
-      messageApi.success(`${idsToActivate.length} truck(s) activated successfully`, 5);
+      messageApi.success(
+        `${idsToActivate.length} truck(s) activated successfully`,
+        5
+      );
       fetchTrucks();
       setSelectedKeys(new Set());
     } catch (error) {
@@ -712,15 +756,15 @@ export function Trucks() {
 
   const handleApplyAdvancedFilters = (filters: TruckAdvancedFilters) => {
     setAdvancedFilters(filters);
-    
+
     // If sorting by createdAt, update the sortDescriptor direction based on advanced filter
     if (sortDescriptor.column === "createdAt") {
       setSortDescriptor({
         ...sortDescriptor,
-        direction: filters.ascending ? "ascending" : "descending"
+        direction: filters.ascending ? "ascending" : "descending",
       });
     }
-    
+
     setPage(1);
     updatePageInUrl(1);
     setIsFilterModalOpen(false);
@@ -728,15 +772,15 @@ export function Trucks() {
 
   const isFiltersApplied = useMemo(() => {
     const hasBasicFilters = filterValue !== "" || statusFilter !== "all";
-    
+
     // Check if advanced filters are applied
-    const hasAdvancedFilters = 
+    const hasAdvancedFilters =
       advancedFilters.createdDateRange[0] !== null ||
       advancedFilters.createdDateRange[1] !== null ||
       advancedFilters.updatedDateRange[0] !== null ||
       advancedFilters.updatedDateRange[1] !== null ||
       advancedFilters.ascending !== initialAdvancedFilters.ascending;
-    
+
     return hasBasicFilters || hasAdvancedFilters;
   }, [filterValue, statusFilter, advancedFilters, initialAdvancedFilters]);
 
@@ -757,16 +801,19 @@ export function Trucks() {
     [visibleColumns]
   );
 
-  const toggleAllColumns = useCallback((checked: boolean) => {
-    if (checked) {
-      // Show all columns
-      setVisibleColumns(new Set(allColumnKeys));
-    } else {
-      // Hide all columns except essential ones required for table to function
-      messageApi.success("All columns have been hidden", 3);
-      setVisibleColumns(new Set([]));
-    }
-  }, [messageApi]);
+  const toggleAllColumns = useCallback(
+    (checked: boolean) => {
+      if (checked) {
+        // Toggle All
+        setVisibleColumns(new Set(allColumnKeys));
+      } else {
+        // Hide all columns except essential ones required for table to function
+        messageApi.success("All columns have been hidden", 3);
+        setVisibleColumns(new Set([]));
+      }
+    },
+    [messageApi]
+  );
 
   const areAllColumnsVisible = useMemo(() => {
     const currentVisible = visibleColumns as Set<string>;
@@ -835,12 +882,17 @@ export function Trucks() {
           return <span>{formatDate(cellValue as string)}</span>;
         case "actions":
           return (
-            <Space size="small" style={{ display: "flex", justifyContent: "center" }}>
+            <Space
+              size="small"
+              style={{ display: "flex", justifyContent: "center" }}
+            >
               <AntTooltip title="Edit">
                 <AntButton
                   type="text"
-                  icon={<EditOutlined />}
-                  onClick={() => router.push(`/truck/edit/${truck.id}`)}
+                  icon={<FormOutlined />}
+                  onClick={() =>
+                    router.push(`/delivery-truck/edit/${truck.id}`)
+                  }
                 />
               </AntTooltip>
             </Space>
@@ -856,58 +908,92 @@ export function Trucks() {
   // Define Ant Design table columns
   const antColumns = useMemo(() => {
     // If no columns are visible, return empty array
-    const hasVisibleColumns = visibleColumns instanceof Set && (visibleColumns as Set<string>).size > 0;
-    
+    const hasVisibleColumns =
+      visibleColumns instanceof Set && (visibleColumns as Set<string>).size > 0;
+
     const columns = [
       {
-        title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>LICENSE PLATE</span>,
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            LICENSE PLATE
+          </span>
+        ),
         dataIndex: "licensePlate",
         key: "licensePlate",
-        sorter: (a: TruckResponse, b: TruckResponse) => a.licensePlate.localeCompare(b.licensePlate),
-        render: (text: string, record: TruckResponse) => renderCell(record, "licensePlate"),
+        sorter: (a: TruckResponse, b: TruckResponse) =>
+          a.licensePlate.localeCompare(b.licensePlate),
+        render: (text: string, record: TruckResponse) =>
+          renderCell(record, "licensePlate"),
       },
       {
-        title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>DRIVER NAME</span>,
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            DRIVER NAME
+          </span>
+        ),
         dataIndex: "driverName",
         key: "driverName",
-        sorter: (a: TruckResponse, b: TruckResponse) => (a.driverName || "").localeCompare(b.driverName || ""),
-        render: (text: string, record: TruckResponse) => renderCell(record, "driverName"),
+        sorter: (a: TruckResponse, b: TruckResponse) =>
+          (a.driverName || "").localeCompare(b.driverName || ""),
+        render: (text: string, record: TruckResponse) =>
+          renderCell(record, "driverName"),
       },
       {
-        title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>DRIVER CONTACT</span>,
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            DRIVER CONTACT
+          </span>
+        ),
         dataIndex: "driverContact",
         key: "driverContact",
-        render: (text: string, record: TruckResponse) => renderCell(record, "driverContact"),
+        render: (text: string, record: TruckResponse) =>
+          renderCell(record, "driverContact"),
       },
       {
-        title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>STATUS</span>,
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            STATUS
+          </span>
+        ),
         dataIndex: "status",
         key: "status",
-        sorter: (a: TruckResponse, b: TruckResponse) => (a.status || "").localeCompare(b.status || ""),
-        render: (text: string, record: TruckResponse) => renderCell(record, "status"),
+        sorter: (a: TruckResponse, b: TruckResponse) =>
+          (a.status || "").localeCompare(b.status || ""),
+        render: (text: string, record: TruckResponse) =>
+          renderCell(record, "status"),
       },
       {
-        title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>CREATED AT</span>,
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            CREATED AT
+          </span>
+        ),
         dataIndex: "createdAt",
         key: "createdAt",
-        sorter: (a: TruckResponse, b: TruckResponse) => 
+        sorter: (a: TruckResponse, b: TruckResponse) =>
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        render: (text: string, record: TruckResponse) => renderCell(record, "createdAt"),
+        render: (text: string, record: TruckResponse) =>
+          renderCell(record, "createdAt"),
       },
       {
-        title: <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>ACTIONS</span>,
+        title: (
+          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+            ACTIONS
+          </span>
+        ),
         key: "actions",
         align: "center" as const,
-        render: (_: any, record: TruckResponse) => renderCell(record, "actions"),
+        render: (_: any, record: TruckResponse) =>
+          renderCell(record, "actions"),
       },
     ];
-    
+
     if (!hasVisibleColumns) {
       // Return empty array when no columns are selected
       return [];
     }
-    
-    return columns.filter(col => {
+
+    return columns.filter((col) => {
       const key = col.key as string;
       return visibleColumns instanceof Set && visibleColumns.has(key);
     });
@@ -929,19 +1015,19 @@ export function Trucks() {
   // Fix the renderSelectedInfo function with proper closing tags
   const renderSelectedInfo = () => {
     if ((selectedKeys as Set<string>).size === 0) return null;
-    
+
     const selectedCount = (selectedKeys as Set<string>).size;
-    
+
     return (
       <Space>
-        <Typography.Text>{selectedCount} items selected</Typography.Text>
+        <Typography.Text>{selectedCount} Items selected</Typography.Text>
         <AntButton
           icon={<UndoOutlined />}
           onClick={() => setSelectedKeys(new Set([]))}
         >
           Restore
         </AntButton>
-        
+
         {selectedItemTypes.hasInactive && (
           <AntButton
             className="bg-success-100 text-success border-success"
@@ -951,7 +1037,7 @@ export function Trucks() {
             Activate Selected
           </AntButton>
         )}
-        
+
         {selectedItemTypes.hasActive && (
           <AntButton
             className="bg-danger-100 text-danger border-danger"
@@ -991,15 +1077,15 @@ export function Trucks() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className="mr-2">
-            <AntButton 
-              icon={<ArrowLeftOutlined />} 
+            <AntButton
+              icon={<ArrowLeftOutlined />}
               onClick={() => router.push("/")}
             >
               Back
             </AntButton>
           </span>
           <TrucksIcon />
-          <h3 className="text-xl font-bold">Truck Management</h3>
+          <h3 className="text-xl font-bold">Delivery Truck Management</h3>
         </div>
       </div>
 
@@ -1010,21 +1096,21 @@ export function Trucks() {
       ) : (
         <div>
           <Spin spinning={loading} tip={loadingMessage}>
-            <AntCard 
+            <AntCard
               className="shadow mb-4"
               bodyStyle={{ padding: "16px" }}
               title={
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "16px 0 0 0",
-                }}
-              >
-                <AppstoreOutlined />
-                <span>Toolbar</span>
-              </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "16px 0 0 0",
+                  }}
+                >
+                  <AppstoreOutlined />
+                  <span>Toolbar</span>
+                </div>
               }
             >
               <div className="p-4">
@@ -1036,7 +1122,9 @@ export function Trucks() {
                         allowClear
                         style={{ width: "300px" }}
                         placeholder={
-                          <div style={{ display: "flex", alignItems: "center" }}>
+                          <div
+                            style={{ display: "flex", alignItems: "center" }}
+                          >
                             <SearchOutlined style={{ marginRight: 8 }} />
                             <span>Search License Plate...</span>
                           </div>
@@ -1049,9 +1137,13 @@ export function Trucks() {
 
                       <AntTooltip title="Advanced Filters">
                         <AntButton
-                          icon={<FilterOutlined style={{
-                            color: isFiltersApplied ? "#1890ff" : undefined
-                          }} />}
+                          icon={
+                            <FilterOutlined
+                              style={{
+                                color: isFiltersApplied ? "#1890ff" : undefined,
+                              }}
+                            />
+                          }
                           onClick={() => setIsFilterModalOpen(true)}
                           style={{ height: "32px" }}
                         >
@@ -1064,12 +1156,18 @@ export function Trucks() {
                         allowClear
                         style={{ width: "120px", height: "32px" }}
                         placeholder={
-                          <div style={{ display: "flex", alignItems: "center" }}>
+                          <div
+                            style={{ display: "flex", alignItems: "center" }}
+                          >
                             <TagOutlined style={{ marginRight: 8 }} />
                             <span>Status</span>
                           </div>
                         }
-                        value={statusFilter === "all" ? [] : Array.from(statusFilter as Set<string>)}
+                        value={
+                          statusFilter === "all"
+                            ? []
+                            : Array.from(statusFilter as Set<string>)
+                        }
                         onChange={(values) => {
                           if (values.length === 0) {
                             setStatusFilter("all");
@@ -1077,7 +1175,10 @@ export function Trucks() {
                             setStatusFilter(new Set(values));
                           }
                         }}
-                        options={statusOptions.map(option => ({ value: option.uid, label: option.name }))}
+                        options={statusOptions.map((option) => ({
+                          value: option.uid,
+                          label: option.name,
+                        }))}
                         maxTagCount="responsive"
                       />
 
@@ -1096,45 +1197,67 @@ export function Trucks() {
                         menu={{
                           items: [
                             {
-                              key: 'selectAll',
+                              key: "selectAll",
                               label: (
                                 <AntCheckbox
                                   checked={areAllColumnsVisible}
-                                  onChange={(e) => toggleAllColumns(e.target.checked)}
+                                  onChange={(e) =>
+                                    toggleAllColumns(e.target.checked)
+                                  }
                                 >
-                                  <strong>Show All Columns</strong>
+                                  <strong>Toggle All</strong>
                                 </AntCheckbox>
-                              )
+                              ),
                             },
                             {
-                              type: 'divider'
+                              type: "divider",
                             },
-                            ...columns.filter(col => col.uid !== "actions").map((column) => ({
-                              key: column.uid,
-                              label: (
-                                <AntCheckbox
-                                  checked={(visibleColumns as Set<string>).has(column.uid)}
-                                  onChange={() => handleColumnVisibilityChange(column.uid)}
-                                >
-                                  <span style={{ color: "dimgray", fontWeight: "normal" }}>
-                                    {capitalize(column.name)}
-                                  </span>
-                                </AntCheckbox>
-                              )
-                            })),
+                            ...columns
+                              .filter((col) => col.uid !== "actions")
+                              .map((column) => ({
+                                key: column.uid,
+                                label: (
+                                  <AntCheckbox
+                                    checked={(
+                                      visibleColumns as Set<string>
+                                    ).has(column.uid)}
+                                    onChange={() =>
+                                      handleColumnVisibilityChange(column.uid)
+                                    }
+                                  >
+                                    <span
+                                      style={{
+                                        color: "dimgray",
+                                        fontWeight: "normal",
+                                      }}
+                                    >
+                                      {capitalize(column.name)}
+                                    </span>
+                                  </AntCheckbox>
+                                ),
+                              })),
                             {
-                              key: 'actions',
+                              key: "actions",
                               label: (
                                 <AntCheckbox
-                                  checked={(visibleColumns as Set<string>).has("actions")}
-                                  onChange={() => handleColumnVisibilityChange("actions")}
+                                  checked={(visibleColumns as Set<string>).has(
+                                    "actions"
+                                  )}
+                                  onChange={() =>
+                                    handleColumnVisibilityChange("actions")
+                                  }
                                 >
-                                  <span style={{ color: "dimgray", fontWeight: "normal" }}>
+                                  <span
+                                    style={{
+                                      color: "dimgray",
+                                      fontWeight: "normal",
+                                    }}
+                                  >
                                     Actions
                                   </span>
                                 </AntCheckbox>
-                              )
-                            }
+                              ),
+                            },
                           ],
                           onClick: (e) => e.domEvent.stopPropagation(),
                         }}
@@ -1174,15 +1297,14 @@ export function Trucks() {
 
             {/* Container cho cả selected info và rows per page */}
             <div className="mb-4 py-2 flex justify-between items-center">
-              <div>
-                {renderSelectedInfo()}
-              </div>
-              <div>
-                {renderRowsPerPage()}
-              </div>
+              <div>{renderSelectedInfo()}</div>
+              <div>{renderRowsPerPage()}</div>
             </div>
 
-            <AntCard className="mt-4 shadow-sm" bodyStyle={{ padding: "8px 16px" }}>
+            <AntCard
+              className="mt-4 shadow-sm"
+              bodyStyle={{ padding: "8px 16px" }}
+            >
               <div style={{ overflowX: "auto" }}>
                 <style>
                   {`
@@ -1203,48 +1325,52 @@ export function Trucks() {
                   pagination={false}
                   loading={false}
                   rowSelection={{
-                    selectedRowKeys: Array.from(selectedKeys instanceof Set ? selectedKeys : []),
+                    selectedRowKeys: Array.from(
+                      selectedKeys instanceof Set ? selectedKeys : []
+                    ),
                     onChange: (keys) => handleSelectionChange(new Set(keys)),
-                    columnTitle: renderSelectAll
+                    columnTitle: renderSelectAll,
                   }}
                   scroll={{ x: "max-content" }}
                   bordered
                 />
               </div>
               <AntCard className="mt-4 shadow-sm">
-                  <Row justify="center" align="middle">
-                    <Space size="large" align="center">
-                      <Typography.Text type="secondary">
-                        Total {filteredItems.length} items
-                      </Typography.Text>
-                      <Space align="center" size="large">
-                        <AntPagination
-                          current={page}
-                          pageSize={rowsPerPage}
-                          total={filteredItems.length}
-                          onChange={onPageChange}
-                          showSizeChanger={false}
-                          showTotal={() => ""}
-                          style={{ paddingLeft: "25px" }}
+                <Row justify="center" align="middle">
+                  <Space size="large" align="center">
+                    <Typography.Text type="secondary">
+                      Total {filteredItems.length} items
+                    </Typography.Text>
+                    <Space align="center" size="large">
+                      <AntPagination
+                        current={page}
+                        pageSize={rowsPerPage}
+                        total={filteredItems.length}
+                        onChange={onPageChange}
+                        showSizeChanger={false}
+                        showTotal={() => ""}
+                        style={{ paddingLeft: "25px" }}
+                      />
+                      <Space align="center">
+                        <Typography.Text type="secondary">
+                          Go to page:
+                        </Typography.Text>
+                        <InputNumber
+                          min={1}
+                          max={Math.max(1, pages)}
+                          value={page}
+                          onChange={(value: number | null) => {
+                            if (value && value >= 1 && value <= pages) {
+                              onPageChange(value);
+                            }
+                          }}
+                          style={{ width: "60px" }}
                         />
-                        <Space align="center">
-                          <Typography.Text type="secondary">Go to page:</Typography.Text>
-                          <InputNumber
-                            min={1}
-                            max={Math.max(1, pages)}
-                            value={page}
-                            onChange={(value: number | null) => {
-                              if (value && value >= 1 && value <= pages) {
-                                onPageChange(value);
-                              }
-                            }}
-                            style={{ width: "60px" }}
-                          />
-                        </Space>
                       </Space>
                     </Space>
-                  </Row>
-                </AntCard>
+                  </Space>
+                </Row>
+              </AntCard>
             </AntCard>
           </Spin>
         </div>
@@ -1270,11 +1396,16 @@ export function Trucks() {
       )}
 
       <AntModal
-        title={`Confirm ${confirmBulkActionType === "activate" ? "Activation" : "Deactivation"}`}
+        title={`Confirm ${
+          confirmBulkActionType === "activate" ? "Activation" : "Deactivation"
+        }`}
         open={isConfirmBulkActionModalOpen}
         onCancel={() => setIsConfirmBulkActionModalOpen(false)}
         footer={[
-          <AntButton key="cancel" onClick={() => setIsConfirmBulkActionModalOpen(false)}>
+          <AntButton
+            key="cancel"
+            onClick={() => setIsConfirmBulkActionModalOpen(false)}
+          >
             Cancel
           </AntButton>,
           <AntButton
@@ -1323,11 +1454,11 @@ export function Trucks() {
         onChange={handleExportConfigChange}
         filters={{
           filterValue,
-          statusFilter: Array.isArray(statusFilter) 
-            ? statusFilter 
-            : statusFilter === "all" 
-              ? [] 
-              : Array.from(statusFilter as Set<string>),
+          statusFilter: Array.isArray(statusFilter)
+            ? statusFilter
+            : statusFilter === "all"
+            ? []
+            : Array.from(statusFilter as Set<string>),
           advancedFilters,
           currentPage: page,
           pageSize: rowsPerPage,

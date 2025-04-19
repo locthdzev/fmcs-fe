@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="90" fill="#f2f2f2"/>
+  
+  <!-- FPT Orange Uniform -->
+  <path d="M60,100 L60,160 C60,170 80,180 100,180 C120,180 140,170 140,160 L140,100 Z" fill="#ff5e00"/>
+  <path d="M60,110 L140,110" stroke="white" stroke-width="2"/>
+  
+  <!-- FPT Logo -->
+  <text x="95" y="140" font-family="Arial" font-size="16" font-weight="bold" fill="white" text-anchor="middle">FPT</text>
+  
+  <!-- Head -->
+  <circle cx="100" cy="70" r="40" fill="#ffdbac"/>
+  
+  <!-- Hair - Blonde Braided -->
+  <path d="M100,30 C75,30 65,50 65,70 C65,75 70,85 75,90 C65,90 60,75 60,65 C60,40 75,20 100,20 C125,20 140,40 140,65 C140,75 135,90 125,90 C130,85 135,75 135,70 C135,50 125,30 100,30 Z" fill="#f9d71c"/>
+  
+  <!-- Braids -->
+  <!-- Left braid -->
+  <path d="M65,65 C60,80 65,100 70,120" fill="none" stroke="#f9d71c" stroke-width="10" stroke-linecap="round"/>
+  <path d="M65,75 L65,78" stroke="#e67e22" stroke-width="3"/>
+  <path d="M65,85 L65,88" stroke="#e67e22" stroke-width="3"/>
+  <path d="M66,95 L66,98" stroke="#e67e22" stroke-width="3"/>
+  <path d="M68,105 L68,108" stroke="#e67e22" stroke-width="3"/>
+  <path d="M70,115 L70,118" stroke="#e67e22" stroke-width="3"/>
+  
+  <!-- Right braid -->
+  <path d="M135,65 C140,80 135,100 130,120" fill="none" stroke="#f9d71c" stroke-width="10" stroke-linecap="round"/>
+  <path d="M135,75 L135,78" stroke="#e67e22" stroke-width="3"/>
+  <path d="M135,85 L135,88" stroke="#e67e22" stroke-width="3"/>
+  <path d="M134,95 L134,98" stroke="#e67e22" stroke-width="3"/>
+  <path d="M132,105 L132,108" stroke="#e67e22" stroke-width="3"/>
+  <path d="M130,115 L130,118" stroke="#e67e22" stroke-width="3"/>
+  
+  <!-- Eyes -->
+  <ellipse cx="85" cy="65" rx="5" ry="6" fill="#2d2d2d"/>
+  <ellipse cx="115" cy="65" rx="5" ry="6" fill="#2d2d2d"/>
+  <!-- Eyelashes -->
+  <line x1="80" y1="60" x2="75" y2="58" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="85" y1="59" x2="85" y2="55" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="90" y1="60" x2="95" y2="58" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="110" y1="60" x2="105" y2="58" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="115" y1="59" x2="115" y2="55" stroke="#2d2d2d" stroke-width="1"/>
+  <line x1="120" y1="60" x2="125" y2="58" stroke="#2d2d2d" stroke-width="1"/>
+  
+  <!-- Smile -->
+  <path d="M85,80 C90,88 110,88 115,80" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Blush -->
+  <circle cx="75" cy="75" r="5" fill="#ff9999" opacity="0.5"/>
+  <circle cx="125" cy="75" r="5" fill="#ff9999" opacity="0.5"/>
+  
+  <!-- Thermometer - Medical element -->
+  <rect x="90" y="115" width="3" height="30" rx="1.5" ry="1.5" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="1"/>
+  <circle cx="91.5" cy="145" r="4" fill="#e74c3c" stroke="#c0392b" stroke-width="1"/>
+  <line x1="91.5" y1="120" x2="91.5" y2="140" stroke="#e74c3c" stroke-width="1"/>
+  <circle cx="91.5" cy="115" r="2" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="0.5"/>
+  <!-- Temperature scale -->
+  <line x1="95" y1="120" x2="97" y2="120" stroke="#7f8c8d" stroke-width="0.5"/>
+  <line x1="95" y1="125" x2="96" y2="125" stroke="#7f8c8d" stroke-width="0.5"/>
+  <line x1="95" y1="130" x2="97" y2="130" stroke="#7f8c8d" stroke-width="0.5"/>
+  <line x1="95" y1="135" x2="96" y2="135" stroke="#7f8c8d" stroke-width="0.5"/>
+  <line x1="95" y1="140" x2="97" y2="140" stroke="#7f8c8d" stroke-width="0.5"/>
+  
+  <!-- Ears -->
+  <path d="M60,70 Q55,70 58,80" fill="#ffdbac"/>
+  <path d="M140,70 Q145,70 142,80" fill="#ffdbac"/>
+</svg> 
