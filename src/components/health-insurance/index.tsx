@@ -691,6 +691,7 @@ export function HealthInsuranceManagement() {
               placeholder="Search by policyholder"
               optionFilterProp="label"
               value={userFilter}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               filterOption={(input, option) => {
                 if (!option?.label) return false;
                 return (

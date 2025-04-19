@@ -1,5 +1,14 @@
 import React, { useState } from "react";
-import { Table, Input, Button, Space, Typography, Tag, Tooltip, Badge } from "antd";
+import {
+  Table,
+  Input,
+  Button,
+  Space,
+  Typography,
+  Tag,
+  Tooltip,
+  Badge,
+} from "antd";
 import { SearchOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
@@ -24,7 +33,7 @@ const ErrorTable: React.FC<ErrorTableProps> = ({
   fullHeight = false,
 }) => {
   const [searchText, setSearchText] = useState<string>("");
-  
+
   // Đảm bảo errors không bao giờ là null hoặc undefined
   const safeErrors = errors || [];
 
@@ -44,7 +53,10 @@ const ErrorTable: React.FC<ErrorTableProps> = ({
       return <Tag color="orange">Duplicate</Tag>;
     } else if (errorMessage.includes("required")) {
       return <Tag color="red">Missing Field</Tag>;
-    } else if (errorMessage.includes("format") || errorMessage.includes("invalid")) {
+    } else if (
+      errorMessage.includes("format") ||
+      errorMessage.includes("invalid")
+    ) {
       return <Tag color="magenta">Format Error</Tag>;
     } else {
       return <Tag color="volcano">Validation Error</Tag>;
@@ -58,7 +70,7 @@ const ErrorTable: React.FC<ErrorTableProps> = ({
       fullName: parts[0] || "",
       username: parts[1] || "",
       email: parts[2] || "",
-      other: parts.slice(3).join(", ") || ""
+      other: parts.slice(3).join(", ") || "",
     };
   };
 
@@ -70,13 +82,13 @@ const ErrorTable: React.FC<ErrorTableProps> = ({
       width: 70,
       sorter: (a, b) => a.rowNumber - b.rowNumber,
       render: (value) => (
-        <Badge 
-          count={value} 
-          style={{ 
-            backgroundColor: '#1890ff',
-            fontSize: '12px',
-            fontWeight: 'bold'
-          }} 
+        <Badge
+          count={value}
+          style={{
+            backgroundColor: "#1890ff",
+            fontSize: "12px",
+            fontWeight: "bold",
+          }}
         />
       ),
     },
@@ -92,13 +104,21 @@ const ErrorTable: React.FC<ErrorTableProps> = ({
         { text: "Other Errors", value: "other" },
       ],
       onFilter: (value, record) => {
-        if (value === "required") return record.errorMessage.includes("required");
-        if (value === "format") return record.errorMessage.includes("format") || record.errorMessage.includes("invalid");
-        if (value === "exists") return record.errorMessage.includes("already exists");
-        return !record.errorMessage.includes("required") && 
-               !record.errorMessage.includes("format") && 
-               !record.errorMessage.includes("invalid") && 
-               !record.errorMessage.includes("already exists");
+        if (value === "required")
+          return record.errorMessage.includes("required");
+        if (value === "format")
+          return (
+            record.errorMessage.includes("format") ||
+            record.errorMessage.includes("invalid")
+          );
+        if (value === "exists")
+          return record.errorMessage.includes("already exists");
+        return (
+          !record.errorMessage.includes("required") &&
+          !record.errorMessage.includes("format") &&
+          !record.errorMessage.includes("invalid") &&
+          !record.errorMessage.includes("already exists")
+        );
       },
     },
     {
@@ -110,7 +130,9 @@ const ErrorTable: React.FC<ErrorTableProps> = ({
       },
       render: (text) => (
         <Tooltip placement="topLeft" title={text}>
-          <Text type="danger" style={{ fontSize: '13px' }}>{text}</Text>
+          <Text type="danger" style={{ fontSize: "13px" }}>
+            {text}
+          </Text>
         </Tooltip>
       ),
     },
@@ -120,21 +142,21 @@ const ErrorTable: React.FC<ErrorTableProps> = ({
       render: (_, record) => {
         const userData = parseUserData(record.data);
         return (
-          <Space direction="vertical" size={0} style={{ width: '100%' }}>
+          <Space direction="vertical" size={0} style={{ width: "100%" }}>
             <Text strong>{userData.fullName}</Text>
             {userData.username && (
-              <Text type="secondary" style={{ fontSize: '13px' }}>
+              <Text type="secondary" style={{ fontSize: "13px" }}>
                 Username: {userData.username}
               </Text>
             )}
             {userData.email && (
-              <Text type="secondary" style={{ fontSize: '13px' }}>
+              <Text type="secondary" style={{ fontSize: "13px" }}>
                 Email: {userData.email}
               </Text>
             )}
             {userData.other && (
               <Tooltip title={userData.other}>
-                <Text type="secondary" style={{ fontSize: '12px' }} ellipsis>
+                <Text type="secondary" style={{ fontSize: "12px" }} ellipsis>
                   <InfoCircleOutlined style={{ marginRight: 4 }} />
                   Additional data available
                 </Text>
@@ -148,13 +170,19 @@ const ErrorTable: React.FC<ErrorTableProps> = ({
 
   return (
     <div>
-      <div style={{ marginBottom: "16px", display: "flex", justifyContent: "space-between" }}>
+      <div
+        style={{
+          marginBottom: "16px",
+          display: "flex",
+          justifyContent: "space-between",
+        }}
+      >
         <Space>
           <Input
             placeholder="Search by name, email or error message"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            prefix={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: "blue" }} />}
             allowClear
             style={{ width: 300 }}
           />
@@ -166,7 +194,7 @@ const ErrorTable: React.FC<ErrorTableProps> = ({
             Clear
           </Button>
         </Space>
-        
+
         <Text type="secondary">
           {filteredErrors.length} of {safeErrors.length} records
         </Text>
@@ -176,21 +204,21 @@ const ErrorTable: React.FC<ErrorTableProps> = ({
         columns={columns}
         dataSource={filteredErrors}
         rowKey={(record) => `${record.rowNumber}-${record.errorMessage}`}
-        pagination={{ 
+        pagination={{
           pageSize: fullHeight ? 20 : 5,
           showSizeChanger: true,
-          pageSizeOptions: ['5', '10', '20', '50'],
-          showTotal: (total) => `Total ${total} items`
+          pageSizeOptions: ["5", "10", "20", "50"],
+          showTotal: (total) => `Total ${total} items`,
         }}
         size="middle"
-        style={{ 
-          height: fullHeight ? "600px" : "400px", 
-          overflow: "auto" 
+        style={{
+          height: fullHeight ? "600px" : "400px",
+          overflow: "auto",
         }}
         scroll={{ y: fullHeight ? 550 : 350 }}
-        rowClassName={(record) => 
-          record.errorMessage.includes("already exists") 
-            ? "row-duplicate" 
+        rowClassName={(record) =>
+          record.errorMessage.includes("already exists")
+            ? "row-duplicate"
             : "row-error"
         }
       />
@@ -210,4 +238,4 @@ const ErrorTable: React.FC<ErrorTableProps> = ({
   );
 };
 
-export default ErrorTable; 
+export default ErrorTable;

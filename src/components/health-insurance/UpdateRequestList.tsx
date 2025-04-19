@@ -32,7 +32,7 @@ import {
   reviewUpdateRequest,
   setupHealthInsuranceRealTime,
   exportHealthInsurances,
-  UpdateRequestParams
+  UpdateRequestParams,
 } from "@/api/healthinsurance";
 import {
   SearchOutlined,
@@ -85,13 +85,14 @@ export function UpdateRequestList() {
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
-  const [selectedRequest, setSelectedRequest] = useState<UpdateRequestDTO | null>(null);
+  const [selectedRequest, setSelectedRequest] =
+    useState<UpdateRequestDTO | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [messageApi, contextHolder] = message.useMessage();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
-  
+
   // Add filter state
   const [filterState, setFilterState] = useState({
     statusFilter: "",
@@ -100,7 +101,9 @@ export function UpdateRequestList() {
   });
 
   // Add columns visibility state
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
     requestedBy: true,
     insuranceNumber: true,
     fullName: true,
@@ -129,7 +132,7 @@ export function UpdateRequestList() {
         ascending: filterState.ascending,
         status: statusFilter,
         requestedAtFrom,
-        requestedAtTo
+        requestedAtTo,
       };
 
       const result = await getUpdateRequests(requestParams);
@@ -140,7 +143,14 @@ export function UpdateRequestList() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, searchText, statusFilter, filterState, messageApi]);
+  }, [
+    currentPage,
+    pageSize,
+    searchText,
+    statusFilter,
+    filterState,
+    messageApi,
+  ]);
 
   useEffect(() => {
     fetchRequests();
@@ -154,9 +164,15 @@ export function UpdateRequestList() {
 
   const handleReview = async (requestId: string, isApproved: boolean) => {
     try {
-      const response = await reviewUpdateRequest(requestId, isApproved, isApproved ? undefined : rejectionReason);
+      const response = await reviewUpdateRequest(
+        requestId,
+        isApproved,
+        isApproved ? undefined : rejectionReason
+      );
       if (response.isSuccess) {
-        messageApi.success(isApproved ? "Request approved!" : "Request rejected!");
+        messageApi.success(
+          isApproved ? "Request approved!" : "Request rejected!"
+        );
         fetchRequests();
         setIsModalVisible(false);
         setRejectionReason("");
@@ -222,15 +238,18 @@ export function UpdateRequestList() {
   const handleResetFilters = () => {
     const resetFilters = {
       statusFilter: "",
-      requestDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+      requestDateRange: [null, null] as [
+        dayjs.Dayjs | null,
+        dayjs.Dayjs | null
+      ],
       ascending: false,
     };
-    
+
     setFilterState(resetFilters);
     setStatusFilter(undefined);
     setCurrentPage(1);
     setFilterModalVisible(false);
-    
+
     // Refresh data
     fetchRequests();
   };
@@ -240,7 +259,7 @@ export function UpdateRequestList() {
     setSearchText("");
     setStatusFilter(undefined);
     setCurrentPage(1);
-    
+
     // Reset the filter state as well
     setFilterState({
       statusFilter: "",
@@ -259,8 +278,12 @@ export function UpdateRequestList() {
       ),
       render: (record: UpdateRequestDTO) => (
         <div className="flex flex-col">
-          <Typography.Text strong>{record.requestedBy.userName}</Typography.Text>
-          <Typography.Text type="secondary" className="text-sm">{record.requestedBy.email}</Typography.Text>
+          <Typography.Text strong>
+            {record.requestedBy.userName}
+          </Typography.Text>
+          <Typography.Text type="secondary" className="text-sm">
+            {record.requestedBy.email}
+          </Typography.Text>
         </div>
       ),
       visible: columnVisibility.requestedBy,
@@ -274,7 +297,9 @@ export function UpdateRequestList() {
       ),
       dataIndex: "healthInsuranceNumber",
       render: (text: string) => (
-        <Text strong className="text-blue-600">{text}</Text>
+        <Text strong className="text-blue-600">
+          {text}
+        </Text>
       ),
       visible: columnVisibility.insuranceNumber,
     },
@@ -286,9 +311,7 @@ export function UpdateRequestList() {
         </span>
       ),
       dataIndex: "fullName",
-      render: (text: string) => (
-        <Text strong>{text}</Text>
-      ),
+      render: (text: string) => <Text strong>{text}</Text>,
       visible: columnVisibility.fullName,
     },
     {
@@ -315,14 +338,12 @@ export function UpdateRequestList() {
       dataIndex: "status",
       render: (status: string) => {
         const statusConfig = {
-          Pending: { color: 'warning' },
-          Approved: { color: 'success' },
-          Rejected: { color: 'error' },
+          Pending: { color: "warning" },
+          Approved: { color: "success" },
+          Rejected: { color: "error" },
         };
         const config = statusConfig[status as keyof typeof statusConfig];
-        return (
-          <Tag color={config.color}>{status}</Tag>
-        );
+        return <Tag color={config.color}>{status}</Tag>;
       },
       visible: columnVisibility.status,
     },
@@ -395,6 +416,7 @@ export function UpdateRequestList() {
             <Input.Search
               placeholder="Search by insurance number"
               value={searchText}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               onChange={(e) => setSearchText(e.target.value)}
               style={{ width: 250 }}
               allowClear
@@ -452,8 +474,14 @@ export function UpdateRequestList() {
               <Button
                 icon={<UndoOutlined />}
                 onClick={handleReset}
-                disabled={!(searchText || statusFilter || 
-                  filterState.requestDateRange[0] || filterState.requestDateRange[1])}
+                disabled={
+                  !(
+                    searchText ||
+                    statusFilter ||
+                    filterState.requestDateRange[0] ||
+                    filterState.requestDateRange[1]
+                  )
+                }
               >
                 Reset
               </Button>
@@ -717,13 +745,17 @@ export function UpdateRequestList() {
         {selectedRequest && (
           <div className="space-y-6">
             <Card className="shadow-sm">
-              <Descriptions title={
-                <div className="flex items-center space-x-2 mb-4">
-                  <IdcardOutlined className="text-blue-500" />
-                  <Text strong>Request Information</Text>
-                </div>
-              } bordered column={2}>
-                <Descriptions.Item 
+              <Descriptions
+                title={
+                  <div className="flex items-center space-x-2 mb-4">
+                    <IdcardOutlined className="text-blue-500" />
+                    <Text strong>Request Information</Text>
+                  </div>
+                }
+                bordered
+                column={2}
+              >
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <IdcardOutlined />
@@ -733,7 +765,7 @@ export function UpdateRequestList() {
                 >
                   <Text strong>{selectedRequest.healthInsuranceNumber}</Text>
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <UserOutlined />
@@ -743,7 +775,7 @@ export function UpdateRequestList() {
                 >
                   <Text strong>{selectedRequest.fullName}</Text>
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <CalendarOutlined />
@@ -753,7 +785,7 @@ export function UpdateRequestList() {
                 >
                   {formatDate(selectedRequest.dateOfBirth)}
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <UserOutlined />
@@ -763,7 +795,7 @@ export function UpdateRequestList() {
                 >
                   {selectedRequest.gender}
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <HomeOutlined />
@@ -774,7 +806,7 @@ export function UpdateRequestList() {
                 >
                   {selectedRequest.address}
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <MedicineBoxOutlined />
@@ -785,10 +817,12 @@ export function UpdateRequestList() {
                 >
                   <Space>
                     <Text strong>{selectedRequest.healthcareProviderName}</Text>
-                    <Tag color="blue">{selectedRequest.healthcareProviderCode}</Tag>
+                    <Tag color="blue">
+                      {selectedRequest.healthcareProviderCode}
+                    </Tag>
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <CalendarOutlined />
@@ -798,11 +832,17 @@ export function UpdateRequestList() {
                   span={2}
                 >
                   <Space>
-                    <Badge status="processing" text={`From: ${formatDate(selectedRequest.validFrom)}`} />
-                    <Badge status="warning" text={`To: ${formatDate(selectedRequest.validTo)}`} />
+                    <Badge
+                      status="processing"
+                      text={`From: ${formatDate(selectedRequest.validFrom)}`}
+                    />
+                    <Badge
+                      status="warning"
+                      text={`To: ${formatDate(selectedRequest.validTo)}`}
+                    />
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <GlobalOutlined />
@@ -812,7 +852,7 @@ export function UpdateRequestList() {
                 >
                   {formatDate(selectedRequest.issueDate)}
                 </Descriptions.Item>
-                <Descriptions.Item 
+                <Descriptions.Item
                   label={
                     <div className="flex items-center space-x-2">
                       <ExclamationCircleOutlined />
@@ -820,7 +860,9 @@ export function UpdateRequestList() {
                     </div>
                   }
                 >
-                  <Tag color={selectedRequest.hasInsurance ? "success" : "error"}>
+                  <Tag
+                    color={selectedRequest.hasInsurance ? "success" : "error"}
+                  >
                     {selectedRequest.hasInsurance ? "Yes" : "No"}
                   </Tag>
                 </Descriptions.Item>
@@ -828,7 +870,7 @@ export function UpdateRequestList() {
             </Card>
 
             {selectedRequest.imageUrl && (
-              <Card 
+              <Card
                 title={
                   <div className="flex items-center space-x-2">
                     <FileImageOutlined className="text-blue-500" />
@@ -846,7 +888,7 @@ export function UpdateRequestList() {
               </Card>
             )}
 
-            <Card 
+            <Card
               title={
                 <div className="flex items-center space-x-2">
                   <CloseCircleOutlined className="text-red-500" />
@@ -858,7 +900,12 @@ export function UpdateRequestList() {
               <Form layout="vertical">
                 <Form.Item
                   required={true}
-                  rules={[{ required: true, message: "Please provide a rejection reason" }]}
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please provide a rejection reason",
+                    },
+                  ]}
                 >
                   <TextArea
                     rows={4}
@@ -885,7 +932,11 @@ export function UpdateRequestList() {
         open={filterModalVisible}
         onCancel={() => setFilterModalVisible(false)}
         footer={[
-          <Button key="reset" onClick={handleResetFilters} icon={<UndoOutlined />}>
+          <Button
+            key="reset"
+            onClick={handleResetFilters}
+            icon={<UndoOutlined />}
+          >
             Reset
           </Button>,
           <Button
@@ -904,7 +955,9 @@ export function UpdateRequestList() {
               allowClear
               style={{ width: "100%" }}
               value={filterState.statusFilter}
-              onChange={(value) => setFilterState(prev => ({ ...prev, statusFilter: value }))}
+              onChange={(value) =>
+                setFilterState((prev) => ({ ...prev, statusFilter: value }))
+              }
             >
               <Option value="Pending">
                 <Badge status="warning" text="Pending" />
@@ -917,36 +970,41 @@ export function UpdateRequestList() {
               </Option>
             </Select>
           </Form.Item>
-          
+
           <Form.Item label="Request Date Range">
             <RangePicker
               style={{ width: "100%" }}
               value={filterState.requestDateRange}
-              onChange={(dates) => 
-                setFilterState(prev => ({ 
-                  ...prev, 
-                  requestDateRange: dates as [dayjs.Dayjs | null, dayjs.Dayjs | null] 
+              onChange={(dates) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  requestDateRange: dates as [
+                    dayjs.Dayjs | null,
+                    dayjs.Dayjs | null
+                  ],
                 }))
               }
             />
           </Form.Item>
-          
+
           <Form.Item label="Sort Order">
             <Select
               value={filterState.ascending ? "asc" : "desc"}
-              onChange={(value) => 
-                setFilterState(prev => ({ 
-                  ...prev, 
-                  ascending: value === "asc" 
+              onChange={(value) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  ascending: value === "asc",
                 }))
               }
               style={{ width: "100%" }}
             >
               <Option value="asc">
-                <SortAscendingOutlined className="mr-2" />Ascending
+                <SortAscendingOutlined className="mr-2" />
+                Ascending
               </Option>
               <Option value="desc">
-                <SortDescendingOutlined className="mr-2" />Descending
+                <SortDescendingOutlined className="mr-2" />
+                Descending
               </Option>
             </Select>
           </Form.Item>

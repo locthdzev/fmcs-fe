@@ -817,10 +817,10 @@ export function Drugs() {
               allowClear
               placeholder={
                 <div style={{ display: "flex", alignItems: "center" }}>
-                  <SearchOutlined style={{ marginRight: 8 }} />
                   <span>Search by drug code, name, or group...</span>
                 </div>
               }
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               value={filterValue || undefined}
               onChange={(value) => onSearchChange(value)}
               style={{ width: "300px" }}
@@ -1768,10 +1768,10 @@ export function Drugs() {
               allowClear
               placeholder={
                 <div style={{ display: "flex", alignItems: "center" }}>
-                  <SearchOutlined style={{ marginRight: 8 }} />
                   <span>Search by drug code, name, or group...</span>
                 </div>
               }
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               value={filterValue || undefined}
               onChange={(value) => onSearchChange(value)}
               style={{ width: "300px" }}

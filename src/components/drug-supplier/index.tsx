@@ -1030,6 +1030,7 @@ export function DrugSuppliers() {
                           <span>Search by supplier name...</span>
                         </div>
                       }
+                      prefix={<SearchOutlined style={{ color: "blue" }} />}
                       value={filterValue || undefined}
                       onChange={handleSearchSelectChange}
                       style={{ width: "300px" }}

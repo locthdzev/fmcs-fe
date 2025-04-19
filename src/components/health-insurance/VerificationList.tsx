@@ -399,6 +399,7 @@ export function VerificationList() {
               showSearch
               allowClear
               style={{ width: 250 }}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               placeholder="Search by insurance number"
               optionFilterProp="children"
               onChange={(value) => setSearchText(value || "")}
