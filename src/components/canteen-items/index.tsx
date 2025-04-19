@@ -1114,6 +1114,8 @@ export function CanteenItems() {
           <Option value={10}>10</Option>
           <Option value={15}>15</Option>
           <Option value={20}>20</Option>
+          <Option value={50}>50</Option>
+          <Option value={100}>100</Option>
         </Select>
       </div>
     );
@@ -1232,7 +1234,6 @@ export function CanteenItems() {
                 !filterValue && statusFilter.length === 0 && !hasAdvancedFilters
               }
             >
-              Reset
             </Button>
           </Tooltip>
 

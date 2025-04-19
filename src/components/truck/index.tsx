@@ -1074,6 +1074,8 @@ export function Trucks() {
           <Select.Option value={10}>10</Select.Option>
           <Select.Option value={15}>15</Select.Option>
           <Select.Option value={20}>20</Select.Option>
+          <Select.Option value={50}>50</Select.Option>
+          <Select.Option value={100}>100</Select.Option>
         </Select>
       </div>
     );
@@ -1197,7 +1199,6 @@ export function Trucks() {
                           disabled={!isFiltersApplied && !filterValue}
                           style={{ height: "32px" }}
                         >
-                          Reset
                         </AntButton>
                       </AntTooltip>
 
