@@ -78,7 +78,7 @@ export function HistoryList() {
   const [messageApi, contextHolder] = message.useMessage();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
-  
+
   // Add filter state
   const [filterState, setFilterState] = useState({
     sortBy: "UpdatedAt",
@@ -88,7 +88,9 @@ export function HistoryList() {
   });
 
   // Add columns visibility state
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
     updatedBy: true,
     updatedAt: true,
     statusChange: true,
@@ -106,15 +108,19 @@ export function HistoryList() {
         filterState.sortBy,
         filterState.ascending
       );
-      
+
       // Additional client-side filtering for date range if needed
       let filteredData = result.data;
       if (filterState.updatedDateRange[0] || filterState.updatedDateRange[1]) {
         filteredData = result.data.filter((history: HistoryDTO) => {
           const updatedAt = new Date(history.updatedAt);
-          const fromDate = filterState.updatedDateRange[0] ? filterState.updatedDateRange[0].toDate() : null;
-          const toDate = filterState.updatedDateRange[1] ? filterState.updatedDateRange[1].toDate() : null;
-          
+          const fromDate = filterState.updatedDateRange[0]
+            ? filterState.updatedDateRange[0].toDate()
+            : null;
+          const toDate = filterState.updatedDateRange[1]
+            ? filterState.updatedDateRange[1].toDate()
+            : null;
+
           if (fromDate && toDate) {
             return updatedAt >= fromDate && updatedAt <= toDate;
           } else if (fromDate) {
@@ -124,17 +130,21 @@ export function HistoryList() {
           }
           return true;
         });
-        
+
         // Filter by username if provided
         if (filterState.userName) {
           filteredData = filteredData.filter((history: HistoryDTO) => {
-            return history.updatedBy.userName.toLowerCase().includes(filterState.userName.toLowerCase());
+            return history.updatedBy.userName
+              .toLowerCase()
+              .includes(filterState.userName.toLowerCase());
           });
         }
       }
-      
+
       setHistories(filteredData);
-      setTotal(filteredData.length > 0 ? filteredData.length : result.totalRecords);
+      setTotal(
+        filteredData.length > 0 ? filteredData.length : result.totalRecords
+      );
     } catch (error) {
       messageApi.error("Unable to load histories.");
     } finally {
@@ -171,16 +181,19 @@ export function HistoryList() {
     const resetFilters = {
       sortBy: "UpdatedAt",
       ascending: false,
-      updatedDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+      updatedDateRange: [null, null] as [
+        dayjs.Dayjs | null,
+        dayjs.Dayjs | null
+      ],
       userName: "",
     };
-    
+
     setFilterState(resetFilters);
     setSortBy("UpdatedAt");
     setAscending(false);
     setCurrentPage(1);
     setFilterModalVisible(false);
-    
+
     // Refresh data
     fetchHistories();
   };
@@ -228,7 +241,7 @@ export function HistoryList() {
     setSortBy("UpdatedAt");
     setAscending(false);
     setCurrentPage(1);
-    
+
     // Reset the filter state as well
     setFilterState({
       sortBy: "UpdatedAt",
@@ -249,7 +262,9 @@ export function HistoryList() {
       render: (record: HistoryDTO) => (
         <div className="flex flex-col">
           <Typography.Text strong>{record.updatedBy.userName}</Typography.Text>
-          <Typography.Text type="secondary" className="text-sm">{record.updatedBy.email}</Typography.Text>
+          <Typography.Text type="secondary" className="text-sm">
+            {record.updatedBy.email}
+          </Typography.Text>
         </div>
       ),
       visible: columnVisibility.updatedBy,
@@ -267,7 +282,12 @@ export function HistoryList() {
         </Tooltip>
       ),
       sorter: true,
-      sortOrder: filterState.sortBy === "UpdatedAt" ? (filterState.ascending ? "ascend" : "descend") : undefined,
+      sortOrder:
+        filterState.sortBy === "UpdatedAt"
+          ? filterState.ascending
+            ? "ascend"
+            : "descend"
+          : undefined,
       visible: columnVisibility.updatedAt,
     },
     {
@@ -287,7 +307,8 @@ export function HistoryList() {
               <Tag color="green">{record.newStatus}</Tag>
             </div>
           )}
-          {record.previousVerificationStatus !== record.newVerificationStatus && (
+          {record.previousVerificationStatus !==
+            record.newVerificationStatus && (
             <div className="flex items-center space-x-2">
               <Text>Verification:</Text>
               <Tag color="orange">{record.previousVerificationStatus}</Tag>
@@ -317,7 +338,9 @@ export function HistoryList() {
     },
   ];
 
-  const columns = ALL_COLUMNS.filter((col) => col.visible) as TableProps<HistoryDTO>["columns"];
+  const columns = ALL_COLUMNS.filter(
+    (col) => col.visible
+  ) as TableProps<HistoryDTO>["columns"];
 
   return (
     <div className="history-container" style={{ padding: "20px" }}>
@@ -362,6 +385,7 @@ export function HistoryList() {
             <Input.Search
               placeholder="Search by user or details"
               value={searchText}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               onChange={(e) => setSearchText(e.target.value)}
               style={{ width: 250 }}
               allowClear
@@ -396,10 +420,10 @@ export function HistoryList() {
                 icon={<UndoOutlined />}
                 onClick={handleReset}
                 disabled={
-                  !searchText && 
-                  filterState.sortBy === "UpdatedAt" && 
-                  !filterState.ascending && 
-                  !filterState.updatedDateRange[0] && 
+                  !searchText &&
+                  filterState.sortBy === "UpdatedAt" &&
+                  !filterState.ascending &&
+                  !filterState.updatedDateRange[0] &&
                   !filterState.updatedDateRange[1] &&
                   !filterState.userName
                 }
@@ -559,7 +583,7 @@ export function HistoryList() {
             if (sorter && !Array.isArray(sorter)) {
               const newAscending = sorter.order === "ascend";
               setAscending(newAscending);
-              setFilterState(prev => ({...prev, ascending: newAscending}));
+              setFilterState((prev) => ({ ...prev, ascending: newAscending }));
             }
           }}
         />
@@ -615,7 +639,11 @@ export function HistoryList() {
         open={filterModalVisible}
         onCancel={() => setFilterModalVisible(false)}
         footer={[
-          <Button key="reset" onClick={handleResetFilters} icon={<UndoOutlined />}>
+          <Button
+            key="reset"
+            onClick={handleResetFilters}
+            icon={<UndoOutlined />}
+          >
             Reset
           </Button>,
           <Button
@@ -631,60 +659,70 @@ export function HistoryList() {
           <Form.Item label="Sort By">
             <Select
               value={filterState.sortBy}
-              onChange={(value) => 
-                setFilterState(prev => ({ ...prev, sortBy: value }))
+              onChange={(value) =>
+                setFilterState((prev) => ({ ...prev, sortBy: value }))
               }
               style={{ width: "100%" }}
             >
               <Option value="UpdatedAt">
-                <ClockCircleOutlined className="mr-2" />Updated At
+                <ClockCircleOutlined className="mr-2" />
+                Updated At
               </Option>
               <Option value="UserName">
-                <UserOutlined className="mr-2" />User Name
+                <UserOutlined className="mr-2" />
+                User Name
               </Option>
             </Select>
           </Form.Item>
-          
+
           <Form.Item label="Sort Order">
             <Select
               value={filterState.ascending ? "asc" : "desc"}
-              onChange={(value) => 
-                setFilterState(prev => ({ 
-                  ...prev, 
-                  ascending: value === "asc" 
+              onChange={(value) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  ascending: value === "asc",
                 }))
               }
               style={{ width: "100%" }}
             >
               <Option value="asc">
-                <SortAscendingOutlined className="mr-2" />Ascending
+                <SortAscendingOutlined className="mr-2" />
+                Ascending
               </Option>
               <Option value="desc">
-                <SortDescendingOutlined className="mr-2" />Descending
+                <SortDescendingOutlined className="mr-2" />
+                Descending
               </Option>
             </Select>
           </Form.Item>
-          
+
           <Form.Item label="Updated Date Range">
             <RangePicker
               style={{ width: "100%" }}
               value={filterState.updatedDateRange}
-              onChange={(dates) => 
-                setFilterState(prev => ({ 
-                  ...prev, 
-                  updatedDateRange: dates as [dayjs.Dayjs | null, dayjs.Dayjs | null] 
+              onChange={(dates) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  updatedDateRange: dates as [
+                    dayjs.Dayjs | null,
+                    dayjs.Dayjs | null
+                  ],
                 }))
               }
               showTime
             />
           </Form.Item>
-          
+
           <Form.Item label="User Name">
             <Input
               placeholder="Filter by user name"
               value={filterState.userName}
-              onChange={(e) => 
-                setFilterState(prev => ({ ...prev, userName: e.target.value }))
+              onChange={(e) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  userName: e.target.value,
+                }))
               }
               allowClear
             />
@@ -693,4 +731,4 @@ export function HistoryList() {
       </Modal>
     </div>
   );
-} 
+}

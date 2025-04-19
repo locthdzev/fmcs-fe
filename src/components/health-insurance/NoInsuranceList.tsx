@@ -53,7 +53,9 @@ const formatDateTime = (datetime: string | undefined) => {
 
 export function NoInsuranceList() {
   const router = useRouter();
-  const [insurances, setInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
+  const [insurances, setInsurances] = useState<HealthInsuranceResponseDTO[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -63,7 +65,9 @@ export function NoInsuranceList() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Add columns visibility state
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({
     userInfo: true,
     status: true,
     lastUpdated: true,
@@ -141,7 +145,7 @@ export function NoInsuranceList() {
     setSearchText("");
     setCurrentPage(1);
   };
-  
+
   const ALL_COLUMNS = [
     {
       key: "userInfo",
@@ -153,7 +157,9 @@ export function NoInsuranceList() {
       render: (record: HealthInsuranceResponseDTO) => (
         <div className="flex flex-col">
           <Typography.Text strong>{record.user.fullName}</Typography.Text>
-          <Typography.Text type="secondary" className="text-sm">{record.user.email}</Typography.Text>
+          <Typography.Text type="secondary" className="text-sm">
+            {record.user.email}
+          </Typography.Text>
         </div>
       ),
       visible: columnVisibility.userInfo,
@@ -166,9 +172,7 @@ export function NoInsuranceList() {
         </span>
       ),
       dataIndex: "status",
-      render: (status: string) => (
-        <Tag color="error">No Insurance</Tag>
-      ),
+      render: (status: string) => <Tag color="error">No Insurance</Tag>,
       visible: columnVisibility.status,
     },
     {
@@ -233,6 +237,7 @@ export function NoInsuranceList() {
             <Input.Search
               placeholder="Search by name or email"
               value={searchText}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               onChange={(e) => setSearchText(e.target.value)}
               style={{ width: 250 }}
               className="search-input"
@@ -424,4 +429,4 @@ export function NoInsuranceList() {
       </Card>
     </div>
   );
-} 
+}

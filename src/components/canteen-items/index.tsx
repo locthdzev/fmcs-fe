@@ -1172,7 +1172,7 @@ export function CanteenItems() {
         <div className="flex items-center gap-2 flex-wrap">
           <Input
             placeholder="Search by name..."
-            prefix={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: "blue" }} />}
             value={filterValue}
             onChange={(e) => handleSearchSelectChange(e.target.value)}
             style={{ width: "300px" }}

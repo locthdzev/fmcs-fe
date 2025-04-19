@@ -154,7 +154,7 @@ const FilterModal: React.FC<{
                 allowClear
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
               />
             </div>
           </Col>
@@ -170,7 +170,7 @@ const FilterModal: React.FC<{
                 allowClear
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
               />
             </div>
           </Col>

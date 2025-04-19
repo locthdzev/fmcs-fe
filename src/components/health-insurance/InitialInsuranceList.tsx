@@ -612,6 +612,7 @@ export function InitialInsuranceList() {
               style={{ width: 250 }}
               placeholder="Search by policyholder"
               optionFilterProp="label"
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               onChange={handleSearchChange}
               value={searchText || undefined}
               filterOption={(input, option) => {

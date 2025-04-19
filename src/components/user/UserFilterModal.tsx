@@ -19,11 +19,6 @@ import {
   CheckCircleOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined,
-  UserOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  TagOutlined,
-  CalendarOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -261,7 +256,6 @@ const UserFilterModal: React.FC<UserFilterModalProps> = ({
               >
                 <Option value="Male">Male</Option>
                 <Option value="Female">Female</Option>
-                <Option value="Other">Other</Option>
               </Select>
             </div>
           </Col>

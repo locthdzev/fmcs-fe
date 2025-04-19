@@ -132,7 +132,7 @@ const HealthCheckFilterModal: React.FC<{
                 placeholder="Search by patient"
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 allowClear
                 style={{ width: "100%" }}
               />
@@ -149,7 +149,7 @@ const HealthCheckFilterModal: React.FC<{
                 placeholder="Search by medical staff"
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 allowClear
                 style={{ width: "100%" }}
               />
@@ -606,7 +606,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
               placeholder="Search by result code"
               value={codeSearch}
               onChange={(e) => setCodeSearch(e.target.value)}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               style={{ width: 200 }}
               allowClear
             />
