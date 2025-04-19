@@ -182,6 +182,8 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
       title: viewMode === "staff" ? "STAFF" : "SHIFT",
       dataIndex: "id",
       key: "id",
+      fixed: 'left' as const,
+      width: 200,
       render: (id: string, record: any) => (
         <div>
           {viewMode === "staff" ? (
@@ -296,6 +298,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
         rowKey="id"
         bordered
         pagination={false}
+        scroll={{ x: 'max-content' }}
       />
     </>
   );

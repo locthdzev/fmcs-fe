@@ -100,7 +100,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
   return (
     <Modal
-      title="Advanced Filters"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Advanced Filters
+        </Title>
+      }
       open={visible}
       onCancel={onCancel}
       width={600}
@@ -540,7 +544,9 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
             Back
           </Button>
           <HealthInsuranceIcon />
-          <h3 className="text-xl font-bold">Temporarily Deleted Health Check Results</h3>
+          <h3 className="text-xl font-bold">
+            Temporarily Deleted Health Check Results
+          </h3>
         </div>
       </div>
 
@@ -824,7 +830,8 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
                 <InboxOutlined style={{ fontSize: 40, marginBottom: 16 }} />
                 <Text strong>No deleted health check results found</Text>
                 <Text type="secondary">
-                  There are no deleted health check results matching your search criteria
+                  There are no deleted health check results matching your search
+                  criteria
                 </Text>
               </div>
             ),
@@ -850,9 +857,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
                 showTotal={(totalItems) => `${totalItems} items`}
               />
               <Space align="center">
-                <Typography.Text type="secondary">
-                  Go to page:
-                </Typography.Text>
+                <Typography.Text type="secondary">Go to page:</Typography.Text>
                 <InputNumber
                   min={1}
                   max={Math.ceil(total / pageSize)}

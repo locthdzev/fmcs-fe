@@ -23,7 +23,7 @@ import {
   ReloadOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import type { RangePickerProps } from 'antd/es/date-picker';
+import type { RangePickerProps } from "antd/es/date-picker";
 import { getDrugOrders, DrugOrderResponse } from "@/api/drugorder";
 
 const { RangePicker } = DatePicker;
@@ -70,13 +70,31 @@ const sortByOptions = [
 ];
 
 // Define date presets with correct type
-const datePresets: RangePickerProps['presets'] = [
-  { label: "Today", value: [dayjs().startOf('day'), dayjs().endOf('day')] },
-  { label: "Last 7 Days", value: [dayjs().subtract(6, 'day').startOf('day'), dayjs().endOf('day')] },
-  { label: "Last 30 Days", value: [dayjs().subtract(29, 'day').startOf('day'), dayjs().endOf('day')] },
-  { label: "This Month", value: [dayjs().startOf('month'), dayjs().endOf('month')] },
-  { label: "Last Month", value: [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month')] },
-  { label: "This Year", value: [dayjs().startOf('year'), dayjs().endOf('year')] },
+const datePresets: RangePickerProps["presets"] = [
+  { label: "Today", value: [dayjs().startOf("day"), dayjs().endOf("day")] },
+  {
+    label: "Last 7 Days",
+    value: [dayjs().subtract(6, "day").startOf("day"), dayjs().endOf("day")],
+  },
+  {
+    label: "Last 30 Days",
+    value: [dayjs().subtract(29, "day").startOf("day"), dayjs().endOf("day")],
+  },
+  {
+    label: "This Month",
+    value: [dayjs().startOf("month"), dayjs().endOf("month")],
+  },
+  {
+    label: "Last Month",
+    value: [
+      dayjs().subtract(1, "month").startOf("month"),
+      dayjs().subtract(1, "month").endOf("month"),
+    ],
+  },
+  {
+    label: "This Year",
+    value: [dayjs().startOf("year"), dayjs().endOf("year")],
+  },
 ];
 
 // Fallback price options in case we can't fetch from API
@@ -104,12 +122,21 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
   initialFilters,
   supplierOptions,
 }) => {
-  const [localFilters, setLocalFilters] = useState<DrugOrderAdvancedFilters>(initialFilters);
+  const [localFilters, setLocalFilters] =
+    useState<DrugOrderAdvancedFilters>(initialFilters);
   const [loading, setLoading] = useState(false);
   const [fetchingPriceRanges, setFetchingPriceRanges] = useState(false);
-  const [priceStats, setPriceStats] = useState({ min: 0, avg: 500000, max: 1000000 });
-  const [minPriceOptions, setMinPriceOptions] = useState(DEFAULT_MIN_PRICE_OPTIONS);
-  const [maxPriceOptions, setMaxPriceOptions] = useState(DEFAULT_MAX_PRICE_OPTIONS);
+  const [priceStats, setPriceStats] = useState({
+    min: 0,
+    avg: 500000,
+    max: 1000000,
+  });
+  const [minPriceOptions, setMinPriceOptions] = useState(
+    DEFAULT_MIN_PRICE_OPTIONS
+  );
+  const [maxPriceOptions, setMaxPriceOptions] = useState(
+    DEFAULT_MAX_PRICE_OPTIONS
+  );
   const [messageApi, contextHolder] = message.useMessage();
   const [lastFetchTime, setLastFetchTime] = useState<number | null>(null); // Timestamp of last fetch
 
@@ -138,21 +165,25 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
 
       if (response.isSuccess && response.data.length > 0) {
         // Extract prices and calculate min, max, avg
-        const prices = response.data.map((order: DrugOrderResponse) => order.totalPrice);
+        const prices = response.data.map(
+          (order: DrugOrderResponse) => order.totalPrice
+        );
         const min = Math.min(...prices);
         const max = Math.max(...prices);
         const total = prices.reduce((sum, price) => sum + price, 0);
         const avg = total / prices.length;
 
         setPriceStats({ min, avg, max });
-        
+
         // Generate price options based on the statistics
         generatePriceOptions(min, avg, max);
         setLastFetchTime(Date.now());
       }
     } catch (error) {
       console.error("Error fetching price statistics:", error);
-      messageApi.error("Could not fetch price statistics. Using default values.");
+      messageApi.error(
+        "Could not fetch price statistics. Using default values."
+      );
     } finally {
       setFetchingPriceRanges(false);
     }
@@ -163,40 +194,40 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
     // For Min Price Options (from min to avg)
     const minOptions = [];
     const minStep = Math.max((avg - min) / 4, 100000); // Create 5 steps, ensure at least 100,000 step
-    
+
     for (let i = 0; i <= 4; i++) {
       const value = Math.round((min + minStep * i) / 10000) * 10000; // Round to nearest 10,000
       minOptions.push({
         value,
-        label: formatPrice(value)
+        label: formatPrice(value),
       });
     }
-    
+
     // For Max Price Options (from avg to max)
     const maxOptions = [];
     const maxStep = Math.max((max - avg) / 4, 100000); // Create 5 steps
-    
+
     for (let i = 0; i <= 4; i++) {
       const value = Math.round((avg + maxStep * i) / 10000) * 10000; // Round to nearest 10,000
       maxOptions.push({
         value,
-        label: formatPrice(value)
+        label: formatPrice(value),
       });
     }
-    
+
     setMinPriceOptions(minOptions);
     setMaxPriceOptions(maxOptions);
   };
 
   // Format price to VND
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('vi-VN').format(price) + ' VND';
+    return new Intl.NumberFormat("vi-VN").format(price) + " VND";
   };
 
   const handleApply = () => {
     // Show loading indicator when applying filters
     setLoading(true);
-    
+
     // Simulate a delay to show the loading state (remove this in production)
     setTimeout(() => {
       // Pass the local state directly
@@ -219,13 +250,22 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
 
   return (
     <Modal
-      title="Advanced Filters"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Advanced Filters
+        </Title>
+      }
       open={visible}
       onCancel={onCancel}
       width={800} // Increased width for more filters
       footer={[
-        <Button key="reset" onClick={handleReset} icon={<UndoOutlined />} disabled={loading}>
-          Reset 
+        <Button
+          key="reset"
+          onClick={handleReset}
+          icon={<UndoOutlined />}
+          disabled={loading}
+        >
+          Reset
         </Button>,
         <Button
           key="apply"
@@ -303,14 +343,24 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
           <Row gutter={16}>
             {/* Price Range with Refresh Button */}
             <Col span={24}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <div className="filter-label" style={{ color: "#666666", fontWeight: 'bold' }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "8px",
+                }}
+              >
+                <div
+                  className="filter-label"
+                  style={{ color: "#666666", fontWeight: "bold" }}
+                >
                   Price Range
                 </div>
                 <Tooltip title="Refresh price suggestions based on current orders">
-                  <Button 
-                    type="text" 
-                    icon={<ReloadOutlined />} 
+                  <Button
+                    type="text"
+                    icon={<ReloadOutlined />}
                     onClick={fetchPriceStats}
                     loading={fetchingPriceRanges}
                     size="small"
@@ -320,7 +370,7 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
                 </Tooltip>
               </div>
             </Col>
-            
+
             {/* Min Price Range */}
             <Col span={12}>
               <div className="filter-item" style={filterItemStyle}>
@@ -341,7 +391,7 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
                   loading={fetchingPriceRanges}
                   dropdownRender={(menu) => (
                     <>
-                      <div style={{ padding: '8px', color: '#1890ff' }}>
+                      <div style={{ padding: "8px", color: "#1890ff" }}>
                         Suggestions from min to average price
                       </div>
                       {menu}
@@ -377,7 +427,7 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
                   loading={fetchingPriceRanges}
                   dropdownRender={(menu) => (
                     <>
-                      <div style={{ padding: '8px', color: '#1890ff' }}>
+                      <div style={{ padding: "8px", color: "#1890ff" }}>
                         Suggestions from average to max price
                       </div>
                       {menu}
@@ -392,12 +442,21 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
                 </Select>
               </div>
             </Col>
-            
+
             {/* Price Stats Display */}
             {!fetchingPriceRanges && (
               <Col span={24}>
-                <div style={{ fontSize: '12px', color: '#999', marginTop: '-8px', marginBottom: '8px' }}>
-                  Price statistics: Min: {formatPrice(priceStats.min)} | Avg: {formatPrice(priceStats.avg)} | Max: {formatPrice(priceStats.max)}
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#999",
+                    marginTop: "-8px",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Price statistics: Min: {formatPrice(priceStats.min)} | Avg:{" "}
+                  {formatPrice(priceStats.avg)} | Max:{" "}
+                  {formatPrice(priceStats.max)}
                 </div>
               </Col>
             )}
@@ -420,14 +479,17 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
                   onChange={(dates) =>
                     setLocalFilters((prev) => ({
                       ...prev,
-                      orderDateRange: dates as [dayjs.Dayjs | null, dayjs.Dayjs | null] || [null, null],
+                      orderDateRange: (dates as [
+                        dayjs.Dayjs | null,
+                        dayjs.Dayjs | null
+                      ]) || [null, null],
                     }))
                   }
                   presets={datePresets}
                 />
               </div>
             </Col>
-            
+
             {/* Created Date Range */}
             <Col span={8}>
               <div className="filter-item" style={filterItemStyle}>
@@ -443,7 +505,10 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
                   onChange={(dates) =>
                     setLocalFilters((prev) => ({
                       ...prev,
-                      createdDateRange: dates as [dayjs.Dayjs | null, dayjs.Dayjs | null] || [null, null],
+                      createdDateRange: (dates as [
+                        dayjs.Dayjs | null,
+                        dayjs.Dayjs | null
+                      ]) || [null, null],
                     }))
                   }
                   presets={datePresets}
@@ -466,7 +531,10 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
                   onChange={(dates) =>
                     setLocalFilters((prev) => ({
                       ...prev,
-                      updatedDateRange: dates as [dayjs.Dayjs | null, dayjs.Dayjs | null] || [null, null],
+                      updatedDateRange: (dates as [
+                        dayjs.Dayjs | null,
+                        dayjs.Dayjs | null
+                      ]) || [null, null],
                     }))
                   }
                   presets={datePresets}
@@ -501,7 +569,7 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
                 </Select>
               </div>
             </Col>
-            
+
             {/* Sort Direction */}
             <Col span={12}>
               <div className="filter-item">
@@ -511,7 +579,10 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
                 <Radio.Group
                   value={localFilters.ascending ? "asc" : "desc"}
                   onChange={(e) =>
-                    setLocalFilters(prev => ({...prev, ascending: e.target.value === "asc"}))
+                    setLocalFilters((prev) => ({
+                      ...prev,
+                      ascending: e.target.value === "asc",
+                    }))
                   }
                   optionType="button"
                   buttonStyle="solid"
@@ -521,7 +592,14 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
                     value="asc"
                     style={{ width: "50%", textAlign: "center" }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                      }}
+                    >
                       <SortAscendingOutlined />
                       <span>Ascending</span>
                     </div>
@@ -530,7 +608,14 @@ const DrugOrderFilterModal: React.FC<DrugOrderFilterModalProps> = ({
                     value="desc"
                     style={{ width: "50%", textAlign: "center" }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                      }}
+                    >
                       <SortDescendingOutlined />
                       <span>Descending</span>
                     </div>

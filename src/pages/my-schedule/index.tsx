@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Calendar, Badge, Card, Typography, DatePicker, Spin, message, Tag, Row, Col, Tooltip } from "antd";
+import { Calendar, Badge, Card, Typography, DatePicker, Spin, message, Tag, Row, Col, Tooltip, Button, Table, Divider } from "antd";
 import { getCurrentUserSchedules } from "@/api/schedule";
 import { StaffScheduleResponse } from "@/api/schedule";
 import dayjs from "dayjs";
 import type { Dayjs } from 'dayjs';
 import { UserContext } from "@/context/UserContext";
-import { CalendarOutlined, ClockCircleOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import { CalendarOutlined, ClockCircleOutlined, InfoCircleOutlined, TableOutlined, AppstoreOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import weekday from 'dayjs/plugin/weekday';
 import localeData from 'dayjs/plugin/localeData';
+import PageContainer from "@/components/shared/PageContainer";
+import { useRouter } from "next/router";
 
 dayjs.extend(weekday);
 dayjs.extend(localeData);
@@ -16,6 +18,7 @@ const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 export default function MySchedulePage() {
+  const router = useRouter();
   const [loading, setLoading] = useState<boolean>(true);
   const [schedules, setSchedules] = useState<StaffScheduleResponse[]>([]);
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
@@ -25,13 +28,37 @@ export default function MySchedulePage() {
   const userContext = useContext(UserContext);
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(dayjs());
   const [todaySchedules, setTodaySchedules] = useState<StaffScheduleResponse[]>([]);
+  const [displayMode, setDisplayMode] = useState<"calendar" | "table">("calendar");
+  const [currentWeek, setCurrentWeek] = useState<Date[]>([]);
+
+  // Thiết lập ngày trong tuần hiện tại
+  useEffect(() => {
+    setCurrentWeekDays(dayjs());
+  }, []);
+
+  const setCurrentWeekDays = (date: Dayjs) => {
+    const startOfWeek = date.startOf('week').add(1, 'day'); // Bắt đầu từ thứ 2
+    const weekDays = [];
+    for (let i = 0; i < 7; i++) {
+      weekDays.push(startOfWeek.add(i, 'day').toDate());
+    }
+    setCurrentWeek(weekDays);
+  };
 
   // Lấy lịch làm việc từ API
   const fetchSchedules = async () => {
     setLoading(true);
     try {
-      const startDate = dateRange[0].format("YYYY-MM-DD");
-      const endDate = dateRange[1].format("YYYY-MM-DD");
+      let startDate, endDate;
+      
+      if (displayMode === "calendar") {
+        startDate = dateRange[0].format("YYYY-MM-DD");
+        endDate = dateRange[1].format("YYYY-MM-DD");
+      } else {
+        // Trong chế độ bảng, lấy dữ liệu theo tuần
+        startDate = dayjs(currentWeek[0]).format("YYYY-MM-DD");
+        endDate = dayjs(currentWeek[6]).format("YYYY-MM-DD");
+      }
       
       const response = await getCurrentUserSchedules(startDate, endDate);
       
@@ -39,11 +66,11 @@ export default function MySchedulePage() {
         setSchedules(response.data);
         updateTodaySchedules(response.data, selectedDate || dayjs());
       } else {
-        message.error("Không thể tải lịch làm việc. Vui lòng thử lại sau.");
+        message.error("Could not load schedule data. Please try again later.");
       }
     } catch (error) {
       console.error("Error fetching schedules:", error);
-      message.error("Đã xảy ra lỗi khi tải lịch làm việc.");
+      message.error("An error occurred while loading schedule data.");
     } finally {
       setLoading(false);
     }
@@ -59,8 +86,11 @@ export default function MySchedulePage() {
 
   // Load lịch làm việc khi component mount hoặc khi thay đổi khoảng thời gian
   useEffect(() => {
-    fetchSchedules();
-  }, [dateRange]);
+    if ((displayMode === "calendar" && dateRange) || 
+        (displayMode === "table" && currentWeek.length > 0)) {
+      fetchSchedules();
+    }
+  }, [dateRange, currentWeek, displayMode]);
 
   // Xử lý khi thay đổi khoảng thời gian
   const handleRangeChange = (dates: any, dateStrings: [string, string]) => {
@@ -73,6 +103,25 @@ export default function MySchedulePage() {
   const handleDateSelect = (date: Dayjs) => {
     setSelectedDate(date);
     updateTodaySchedules(schedules, date);
+  };
+
+  // Xử lý chuyển đổi tuần trong chế độ bảng
+  const handlePrevWeek = () => {
+    setCurrentWeekDays(dayjs(currentWeek[0]).subtract(7, 'day'));
+  };
+
+  const handleNextWeek = () => {
+    setCurrentWeekDays(dayjs(currentWeek[0]).add(7, 'day'));
+  };
+
+  const handleThisWeek = () => {
+    setCurrentWeekDays(dayjs());
+  };
+
+  const handleDateChange = (date: Dayjs | null) => {
+    if (date) {
+      setCurrentWeekDays(date);
+    }
   };
 
   // Tạo dữ liệu cho lịch
@@ -114,7 +163,7 @@ export default function MySchedulePage() {
     if (todaySchedules.length === 0) {
       return (
         <Card className="mt-4 text-center">
-          <Text type="secondary">Không có lịch làm việc cho ngày {selectedDate.format('DD/MM/YYYY')}</Text>
+          <Text type="secondary">No schedules for {selectedDate.format('DD/MM/YYYY')}</Text>
         </Card>
       );
     }
@@ -124,7 +173,7 @@ export default function MySchedulePage() {
         title={
           <div className="flex items-center gap-2">
             <CalendarOutlined />
-            <span>Lịch làm việc ngày {selectedDate.format('DD/MM/YYYY')}</span>
+            <span>Schedules for {selectedDate.format('DD/MM/YYYY')}</span>
           </div>
         } 
         className="mt-4"
@@ -158,38 +207,211 @@ export default function MySchedulePage() {
     );
   };
 
-  return (
-    <div className="p-4">
-      <Title level={2} className="flex items-center gap-2 mb-6">
-        <CalendarOutlined />
-        <span>Lịch làm việc của tôi</span>
-      </Title>
+  // Render Table view
+  const renderTableView = () => {
+    // Tạo columns cho bảng
+    const columns = [
+      {
+        title: "DAY",
+        dataIndex: "day",
+        key: "day",
+        width: 200,
+        fixed: 'left' as const,
+        render: (text: string, record: any) => {
+          // Kiểm tra xem có phải là ngày hiện tại không
+          const isToday = dayjs(record.key).isSame(dayjs(), 'day');
+          
+          return (
+            <div style={{ 
+              padding: '8px',
+              background: isToday ? '#e6f7ff' : 'transparent',
+              borderRadius: isToday ? '4px' : '0',
+              border: isToday ? '1px solid #1890ff' : 'none'
+            }}>
+              <div style={{ 
+                fontWeight: 'bold',
+                color: isToday ? '#1890ff' : 'inherit'
+              }}>
+                {text}
+              </div>
+              <div style={{ 
+                fontSize: '12px', 
+                color: isToday ? '#1890ff' : '#666'
+              }}>
+                {record.date}
+                {isToday && <span style={{ marginLeft: '5px', fontWeight: 'bold' }}>(Today)</span>}
+              </div>
+            </div>
+          );
+        }
+      },
+      ...Array.from({ length: 24 }).map((_, index) => {
+        const hour = index;
+        const formattedHour = hour.toString().padStart(2, '0');
+        const isCurrentHour = dayjs().hour() === hour && dayjs().isSame(dayjs(), 'day');
+        
+        return {
+          title: (
+            <div style={{
+              color: isCurrentHour ? '#1890ff' : 'inherit',
+              fontWeight: isCurrentHour ? 'bold' : 'normal'
+            }}>
+              {`${formattedHour}:00`}
+              {isCurrentHour && <div style={{ fontSize: '10px' }}>(Now)</div>}
+            </div>
+          ),
+          dataIndex: `hour_${hour}`,
+          key: `hour_${hour}`,
+          width: 120,
+          align: 'center' as 'center',
+          render: (text: any) => text || null,
+        };
+      })
+    ];
 
-      <Card className="mb-4">
-        <div className="mb-4">
-          <Text strong>Khoảng thời gian: </Text>
-          <RangePicker 
-            value={dateRange}
-            onChange={handleRangeChange}
-            format="DD/MM/YYYY"
-            className="ml-2"
-          />
+    // Tạo data cho bảng
+    const data = currentWeek.map((date) => {
+      // Tạo object cơ bản cho mỗi hàng
+      const row: any = {
+        key: dayjs(date).format('YYYY-MM-DD'),
+        day: dayjs(date).format('ddd').toUpperCase(),
+        date: dayjs(date).format('DD/MM/YYYY'),
+      };
+
+      // Lấy các ca làm việc của ngày này
+      const daySchedules = schedules.filter(s => 
+        dayjs(s.workDate).format('YYYY-MM-DD') === dayjs(date).format('YYYY-MM-DD')
+      );
+
+      // Điền các shift vào các ô giờ tương ứng
+      daySchedules.forEach(schedule => {
+        // Lấy giờ bắt đầu
+        const startHour = parseInt(schedule.startTime?.split(':')[0] || '0');
+        // Lấy giờ kết thúc (nếu kéo dài qua ngày hôm sau, giới hạn ở 23h)
+        const endHour = Math.min(parseInt(schedule.endTime?.split(':')[0] || '0'), 23);
+        
+        // Điền thông tin vào từng ô giờ
+        for(let h = startHour; h <= endHour; h++) {
+          row[`hour_${h}`] = (
+            <Tag color="green" style={{ margin: 0, width: '100%', textAlign: 'center', padding: '4px 0' }}>
+              {schedule.shiftName}
+            </Tag>
+          );
+        }
+      });
+
+      return row;
+    });
+
+    return (
+      <div style={{ overflowX: 'auto' }}>
+        <Table 
+          columns={columns} 
+          dataSource={data} 
+          pagination={false}
+          bordered
+          size="middle"
+          scroll={{ x: 3080 }}
+          rowClassName={(record) => dayjs(record.key).isSame(dayjs(), 'day') ? 'bg-blue-50' : ''}
+          sticky
+        />
+      </div>
+    );
+  };
+
+  const handleBack = () => {
+    router.back();
+  };
+
+  return (
+    <PageContainer
+      title="My Schedule"
+      icon={<CalendarOutlined style={{ fontSize: "24px" }} />}
+      onBack={handleBack}
+    >
+      {/* Controls Card */}
+      <Card 
+        className="shadow mb-4"
+        bodyStyle={{ padding: "16px" }}
+        style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+      >
+        <Row align="middle" gutter={[16, 16]}>
+          <Col span={24}>
+            <div className="flex items-center">
+              <AppstoreOutlined style={{ marginRight: "8px", fontSize: "20px" }} />
+              <Text strong style={{ fontSize: "16px" }}>Schedule Controls</Text>
+            </div>
+          </Col>
+        </Row>
+
+        <div className="my-3">
+          <Divider style={{ margin: "12px 0" }} />
         </div>
 
+        <div className="mt-2 flex items-center justify-between flex-wrap">
+          <div className="flex items-center gap-3 mb-2">
+            {displayMode === "calendar" ? (
+              <>
+                <Text strong>Date Range: </Text>
+                <RangePicker 
+                  value={dateRange}
+                  onChange={handleRangeChange}
+                  format="DD/MM/YYYY"
+                />
+              </>
+            ) : (
+              <>
+                <Button icon={<LeftOutlined />} onClick={handlePrevWeek} />
+                <DatePicker
+                  value={dayjs(currentWeek[0])}
+                  onChange={handleDateChange}
+                  picker="week"
+                  format="[Week] w - MMMM YYYY"
+                  style={{ width: "200px" }}
+                />
+                <Button icon={<RightOutlined />} onClick={handleNextWeek} />
+                <Button onClick={handleThisWeek}>This week</Button>
+              </>
+            )}
+          </div>
+          
+          <Button.Group>
+            <Button
+              type={displayMode === "table" ? "primary" : "default"}
+              icon={<TableOutlined />}
+              onClick={() => setDisplayMode("table")}
+            >
+              Table
+            </Button>
+            <Button
+              type={displayMode === "calendar" ? "primary" : "default"}
+              icon={<AppstoreOutlined />}
+              onClick={() => setDisplayMode("calendar")}
+            >
+              Calendar
+            </Button>
+          </Button.Group>
+        </div>
+      </Card>
+
+      {/* Main Content Card */}
+      <Card className="shadow">
         {loading ? (
           <div className="flex justify-center items-center py-8">
-            <Spin size="large" />
+            <Spin size="large" tip="Loading schedule data..." />
           </div>
-        ) : (
+        ) : displayMode === "calendar" ? (
           <Calendar 
             dateCellRender={dateCellRender}
             onSelect={handleDateSelect}
             value={selectedDate || dayjs()}
           />
+        ) : (
+          renderTableView()
         )}
       </Card>
 
-      {renderScheduleDetails()}
-    </div>
+      {displayMode === "calendar" && renderScheduleDetails()}
+    </PageContainer>
   );
 } 

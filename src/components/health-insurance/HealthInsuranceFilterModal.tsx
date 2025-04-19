@@ -90,7 +90,11 @@ const HealthInsuranceFilterModal: React.FC<HealthInsuranceFilterModalProps> = ({
 
   return (
     <Modal
-      title="Advanced Filters"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Advanced Filters
+        </Title>
+      }
       open={visible}
       onCancel={onCancel}
       width={800}
@@ -122,9 +126,7 @@ const HealthInsuranceFilterModal: React.FC<HealthInsuranceFilterModalProps> = ({
                 allowClear
                 placeholder="Select policyholder"
                 value={localFilters.userFilter || undefined}
-                onChange={(value) =>
-                  updateFilter("userFilter", value)
-                }
+                onChange={(value) => updateFilter("userFilter", value)}
                 style={{ width: "100%" }}
                 filterOption={(input, option) => {
                   if (!option?.label) return false;

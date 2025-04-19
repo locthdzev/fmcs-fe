@@ -10,10 +10,7 @@ import {
   Row,
   Col,
 } from "antd";
-import {
-  UndoOutlined,
-  CheckCircleOutlined,
-} from "@ant-design/icons";
+import { UndoOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 const { RangePicker } = DatePicker;
@@ -55,7 +52,7 @@ const FollowUpFilterModal: React.FC<FollowUpFilterModalProps> = ({
     // Always set ascending to false (descending order)
     const updatedFilters = {
       ...localFilters,
-      ascending: false
+      ascending: false,
     };
     onApply(updatedFilters);
   };
@@ -71,7 +68,11 @@ const FollowUpFilterModal: React.FC<FollowUpFilterModalProps> = ({
 
   return (
     <Modal
-      title="Advanced Filters"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Advanced Filters
+        </Title>
+      }
       open={visible}
       onCancel={onCancel}
       width={800}
@@ -115,12 +116,15 @@ const FollowUpFilterModal: React.FC<FollowUpFilterModalProps> = ({
                 }
                 ranges={{
                   Today: [dayjs(), dayjs()],
-                  'Last 7 Days': [dayjs().subtract(6, 'day'), dayjs()],
-                  'Last 30 Days': [dayjs().subtract(29, 'day'), dayjs()],
-                  'This Month': [dayjs().startOf('month'), dayjs().endOf('month')],
-                  'Last Month': [
-                    dayjs().subtract(1, 'month').startOf('month'),
-                    dayjs().subtract(1, 'month').endOf('month'),
+                  "Last 7 Days": [dayjs().subtract(6, "day"), dayjs()],
+                  "Last 30 Days": [dayjs().subtract(29, "day"), dayjs()],
+                  "This Month": [
+                    dayjs().startOf("month"),
+                    dayjs().endOf("month"),
+                  ],
+                  "Last Month": [
+                    dayjs().subtract(1, "month").startOf("month"),
+                    dayjs().subtract(1, "month").endOf("month"),
                   ],
                 }}
               />
@@ -150,12 +154,15 @@ const FollowUpFilterModal: React.FC<FollowUpFilterModalProps> = ({
                 }
                 ranges={{
                   Today: [dayjs(), dayjs()],
-                  'Last 7 Days': [dayjs().subtract(6, 'day'), dayjs()],
-                  'Last 30 Days': [dayjs().subtract(29, 'day'), dayjs()],
-                  'This Month': [dayjs().startOf('month'), dayjs().endOf('month')],
-                  'Last Month': [
-                    dayjs().subtract(1, 'month').startOf('month'),
-                    dayjs().subtract(1, 'month').endOf('month'),
+                  "Last 7 Days": [dayjs().subtract(6, "day"), dayjs()],
+                  "Last 30 Days": [dayjs().subtract(29, "day"), dayjs()],
+                  "This Month": [
+                    dayjs().startOf("month"),
+                    dayjs().endOf("month"),
+                  ],
+                  "Last Month": [
+                    dayjs().subtract(1, "month").startOf("month"),
+                    dayjs().subtract(1, "month").endOf("month"),
                   ],
                 }}
               />
@@ -189,4 +196,4 @@ const FollowUpFilterModal: React.FC<FollowUpFilterModalProps> = ({
   );
 };
 
-export default FollowUpFilterModal; 
+export default FollowUpFilterModal;

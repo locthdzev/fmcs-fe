@@ -23,6 +23,7 @@ import dayjs from "dayjs";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
+const { Title } = Typography;
 
 interface ExportModalProps {
   visible: boolean;
@@ -61,7 +62,11 @@ const TreatmentPlanHistoryExportModal: React.FC<ExportModalProps> = ({
 }) => {
   return (
     <Modal
-      title="Export Configuration"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Export Configuration
+        </Title>
+      }
       open={visible}
       onCancel={onClose}
       width={800}

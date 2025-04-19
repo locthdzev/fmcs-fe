@@ -1,19 +1,12 @@
 import React, { useState } from "react";
-import {
-  Table,
-  Tag,
-  Button,
-  Tooltip,
-  Typography,
-  message,
-  Form,
-} from "antd";
+import { Table, Tag, Button, Tooltip, Typography, message, Form, Space, Dropdown, Menu } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { EditOutlined } from "@ant-design/icons";
+import { EditOutlined, EyeOutlined, MoreOutlined } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import { InventoryRecordResponseDTO } from "@/api/inventoryrecord";
 import PaginationFooter from "../shared/PaginationFooter";
 import TableControls from "../shared/TableControls";
+import dayjs from "dayjs";
 
 const { Text } = Typography;
 
@@ -27,6 +20,8 @@ interface InventoryRecordTableProps {
   selectedRowKeys: string[];
   setSelectedRowKeys: (keys: string[]) => void;
   onEdit: (record: InventoryRecordResponseDTO) => void;
+  bordered?: boolean;
+  columnVisibility?: Record<string, boolean>;
 }
 
 const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
@@ -39,6 +34,17 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
   selectedRowKeys,
   setSelectedRowKeys,
   onEdit,
+  bordered = false,
+  columnVisibility = {
+    batchCode: true,
+    drug: true,
+    quantityInStock: true,
+    reorderLevel: true,
+    status: true,
+    createdAt: true,
+    lastUpdated: true,
+    actions: true,
+  },
 }) => {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
@@ -60,34 +66,77 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
     );
   };
 
+  // Format date as dd/mm/yyyy hh:mm:ss
+  const formatDateTime = (dateString: string) => {
+    return dayjs(dateString).format("DD/MM/YYYY HH:mm:ss");
+  };
+
+  // Render action buttons with dropdown
+  const renderActionButtons = (record: InventoryRecordResponseDTO) => {
+    return (
+      <div style={{ textAlign: "center" }}>
+        <Dropdown
+          overlay={
+            <Menu>
+              <Menu.Item
+                key="view"
+                icon={<EyeOutlined />}
+                onClick={() => router.push(`/inventory-record/${record.id}`)}
+              >
+                View Details
+              </Menu.Item>
+              <Menu.Item
+                key="edit"
+                icon={<EditOutlined />}
+                onClick={(e) => {
+                  e.domEvent.stopPropagation();
+                  onEdit(record);
+                }}
+              >
+                Edit Reorder Level
+              </Menu.Item>
+            </Menu>
+          }
+          placement="bottomCenter"
+          trigger={["click"]}
+        >
+          <Button 
+            icon={<MoreOutlined />} 
+            size="small" 
+            onClick={(e) => e.stopPropagation()}
+          />
+        </Dropdown>
+      </div>
+    );
+  };
+
   // Define table columns
   const columns: ColumnsType<InventoryRecordResponseDTO> = [
-    {
-      title: "DRUG CODE",
-      dataIndex: ["drug", "drugCode"],
-      key: "drugCode",
-      sorter: (a, b) => a.drug.drugCode.localeCompare(b.drug.drugCode),
-      render: (text, record) => (
-        <Button
-          type="link"
-          onClick={() => router.push(`/drug?id=${record.drug.id}`)}
-          style={{ padding: 0 }}
-        >
-          {text}
-        </Button>
-      ),
-    },
-    {
-      title: "DRUG NAME",
-      dataIndex: ["drug", "name"],
-      key: "drugName",
-      sorter: (a, b) => a.drug.name.localeCompare(b.drug.name),
-    },
     {
       title: "BATCH CODE",
       dataIndex: "batchCode",
       key: "batchCode",
       sorter: (a, b) => a.batchCode.localeCompare(b.batchCode),
+      render: (text, record) => (
+        <Button
+          type="link"
+          onClick={() => router.push(`/inventory-record/${record.id}`)}
+          style={{ padding: 0 }}
+        >
+          <Text strong>{text}</Text>
+        </Button>
+      ),
+    },
+    {
+      title: "DRUG",
+      dataIndex: ["drug", "drugCode"],
+      key: "drug",
+      sorter: (a, b) => a.drug.drugCode.localeCompare(b.drug.drugCode),
+      render: (text, record) => (
+        <Text>
+          {text} - {record.drug.name}
+        </Text>
+      ),
     },
     {
       title: "QUANTITY IN STOCK",
@@ -106,10 +155,9 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
       dataIndex: "lastUpdated",
       key: "lastUpdated",
       render: (lastUpdated, record) => {
-        const date = lastUpdated
-          ? new Date(lastUpdated)
-          : new Date(record.createdAt);
-        return date.toLocaleString();
+        return lastUpdated 
+          ? formatDateTime(lastUpdated)
+          : formatDateTime(record.createdAt);
       },
       sorter: (a, b) => {
         const dateA = a.lastUpdated
@@ -125,7 +173,7 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
       title: "CREATED AT",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (createdAt) => new Date(createdAt).toLocaleString(),
+      render: (createdAt) => formatDateTime(createdAt),
       sorter: (a, b) => {
         const dateA = new Date(a.createdAt);
         const dateB = new Date(b.createdAt);
@@ -136,49 +184,49 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
       title: "STATUS",
       dataIndex: "status",
       key: "status",
-      render: (status) => renderStatusTag(status),
+      align: "center",
+      render: (status) => (
+        <div style={{ textAlign: "center" }}>
+          {renderStatusTag(status)}
+        </div>
+      ),
       sorter: (a, b) => (a.status || "").localeCompare(b.status || ""),
     },
     {
       title: "ACTIONS",
       key: "actions",
       align: "center",
-      render: (_, record) => (
-        <Tooltip title="Edit Reorder Level">
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(record);
-            }}
-          />
-        </Tooltip>
-      ),
+      render: (_, record) => renderActionButtons(record),
     },
   ];
+
+  // Filter columns based on visibility settings
+  const visibleColumns = columns.filter(
+    (column) => columnVisibility[column.key as string]
+  );
 
   return (
     <>
       {contextHolder}
-      
-      <TableControls
-        selectedRowKeys={selectedRowKeys}
-        pageSize={pageSize}
-        onPageSizeChange={(newSize) => handlePageChange(1, newSize)}
-        bulkActions={[]}
-        maxRowsPerPage={100}
-        pageSizeOptions={[5, 10, 15, 20, 50, 100]}
-      />
 
       <Table
         dataSource={records}
-        columns={columns}
+        columns={visibleColumns}
         rowKey="id"
         loading={loading}
         pagination={false}
+        bordered={bordered}
         onRow={(record) => ({
-          onClick: () => router.push(`/inventoryrecord/detail?id=${record.id}`),
+          onClick: (e) => {
+            const target = e.target as HTMLElement;
+            const actionCell = target.closest('.ant-table-cell-with-append') || 
+                               target.closest('.ant-dropdown-menu') ||
+                               target.closest('.ant-dropdown');
+            if (!actionCell) {
+              router.push(`/inventory-record/${record.id}`);
+            }
+          },
+          style: { cursor: 'pointer' }
         })}
       />
 
@@ -194,4 +242,4 @@ const InventoryRecordTable: React.FC<InventoryRecordTableProps> = ({
   );
 };
 
-export default InventoryRecordTable; 
+export default InventoryRecordTable;

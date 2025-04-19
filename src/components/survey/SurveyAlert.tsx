@@ -16,23 +16,21 @@ export const SurveyAlert: React.FC = () => {
   return (
     <Alert
       message="Survey Completion Required"
-      description="You have pending surveys to complete. Please complete them to continue using all features of the system."
+      description="You have pending surveys that need to be completed. These surveys are mandatory and must be completed to continue using all features of the system."
       type="warning"
       showIcon
       icon={<ExclamationCircleOutlined />}
       className="mb-4"
       action={
-        <Space direction="vertical">
-          <Button 
-            size="small" 
-            type="primary" 
-            onClick={() => router.push('/survey/surveyUser')}
-          >
-            Complete Survey Now
-          </Button>
-        </Space>
+        <Button 
+          size="small" 
+          type="primary" 
+          onClick={() => router.push('/my-submitted-survey')}
+        >
+          Complete Now
+        </Button>
       }
-      closable
+      closable={false}
     />
   );
 }; 

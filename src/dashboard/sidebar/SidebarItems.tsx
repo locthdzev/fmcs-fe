@@ -20,93 +20,325 @@ const style = {
   submenuIcon: "mr-3 text-lg",
 };
 
+// Danh sách route được phép cho từng vai trò
+const roleRoutes = {
+  Admin: [
+    "/home",
+    "/statistics/user",
+    "/statistics/treatment-plan",
+    "/statistics/drug",
+    "/statistics/survey",
+    "/user",
+    "/drug",
+    "/drug-group",
+    "/drug-order",
+    "/drug-supplier",
+    "/batch-number",
+    "/inventory-record",
+    "/inventory-record/history",
+    "/appointment",
+    "/survey",
+    "/health-check-result",
+    "/health-check-result/pending",
+    "/health-check-result/follow-up",
+    "/health-check-result/no-follow-up",
+    "/health-check-result/adjustment",
+    "/health-check-result/soft-deleted",
+    "/health-check-result/history",
+    "/prescription",
+    "/prescription/history",
+    "/treatment-plan",
+    "/treatment-plan/history",
+    "/periodic-health-checkup",
+    "/health-insurance",
+    "/health-insurance/initial",
+    "/health-insurance/expired-update",
+    "/health-insurance/soft-deleted",
+    "/health-insurance/verification",
+    "/health-insurance/no-insurance",
+    "/health-insurance/update-requests",
+    "/health-insurance/history",
+    "/shift",
+    "/schedule",
+    "/notification",
+    "/canteen-item",
+    "/canteen-order",
+    "/delivery-truck",
+    "/schedule-appointment",
+    "/my-appointment",
+    "/my-health-check",
+    "/my-health-insurance",
+    "/settings",
+    "/documentation",
+  ],
+  Manager: [
+    "/home",
+    "/statistics/user",
+    "/statistics/treatment-plan",
+    "/statistics/drug",
+    "/statistics/survey",
+    "/user",
+    "/drug",
+    "/drug-group",
+    "/drug-order",
+    "/drug-supplier",
+    "/batch-number",
+    "/inventory-record",
+    "/inventory-record/history",
+    "/appointment",
+    "/survey",
+    "/health-check-result",
+    "/health-check-result/pending",
+    "/health-check-result/follow-up",
+    "/health-check-result/no-follow-up",
+    "/health-check-result/adjustment",
+    "/health-check-result/soft-deleted",
+    "/health-check-result/history",
+    "/prescription",
+    "/prescription/history",
+    "/treatment-plan",
+    "/treatment-plan/history",
+    "/periodic-health-checkup",
+    "/health-insurance",
+    "/health-insurance/initial",
+    "/health-insurance/expired-update",
+    "/health-insurance/soft-deleted",
+    "/health-insurance/verification",
+    "/health-insurance/no-insurance",
+    "/health-insurance/update-requests",
+    "/health-insurance/history",
+    "/shift",
+    "/schedule",
+    "/notification",
+    "/canteen-item",
+    "/canteen-order",
+    "/delivery-truck",
+    "/schedule-appointment",
+    "/my-appointment",
+    "/my-health-check",
+    "/my-health-insurance",
+    "/settings",
+    "/documentation",
+  ],
+  "Healthcare Staff": [
+    "/home",
+    "/statistics/treatment-plan",
+    "/statistics/drug",
+    "/drug",
+    "/drug-group",
+    "/drug-order",
+    "/drug-supplier",
+    "/batch-number",
+    "/inventory-record",
+    "/inventory-record/history",
+    "/health-check-result",
+    "/health-check-result/pending",
+    "/health-check-result/follow-up",
+    "/health-check-result/no-follow-up",
+    "/health-check-result/adjustment",
+    "/health-check-result/soft-deleted",
+    "/health-check-result/history",
+    "/prescription",
+    "/prescription/history",
+    "/treatment-plan",
+    "/treatment-plan/history",
+    "/periodic-health-checkup",
+    "/health-insurance",
+    "/health-insurance/initial",
+    "/health-insurance/expired-update",
+    "/health-insurance/soft-deleted",
+    "/health-insurance/verification",
+    "/health-insurance/no-insurance",
+    "/health-insurance/update-requests",
+    "/health-insurance/history",
+    "/notification",
+    "/canteen-item",
+    "/canteen-order",
+    "/delivery-truck",
+    "/schedule-appointment",
+    "/my-assigned-appointment",
+    "/my-appointment",
+    "/my-assigned-survey",
+    "/my-health-check",
+    "/my-periodic-checkup",
+    "/my-health-insurance",
+    "/my-schedule",
+    "/settings",
+    "/documentation",
+  ],
+  "Canteen Staff": [
+    "/home",
+    "/canteen-item",
+    "/canteen-order",
+    "/delivery-truck",
+    "/settings",
+    "/documentation",
+  ],
+  User: [
+    "/home",
+    "/schedule-appointment",
+    "/my-appointment",
+    "/my-submitted-survey",
+    "/my-health-check",
+    "/my-periodic-checkup",
+    "/my-health-insurance",
+    "/settings",
+    "/documentation",
+  ],
+};
+
 export function SidebarItems() {
   const { pathname } = useRouter();
   const { sidebarOpen } = useDashboardContext();
-  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+  const [openSubmenus, setOpenSubmenus] = useState<Set<string>>(new Set());
+  const [hoveredSubmenu, setHoveredSubmenu] = useState<string | null>(null);
   const [submenuPosition, setSubmenuPosition] = useState({ top: 0, left: 0 });
   const userContext = useContext(UserContext);
-  
-  // Get user roles and check if admin
-  const userRoles = userContext?.user?.role || [];
-  const isAdmin = Array.isArray(userRoles) ? userRoles.includes("Admin") : userRoles === "Admin";
-  const isHealthcareStaff = Array.isArray(userRoles) ? userRoles.includes("Healthcare Staff") : userRoles === "Healthcare Staff";
+  const submenuRefs = useRef<{ [key: string]: HTMLElement | null }>({});
 
+  // Get user roles, đảm bảo luôn là mảng
+  const userRoles = Array.isArray(userContext?.user?.role)
+    ? userContext.user.role
+    : typeof userContext?.user?.role === "string"
+    ? [userContext.user.role]
+    : [];
   console.log("User roles in sidebar:", userRoles);
-  console.log("Is admin:", isAdmin);
-  console.log("Is healthcare staff:", isHealthcareStaff);
 
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-
-  const handleMouseEnter = (title: string, event: React.MouseEvent) => {
+  // Effect to close submenu when sidebar is closed
+  useEffect(() => {
     if (!sidebarOpen) {
+      setOpenSubmenus(new Set());
+      setHoveredSubmenu(null);
+    }
+  }, [sidebarOpen]);
+
+  // Nếu chưa đăng nhập hoặc không có vai trò, không render sidebar
+  if (!userContext?.user?.auth || userRoles.length === 0) {
+    console.log("User not authenticated or no roles, skipping sidebar render");
+    return null;
+  }
+
+  // Effect to handle outside clicks
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      // Kiểm tra xem click có nằm ngoài tất cả các submenus đang mở không
+      let clickedOutside = true;
+      
+      for (const title of Array.from(openSubmenus)) {
+        if (submenuRefs.current[title] && submenuRefs.current[title]?.contains(event.target as Node)) {
+          clickedOutside = false;
+          break;
+        }
+      }
+      
+      // Nếu click nằm ngoài tất cả các submenus
+      if (clickedOutside && (openSubmenus.size > 0 || hoveredSubmenu)) {
+        // Kiểm tra xem click đó có nằm trên một menu item không (để không đóng khi click vào menu item khác)
+        const isClickOnMenuItem = (event.target as Element).closest('[data-menu-item]');
+        
+        if (!isClickOnMenuItem) {
+          setOpenSubmenus(new Set());
+          setHoveredSubmenu(null);
+        }
+      }
+    }
+
+    // Add event listener
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    // Clean up
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openSubmenus, hoveredSubmenu]);
+
+  const handleMenuInteraction = (title: string, event: React.MouseEvent) => {
+    if (!sidebarOpen) {
+      // When sidebar is collapsed, still use hover behavior
       const rect = event.currentTarget.getBoundingClientRect();
       setSubmenuPosition({ top: rect.top, left: rect.right });
+      setHoveredSubmenu(title);
     }
-    setOpenSubmenu(title);
   };
 
   const handleMouseLeave = () => {
-    setOpenSubmenu(null);
+    if (!sidebarOpen) {
+      // Only close on mouse leave when sidebar is collapsed
+      setHoveredSubmenu(null);
+    }
   };
 
-  // Filter items based on user role
-  const filterItemsByRole = (groupTitle: string, item: any) => {
-    // Show Home, My Insurance, and My Health Check Results in Main group for all users
-    if (groupTitle === "Main" && (item.title === "Home" || item.title === "My Insurance" || item.title === "My Health Check Results")) {
-      return true;
+  const handleMenuClick = (title: string, event: React.MouseEvent) => {
+    if (sidebarOpen) {
+      // When sidebar is expanded, toggle this submenu in the Set
+      setOpenSubmenus(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(title)) {
+          newSet.delete(title);
+        } else {
+          newSet.add(title);
+        }
+        return newSet;
+      });
+    } else {
+      // When sidebar is collapsed
+      const rect = event.currentTarget.getBoundingClientRect();
+      setSubmenuPosition({ top: rect.top, left: rect.right });
+      setHoveredSubmenu(prev => prev === title ? null : title);
     }
-    
-    // Show My Schedule only for healthcare staff
-    if (groupTitle === "Main" && item.title === "My Schedule") {
-      return isHealthcareStaff;
+    // Ngăn chặn sự kiện lan truyền để không kích hoạt handleClickOutside
+    event.stopPropagation();
+  };
+
+  // Hàm để lưu ref cho mỗi submenu
+  const setSubmenuRef = (title: string, element: HTMLElement | null) => {
+    if (element) {
+      submenuRefs.current[title] = element;
+    }
+  };
+
+  // Check if a submenu should be shown - either it's open in expanded mode or hovered in collapsed mode
+  const isSubmenuVisible = (title: string) => {
+    return sidebarOpen ? openSubmenus.has(title) : hoveredSubmenu === title;
+  };
+
+  // Hàm kiểm tra xem route có được phép hiển thị cho vai trò hiện tại không
+  const isRouteAllowed = (link: string) => {
+    return userRoles.some((role) =>
+      roleRoutes[role as keyof typeof roleRoutes]?.includes(link)
+    );
+  };
+
+  // Hàm lọc submenu để chỉ hiển thị các mục được phép
+  const filterSubmenu = (submenu: any[]) => {
+    return submenu.filter((subItem) => isRouteAllowed(subItem.link));
+  };
+
+  // Hàm lọc items dựa trên vai trò
+  const filterItemsByRole = (groupTitle: string, item: any) => {
+    // Nếu item có submenu, kiểm tra xem có subitem nào được phép không
+    if (item.submenu) {
+      const allowedSubmenu = filterSubmenu(item.submenu);
+      return allowedSubmenu.length > 0;
     }
 
-    // Show My Survey only for normal users
-    if (groupTitle === "Main" && item.title === "My Survey") {
-      // Check if user only has the User role and no other roles
-      const isOnlyUser = Array.isArray(userRoles) 
-        ? userRoles.length === 1 && userRoles.includes("User") 
-        : userRoles === "User";
-      return isOnlyUser;
-    }
-    
-    // Show Staff's Survey only for healthcare staff
-    if (groupTitle === "Main" && item.title === "Staff's Survey") {
-      return isHealthcareStaff;
-    }
-    
-    // Always show items in Others group
-    if (groupTitle === "Others") {
-      return true;
-    }
-    
-    // Show Survey Management only for admin in Management group
-    if (groupTitle === "Management" && item.title === "Survey Management") {
-      return isAdmin;
-    }
-    
-    // For other Management group items, only show to admin
-    if (groupTitle === "Management") {
-      return isAdmin;
-    }
-    
-    return isAdmin;
+    // Nếu item không có submenu, kiểm tra trực tiếp link
+    return isRouteAllowed(item.link);
   };
 
   return (
     <ul className="md:pl-3">
       {data.map((group) => {
         // Filter items based on role
-        const filteredItems = group.items.filter(item => 
+        const filteredItems = group.items.filter((item) =>
           filterItemsByRole(group.groupTitle, item)
         );
-        
+
         // Skip rendering this group if it has no visible items
         if (filteredItems.length === 0) {
           return null;
         }
-        
+
         return (
           <li key={group.groupTitle}>
             <h3
@@ -119,12 +351,17 @@ export function SidebarItems() {
             {filteredItems.map((item) => (
               <div
                 key={item.title}
-                ref={openSubmenu === item.title ? dropdownRef : null}
-                onMouseEnter={(e) => handleMouseEnter(item.title, e)}
+                data-menu-item={item.title}
+                onMouseEnter={(e) => handleMenuInteraction(item.title, e)}
                 onMouseLeave={handleMouseLeave}
               >
                 {item.submenu ? (
-                  <div className={style.link} style={{ cursor: "pointer" }}>
+                  <div 
+                    className={style.link} 
+                    style={{ cursor: "pointer" }}
+                    onClick={(e) => handleMenuClick(item.title, e)}
+                    data-menu-item={item.title}
+                  >
                     <div className="p-2">
                       <span>{item.icon}</span>
                     </div>
@@ -137,7 +374,7 @@ export function SidebarItems() {
                     </span>
                     <IoIosArrowDown
                       className={`ml-auto transform transition-transform duration-200 ${
-                        openSubmenu === item.title ? "rotate-180" : ""
+                        isSubmenuVisible(item.title) ? "rotate-180" : ""
                       }`}
                     />
                   </div>
@@ -161,7 +398,7 @@ export function SidebarItems() {
                     </span>
                   </Link>
                 )}
-                {item.submenu && openSubmenu === item.title && (
+                {item.submenu && isSubmenuVisible(item.title) && (
                   <ul
                     className={`${
                       sidebarOpen ? style.submenuOpen : style.submenuClose
@@ -174,8 +411,11 @@ export function SidebarItems() {
                           }
                         : {}
                     }
+                    ref={(el) => {
+                      if (el) submenuRefs.current[item.title] = el;
+                    }}
                   >
-                    {item.submenu.map((subItem) => (
+                    {filterSubmenu(item.submenu).map((subItem) => (
                       <li key={subItem.title}>
                         <Link href={subItem.link}>
                           <span
