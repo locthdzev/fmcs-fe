@@ -19,6 +19,8 @@ import {
   TableProps,
   Menu,
   Form,
+  Image,
+  Avatar,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -28,6 +30,7 @@ import {
   StopOutlined,
   DownOutlined,
   MoreOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { UserResponseDTO } from "@/api/user";
@@ -574,20 +577,66 @@ const UserTable: React.FC<UserTableProps> = ({
       ellipsis: true,
       fixed: "left" as const,
       width: 180,
-      render: (text: string, record: UserResponseDTO) => (
-        <Button
-          type="link"
-          onClick={() => onViewDetails(record)}
-          style={{
-            padding: "0",
-            margin: "0",
-            height: "auto",
-            textAlign: "left",
-          }}
-        >
-          {text}
-        </Button>
-      ),
+      render: (text: string, record: UserResponseDTO) => {
+        // Determine primary role for the user
+        const primaryRole =
+          record.roles?.length > 0
+            ? record.roles.sort((a, b) => {
+                const priority: Record<string, number> = {
+                  Admin: 1,
+                  Manager: 2,
+                  "Healthcare Staff": 3,
+                  "Canteen Staff": 4,
+                  User: 5,
+                };
+                return (priority[a] || 999) - (priority[b] || 999);
+              })[0]
+            : null;
+
+        const isPrimaryRoleUser = primaryRole === "User";
+
+        return (
+          <Space>
+            {record.imageURL && !isPrimaryRoleUser ? (
+              // If there's an image URL and the user is NOT primarily a User role, show the real image
+              <div style={{ cursor: "pointer" }}>
+                <Image
+                  src={record.imageURL}
+                  alt={text}
+                  width={32}
+                  height={32}
+                  style={{ objectFit: "cover", borderRadius: "50%" }}
+                  preview={{
+                    mask: null,
+                    maskClassName: "ant-image-mask-custom",
+                  }}
+                />
+              </div>
+            ) : (
+              // For User role or no image, show a default avatar
+              <Avatar
+                icon={<UserOutlined />}
+                style={{
+                  backgroundColor: isPrimaryRoleUser ? "#FF69B4" : "#FF69B4",
+                }}
+                size={32}
+              />
+            )}
+            <Button
+              type="link"
+              onClick={() => onViewDetails(record)}
+              style={{
+                padding: "0",
+                margin: "0",
+                height: "auto",
+                textAlign: "left",
+              }}
+            >
+              {text}
+            </Button>
+          </Space>
+        );
+      },
     },
     {
       title: (

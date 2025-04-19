@@ -41,6 +41,7 @@ export interface UserResponseDTO {
   createdAt: string;
   updatedAt: string;
   roles: string[];
+  imageURL?: string;
 }
 
 export interface UpdateAccountsStatusRequest {
@@ -437,6 +438,34 @@ export const updateProfileImage = async (imageFile: File) => {
     return response.data;
   } catch (error: any) {
     console.error('Error updating profile image:', error);
+    console.error('Error response:', error.response?.data);
+    throw error;
+  }
+};
+
+export const updateUserImage = async (userId: string, imageFile: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('imageFile', imageFile);
+    
+    console.log(`Sending user image update request with file: ${imageFile.name}, size: ${imageFile.size}, for user: ${userId}`);
+    
+    const response = await api.put(`/user-management/users/${userId}/update-image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    console.log('User image update response:', response.data);
+    
+    // Kiểm tra response có cấu trúc đúng không
+    if (!response.data) {
+      throw new Error('Empty response received from server');
+    }
+    
+    return response.data;
+  } catch (error: any) {
+    console.error(`Error updating image for user ${userId}:`, error);
     console.error('Error response:', error.response?.data);
     throw error;
   }

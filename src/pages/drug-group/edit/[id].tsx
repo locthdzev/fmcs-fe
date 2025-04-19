@@ -1,8 +1,6 @@
 import React from "react";
 import { GetServerSideProps } from "next";
 import { getDrugGroupById, DrugGroupResponse } from "@/api/druggroup";
-import { EditDrugGroup } from "@/components/drug-group/EditDrugGroup";
-
 interface EditDrugGroupPageProps {
   id: string;
   initialData?: DrugGroupResponse | null;
@@ -10,7 +8,6 @@ interface EditDrugGroupPageProps {
 
 export default function EditDrugGroupPage({ id }: EditDrugGroupPageProps) {
   console.log("Rendering EditDrugGroupPage with id:", id);
-  return <EditDrugGroup id={id} />;
 }
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
@@ -24,10 +21,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   }
 
   console.log("Fetching drug group with ID:", id);
-  
+
   try {
     const drugGroup = await getDrugGroupById(id);
-    
+
     return {
       props: {
         id,
@@ -43,4 +40,4 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       },
     };
   }
-}; 
+};
