@@ -57,6 +57,7 @@ const DEFAULT_EXPORT_CONFIG = {
   exportAllPages: true,
   includePrescriptionCode: true,
   includeHealthCheckCode: true,
+  includeAction: true,
   includeActionDate: true,
   includePerformedBy: true,
   includePreviousStatus: true,
@@ -197,6 +198,7 @@ export function PrescriptionHistoryList() {
         exportAllPages: values.exportAllPages,
         includePrescriptionCode: values.includePrescriptionCode,
         includeHealthCheckCode: values.includeHealthCheckCode,
+        includeAction: values.includeAction,
         includeActionDate: values.includeActionDate,
         includePerformedBy: values.includePerformedBy,
         includePreviousStatus: values.includePreviousStatus,
@@ -428,6 +430,10 @@ export function PrescriptionHistoryList() {
 
         <Form.Item name="includeHealthCheckCode" valuePropName="checked">
           <Checkbox>Health Check Code</Checkbox>
+        </Form.Item>
+
+        <Form.Item name="includeAction" valuePropName="checked">
+          <Checkbox>Action</Checkbox>
         </Form.Item>
 
         <Form.Item name="includeActionDate" valuePropName="checked">

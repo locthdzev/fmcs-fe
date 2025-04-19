@@ -144,6 +144,7 @@ export interface PrescriptionHistoryExportConfigDTO {
   exportAllPages: boolean;
   includePrescriptionCode: boolean;
   includeHealthCheckCode: boolean;
+  includeAction: boolean;
   includeActionDate: boolean;
   includePerformedBy: boolean;
   includePreviousStatus: boolean;
