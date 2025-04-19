@@ -232,7 +232,7 @@ export const exportCanteenOrdersToExcel = async (config: CanteenOrderExportConfi
       // Kiểm tra cấu trúc JSON
       if (data) {
         // Tìm URL trong JSON response
-        const fileUrl = data.data?.fileUrl || data.fileUrl || data.data?.url || data.url ||
+        const fileUrl = data.data?.FileUrl || data.data?.fileUrl || data.FileUrl || data.fileUrl || data.data?.url || data.url ||
                        (data.data ? data.data.toString() : null);
         
         if (fileUrl && typeof fileUrl === 'string') {
