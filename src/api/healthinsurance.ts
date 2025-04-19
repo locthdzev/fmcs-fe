@@ -113,15 +113,53 @@ export const getAllHealthInsurances = async (
   status?: string,
   userId?: string
 ) => {
-  const response = await api.get("/health-insurance-management/insurances", {
-    params: { page, pageSize, search, sortBy, ascending, status, userId },
-  });
-  return response.data;
+  try {
+    const response = await api.get("/health-insurance-management/insurances", {
+      params: { page, pageSize, search, sortBy, ascending, status, userId },
+    });
+    
+    // Ensure we're returning the complete response object that has isSuccess, data, totalItems, etc.
+    return {
+      isSuccess: response.data.isSuccess,
+      code: response.data.code,
+      message: response.data.message,
+      responseFailed: response.data.responseFailed,
+      data: response.data.data || [],
+      totalItems: response.data.totalRecords || 0,
+      page: response.data.page || 1,
+      pageSize: response.data.pageSize || pageSize
+    };
+  } catch (error) {
+    console.error("Error fetching health insurances:", error);
+    return {
+      isSuccess: false,
+      code: 500,
+      message: "Failed to fetch health insurance data",
+      responseFailed: error instanceof Error ? error.message : "Unknown error",
+      data: [],
+      totalItems: 0,
+      page: 1,
+      pageSize: pageSize
+    };
+  }
 };
 
 export const getHealthInsuranceById = async (id: string) => {
-  const response = await api.get(`/health-insurance-management/insurances/${id}`);
-  return response.data;
+  try {
+    console.log("API call to get health insurance by ID:", id);
+    const response = await api.get(`/health-insurance-management/insurances/${id}`);
+    console.log("API response for health insurance by ID:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("Error in getHealthInsuranceById:", error);
+    return {
+      isSuccess: false,
+      code: error.response?.status || 500,
+      message: error.response?.data?.message || "Failed to fetch health insurance details",
+      responseFailed: error.message,
+      data: null
+    };
+  }
 };
 
 export const createHealthInsuranceManual = async (
@@ -336,25 +374,49 @@ export const getUpdateRequests = async (
   ascending: boolean = false,
   status?: string
 ) => {
-  let requestParams: UpdateRequestParams;
-  
-  if (typeof params === 'number') {
-    requestParams = {
-      page: params,
-      pageSize,
-      search,
-      sortBy,
-      ascending,
-      status
+  try {
+    let requestParams: UpdateRequestParams;
+    
+    if (typeof params === 'number') {
+      requestParams = {
+        page: params,
+        pageSize,
+        search,
+        sortBy,
+        ascending,
+        status
+      };
+    } else {
+      requestParams = params;
+    }
+    
+    const response = await api.get("/health-insurance-management/insurances/update-requests", {
+      params: requestParams,
+    });
+    
+    return {
+      isSuccess: response.data.isSuccess,
+      code: response.data.code,
+      message: response.data.message,
+      responseFailed: response.data.responseFailed,
+      data: response.data.data || [],
+      totalItems: response.data.totalRecords || 0,
+      page: response.data.page || 1,
+      pageSize: requestParams.pageSize || pageSize
     };
-  } else {
-    requestParams = params;
+  } catch (error) {
+    console.error("Error fetching update requests:", error);
+    return {
+      isSuccess: false,
+      code: 500,
+      message: "Failed to fetch update requests",
+      responseFailed: error instanceof Error ? error.message : "Unknown error",
+      data: [],
+      totalItems: 0,
+      page: 1,
+      pageSize: pageSize
+    };
   }
-  
-  const response = await api.get("/health-insurance-management/update-requests", {
-    params: requestParams,
-  });
-  return response.data;
 };
 
 export const getHealthInsuranceHistory = async (id: string) => {
@@ -445,4 +507,357 @@ export const getCurrentUserPendingUpdateRequests = async () => {
     }
   );
   return response.data;
+};
+
+export const getVerifiedInsurances = async (
+  page: number = 1,
+  pageSize: number = 10,
+  search?: string,
+  sortBy: string = "CreatedAt",
+  ascending: boolean = false,
+  userId?: string
+) => {
+  try {
+    const response = await api.get("/health-insurance-management/insurances", {
+      params: { 
+        page, 
+        pageSize, 
+        search, 
+        sortBy, 
+        ascending, 
+        status: "Completed", 
+        userId 
+      },
+    });
+    
+    return {
+      isSuccess: response.data.isSuccess,
+      code: response.data.code,
+      message: response.data.message,
+      responseFailed: response.data.responseFailed,
+      data: response.data.data || [],
+      totalItems: response.data.totalRecords || 0,
+      page: response.data.page || 1,
+      pageSize: response.data.pageSize || pageSize
+    };
+  } catch (error) {
+    console.error("Error fetching verified insurances:", error);
+    return {
+      isSuccess: false,
+      code: 500,
+      message: "Failed to fetch verified insurance data",
+      responseFailed: error instanceof Error ? error.message : "Unknown error",
+      data: [],
+      totalItems: 0,
+      page: 1,
+      pageSize: pageSize
+    };
+  }
+};
+
+export const getInitialInsurances = async (
+  page: number = 1,
+  pageSize: number = 10,
+  search?: string,
+  sortBy: string = "CreatedAt",
+  ascending: boolean = false,
+  userId?: string
+) => {
+  try {
+    // Lấy tất cả dữ liệu với pageSize lớn để đảm bảo lọc client-side chính xác
+    const totalResponse = await api.get("/health-insurance-management/insurances", {
+      params: { 
+        page: 1, 
+        pageSize: 1000, // Lấy với số lượng lớn để đếm tổng
+        search, 
+        sortBy, 
+        ascending, 
+        status: "Pending", 
+        userId 
+      },
+    });
+    
+    // Để lấy tổng số bản ghi thực tế sau khi lọc
+    let totalItems = 0;
+    let filteredData: HealthInsuranceResponseDTO[] = [];
+    
+    if (totalResponse.data.isSuccess) {
+      // Lọc client-side để lấy tổng số bản ghi thực tế
+      const allData = totalResponse.data.data || [];
+      filteredData = allData.filter(
+        (insurance: HealthInsuranceResponseDTO) => insurance.verificationStatus === "Unverified"
+      );
+      totalItems = filteredData.length;
+      
+      // Thực hiện phân trang client-side
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const pagedData = filteredData.slice(startIndex, endIndex);
+      
+      return {
+        isSuccess: true,
+        code: totalResponse.data.code,
+        message: totalResponse.data.message,
+        responseFailed: totalResponse.data.responseFailed,
+        data: pagedData,
+        totalItems: totalItems,
+        page: page,
+        pageSize: pageSize
+      };
+    } else {
+      return {
+        isSuccess: totalResponse.data.isSuccess,
+        code: totalResponse.data.code,
+        message: totalResponse.data.message,
+        responseFailed: totalResponse.data.responseFailed,
+        data: [],
+        totalItems: 0,
+        page: page,
+        pageSize: pageSize
+      };
+    }
+  } catch (error) {
+    console.error("Error fetching initial insurances:", error);
+    return {
+      isSuccess: false,
+      code: 500,
+      message: "Failed to fetch initial insurance data",
+      responseFailed: error instanceof Error ? error.message : "Unknown error",
+      data: [],
+      totalItems: 0,
+      page: 1,
+      pageSize: pageSize
+    };
+  }
+};
+
+export const getExpiredUpdateInsurances = async (
+  page: number = 1,
+  pageSize: number = 10,
+  search?: string,
+  sortBy: string = "CreatedAt",
+  ascending: boolean = false,
+  userId?: string
+) => {
+  try {
+    const response = await api.get("/health-insurance-management/insurances", {
+      params: { 
+        page, 
+        pageSize, 
+        search, 
+        sortBy, 
+        ascending, 
+        status: "DeadlineExpired", 
+        userId 
+      },
+    });
+    
+    return {
+      isSuccess: response.data.isSuccess,
+      code: response.data.code,
+      message: response.data.message,
+      responseFailed: response.data.responseFailed,
+      data: response.data.data || [],
+      totalItems: response.data.totalRecords || 0,
+      page: response.data.page || 1,
+      pageSize: response.data.pageSize || pageSize
+    };
+  } catch (error) {
+    console.error("Error fetching expired update insurances:", error);
+    return {
+      isSuccess: false,
+      code: 500,
+      message: "Failed to fetch expired update insurance data",
+      responseFailed: error instanceof Error ? error.message : "Unknown error",
+      data: [],
+      totalItems: 0,
+      page: 1,
+      pageSize: pageSize
+    };
+  }
+};
+
+export const getExpiredInsurances = async (
+  page: number = 1,
+  pageSize: number = 10,
+  search?: string,
+  sortBy: string = "CreatedAt",
+  ascending: boolean = false,
+  userId?: string
+) => {
+  try {
+    const response = await api.get("/health-insurance-management/insurances", {
+      params: { 
+        page, 
+        pageSize, 
+        search, 
+        sortBy, 
+        ascending, 
+        status: "Expired", 
+        userId 
+      },
+    });
+    
+    return {
+      isSuccess: response.data.isSuccess,
+      code: response.data.code,
+      message: response.data.message,
+      responseFailed: response.data.responseFailed,
+      data: response.data.data || [],
+      totalItems: response.data.totalRecords || 0,
+      page: response.data.page || 1,
+      pageSize: response.data.pageSize || pageSize
+    };
+  } catch (error) {
+    console.error("Error fetching expired insurances:", error);
+    return {
+      isSuccess: false,
+      code: 500,
+      message: "Failed to fetch expired insurance data",
+      responseFailed: error instanceof Error ? error.message : "Unknown error",
+      data: [],
+      totalItems: 0,
+      page: 1,
+      pageSize: pageSize
+    };
+  }
+};
+
+export const getUninsuredRecords = async (
+  page: number = 1,
+  pageSize: number = 10,
+  search?: string,
+  sortBy: string = "CreatedAt",
+  ascending: boolean = false,
+  userId?: string
+) => {
+  try {
+    const response = await api.get("/health-insurance-management/insurances", {
+      params: { 
+        page, 
+        pageSize, 
+        search, 
+        sortBy, 
+        ascending, 
+        status: "NotApplicable", 
+        userId 
+      },
+    });
+    
+    return {
+      isSuccess: response.data.isSuccess,
+      code: response.data.code,
+      message: response.data.message,
+      responseFailed: response.data.responseFailed,
+      data: response.data.data || [],
+      totalItems: response.data.totalRecords || 0,
+      page: response.data.page || 1,
+      pageSize: response.data.pageSize || pageSize
+    };
+  } catch (error) {
+    console.error("Error fetching uninsured records:", error);
+    return {
+      isSuccess: false,
+      code: 500,
+      message: "Failed to fetch uninsured records",
+      responseFailed: error instanceof Error ? error.message : "Unknown error",
+      data: [],
+      totalItems: 0,
+      page: 1,
+      pageSize: pageSize
+    };
+  }
+};
+
+export const getSoftDeletedInsurances = async (
+  page: number = 1,
+  pageSize: number = 10,
+  search?: string,
+  sortBy: string = "CreatedAt",
+  ascending: boolean = false,
+  userId?: string
+) => {
+  try {
+    const response = await api.get("/health-insurance-management/insurances", {
+      params: { 
+        page, 
+        pageSize, 
+        search, 
+        sortBy, 
+        ascending, 
+        status: "SoftDeleted", 
+        userId 
+      },
+    });
+    
+    return {
+      isSuccess: response.data.isSuccess,
+      code: response.data.code,
+      message: response.data.message,
+      responseFailed: response.data.responseFailed,
+      data: response.data.data || [],
+      totalItems: response.data.totalRecords || 0,
+      page: response.data.page || 1,
+      pageSize: response.data.pageSize || pageSize
+    };
+  } catch (error) {
+    console.error("Error fetching soft deleted insurances:", error);
+    return {
+      isSuccess: false,
+      code: 500,
+      message: "Failed to fetch soft deleted insurance data",
+      responseFailed: error instanceof Error ? error.message : "Unknown error",
+      data: [],
+      totalItems: 0,
+      page: 1,
+      pageSize: pageSize
+    };
+  }
+};
+
+export const getVerificationRequests = async (
+  page: number = 1,
+  pageSize: number = 10,
+  search?: string,
+  sortBy: string = "CreatedAt",
+  ascending: boolean = false
+) => {
+  try {
+    // Sử dụng API đã có để lấy các verification requests
+    // Chúng ta sẽ dùng chung endpoint với update requests, nhưng lọc theo status Pending và verificationStatus Unverified
+    // Hoặc dùng getAllHealthInsurances với status SUBMITTED
+    const response = await api.get("/health-insurance-management/insurances", {
+      params: { 
+        page, 
+        pageSize, 
+        search, 
+        sortBy, 
+        ascending, 
+        status: "Submitted"  // Dùng status SUBMITTED cho verification requests
+      },
+    });
+    
+    return {
+      isSuccess: response.data.isSuccess,
+      code: response.data.code,
+      message: response.data.message,
+      responseFailed: response.data.responseFailed,
+      data: response.data.data || [],
+      totalItems: response.data.totalRecords || 0,
+      page: response.data.page || 1,
+      pageSize: pageSize
+    };
+  } catch (error) {
+    console.error("Error fetching verification requests:", error);
+    return {
+      isSuccess: false,
+      code: 500,
+      message: "Failed to fetch verification requests",
+      responseFailed: error instanceof Error ? error.message : "Unknown error",
+      data: [],
+      totalItems: 0,
+      page: 1,
+      pageSize: pageSize
+    };
+  }
 };

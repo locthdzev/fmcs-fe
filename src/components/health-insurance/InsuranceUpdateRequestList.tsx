@@ -1,20 +1,20 @@
 import React, { useState } from "react";
 import { List, Card, Button, Avatar, Tag, Skeleton, Typography, Space, Row, Col } from "antd";
-import { UserOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined } from "@ant-design/icons";
+import { UserOutlined, EyeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
-import VerificationModal from "./VerificationModal";
+import ReviewModal from "./ReviewModal";
 import { UpdateRequestDTO } from "@/api/healthinsurance";
 
 const { Text, Title } = Typography;
 
-interface VerificationListProps {
+interface InsuranceUpdateRequestListProps {
   loading: boolean;
   updateRequests: UpdateRequestDTO[];
   refreshData: () => void;
 }
 
-const VerificationList: React.FC<VerificationListProps> = ({
+const InsuranceUpdateRequestList: React.FC<InsuranceUpdateRequestListProps> = ({
   loading,
   updateRequests,
   refreshData,
@@ -42,7 +42,7 @@ const VerificationList: React.FC<VerificationListProps> = ({
     setSelectedRequest(null);
   };
 
-  const onVerificationSuccess = () => {
+  const onReviewSuccess = () => {
     setModalVisible(false);
     setSelectedRequest(null);
     refreshData();
@@ -58,7 +58,7 @@ const VerificationList: React.FC<VerificationListProps> = ({
           <List.Item>
             <Card
               hoverable
-              className="verification-card"
+              className="update-request-card"
               actions={[
                 <Button 
                   key="view" 
@@ -66,7 +66,7 @@ const VerificationList: React.FC<VerificationListProps> = ({
                   icon={<EyeOutlined />} 
                   onClick={() => handleViewDetails(request)}
                 >
-                  View Details
+                  Review Request
                 </Button>,
               ]}
             >
@@ -85,17 +85,24 @@ const VerificationList: React.FC<VerificationListProps> = ({
                   </Col>
 
                   <Col span={24}>
-                    <Text strong>Request Information:</Text>
+                    <Text strong>Update Request Information:</Text>
                     <div className="mt-2">
                       <Space direction="vertical" size="small">
                         <Text>
-                          Insurance Number: <Text strong>{request.healthInsuranceNumber || "N/A"}</Text>
+                          Has Insurance: <Text strong>{request.hasInsurance ? "Yes" : "No"}</Text>
                         </Text>
+                        {request.hasInsurance && (
+                          <>
+                            <Text>
+                              Insurance Number: <Text strong>{request.healthInsuranceNumber || "N/A"}</Text>
+                            </Text>
+                            <Text>
+                              Full Name: <Text strong>{request.fullName || "N/A"}</Text>
+                            </Text>
+                          </>
+                        )}
                         <Text>
-                          Full Name: <Text strong>{request.fullName || "N/A"}</Text>
-                        </Text>
-                        <Text>
-                          Status: <Tag color="processing">Verification</Tag>
+                          Status: <Tag color="processing">Pending Review</Tag>
                         </Text>
                         <Text>
                           Requested At: <Text strong>{formatDateTime(request.requestedAt)}</Text>
@@ -111,15 +118,15 @@ const VerificationList: React.FC<VerificationListProps> = ({
       />
 
       {selectedRequest && (
-        <VerificationModal
+        <ReviewModal
           visible={modalVisible}
           request={selectedRequest}
           onClose={onModalClose}
-          onSuccess={onVerificationSuccess}
+          onSuccess={onReviewSuccess}
         />
       )}
     </>
   );
 };
 
-export default VerificationList;
+export default InsuranceUpdateRequestList;
