@@ -22,6 +22,7 @@ import {
   ReloadOutlined,
   SendOutlined,
   MoreOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -57,6 +58,7 @@ import {
   createInitialHealthInsurances,
   getHealthInsuranceConfig,
   exportHealthInsurances,
+  softDeleteHealthInsurances,
   HealthInsuranceResponseDTO,
   UpdateRequestDTO,
 } from "@/api/healthinsurance";
@@ -86,6 +88,7 @@ const HealthInsuranceManagement: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>("CreatedAt");
   const [ascending, setAscending] = useState<boolean>(false);
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState<boolean>(false);
   
   // Data for tables
   const [verifiedInsurances, setVerifiedInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
@@ -531,6 +534,27 @@ const HealthInsuranceManagement: React.FC = () => {
     }
   };
 
+  const handleBulkSoftDelete = async () => {
+    try {
+      setBulkDeleteLoading(true);
+      const selectedIds = selectedRowKeys.map(key => key.toString());
+      const result = await softDeleteHealthInsurances(selectedIds);
+      
+      if (result.isSuccess) {
+        messageApi.success(`Successfully deleted ${selectedIds.length} records`);
+        setSelectedRowKeys([]);
+        fetchData();
+      } else {
+        messageApi.error(result.message || "Failed to delete selected records");
+      }
+    } catch (error) {
+      console.error("Error in bulk delete:", error);
+      messageApi.error("Failed to delete selected records");
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  };
+
   return (
     <PageContainer
       title="Health Insurance Management"
@@ -688,7 +712,25 @@ const HealthInsuranceManagement: React.FC = () => {
         selectedRowKeys={selectedRowKeys}
         pageSize={pageSize}
         onPageSizeChange={setPageSize}
-        bulkActions={[]}
+        bulkActions={
+          ["verification", "updateRequest", "softDelete"].indexOf(activeTab) === -1
+            ? [
+                {
+                  key: "delete",
+                  title: "Delete selected items",
+                  description: `Are you sure you want to delete ${selectedRowKeys.length} selected item(s)?`,
+                  icon: <DeleteOutlined />,
+                  buttonText: "Delete",
+                  buttonType: "primary",
+                  isDanger: true,
+                  tooltip: "Delete selected items",
+                  isVisible: selectedRowKeys.length > 0,
+                  isLoading: bulkDeleteLoading,
+                  onConfirm: handleBulkSoftDelete,
+                },
+              ]
+            : []
+        }
       />
 
       {/* Tab Content */}
@@ -767,8 +809,8 @@ const HealthInsuranceManagement: React.FC = () => {
         <SoftDeleteTable
           loading={loading}
           insurances={softDeletedInsurances}
-          selectedRowKeys={selectedRowKeys}
-          setSelectedRowKeys={setSelectedRowKeys}
+          selectedRowKeys={[]}
+          setSelectedRowKeys={() => {}}
           columnVisibility={softDeleteColumnVisibility}
           refreshData={fetchData}
         />

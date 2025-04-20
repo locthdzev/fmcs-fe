@@ -11,6 +11,7 @@ import {
   message,
   Tag,
   Card,
+  Popconfirm,
 } from "antd";
 import {
   EditOutlined,
@@ -26,6 +27,7 @@ import {
   WarningOutlined,
   StopOutlined,
   QuestionCircleOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
@@ -103,28 +105,21 @@ const VerifiedTable: React.FC<VerifiedTableProps> = ({
     messageApi.success("Health insurance updated successfully");
   };
 
-  const handleSoftDelete = (id: string) => {
-    Modal.confirm({
-      title: "Are you sure you want to soft delete this health insurance?",
-      icon: <ExclamationCircleOutlined />,
-      content: "This action can be reversed later.",
-      onOk: async () => {
-        try {
-          const result = await softDeleteHealthInsurances([id]);
-          if (result.isSuccess) {
-            messageApi.success("Health insurance deleted successfully");
-            refreshData();
-          } else {
-            messageApi.error(
-              result.message || "Failed to delete health insurance"
-            );
-          }
-        } catch (error) {
-          messageApi.error("Failed to delete health insurance");
-          console.error("Error deleting health insurance:", error);
-        }
-      },
-    });
+  const handleSoftDelete = async (id: string) => {
+    try {
+      const result = await softDeleteHealthInsurances([id]);
+      if (result.isSuccess) {
+        messageApi.success("Health insurance deleted successfully");
+        refreshData();
+      } else {
+        messageApi.error(
+          result.message || "Failed to delete health insurance"
+        );
+      }
+    } catch (error) {
+      messageApi.error("Failed to delete health insurance");
+      console.error("Error deleting health insurance:", error);
+    }
   };
 
   const formatDate = (dateStr: string | undefined) => {
@@ -589,17 +584,27 @@ const VerifiedTable: React.FC<VerifiedTableProps> = ({
                   onClick: () => handleEditInsurance(record.id),
                 },
                 {
-                  key: "delete",
-                  icon: <DeleteOutlined />,
-                  label: "Soft Delete",
-                  danger: true,
-                  onClick: () => handleSoftDelete(record.id),
-                },
-                {
                   key: "view",
                   icon: <EyeOutlined />,
                   label: "View Details",
                   onClick: () => handleViewDetail(record.id),
+                },
+                {
+                  key: "delete",
+                  icon: <DeleteOutlined />,
+                  label: (
+                    <Popconfirm
+                      title="Delete health insurance"
+                      description="Are you sure you want to delete this health insurance?"
+                      onConfirm={() => handleSoftDelete(record.id)}
+                      okText="Yes"
+                      cancelText="No"
+                      icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
+                    >
+                      <span style={{ color: "#ff4d4f" }}>Soft Delete</span>
+                    </Popconfirm>
+                  ),
+                  danger: true,
                 },
               ],
             }}
@@ -610,8 +615,9 @@ const VerifiedTable: React.FC<VerifiedTableProps> = ({
           </Dropdown>
         </div>
       ),
+      hidden: !columnVisibility.actions,
     },
-  ].filter((column) => column.key === "actions" || !column.hidden);
+  ].filter(column => column.key === "actions" || !column.hidden);
 
   return (
     <>

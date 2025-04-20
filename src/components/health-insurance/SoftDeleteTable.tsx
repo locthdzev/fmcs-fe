@@ -1,5 +1,5 @@
 import React from "react";
-import { Table, Button, Space, Tooltip, Modal, message, Card, Dropdown, Tag } from "antd";
+import { Table, Button, Space, Tooltip, Modal, message, Card, Dropdown, Tag, Popconfirm } from "antd";
 import {
   UndoOutlined,
   ExclamationCircleOutlined,
@@ -42,26 +42,19 @@ const SoftDeleteTable: React.FC<SoftDeleteTableProps> = ({
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
 
-  const handleRestore = (id: string) => {
-    Modal.confirm({
-      title: "Are you sure you want to restore this health insurance?",
-      icon: <ExclamationCircleOutlined />,
-      content: "This will make the record active again.",
-      onOk: async () => {
-        try {
-          const result = await restoreHealthInsurance(id);
-          if (result.isSuccess) {
-            messageApi.success("Health insurance restored successfully");
-            refreshData();
-          } else {
-            messageApi.error(result.message || "Failed to restore health insurance");
-          }
-        } catch (error) {
-          messageApi.error("Failed to restore health insurance");
-          console.error("Error restoring health insurance:", error);
-        }
-      },
-    });
+  const handleRestore = async (id: string) => {
+    try {
+      const result = await restoreHealthInsurance(id);
+      if (result.isSuccess) {
+        messageApi.success("Health insurance restored successfully");
+        refreshData();
+      } else {
+        messageApi.error(result.message || "Failed to restore health insurance");
+      }
+    } catch (error) {
+      messageApi.error("Failed to restore health insurance");
+      console.error("Error restoring health insurance:", error);
+    }
   };
 
   const renderUserInfo = (user: any) => {
@@ -255,24 +248,16 @@ const SoftDeleteTable: React.FC<SoftDeleteTableProps> = ({
       width: 80,
       align: "center" as const,
       render: (record: HealthInsuranceResponseDTO) => (
-        <div style={{ textAlign: "center" }}>
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: "restore",
-                  icon: <UndoOutlined />,
-                  label: "Restore",
-                  onClick: () => handleRestore(record.id),
-                },
-              ],
-            }}
-            placement="bottomRight"
-            trigger={["click"]}
-          >
-            <Button icon={<MoreOutlined />} size="small" />
-          </Dropdown>
-        </div>
+        <Popconfirm
+          title="Restore health insurance"
+          description="Are you sure you want to restore this health insurance?"
+          onConfirm={() => handleRestore(record.id)}
+          okText="Yes"
+          cancelText="No"
+          icon={<ExclamationCircleOutlined style={{ color: 'blue' }} />}
+        >
+          <Button icon={<UndoOutlined />} size="small" type="primary" style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }} />
+        </Popconfirm>
       ),
     },
   ].filter(column => column.key === "actions" || !column.hidden);
@@ -286,11 +271,6 @@ const SoftDeleteTable: React.FC<SoftDeleteTableProps> = ({
             rowKey="id"
             dataSource={insurances}
             columns={columns}
-            rowSelection={{
-              selectedRowKeys,
-              onChange: (keys: React.Key[]) => setSelectedRowKeys(keys),
-              columnWidth: 48,
-            }}
             loading={loading}
             pagination={false}
             size="middle"

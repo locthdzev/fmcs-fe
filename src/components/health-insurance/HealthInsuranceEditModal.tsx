@@ -1,35 +1,3 @@
-/**
- * HealthInsuranceEditModal - A modal component for editing health insurance information
- * 
- * Example usage:
- * ```jsx
- * const [modalVisible, setModalVisible] = useState(false);
- * const [selectedInsurance, setSelectedInsurance] = useState(null);
- * 
- * // When you want to open the modal with a specific insurance:
- * const handleEdit = async (insuranceId) => {
- *   const response = await getHealthInsuranceById(insuranceId);
- *   if (response.isSuccess) {
- *     setSelectedInsurance(response.data);
- *     setModalVisible(true);
- *   }
- * };
- * 
- * // In your JSX:
- * {selectedInsurance && (
- *   <HealthInsuranceEditModal
- *     visible={modalVisible}
- *     insurance={selectedInsurance}
- *     onClose={() => setModalVisible(false)}
- *     onSuccess={() => {
- *       refreshYourData();
- *       setModalVisible(false);
- *     }}
- *     isAdmin={true} // Set to false for user update requests
- *   />
- * )}
- * ```
- */
 import React, { useState } from "react";
 import {
   Modal,
@@ -245,7 +213,7 @@ export default function HealthInsuranceEditModal({
         <Form.Item name="imageChanged" hidden>
           <Input />
         </Form.Item>
-        
+
         <Row gutter={24}>
           <Col span={8}>
             <Card
@@ -468,4 +436,4 @@ export default function HealthInsuranceEditModal({
       </Form>
     </Modal>
   );
-} 
+}
