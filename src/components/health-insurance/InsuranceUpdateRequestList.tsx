@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { List, Card, Button, Avatar, Tag, Skeleton, Typography, Space, Row, Col } from "antd";
+import { List, Card, Button, Avatar, Tag, Skeleton, Typography, Space, Row, Col, message } from "antd";
 import { UserOutlined, EyeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -21,6 +21,7 @@ const InsuranceUpdateRequestList: React.FC<InsuranceUpdateRequestListProps> = ({
 }) => {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [selectedRequest, setSelectedRequest] = useState<UpdateRequestDTO | null>(null);
+  const [messageApi, contextHolder] = message.useMessage();
 
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return "-";
@@ -46,10 +47,12 @@ const InsuranceUpdateRequestList: React.FC<InsuranceUpdateRequestListProps> = ({
     setModalVisible(false);
     setSelectedRequest(null);
     refreshData();
+    messageApi.success("Review completed successfully");
   };
 
   return (
     <>
+      {contextHolder}
       <List
         grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 2, xl: 3, xxl: 4 }}
         dataSource={updateRequests}

@@ -114,7 +114,11 @@ export const UserHealthInsurance: React.FC = () => {
       setLoading(true);
       const response = await getCurrentUserHealthInsurance();
       if (response.isSuccess) {
-        setInsurance(response.data);
+        if (response.data && response.data.status !== "SoftDeleted") {
+          setInsurance(response.data);
+        } else {
+          setInsurance(null);
+        }
       } else {
         messageApi.error(response.message || "Failed to load insurance information");
       }
@@ -187,7 +191,10 @@ export const UserHealthInsurance: React.FC = () => {
     insurance.status === "Pending" && 
     insurance.verificationStatus === "Unverified";
     
-  const canRequestUpdate = insurance.verificationStatus === "Verified";
+  const canRequestUpdate = 
+    insurance.verificationStatus === "Verified" || 
+    insurance.verificationStatus === "Rejected";
+    
   const hasPendingRequests = pendingRequests.length > 0;
 
   return (
@@ -211,8 +218,11 @@ export const UserHealthInsurance: React.FC = () => {
                 type="primary" 
                 icon={<FormOutlined />} 
                 onClick={handleUpdateRequest}
+                danger={insurance.verificationStatus === "Rejected"}
               >
-                Request Health Insurance Update
+                {insurance.verificationStatus === "Rejected" 
+                  ? "Update Rejected Insurance" 
+                  : "Request Health Insurance Update"}
               </Button>
             )}
           </Space>
@@ -232,7 +242,12 @@ export const UserHealthInsurance: React.FC = () => {
         {insurance.verificationStatus === "Rejected" && (
           <Alert
             message="Health Insurance Rejected"
-            description="Your health insurance information has been rejected. Please update the information and submit again."
+            description={
+              <>
+                Your health insurance information has been rejected. 
+                {!hasPendingRequests && <span> Please click the <strong>"Update Rejected Insurance"</strong> button to submit new information.</span>}
+              </>
+            }
             type="error"
             showIcon
             className="mb-4"

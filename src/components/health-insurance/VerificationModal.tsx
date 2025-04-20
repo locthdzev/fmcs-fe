@@ -60,7 +60,8 @@ const VerificationModal: React.FC<VerificationModalProps> = ({
     try {
       const result = await verifyHealthInsurance(
         request.healthInsuranceId, 
-        verificationStatus
+        verificationStatus,
+        verificationStatus === "Rejected" ? rejectionReason : undefined
       );
       
       if (result.isSuccess) {

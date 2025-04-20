@@ -60,6 +60,12 @@ export const getStatusTag = (status: string) => {
           NotApplicable
         </Tag>
       );
+    case "Rejected":
+      return (
+        <Tag icon={<CloseCircleOutlined />} color="error">
+          Rejected
+        </Tag>
+      );
     default:
       return <Tag>{status}</Tag>;
   }
@@ -93,4 +99,4 @@ export const getVerificationTag = (status: string) => {
     default:
       return <Tag>{status}</Tag>;
   }
-}; 
+};

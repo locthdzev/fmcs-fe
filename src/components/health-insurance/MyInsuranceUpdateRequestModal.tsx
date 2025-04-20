@@ -60,7 +60,7 @@ export default function MyInsuranceUpdateRequestModal({
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [messageApi, contextHolder] = message.useMessage();
   const [hasInsurance, setHasInsurance] = useState(true);
-  const [imageRequired, setImageRequired] = useState(true);
+  const [imageRequired, setImageRequired] = useState(false);
 
   React.useEffect(() => {
     if (visible && insurance) {
@@ -70,7 +70,7 @@ export default function MyInsuranceUpdateRequestModal({
           insurance.status !== "NoInsurance");
 
       setHasInsurance(hasInsuranceValue);
-      setImageRequired(hasInsuranceValue);
+      setImageRequired(false);
 
       form.setFieldsValue({
         hasInsurance: hasInsuranceValue,
@@ -114,18 +114,11 @@ export default function MyInsuranceUpdateRequestModal({
       console.log("Current image file:", imageFile);
       console.log("File list:", fileList);
       
-      // Validate image file
-      if (values.hasInsurance) {
-        if (!imageFile) {
-          if (fileList.length > 0 && fileList[0].originFileObj) {
-            // Try to get file from fileList if imageFile is undefined
-            console.log("Getting file from fileList", fileList[0].originFileObj);
-            setImageFile(fileList[0].originFileObj as File);
-          } else {
-            messageApi.error("Please upload a new insurance card image");
-            return;
-          }
-        }
+      // Don't validate image file anymore - we'll use existing one if no new upload
+      // Only validate if user doesn't have insurance but wants to add it
+      if (values.hasInsurance && !insurance?.healthInsuranceNumber && !imageFile && (!fileList.length || !fileList[0].originFileObj)) {
+        messageApi.error("Please upload an insurance card image");
+        return;
       }
       
       setLoading(true);
@@ -162,10 +155,8 @@ export default function MyInsuranceUpdateRequestModal({
             : null,
       };
 
-      // Get file from fileList if imageFile is somehow still undefined
-      const fileToSend = values.hasInsurance 
-        ? (imageFile || (fileList.length > 0 && fileList[0].originFileObj ? fileList[0].originFileObj as File : undefined)) 
-        : undefined;
+      // Get file from fileList if imageFile is undefined
+      const fileToSend = values.hasInsurance && imageFile ? imageFile : undefined;
 
       console.log("Submitting update request with:", {
         formattedValues,
@@ -233,7 +224,10 @@ export default function MyInsuranceUpdateRequestModal({
       title={
         <Typography.Title level={4} style={{ margin: 0 }}>
           <Space>
-            <FormOutlined /> Request Health Insurance Update
+            <FormOutlined /> 
+            {insurance.verificationStatus === "Rejected" 
+              ? "Update Rejected Insurance" 
+              : "Request Health Insurance Update"}
           </Space>
         </Typography.Title>
       }
@@ -249,8 +243,11 @@ export default function MyInsuranceUpdateRequestModal({
           icon={<SendOutlined />}
           loading={loading}
           onClick={handleSubmit}
+          danger={insurance.verificationStatus === "Rejected"}
         >
-          Submit Request
+          {insurance.verificationStatus === "Rejected" 
+            ? "Submit Update" 
+            : "Submit Request"}
         </Button>,
       ]}
       width={1200}
@@ -314,7 +311,7 @@ export default function MyInsuranceUpdateRequestModal({
         </Row>
       </Card>
       
-      {hasInsurance && (
+      {hasInsurance && !insurance?.imageUrl && (
         <Alert
           message="Insurance Card Image Required"
           description="You must upload a new image of your insurance card to update your information."

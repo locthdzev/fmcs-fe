@@ -23,6 +23,16 @@ import {
   SendOutlined,
   MoreOutlined,
   DeleteOutlined,
+  CheckCircleOutlined,
+  InfoCircleOutlined,
+  FileSearchOutlined,
+  CloseCircleOutlined,
+  SyncOutlined,
+  WarningOutlined,
+  ExclamationCircleOutlined,
+  UserOutlined,
+  ClockCircleOutlined,
+  StopOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -30,7 +40,8 @@ import PageContainer from "../shared/PageContainer";
 import ToolbarCard from "../shared/ToolbarCard";
 import TableControls from "../shared/TableControls";
 import PaginationFooter from "../shared/PaginationFooter";
-
+import InsuranceFilterModal from "./InsuranceFilterModal";
+import ExportConfigurationModal from "./ExportConfigurationModal";
 import VerifiedTable from "./VerifiedTable";
 import InitialTable from "./InitialTable";
 import VerificationList from "./VerificationList";
@@ -41,27 +52,29 @@ import NoInsuranceTable from "./NoInsuranceTable";
 import SoftDeleteTable from "./SoftDeleteTable";
 import InsuranceConfigModal from "./InsuranceConfigModal";
 import InsuranceCreateModal from "./InsuranceCreateModal";
-import InsuranceFilterModal from "./InsuranceFilterModal";
-import ExportConfigurationModal from "./ExportConfigurationModal";
 
 import {
-  getAllHealthInsurances,
-  getVerifiedInsurances,
-  getInitialInsurances,
-  getExpiredUpdateInsurances,
-  getExpiredInsurances,
-  getUninsuredRecords,
-  getSoftDeletedInsurances,
-  getVerificationRequests,
-  getUpdateRequests,
-  sendHealthInsuranceUpdateRequest,
-  createInitialHealthInsurances,
-  getHealthInsuranceConfig,
-  exportHealthInsurances,
-  softDeleteHealthInsurances,
   HealthInsuranceResponseDTO,
   UpdateRequestDTO,
+  getAllHealthInsurances,
+  getExpiredInsurances,
+  getExpiredUpdateInsurances,
+  getHealthInsuranceConfig,
+  getInitialInsurances,
+  getSoftDeletedInsurances,
+  getUninsuredRecords,
+  getUpdateRequests,
+  getVerificationRequests,
+  getVerifiedInsurances,
+  sendHealthInsuranceUpdateRequest,
+  createInitialHealthInsurances,
+  exportHealthInsurances,
+  softDeleteHealthInsurances,
+  setupHealthInsuranceRealTime,
+  setHealthInsuranceConfig,
+  getRejectedInsurances,
 } from "@/api/healthinsurance";
+import api from "@/api/customize-axios";
 
 const { TabPane } = Tabs;
 const { Text } = Typography;
@@ -100,6 +113,9 @@ const HealthInsuranceManagement: React.FC = () => {
     HealthInsuranceResponseDTO[]
   >([]);
   const [pendingVerifications, setPendingVerifications] = useState<
+    HealthInsuranceResponseDTO[]
+  >([]);
+  const [rejectedInsurances, setRejectedInsurances] = useState<
     HealthInsuranceResponseDTO[]
   >([]);
   const [updateRequests, setUpdateRequests] = useState<UpdateRequestDTO[]>([]);
@@ -193,6 +209,26 @@ const HealthInsuranceManagement: React.FC = () => {
     updatedBy: true,
   });
 
+  const [rejectedColumnVisibility, setRejectedColumnVisibility] = useState({
+    owner: true,
+    insuranceNumber: true,
+    fullName: true,
+    dob: false,
+    gender: false,
+    address: false,
+    healthcareProvider: true,
+    validPeriod: true,
+    issueDate: false,
+    image: true,
+    createdAt: false,
+    createdBy: false,
+    updatedAt: true,
+    updatedBy: true,
+    status: true,
+    verification: true,
+    actions: true,
+  });
+
   // Fetch data based on active tab
   useEffect(() => {
     fetchData();
@@ -267,13 +303,18 @@ const HealthInsuranceManagement: React.FC = () => {
           console.log("Verification tab API response:", result);
 
           if (result.isSuccess) {
+            // Transform HealthInsuranceResponseDTO to UpdateRequestDTO format
+            // for compatibility with the VerificationList component
             const verificationRequests = result.data.map(
               (insurance: HealthInsuranceResponseDTO) => ({
                 id: insurance.id,
                 healthInsuranceId: insurance.id,
                 requestedBy: insurance.user,
                 requestedAt: insurance.createdAt,
-                status: "Submitted",
+                status: insurance.status || "Submitted",
+                reviewedBy: insurance.updatedBy,
+                reviewedAt: insurance.updatedAt,
+                rejectionReason: undefined,
                 hasInsurance: true,
                 healthInsuranceNumber: insurance.healthInsuranceNumber,
                 fullName: insurance.fullName,
@@ -293,7 +334,8 @@ const HealthInsuranceManagement: React.FC = () => {
               "Transformed verification requests:",
               verificationRequests
             );
-            setPendingVerifications(verificationRequests);
+
+            setUpdateRequests(verificationRequests);
             setTotal(result.totalItems);
           } else {
             messageApi.error(
@@ -399,6 +441,24 @@ const HealthInsuranceManagement: React.FC = () => {
           } else {
             messageApi.error(
               result.message || "Failed to fetch soft-deleted insurances"
+            );
+          }
+          break;
+        case "rejected":
+          result = await getRejectedInsurances(
+            currentPage,
+            pageSize,
+            searchText,
+            "CreatedAt",
+            false,
+            selectedOwner
+          );
+          if (result.isSuccess) {
+            setRejectedInsurances(result.data);
+            setTotal(result.totalItems);
+          } else {
+            messageApi.error(
+              result.message || "Failed to fetch rejected insurances"
             );
           }
           break;
@@ -560,6 +620,8 @@ const HealthInsuranceManagement: React.FC = () => {
         return noInsuranceColumnVisibility;
       case "softDelete":
         return softDeleteColumnVisibility;
+      case "rejected":
+        return rejectedColumnVisibility;
       default:
         return {};
     }
@@ -584,6 +646,9 @@ const HealthInsuranceManagement: React.FC = () => {
         break;
       case "softDelete":
         setSoftDeleteColumnVisibility(visibility);
+        break;
+      case "rejected":
+        setRejectedColumnVisibility(visibility);
         break;
     }
   };
@@ -620,15 +685,111 @@ const HealthInsuranceManagement: React.FC = () => {
       {contextHolder}
 
       {/* Tabs for different insurance statuses */}
-      <Tabs activeKey={activeTab} onChange={handleTabChange}>
-        <TabPane tab="Verified" key="verified" />
-        <TabPane tab="Initial" key="initial" />
-        <TabPane tab="Verification" key="verification" />
-        <TabPane tab="Update Request" key="updateRequest" />
-        <TabPane tab="Expired Update" key="expiredUpdate" />
-        <TabPane tab="Expired" key="expired" />
-        <TabPane tab="Uninsured" key="uninsured" />
-        <TabPane tab="Soft Delete" key="softDelete" />
+      <Tabs
+        activeKey={activeTab}
+        onChange={handleTabChange}
+        className="bg-white rounded shadow-sm"
+        type="card"
+      >
+        <TabPane
+          tab={
+            <span>
+              <CheckCircleOutlined
+                className="mr-2"
+                style={{ color: "#52c41a" }}
+              />
+              Verified
+            </span>
+          }
+          key="verified"
+        />
+        <TabPane
+          tab={
+            <span>
+              <InfoCircleOutlined
+                className="mr-2"
+                style={{ color: "#1677ff" }}
+              />
+              Initial
+            </span>
+          }
+          key="initial"
+        />
+        <TabPane
+          tab={
+            <span>
+              <FileSearchOutlined
+                className="mr-2"
+                style={{ color: "#1677ff" }}
+              />
+              Verification
+            </span>
+          }
+          key="verification"
+        />
+        <TabPane
+          tab={
+            <span>
+              <CloseCircleOutlined
+                className="mr-2"
+                style={{ color: "#ff4d4f" }}
+              />
+              Rejected
+            </span>
+          }
+          key="rejected"
+        />
+        <TabPane
+          tab={
+            <span>
+              <SyncOutlined className="mr-2" style={{ color: "#1677ff" }} />
+              Update Request
+            </span>
+          }
+          key="updateRequest"
+        />
+        <TabPane
+          tab={
+            <span>
+              <ClockCircleOutlined
+                className="mr-2"
+                style={{ color: "#faad14" }}
+              />
+              Expired Update
+            </span>
+          }
+          key="expiredUpdate"
+        />
+        <TabPane
+          tab={
+            <span>
+              <ExclamationCircleOutlined
+                className="mr-2"
+                style={{ color: "#faad14" }}
+              />
+              Expired
+            </span>
+          }
+          key="expired"
+        />
+        <TabPane
+          tab={
+            <span>
+              <StopOutlined className="mr-2" style={{ color: "#ff4d4f" }} />
+              Uninsured
+            </span>
+          }
+          key="uninsured"
+        />
+        <TabPane
+          tab={
+            <span>
+              <DeleteOutlined className="mr-2" style={{ color: "#ff4d4f" }} />
+              Soft Delete
+            </span>
+          }
+          key="softDelete"
+        />
       </Tabs>
 
       {/* Toolbar */}
@@ -870,6 +1031,17 @@ const HealthInsuranceManagement: React.FC = () => {
           selectedRowKeys={[]}
           setSelectedRowKeys={() => {}}
           columnVisibility={softDeleteColumnVisibility}
+          refreshData={fetchData}
+        />
+      )}
+
+      {activeTab === "rejected" && (
+        <VerifiedTable
+          loading={loading}
+          insurances={rejectedInsurances}
+          selectedRowKeys={selectedRowKeys}
+          setSelectedRowKeys={setSelectedRowKeys}
+          columnVisibility={rejectedColumnVisibility}
           refreshData={fetchData}
         />
       )}

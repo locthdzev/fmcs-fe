@@ -379,13 +379,14 @@ export const reviewUpdateRequest = async (
 
 export const verifyHealthInsurance = async (
   id: string,
-  verificationStatus: string
+  verificationStatus: string,
+  rejectionReason?: string
 ) => {
   const response = await api.put(
     `/health-insurance-management/insurances/${id}/verify`,
     null,
     {
-      params: { verificationStatus },
+      params: { verificationStatus, rejectionReason },
     }
   );
   return response.data;
@@ -870,16 +871,59 @@ export const getSoftDeletedInsurances = async (
 };
 
 export const getVerificationRequests = async (
+  page = 1,
+  pageSize = 10,
+  search?: string,
+  sortBy = "CreatedAt",
+  ascending = false
+) => {
+  try {
+    // Chúng ta sẽ dùng chung endpoint với update requests, nhưng lọc theo status Submitted và verificationStatus Unverified
+    const response = await api.get(`/health-insurance-management/insurances`, {
+      params: {
+        page,
+        pageSize,
+        search,
+        sortBy,
+        ascending,
+        status: "Submitted",
+      },
+    });
+
+    if (response.data.isSuccess) {
+      // Đảm bảo chỉ lấy các bảo hiểm có verificationStatus=Unverified
+      const filteredInsurances = response.data.data.filter(
+        (insurance: HealthInsuranceResponseDTO) => 
+        insurance.verificationStatus === "Unverified"
+      );
+
+      return {
+        ...response.data,
+        data: filteredInsurances,
+        totalItems: filteredInsurances.length,
+      };
+    }
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching verification requests:", error);
+    return {
+      isSuccess: false,
+      message: "Failed to fetch verification requests",
+      data: [],
+      totalItems: 0,
+    };
+  }
+};
+
+export const getRejectedInsurances = async (
   page: number = 1,
   pageSize: number = 10,
   search?: string,
   sortBy: string = "CreatedAt",
-  ascending: boolean = false
+  ascending: boolean = false,
+  userId?: string
 ) => {
   try {
-    // Sử dụng API đã có để lấy các verification requests
-    // Chúng ta sẽ dùng chung endpoint với update requests, nhưng lọc theo status Pending và verificationStatus Unverified
-    // Hoặc dùng getAllHealthInsurances với status SUBMITTED
     const response = await api.get("/health-insurance-management/insurances", {
       params: {
         page,
@@ -887,7 +931,8 @@ export const getVerificationRequests = async (
         search,
         sortBy,
         ascending,
-        status: "Submitted", // Dùng status SUBMITTED cho verification requests
+        status: "Rejected",
+        userId,
       },
     });
 
@@ -899,14 +944,14 @@ export const getVerificationRequests = async (
       data: response.data.data || [],
       totalItems: response.data.totalRecords || 0,
       page: response.data.page || 1,
-      pageSize: pageSize,
+      pageSize: response.data.pageSize || pageSize,
     };
   } catch (error) {
-    console.error("Error fetching verification requests:", error);
+    console.error("Error fetching rejected insurances:", error);
     return {
       isSuccess: false,
       code: 500,
-      message: "Failed to fetch verification requests",
+      message: "Failed to fetch rejected insurance data",
       responseFailed: error instanceof Error ? error.message : "Unknown error",
       data: [],
       totalItems: 0,
