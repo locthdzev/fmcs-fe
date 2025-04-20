@@ -15,6 +15,7 @@ import {
   getHealthInsuranceById,
 } from "@/api/healthinsurance";
 import HealthInsuranceEditModal from "./HealthInsuranceEditModal";
+import { getStatusTag } from "@/utils/statusTagUtils";
 
 interface InitialTableProps {
   loading: boolean;
@@ -189,6 +190,7 @@ const InitialTable: React.FC<InitialTableProps> = ({
       key: "status",
       width: 150,
       align: "center" as const,
+      render: (status: string) => getStatusTag(status),
       hidden: !columnVisibility.status,
     },
     {

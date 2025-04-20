@@ -32,6 +32,7 @@ import {
   HealthInsuranceResponseDTO,
   softDeleteHealthInsurances,
 } from "@/api/healthinsurance";
+import { getStatusTag, getVerificationTag } from "@/utils/statusTagUtils";
 
 interface ExpiredTableProps {
   loading: boolean;
@@ -133,46 +134,6 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
   const formatDateTime = (dateStr: string | undefined) => {
     if (!dateStr) return "-";
     return dayjs(dateStr).format("DD/MM/YYYY HH:mm:ss");
-  };
-
-  // Helper function to get status tag color and icon
-  const getStatusTag = (status: string) => {
-    switch (status) {
-      case "Expired":
-        return (
-          <Tag icon={<WarningOutlined />} color="error">
-            Expired
-          </Tag>
-        );
-      default:
-        return <Tag>{status}</Tag>;
-    }
-  };
-
-  // Helper function to get verification status tag color and icon
-  const getVerificationTag = (status: string) => {
-    switch (status) {
-      case "Unverified":
-        return (
-          <Tag icon={<ClockCircleOutlined />} color="warning">
-            Unverified
-          </Tag>
-        );
-      case "Verified":
-        return (
-          <Tag icon={<CheckCircleOutlined />} color="success">
-            Verified
-          </Tag>
-        );
-      case "Rejected":
-        return (
-          <Tag icon={<CloseCircleOutlined />} color="error">
-            Rejected
-          </Tag>
-        );
-      default:
-        return <Tag>{status}</Tag>;
-    }
   };
 
   const columns = [

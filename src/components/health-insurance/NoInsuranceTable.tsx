@@ -13,6 +13,7 @@ import {
   HealthInsuranceResponseDTO,
   softDeleteHealthInsurances,
 } from "@/api/healthinsurance";
+import { getStatusTag } from "@/utils/statusTagUtils";
 
 interface NoInsuranceTableProps {
   loading: boolean;
@@ -84,14 +85,6 @@ const NoInsuranceTable: React.FC<NoInsuranceTableProps> = ({
   const formatDateTime = (dateStr: string | undefined) => {
     if (!dateStr) return "-";
     return dayjs(dateStr).format("DD/MM/YYYY HH:mm:ss");
-  };
-
-  // Helper function to get status tag
-  const getStatusTag = (status: string) => {
-    if (status === "NoInsurance") {
-      return <Tag icon={<QuestionCircleOutlined />} color="purple">No Insurance</Tag>;
-    }
-    return <Tag>{status}</Tag>;
   };
 
   const columns = [

@@ -39,6 +39,7 @@ import {
   getHealthInsuranceById,
 } from "@/api/healthinsurance";
 import HealthInsuranceEditModal from "./HealthInsuranceEditModal";
+import { getStatusTag, getVerificationTag } from "@/utils/statusTagUtils";
 
 interface VerifiedTableProps {
   loading: boolean;
@@ -128,82 +129,6 @@ const VerifiedTable: React.FC<VerifiedTableProps> = ({
   const formatDateTime = (dateStr: string | undefined) => {
     if (!dateStr) return "-";
     return dayjs(dateStr).format("DD/MM/YYYY HH:mm:ss");
-  };
-
-  // Helper function to get status tag color and icon
-  const getStatusTag = (status: string) => {
-    switch (status) {
-      case "Pending":
-        return (
-          <Tag icon={<ClockCircleOutlined />} color="processing">
-            Pending
-          </Tag>
-        );
-      case "Submitted":
-        return (
-          <Tag icon={<SendOutlined />} color="blue">
-            Submitted
-          </Tag>
-        );
-      case "Completed":
-        return (
-          <Tag icon={<CheckCircleOutlined />} color="success">
-            Completed
-          </Tag>
-        );
-      case "Expired":
-        return (
-          <Tag icon={<WarningOutlined />} color="error">
-            Expired
-          </Tag>
-        );
-      case "DeadlineExpired":
-        return (
-          <Tag icon={<FileExclamationOutlined />} color="volcano">
-            Deadline Expired
-          </Tag>
-        );
-      case "SoftDeleted":
-        return (
-          <Tag icon={<StopOutlined />} color="default">
-            Soft Deleted
-          </Tag>
-        );
-      case "NotApplicable":
-        return (
-          <Tag icon={<QuestionCircleOutlined />} color="default">
-            N/A
-          </Tag>
-        );
-      default:
-        return <Tag>{status}</Tag>;
-    }
-  };
-
-  // Helper function to get verification status tag color and icon
-  const getVerificationTag = (status: string) => {
-    switch (status) {
-      case "Unverified":
-        return (
-          <Tag icon={<ClockCircleOutlined />} color="warning">
-            Unverified
-          </Tag>
-        );
-      case "Verified":
-        return (
-          <Tag icon={<CheckCircleOutlined />} color="success">
-            Verified
-          </Tag>
-        );
-      case "Rejected":
-        return (
-          <Tag icon={<CloseCircleOutlined />} color="error">
-            Rejected
-          </Tag>
-        );
-      default:
-        return <Tag>{status}</Tag>;
-    }
   };
 
   const columns = [

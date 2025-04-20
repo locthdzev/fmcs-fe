@@ -24,6 +24,7 @@ import {
   HealthInsuranceResponseDTO,
   restoreHealthInsurance,
 } from "@/api/healthinsurance";
+import { getStatusTag } from "@/utils/statusTagUtils";
 
 interface SoftDeleteTableProps {
   loading: boolean;
@@ -100,18 +101,6 @@ const SoftDeleteTable: React.FC<SoftDeleteTableProps> = ({
   const formatDateTime = (dateStr: string | undefined) => {
     if (!dateStr) return "-";
     return dayjs(dateStr).format("DD/MM/YYYY HH:mm:ss");
-  };
-
-  // Helper function to get status tag
-  const getStatusTag = (status: string) => {
-    if (status === "SoftDeleted") {
-      return (
-        <Tag icon={<StopOutlined />} color="default">
-          Soft Deleted
-        </Tag>
-      );
-    }
-    return <Tag>{status}</Tag>;
   };
 
   const columns = [

@@ -14,6 +14,7 @@ import {
   softDeleteHealthInsurances,
   resendUpdateRequest,
 } from "@/api/healthinsurance";
+import { getStatusTag } from "@/utils/statusTagUtils";
 
 interface ExpiredUpdateTableProps {
   loading: boolean;
@@ -188,6 +189,7 @@ const ExpiredUpdateTable: React.FC<ExpiredUpdateTableProps> = ({
       key: "status",
       width: 150,
       align: "center" as const,
+      render: (status: string) => getStatusTag(status),
       hidden: !columnVisibility.status,
     },
     {
