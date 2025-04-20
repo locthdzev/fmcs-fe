@@ -1388,6 +1388,7 @@ export function CanteenOrders() {
                       showSearch
                       allowClear
                       placeholder="Search by license plate..."
+                      prefix={<SearchOutlined style={{ color: "blue" }} />}
                       value={filterValue || undefined}
                       onChange={handleSearchChange}
                       style={{ width: "300px" }}

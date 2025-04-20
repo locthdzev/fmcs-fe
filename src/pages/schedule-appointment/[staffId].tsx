@@ -1125,7 +1125,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
   useEffect(() => {
     if (shouldRedirect) {
       const timer = setTimeout(() => {
-        window.location.href = "/appointment/management";
+        window.location.href = "/my-appointment";
       }, 3000);
       return () => clearTimeout(timer);
     }

@@ -1,20 +1,21 @@
-import React from "react";
-import { UserDetail } from "@/components/user/UserDetail";
-import { useRouter } from "next/router";
-import { Spin } from "antd";
+import { GetServerSideProps } from 'next';
+import { UserDetail } from '@/components/user/UserDetail';
+import { useRouter } from 'next/router';
 
-export default function UserDetailPage() {
-  const router = useRouter();
-  const { id } = router.query;
+interface UserDetailPageProps {
+  id: string;
+}
 
-  // Đảm bảo id đã được nạp từ URL trước khi render component
-  if (!id) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <Spin size="large" />
-      </div>
-    );
-  }
+export default function UserDetailPage({ id }: UserDetailPageProps) {
+  return <UserDetail id={id} />;
+}
 
-  return <UserDetail id={id as string} />;
-} 
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const { id } = context.query;
+
+  return {
+    props: {
+      id: id as string,
+    },
+  };
+}; 

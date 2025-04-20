@@ -20,7 +20,7 @@ import {
 import ErrorTable from "./ErrorTable";
 import { UserImportResultDTO } from "./ExportErrorUtils";
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 const { TabPane } = Tabs;
 
 interface UserResultModalProps {
@@ -157,13 +157,20 @@ const UserResultModal: React.FC<UserResultModalProps> = ({
       description={
         <div>
           <p>
-            <strong>All {importResult.totalRows} row(s) have errors or were skipped.</strong>
+            <strong>
+              All {importResult.totalRows} row(s) have errors or were skipped.
+            </strong>
           </p>
-          <p>No users were imported successfully. Please check the errors below and try again.</p>
+          <p>
+            No users were imported successfully. Please check the errors below
+            and try again.
+          </p>
           <p>Common reasons for failure:</p>
           <ul>
             <li>Missing required fields (Full Name, Username, Email, etc.)</li>
-            <li>Invalid data format (especially for dates or email addresses)</li>
+            <li>
+              Invalid data format (especially for dates or email addresses)
+            </li>
             <li>Duplicate data (username, email, or phone already exists)</li>
             <li>Data entered in wrong rows (e.g., in the instruction area)</li>
           </ul>
@@ -178,7 +185,11 @@ const UserResultModal: React.FC<UserResultModalProps> = ({
 
   return (
     <Modal
-      title="Import Results"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Import Results
+        </Title>
+      }
       open={visible}
       onCancel={onCancel}
       width={1200}
@@ -235,10 +246,7 @@ const UserResultModal: React.FC<UserResultModalProps> = ({
               <TabPane tab="Summary" key="summary">
                 {renderAllFailedContent()}
               </TabPane>
-              <TabPane
-                tab={`Errors (${importResult.errorCount})`}
-                key="errors"
-              >
+              <TabPane tab={`Errors (${importResult.errorCount})`} key="errors">
                 {renderErrorContent()}
               </TabPane>
             </Tabs>

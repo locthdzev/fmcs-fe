@@ -84,24 +84,24 @@ export function capitalize(s: string) {
 // Helper function to convert camelCase field names to PascalCase for backend API
 function convertToPascalCase(fieldName: string): string {
   if (!fieldName) return "";
-  
+
   // Handle known field mappings
   const fieldMappings: Record<string, string> = {
-    "orderDate": "OrderDate",
-    "drugOrderCode": "DrugOrderCode",
-    "totalQuantity": "TotalQuantity",
-    "totalPrice": "TotalPrice",
-    "createdAt": "CreatedAt",
-    "updatedAt": "UpdatedAt",
-    "status": "Status", 
-    "supplier": "Supplier"
+    orderDate: "OrderDate",
+    drugOrderCode: "DrugOrderCode",
+    totalQuantity: "TotalQuantity",
+    totalPrice: "TotalPrice",
+    createdAt: "CreatedAt",
+    updatedAt: "UpdatedAt",
+    status: "Status",
+    supplier: "Supplier",
   };
-  
+
   // Return direct mapping if available
   if (fieldMappings[fieldName]) {
     return fieldMappings[fieldName];
   }
-  
+
   // Otherwise convert camelCase to PascalCase
   return fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
 }
@@ -1256,12 +1256,14 @@ export function DrugOrders() {
         pageSize: exportConfig.exportAllPages ? 1000 : pageSize, // Large number to get all if exportAllPages is true
         drugOrderCodeSearch: filterValue || undefined,
         status: statusFilter.length > 0 ? statusFilter[0] : undefined,
-        sortBy: Array.isArray(sorter) || !sorter.field
-          ? "OrderDate" // Default to OrderDate if no sorting is specified
-          : convertToPascalCase(sorter?.field as string),
-        ascending: Array.isArray(sorter) || !sorter.order
-          ? false // Default to false (descending) if no sort order specified
-          : sorter?.order === "ascend",
+        sortBy:
+          Array.isArray(sorter) || !sorter.field
+            ? "OrderDate" // Default to OrderDate if no sorting is specified
+            : convertToPascalCase(sorter?.field as string),
+        ascending:
+          Array.isArray(sorter) || !sorter.order
+            ? false // Default to false (descending) if no sort order specified
+            : sorter?.order === "ascend",
         orderStartDate: undefined,
         orderEndDate: undefined,
         createdStartDate: undefined,
@@ -1403,6 +1405,7 @@ export function DrugOrders() {
                           <span>Search by order code...</span>
                         </div>
                       }
+                      prefix={<SearchOutlined style={{ color: "blue" }} />}
                       style={{ width: "300px" }}
                       value={filterValue || undefined}
                       onChange={handleSearchChange}
@@ -1715,12 +1718,14 @@ export function DrugOrders() {
           pageSize,
           drugOrderCodeSearch: filterValue,
           status: statusFilter.length > 0 ? statusFilter[0] : undefined,
-          sortBy: Array.isArray(sorter) || !sorter.field 
-            ? "OrderDate" 
-            : convertToPascalCase(sorter?.field as string),
-          ascending: Array.isArray(sorter) || !sorter.order 
-            ? false 
-            : sorter?.order === "ascend",
+          sortBy:
+            Array.isArray(sorter) || !sorter.field
+              ? "OrderDate"
+              : convertToPascalCase(sorter?.field as string),
+          ascending:
+            Array.isArray(sorter) || !sorter.order
+              ? false
+              : sorter?.order === "ascend",
           orderDateRange: [null, null],
           createdDateRange: [null, null],
           updatedDateRange: [null, null],

@@ -960,7 +960,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                 placeholder="Search by result code"
                 value={healthCheckResultCode}
                 onChange={(e) => setHealthCheckResultCode(e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 style={{ width: 200 }}
                 allowClear
               />
@@ -970,7 +970,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                 placeholder="Search by performer"
                 value={performedBySearch}
                 onChange={(e) => setPerformedBySearch(e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 style={{ width: 200 }}
                 allowClear
               />
