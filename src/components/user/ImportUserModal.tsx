@@ -27,7 +27,7 @@ import DetailedErrorModal from "./DetailedErrorModal";
 import { UserImportResultDTO } from "./ExportErrorUtils";
 
 const { Dragger } = Upload;
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
 interface ImportUserModalProps {
   visible: boolean;
@@ -175,7 +175,9 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
           skipDuplicates: values.skipDuplicates,
           stopOnError: values.stopOnError,
           useDefaultPassword: values.useDefaultPassword,
-          defaultPassword: values.useDefaultPassword ? values.defaultPassword : undefined,
+          defaultPassword: values.useDefaultPassword
+            ? values.defaultPassword
+            : undefined,
         });
 
         // Clear progress timer
@@ -234,7 +236,11 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
     <>
       {contextHolder}
       <Modal
-        title="Import Users"
+        title={
+          <Title level={4} style={{ margin: 0 }}>
+            Import Users
+          </Title>
+        }
         open={visible}
         onCancel={onCancel}
         footer={[
@@ -255,8 +261,8 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
         maskClosable={!uploading}
         closable={!uploading}
       >
-        <div style={{ display: 'flex', gap: '16px' }}>
-          <div style={{ width: '40%' }}>
+        <div style={{ display: "flex", gap: "16px" }}>
+          <div style={{ width: "40%" }}>
             {/* Template Download Button */}
             <div style={{ textAlign: "center", marginBottom: "16px" }}>
               <Button
@@ -383,7 +389,7 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
             </Form>
           </div>
 
-          <div style={{ width: '60%' }}>
+          <div style={{ width: "60%" }}>
             {/* Instructions Alert */}
             <Alert
               message="How to use the template"
@@ -397,48 +403,70 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
                     </li>
                     <li>
                       <Text type="danger">
-                        IMPORTANT: Your data must start from row 6 (right below the
-                        orange header row)
+                        IMPORTANT: Your data must start from row 6 (right below
+                        the orange header row)
                       </Text>
                     </li>
                     <li>
-                      Do NOT modify the header row (row 5 with orange background)
+                      Do NOT modify the header row (row 5 with orange
+                      background)
                     </li>
                   </ul>
 
                   <h4>Step 2: Fill in user data correctly</h4>
                   <ul style={{ paddingLeft: "20px", marginBottom: "10px" }}>
                     <li>
-                      Make sure to fill all required fields (Full Name, Username,
-                      Email, Gender, DOB, Address, Phone)
+                      Make sure to fill all required fields (Full Name,
+                      Username, Email, Gender, DOB, Address, Phone)
                     </li>
                     <li>
                       <Text type="warning">
                         Date format should be DD/MM/YYYY (day/month/year)
                       </Text>
                     </li>
-                    <li>Each phone number, email and username must be unique</li>
                     <li>
-                      <Text strong>For phone numbers with leading zeros (0xxx...):</Text> To prevent Excel from removing the leading zero, use one of these methods:
+                      Each phone number, email and username must be unique
+                    </li>
+                    <li>
+                      <Text strong>
+                        For phone numbers with leading zeros (0xxx...):
+                      </Text>{" "}
+                      To prevent Excel from removing the leading zero, use one
+                      of these methods:
                       <ul style={{ paddingLeft: "20px", marginTop: "5px" }}>
-                        <li>Type a single quote before the number (e.g., <Text code>'0123456789</Text>)</li>
-                        <li>Format the cell as Text before entering the number (Right-click → Format Cells → Text)</li>
-                        <li>Add a plus sign: <Text code>+84123456789</Text> (for Vietnam numbers)</li>
-                        <li>Add hyphens: <Text code>0123-456-789</Text></li>
+                        <li>
+                          Type a single quote before the number (e.g.,{" "}
+                          <Text code>'0123456789</Text>)
+                        </li>
+                        <li>
+                          Format the cell as Text before entering the number
+                          (Right-click → Format Cells → Text)
+                        </li>
+                        <li>
+                          Add a plus sign: <Text code>+84123456789</Text> (for
+                          Vietnam numbers)
+                        </li>
+                        <li>
+                          Add hyphens: <Text code>0123-456-789</Text>
+                        </li>
                       </ul>
                       <Text type="warning">
-                        If Excel removes your leading zeros, our system will try to add them back, but it's safer to enter them correctly.
+                        If Excel removes your leading zeros, our system will try
+                        to add them back, but it's safer to enter them
+                        correctly.
                       </Text>
                     </li>
                   </ul>
-                  
+
                   <h4>Step 3: Import your data</h4>
                   <ul style={{ paddingLeft: "20px" }}>
-                    <li>Save the Excel file once you've entered all user data</li>
+                    <li>
+                      Save the Excel file once you've entered all user data
+                    </li>
                     <li>Use the upload area to select and import your file</li>
                     <li>
-                      If you see "No users were imported" but no errors, check that
-                      your data starts at row 6
+                      If you see "No users were imported" but no errors, check
+                      that your data starts at row 6
                     </li>
                   </ul>
                 </div>

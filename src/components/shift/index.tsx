@@ -436,7 +436,7 @@ export function ShiftManagement() {
             {/* Search Filter */}
             <Input
               placeholder="Search by shift name"
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               style={{ width: 250 }}

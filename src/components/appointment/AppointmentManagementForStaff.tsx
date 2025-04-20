@@ -593,7 +593,7 @@ export function AppointmentManagementForStaff() {
         console.error("Error fetching appointments:", error);
         if (error.response?.status === 401) {
           toast.error("Session expired. Please log in again.");
-          router.push("/login");
+          router.push("/");
         } else {
           toast.error("Failed to load appointments.");
         }
@@ -607,7 +607,7 @@ export function AppointmentManagementForStaff() {
   useEffect(() => {
     const token = Cookies.get("token");
     if (!token) {
-      router.push("/login");
+      router.push("/");
       return;
     }
 
@@ -615,20 +615,20 @@ export function AppointmentManagementForStaff() {
       const decoded: any = jwtDecode(token);
       const userId = decoded.userid;
       if (!userId) {
-        router.push("/login");
+        router.push("/");
         return;
       }
       fetchAppointments(userId);
     } catch (error) {
       console.error("Invalid token:", error);
-      router.push("/login");
+      router.push("/");
     }
   }, [fetchAppointments, router]);
 
   const handleRefresh = () => {
     const token = Cookies.get("token");
     if (!token) {
-      router.push("/login");
+      router.push("/");
       return;
     }
     try {
@@ -639,7 +639,7 @@ export function AppointmentManagementForStaff() {
       }
     } catch (error) {
       console.error("Invalid token on refresh:", error);
-      router.push("/login");
+      router.push("/");
     }
   };
 
@@ -681,7 +681,7 @@ export function AppointmentManagementForStaff() {
         error.message === "No authentication token found."
       ) {
         toast.error("Session expired or unauthorized. Please log in again.");
-        router.push("/login");
+        router.push("/");
       } else {
         toast.error(`An error occurred: ${error.message || "Unknown error"}`);
       }
