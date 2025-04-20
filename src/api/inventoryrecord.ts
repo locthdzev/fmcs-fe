@@ -91,3 +91,58 @@ export const setupInventoryRecordRealTime = (
 ) => {
   return setupSignalRConnection("/inventoryRecordHub", callback);
 };
+
+export interface DrugStatisticsDTO {
+  drugId: string;
+  drugName: string;
+  drugCode: string;
+  totalQuantity: number;
+}
+
+export interface InventoryStatisticsDTO {
+  totalActiveInventoryRecords: number;
+  totalDrugsInStock: number;
+  totalQuantityInStock: number;
+  lowStockItems: number;
+  periodStart?: string;
+  periodEnd?: string;
+  inventoryStatusDistribution: Record<string, number>;
+  topDrugsByQuantity: DrugStatisticsDTO[];
+}
+
+export const getInventoryStatistics = async (startDate?: Date, endDate?: Date) => {
+  try {
+    const params: any = {};
+    
+    if (startDate) {
+      params.startDate = startDate.toISOString();
+    }
+    
+    if (endDate) {
+      params.endDate = endDate.toISOString();
+    }
+    
+    const response = await api.get("/inventoryrecord-management/statistics", { params });
+    
+    if (response.data && (response.data.isSuccess || response.data.IsSuccess)) {
+      return {
+        success: true,
+        data: response.data.data || response.data.Data,
+        message: response.data.message || response.data.Message
+      };
+    } else {
+      return {
+        success: false,
+        message: response.data.message || response.data.Message || "Failed to fetch inventory statistics",
+        data: null
+      };
+    }
+  } catch (error: any) {
+    console.error("Error fetching inventory statistics:", error);
+    return {
+      success: false,
+      message: error.response?.data?.message || error.message || "An unexpected error occurred",
+      data: null
+    };
+  }
+};
