@@ -69,7 +69,7 @@ const { Text } = Typography;
 const HealthInsuranceManagement: React.FC = () => {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
-  
+
   // State variables
   const [activeTab, setActiveTab] = useState<string>("verified");
   const [loading, setLoading] = useState<boolean>(false);
@@ -77,7 +77,9 @@ const HealthInsuranceManagement: React.FC = () => {
   const [pageSize, setPageSize] = useState<number>(10);
   const [total, setTotal] = useState<number>(0);
   const [searchText, setSearchText] = useState<string>("");
-  const [selectedOwner, setSelectedOwner] = useState<string | undefined>(undefined);
+  const [selectedOwner, setSelectedOwner] = useState<string | undefined>(
+    undefined
+  );
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [filterModalVisible, setFilterModalVisible] = useState<boolean>(false);
   const [configModalVisible, setConfigModalVisible] = useState<boolean>(false);
@@ -89,17 +91,31 @@ const HealthInsuranceManagement: React.FC = () => {
   const [ascending, setAscending] = useState<boolean>(false);
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState<boolean>(false);
-  
+
   // Data for tables
-  const [verifiedInsurances, setVerifiedInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
-  const [initialInsurances, setInitialInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
-  const [pendingVerifications, setPendingVerifications] = useState<HealthInsuranceResponseDTO[]>([]);
+  const [verifiedInsurances, setVerifiedInsurances] = useState<
+    HealthInsuranceResponseDTO[]
+  >([]);
+  const [initialInsurances, setInitialInsurances] = useState<
+    HealthInsuranceResponseDTO[]
+  >([]);
+  const [pendingVerifications, setPendingVerifications] = useState<
+    HealthInsuranceResponseDTO[]
+  >([]);
   const [updateRequests, setUpdateRequests] = useState<UpdateRequestDTO[]>([]);
-  const [expiredUpdates, setExpiredUpdates] = useState<HealthInsuranceResponseDTO[]>([]);
-  const [expiredInsurances, setExpiredInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
-  const [noInsurances, setNoInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
-  const [softDeletedInsurances, setSoftDeletedInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
-  
+  const [expiredUpdates, setExpiredUpdates] = useState<
+    HealthInsuranceResponseDTO[]
+  >([]);
+  const [expiredInsurances, setExpiredInsurances] = useState<
+    HealthInsuranceResponseDTO[]
+  >([]);
+  const [noInsurances, setNoInsurances] = useState<
+    HealthInsuranceResponseDTO[]
+  >([]);
+  const [softDeletedInsurances, setSoftDeletedInsurances] = useState<
+    HealthInsuranceResponseDTO[]
+  >([]);
+
   // Column visibility state for tables
   const [verifiedColumnVisibility, setVerifiedColumnVisibility] = useState({
     owner: true,
@@ -120,7 +136,7 @@ const HealthInsuranceManagement: React.FC = () => {
     verification: true,
     actions: true,
   });
-  
+
   const [initialColumnVisibility, setInitialColumnVisibility] = useState({
     owner: true,
     createdAt: true,
@@ -128,15 +144,16 @@ const HealthInsuranceManagement: React.FC = () => {
     status: true,
     deadline: true,
   });
-  
-  const [expiredUpdateColumnVisibility, setExpiredUpdateColumnVisibility] = useState({
-    owner: true,
-    createdAt: true,
-    createdBy: true,
-    status: true,
-    deadline: true,
-  });
-  
+
+  const [expiredUpdateColumnVisibility, setExpiredUpdateColumnVisibility] =
+    useState({
+      owner: true,
+      createdAt: true,
+      createdBy: true,
+      status: true,
+      deadline: true,
+    });
+
   const [expiredColumnVisibility, setExpiredColumnVisibility] = useState({
     owner: true,
     insuranceNumber: true,
@@ -155,16 +172,17 @@ const HealthInsuranceManagement: React.FC = () => {
     status: true,
     verification: true,
   });
-  
-  const [noInsuranceColumnVisibility, setNoInsuranceColumnVisibility] = useState({
-    owner: true,
-    createdAt: true,
-    createdBy: true,
-    status: true,
-    updatedAt: false,
-    updatedBy: false,
-  });
-  
+
+  const [noInsuranceColumnVisibility, setNoInsuranceColumnVisibility] =
+    useState({
+      owner: true,
+      createdAt: true,
+      createdBy: true,
+      status: true,
+      updatedAt: false,
+      updatedBy: false,
+    });
+
   const [softDeleteColumnVisibility, setSoftDeleteColumnVisibility] = useState({
     owner: true,
     insuranceNumber: true,
@@ -178,19 +196,28 @@ const HealthInsuranceManagement: React.FC = () => {
   // Fetch data based on active tab
   useEffect(() => {
     fetchData();
-    
+
     // Debug logs
     console.log("Active tab:", activeTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, currentPage, pageSize, searchText, selectedOwner, filterParams]);
+  }, [
+    activeTab,
+    currentPage,
+    pageSize,
+    searchText,
+    selectedOwner,
+    filterParams,
+  ]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       let result;
-      
-      console.log(`Fetching data for tab: ${activeTab} with page: ${currentPage}, pageSize: ${pageSize}, search: ${searchText}`);
-      
+
+      console.log(
+        `Fetching data for tab: ${activeTab} with page: ${currentPage}, pageSize: ${pageSize}, search: ${searchText}`
+      );
+
       switch (activeTab) {
         case "verified":
           result = await getVerifiedInsurances(
@@ -205,7 +232,9 @@ const HealthInsuranceManagement: React.FC = () => {
             setVerifiedInsurances(result.data);
             setTotal(result.totalItems);
           } else {
-            messageApi.error(result.message || "Failed to fetch verified insurances");
+            messageApi.error(
+              result.message || "Failed to fetch verified insurances"
+            );
           }
           break;
         case "initial":
@@ -221,7 +250,9 @@ const HealthInsuranceManagement: React.FC = () => {
             setInitialInsurances(result.data);
             setTotal(result.totalItems);
           } else {
-            messageApi.error(result.message || "Failed to fetch initial insurances");
+            messageApi.error(
+              result.message || "Failed to fetch initial insurances"
+            );
           }
           break;
         case "verification":
@@ -232,61 +263,71 @@ const HealthInsuranceManagement: React.FC = () => {
             "CreatedAt",
             false
           );
-          
+
           console.log("Verification tab API response:", result);
-          
+
           if (result.isSuccess) {
-            const verificationRequests = result.data.map((insurance: HealthInsuranceResponseDTO) => ({
-              id: insurance.id,
-              healthInsuranceId: insurance.id,
-              requestedBy: insurance.user,
-              requestedAt: insurance.createdAt,
-              status: "Pending",
-              hasInsurance: true,
-              healthInsuranceNumber: insurance.healthInsuranceNumber,
-              fullName: insurance.fullName,
-              dateOfBirth: insurance.dateOfBirth,
-              gender: insurance.gender,
-              address: insurance.address,
-              healthcareProviderName: insurance.healthcareProviderName,
-              healthcareProviderCode: insurance.healthcareProviderCode,
-              validFrom: insurance.validFrom,
-              validTo: insurance.validTo,
-              issueDate: insurance.issueDate,
-              imageUrl: insurance.imageUrl
-            }));
-            
-            console.log("Transformed verification requests:", verificationRequests);
+            const verificationRequests = result.data.map(
+              (insurance: HealthInsuranceResponseDTO) => ({
+                id: insurance.id,
+                healthInsuranceId: insurance.id,
+                requestedBy: insurance.user,
+                requestedAt: insurance.createdAt,
+                status: "Submitted",
+                hasInsurance: true,
+                healthInsuranceNumber: insurance.healthInsuranceNumber,
+                fullName: insurance.fullName,
+                dateOfBirth: insurance.dateOfBirth,
+                gender: insurance.gender,
+                address: insurance.address,
+                healthcareProviderName: insurance.healthcareProviderName,
+                healthcareProviderCode: insurance.healthcareProviderCode,
+                validFrom: insurance.validFrom,
+                validTo: insurance.validTo,
+                issueDate: insurance.issueDate,
+                imageUrl: insurance.imageUrl,
+              })
+            );
+
+            console.log(
+              "Transformed verification requests:",
+              verificationRequests
+            );
             setPendingVerifications(verificationRequests);
             setTotal(result.totalItems);
           } else {
-            messageApi.error(result.message || "Failed to fetch verification requests");
+            messageApi.error(
+              result.message || "Failed to fetch verification requests"
+            );
           }
           break;
         case "updateRequest":
           try {
-            result = await getUpdateRequests(
-              {
-                page: currentPage,
-                pageSize,
-                search: searchText,
-                sortBy: "CreatedAt",
-                ascending: false,
-                status: "Pending"
-              }
-            );
-            
+            result = await getUpdateRequests({
+              page: currentPage,
+              pageSize,
+              search: searchText,
+              sortBy: "CreatedAt",
+              ascending: false,
+              status: "Pending",
+            });
+
             console.log("Update Request tab API response:", result);
-            
+
             if (result.isSuccess) {
               setUpdateRequests(result.data);
               setTotal(result.totalItems);
             } else {
-              messageApi.error(result.message || "Failed to fetch update requests");
+              messageApi.error(
+                result.message || "Failed to fetch update requests"
+              );
             }
           } catch (error) {
             console.error("Error in update request tab:", error);
-            messageApi.error("Failed to fetch update requests: " + (error instanceof Error ? error.message : "Unknown error"));
+            messageApi.error(
+              "Failed to fetch update requests: " +
+                (error instanceof Error ? error.message : "Unknown error")
+            );
           }
           break;
         case "expiredUpdate":
@@ -302,7 +343,9 @@ const HealthInsuranceManagement: React.FC = () => {
             setExpiredUpdates(result.data);
             setTotal(result.totalItems);
           } else {
-            messageApi.error(result.message || "Failed to fetch expired updates");
+            messageApi.error(
+              result.message || "Failed to fetch expired updates"
+            );
           }
           break;
         case "expired":
@@ -318,7 +361,9 @@ const HealthInsuranceManagement: React.FC = () => {
             setExpiredInsurances(result.data);
             setTotal(result.totalItems);
           } else {
-            messageApi.error(result.message || "Failed to fetch expired insurances");
+            messageApi.error(
+              result.message || "Failed to fetch expired insurances"
+            );
           }
           break;
         case "uninsured":
@@ -334,7 +379,9 @@ const HealthInsuranceManagement: React.FC = () => {
             setNoInsurances(result.data);
             setTotal(result.totalItems);
           } else {
-            messageApi.error(result.message || "Failed to fetch uninsured records");
+            messageApi.error(
+              result.message || "Failed to fetch uninsured records"
+            );
           }
           break;
         case "softDelete":
@@ -350,17 +397,22 @@ const HealthInsuranceManagement: React.FC = () => {
             setSoftDeletedInsurances(result.data);
             setTotal(result.totalItems);
           } else {
-            messageApi.error(result.message || "Failed to fetch soft-deleted insurances");
+            messageApi.error(
+              result.message || "Failed to fetch soft-deleted insurances"
+            );
           }
           break;
         default:
           break;
       }
-      
+
       console.log(`Fetched data for ${activeTab} tab:`, result);
     } catch (error) {
       console.error("Error fetching data:", error);
-      messageApi.error("Failed to fetch data: " + (error instanceof Error ? error.message : "Unknown error"));
+      messageApi.error(
+        "Failed to fetch data: " +
+          (error instanceof Error ? error.message : "Unknown error")
+      );
     } finally {
       setLoading(false);
     }
@@ -409,11 +461,11 @@ const HealthInsuranceManagement: React.FC = () => {
   const toggleAllColumns = (checked: boolean) => {
     const newVisibility: Record<string, boolean> = {};
     const currentVisibility = getActiveColumnVisibility();
-    
+
     Object.keys(currentVisibility).forEach((key) => {
       newVisibility[key] = checked;
     });
-    
+
     setActiveColumnVisibility(newVisibility);
   };
 
@@ -421,11 +473,11 @@ const HealthInsuranceManagement: React.FC = () => {
     const currentVisibility = getActiveColumnVisibility();
     return Object.values(currentVisibility).every((visible) => visible);
   };
-  
+
   const handleDropdownVisibleChange = (open: boolean) => {
     setDropdownOpen(open);
   };
-  
+
   const handleMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
@@ -466,7 +518,9 @@ const HealthInsuranceManagement: React.FC = () => {
         messageApi.success("Initial health insurances created successfully");
         fetchData();
       } else {
-        messageApi.error(result.message || "Failed to create initial health insurances");
+        messageApi.error(
+          result.message || "Failed to create initial health insurances"
+        );
       }
     } catch (error) {
       messageApi.error("Failed to create initial health insurances");
@@ -537,11 +591,13 @@ const HealthInsuranceManagement: React.FC = () => {
   const handleBulkSoftDelete = async () => {
     try {
       setBulkDeleteLoading(true);
-      const selectedIds = selectedRowKeys.map(key => key.toString());
+      const selectedIds = selectedRowKeys.map((key) => key.toString());
       const result = await softDeleteHealthInsurances(selectedIds);
-      
+
       if (result.isSuccess) {
-        messageApi.success(`Successfully deleted ${selectedIds.length} records`);
+        messageApi.success(
+          `Successfully deleted ${selectedIds.length} records`
+        );
         setSelectedRowKeys([]);
         fetchData();
       } else {
@@ -628,54 +684,55 @@ const HealthInsuranceManagement: React.FC = () => {
                       key: "divider",
                       type: "divider",
                     },
-                    ...Object.entries(getActiveColumnVisibility()).map(([key, value]) => ({
-                      key,
-                      label: (
-                        <div onClick={handleMenuClick}>
-                          <Checkbox
-                            checked={!!value}
-                            onChange={() => handleColumnVisibilityChange(key)}
-                          >
-                            {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                          </Checkbox>
-                        </div>
-                      ),
-                    })),
-                  ]
+                    ...Object.entries(getActiveColumnVisibility()).map(
+                      ([key, value]) => ({
+                        key,
+                        label: (
+                          <div onClick={handleMenuClick}>
+                            <Checkbox
+                              checked={!!value}
+                              onChange={() => handleColumnVisibilityChange(key)}
+                            >
+                              {key.charAt(0).toUpperCase() +
+                                key.slice(1).replace(/([A-Z])/g, " $1")}
+                            </Checkbox>
+                          </div>
+                        ),
+                      })
+                    ),
+                  ],
                 }}
                 trigger={["click"]}
                 open={dropdownOpen}
                 onOpenChange={handleDropdownVisibleChange}
               >
-                <Button icon={<SettingOutlined />}>
-                  Columns
-                </Button>
+                <Button icon={<SettingOutlined />}>Columns</Button>
               </Dropdown>
             )}
 
             {/* Config Button */}
-            <Button 
-              icon={<SettingOutlined />} 
-              onClick={showConfigModal}
-            >
+            <Button icon={<SettingOutlined />} onClick={showConfigModal}>
               Config
             </Button>
 
             {/* Create Button with Dropdown */}
-            <Dropdown menu={{
-              items: [
-                {
-                  key: 'manual',
-                  label: 'Create Manual',
-                  onClick: () => showCreateModal(true),
-                },
-                {
-                  key: 'initial',
-                  label: 'Create Initial',
-                  onClick: handleCreateInitial,
-                }
-              ]
-            }} placement="bottomLeft">
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: "manual",
+                    label: "Create Manual",
+                    onClick: () => showCreateModal(true),
+                  },
+                  {
+                    key: "initial",
+                    label: "Create Initial",
+                    onClick: handleCreateInitial,
+                  },
+                ],
+              }}
+              placement="bottomLeft"
+            >
               <Button type="primary" icon={<PlusOutlined />}>
                 Create
               </Button>
@@ -713,7 +770,8 @@ const HealthInsuranceManagement: React.FC = () => {
         pageSize={pageSize}
         onPageSizeChange={setPageSize}
         bulkActions={
-          ["verification", "updateRequest", "softDelete"].indexOf(activeTab) === -1
+          ["verification", "updateRequest", "softDelete"].indexOf(activeTab) ===
+          -1
             ? [
                 {
                   key: "delete",
@@ -744,7 +802,7 @@ const HealthInsuranceManagement: React.FC = () => {
           refreshData={fetchData}
         />
       )}
-      
+
       {activeTab === "initial" && (
         <InitialTable
           loading={loading}
@@ -755,7 +813,7 @@ const HealthInsuranceManagement: React.FC = () => {
           refreshData={fetchData}
         />
       )}
-      
+
       {activeTab === "verification" && (
         <VerificationList
           loading={loading}
@@ -763,7 +821,7 @@ const HealthInsuranceManagement: React.FC = () => {
           refreshData={fetchData}
         />
       )}
-      
+
       {activeTab === "updateRequest" && (
         <InsuranceUpdateRequestList
           loading={loading}
@@ -771,7 +829,7 @@ const HealthInsuranceManagement: React.FC = () => {
           refreshData={fetchData}
         />
       )}
-      
+
       {activeTab === "expiredUpdate" && (
         <ExpiredUpdateTable
           loading={loading}
@@ -782,7 +840,7 @@ const HealthInsuranceManagement: React.FC = () => {
           refreshData={fetchData}
         />
       )}
-      
+
       {activeTab === "expired" && (
         <ExpiredTable
           loading={loading}
@@ -793,7 +851,7 @@ const HealthInsuranceManagement: React.FC = () => {
           refreshData={fetchData}
         />
       )}
-      
+
       {activeTab === "uninsured" && (
         <NoInsuranceTable
           loading={loading}
@@ -804,7 +862,7 @@ const HealthInsuranceManagement: React.FC = () => {
           refreshData={fetchData}
         />
       )}
-      
+
       {activeTab === "softDelete" && (
         <SoftDeleteTable
           loading={loading}
@@ -862,4 +920,4 @@ const HealthInsuranceManagement: React.FC = () => {
   );
 };
 
-export default HealthInsuranceManagement; 
+export default HealthInsuranceManagement;

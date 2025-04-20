@@ -15,6 +15,11 @@ export { default as InsuranceFilterModal } from './InsuranceFilterModal';
 export { default as ExportConfigurationModal } from './ExportConfigurationModal';
 export { default as VerificationModal } from './VerificationModal';
 export { default as ReviewModal } from './ReviewModal';
+export { default as MyInsuranceUpdateModal } from './MyInsuranceUpdateModal';
+export { default as MyInsuranceUpdateRequestModal } from './MyInsuranceUpdateRequestModal';
 
 // Main management component
-export { default as HealthInsuranceManagement } from './HealthInsuranceManagement'; 
+export { default as HealthInsuranceManagement } from './HealthInsuranceManagement';
+
+// User Health Insurance component
+export { UserHealthInsurance } from './MyInsurance'; 
