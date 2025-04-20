@@ -1,9 +1,10 @@
 import React from "react";
-import { Table, Button, Space, Tooltip, Modal, message } from "antd";
+import { Table, Button, Space, Tooltip, Modal, message, Card, Dropdown } from "antd";
 import {
   DeleteOutlined,
   SendOutlined,
   ExclamationCircleOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
@@ -86,12 +87,22 @@ const ExpiredUpdateTable: React.FC<ExpiredUpdateTableProps> = ({
 
   const renderUserInfo = (user: any) => {
     if (!user) return "";
-    return `${user.fullName} (${user.email})`;
+    return (
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <span>{user.fullName}</span>
+        <span style={{ fontSize: "12px", color: "#888" }}>{user.email}</span>
+      </div>
+    );
   };
 
   const renderUserInfoSimple = (user: any) => {
     if (!user) return "";
-    return `${user.userName || ""} (${user.email || ""})`;
+    return (
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <span>{user.userName || ""}</span>
+        <span style={{ fontSize: "12px", color: "#888" }}>{user.email || ""}</span>
+      </div>
+    );
   };
 
   const formatDateTime = (dateStr: string | undefined) => {
@@ -101,83 +112,169 @@ const ExpiredUpdateTable: React.FC<ExpiredUpdateTableProps> = ({
 
   const columns = [
     {
-      title: "OWNER",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+          }}
+        >
+          OWNER
+        </span>
+      ),
       dataIndex: ["user"],
       key: "owner",
-      render: renderUserInfo,
+      fixed: "left" as const,
+      width: 200,
+      render: (user: any) => renderUserInfo(user),
       hidden: !columnVisibility.owner,
     },
     {
-      title: "CREATED AT",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          CREATED AT
+        </span>
+      ),
       dataIndex: "createdAt",
       key: "createdAt",
+      width: 160,
+      align: "center" as const,
       render: formatDateTime,
       hidden: !columnVisibility.createdAt,
     },
     {
-      title: "CREATED BY",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+          }}
+        >
+          CREATED BY
+        </span>
+      ),
       dataIndex: "createdBy",
       key: "createdBy",
-      render: renderUserInfoSimple,
+      width: 200,
+      render: (user: any) => renderUserInfoSimple(user),
       hidden: !columnVisibility.createdBy,
     },
     {
-      title: "STATUS",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          STATUS
+        </span>
+      ),
       dataIndex: "status",
       key: "status",
+      width: 150,
+      align: "center" as const,
       hidden: !columnVisibility.status,
     },
     {
-      title: "DEADLINE",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          DEADLINE
+        </span>
+      ),
       dataIndex: "deadline",
       key: "deadline",
+      width: 160,
+      align: "center" as const,
       render: formatDateTime,
       hidden: !columnVisibility.deadline,
     },
     {
-      title: "ACTIONS",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          ACTIONS
+        </span>
+      ),
       key: "actions",
+      fixed: "right" as const,
+      width: 80,
+      align: "center" as const,
       render: (record: HealthInsuranceResponseDTO) => (
-        <Space size="small">
-          <Tooltip title="Resend Update Request">
-            <Button
-              type="text"
-              icon={<SendOutlined />}
-              onClick={() => handleResendUpdateRequest(record.id)}
-            />
-          </Tooltip>
-          <Tooltip title="Soft Delete">
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => handleSoftDelete(record.id)}
-            />
-          </Tooltip>
-        </Space>
+        <div style={{ textAlign: "center" }}>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "resend",
+                  icon: <SendOutlined />,
+                  label: "Resend Update Request",
+                  onClick: () => handleResendUpdateRequest(record.id),
+                },
+                {
+                  key: "delete",
+                  icon: <DeleteOutlined />,
+                  label: "Soft Delete",
+                  danger: true,
+                  onClick: () => handleSoftDelete(record.id),
+                },
+              ],
+            }}
+            placement="bottomRight"
+            trigger={["click"]}
+          >
+            <Button icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </div>
       ),
     },
-  ].filter(column => !column.hidden);
-
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (keys: React.Key[]) => {
-      setSelectedRowKeys(keys);
-    },
-  };
+  ].filter(column => column.key === "actions" || !column.hidden);
 
   return (
     <>
       {contextHolder}
-      <Table
-        rowKey="id"
-        dataSource={insurances}
-        columns={columns}
-        rowSelection={rowSelection}
-        loading={loading}
-        pagination={false}
-        scroll={{ x: "max-content" }}
-      />
+      <Card className="shadow-sm" bodyStyle={{ padding: "16px" }}>
+        <div style={{ overflowX: "auto" }}>
+          <Table
+            rowKey="id"
+            dataSource={insurances}
+            columns={columns}
+            rowSelection={{
+              selectedRowKeys,
+              onChange: (keys: React.Key[]) => setSelectedRowKeys(keys),
+              columnWidth: 48,
+            }}
+            loading={loading}
+            pagination={false}
+            size="middle"
+            scroll={{ x: "max-content" }}
+            sticky
+            bordered
+          />
+        </div>
+      </Card>
     </>
   );
 };

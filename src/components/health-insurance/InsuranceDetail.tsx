@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import {
-  Spin,
-  Typography,
-  Tabs,
-  message,
-  Modal,
-  Form,
-} from "antd";
+import { Spin, Typography, Tabs, message, Modal, Form } from "antd";
 import {
   ExclamationCircleOutlined,
+  MedicineBoxOutlined,
 } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 
@@ -41,7 +35,9 @@ export const InsuranceDetail: React.FC<InsuranceDetailProps> = ({ id }) => {
   console.log("InsuranceDetail component received ID:", id);
   const router = useRouter();
 
-  const [insurance, setInsurance] = useState<HealthInsuranceResponseDTO | null>(null);
+  const [insurance, setInsurance] = useState<HealthInsuranceResponseDTO | null>(
+    null
+  );
   const [histories, setHistories] = useState<HistoryDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [historyLoading, setHistoryLoading] = useState<boolean>(false);
@@ -156,7 +152,6 @@ export const InsuranceDetail: React.FC<InsuranceDetailProps> = ({ id }) => {
       const result = await softDeleteHealthInsurances([id]);
       if (result.isSuccess) {
         messageApi.success("Health insurance deleted successfully");
-        router.push("/health-insurance/management");
       } else {
         messageApi.error(result.message || "Failed to delete health insurance");
       }
@@ -195,7 +190,8 @@ export const InsuranceDetail: React.FC<InsuranceDetailProps> = ({ id }) => {
   return (
     <PageContainer
       title="Health Insurance Details"
-      onBack={() => router.back()}
+      icon={<MedicineBoxOutlined style={{ fontSize: "24px" }} />}
+      onBack={() => router.push("/health-insurance")}
       rightContent={
         <InsuranceDetailsView.HeaderActions
           insurance={insurance}

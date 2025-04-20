@@ -21,6 +21,7 @@ import {
   SettingOutlined,
   ReloadOutlined,
   SendOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -84,6 +85,7 @@ const HealthInsuranceManagement: React.FC = () => {
   const [filterParams, setFilterParams] = useState<any>({});
   const [sortBy, setSortBy] = useState<string>("CreatedAt");
   const [ascending, setAscending] = useState<boolean>(false);
+  const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   
   // Data for tables
   const [verifiedInsurances, setVerifiedInsurances] = useState<HealthInsuranceResponseDTO[]>([]);
@@ -99,13 +101,13 @@ const HealthInsuranceManagement: React.FC = () => {
   const [verifiedColumnVisibility, setVerifiedColumnVisibility] = useState({
     owner: true,
     insuranceNumber: true,
-    fullName: true,
-    dob: true,
-    gender: true,
-    address: true,
+    fullName: false,
+    dob: false,
+    gender: false,
+    address: false,
     healthcareProvider: true,
     validPeriod: true,
-    issueDate: true,
+    issueDate: false,
     image: true,
     createdAt: false,
     createdBy: false,
@@ -113,6 +115,7 @@ const HealthInsuranceManagement: React.FC = () => {
     updatedBy: false,
     status: true,
     verification: true,
+    actions: true,
   });
   
   const [initialColumnVisibility, setInitialColumnVisibility] = useState({
@@ -161,6 +164,7 @@ const HealthInsuranceManagement: React.FC = () => {
   
   const [softDeleteColumnVisibility, setSoftDeleteColumnVisibility] = useState({
     owner: true,
+    insuranceNumber: true,
     createdAt: true,
     createdBy: true,
     status: true,
@@ -399,6 +403,30 @@ const HealthInsuranceManagement: React.FC = () => {
     });
   };
 
+  const toggleAllColumns = (checked: boolean) => {
+    const newVisibility: Record<string, boolean> = {};
+    const currentVisibility = getActiveColumnVisibility();
+    
+    Object.keys(currentVisibility).forEach((key) => {
+      newVisibility[key] = checked;
+    });
+    
+    setActiveColumnVisibility(newVisibility);
+  };
+
+  const areAllColumnsVisible = () => {
+    const currentVisibility = getActiveColumnVisibility();
+    return Object.values(currentVisibility).every((visible) => visible);
+  };
+  
+  const handleDropdownVisibleChange = (open: boolean) => {
+    setDropdownOpen(open);
+  };
+  
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   const showCreateModal = (isManual: boolean) => {
     setCreateManual(isManual);
     setCreateModalVisible(true);
@@ -558,21 +586,44 @@ const HealthInsuranceManagement: React.FC = () => {
             {["verification", "updateRequest"].indexOf(activeTab) === -1 && (
               <Dropdown
                 menu={{
-                  items: Object.entries(getActiveColumnVisibility()).map(([key, value]) => ({
-                    key,
-                    label: (
-                      <Checkbox
-                        checked={!!value}
-                        onChange={() => handleColumnVisibilityChange(key)}
-                      >
-                        {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                      </Checkbox>
-                    ),
-                  }))
+                  items: [
+                    {
+                      key: "selectAll",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={areAllColumnsVisible()}
+                            onChange={(e) => toggleAllColumns(e.target.checked)}
+                          >
+                            Toggle All
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "divider",
+                      type: "divider",
+                    },
+                    ...Object.entries(getActiveColumnVisibility()).map(([key, value]) => ({
+                      key,
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={!!value}
+                            onChange={() => handleColumnVisibilityChange(key)}
+                          >
+                            {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                          </Checkbox>
+                        </div>
+                      ),
+                    })),
+                  ]
                 }}
                 trigger={["click"]}
+                open={dropdownOpen}
+                onOpenChange={handleDropdownVisibleChange}
               >
-                <Button icon={<SearchOutlined />}>
+                <Button icon={<SettingOutlined />}>
                   Columns
                 </Button>
               </Dropdown>

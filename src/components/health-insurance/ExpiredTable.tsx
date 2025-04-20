@@ -1,9 +1,18 @@
 import React from "react";
-import { Table, Button, Space, Image, Tooltip, Modal, message } from "antd";
+import { Table, Button, Space, Image, Tooltip, Modal, message, Tag, Card, Dropdown } from "antd";
 import {
   DeleteOutlined,
   EyeOutlined,
   ExclamationCircleOutlined,
+  MoreOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  SendOutlined,
+  FileExclamationOutlined,
+  WarningOutlined,
+  StopOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
@@ -79,15 +88,23 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
   const renderUserInfo = (user: any, record: HealthInsuranceResponseDTO) => {
     if (!user) return "";
     return (
-      <a onClick={() => handleViewDetail(record.id)}>
-        {user.fullName} ({user.email})
-      </a>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <a onClick={() => router.push(`/user/${user.id}`)} style={{ color: "#1890ff" }}>
+          {user.fullName}
+        </a>
+        <span style={{ fontSize: "12px", color: "#888" }}>{user.email}</span>
+      </div>
     );
   };
 
   const renderUserInfoSimple = (user: any) => {
     if (!user) return "";
-    return `${user.userName || ""} (${user.email || ""})`;
+    return (
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <span>{user.userName || ""}</span>
+        <span style={{ fontSize: "12px", color: "#888" }}>{user.email || ""}</span>
+      </div>
+    );
   };
 
   const formatDate = (dateStr: string | undefined) => {
@@ -100,70 +117,216 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
     return dayjs(dateStr).format("DD/MM/YYYY HH:mm:ss");
   };
 
+  // Helper function to get status tag color and icon
+  const getStatusTag = (status: string) => {
+    switch (status) {
+      case "Expired":
+        return <Tag icon={<WarningOutlined />} color="error">Expired</Tag>;
+      default:
+        return <Tag>{status}</Tag>;
+    }
+  };
+
+  // Helper function to get verification status tag color and icon
+  const getVerificationTag = (status: string) => {
+    switch (status) {
+      case "Unverified":
+        return <Tag icon={<ClockCircleOutlined />} color="warning">Unverified</Tag>;
+      case "Verified":
+        return <Tag icon={<CheckCircleOutlined />} color="success">Verified</Tag>;
+      case "Rejected":
+        return <Tag icon={<CloseCircleOutlined />} color="error">Rejected</Tag>;
+      default:
+        return <Tag>{status}</Tag>;
+    }
+  };
+
   const columns = [
     {
-      title: "OWNER",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+          }}
+        >
+          OWNER
+        </span>
+      ),
       dataIndex: ["user"],
       key: "owner",
+      fixed: "left" as const,
+      width: 200,
       render: (user: any, record: HealthInsuranceResponseDTO) => renderUserInfo(user, record),
       hidden: !columnVisibility.owner,
     },
     {
-      title: "INSURANCE NUMBER",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+          }}
+        >
+          INSURANCE NUMBER
+        </span>
+      ),
       dataIndex: "healthInsuranceNumber",
       key: "insuranceNumber",
+      width: 160,
+      render: (healthInsuranceNumber: string, record: HealthInsuranceResponseDTO) => (
+        <a onClick={() => router.push(`/health-insurance/${record.id}`)} style={{ color: "#1890ff" }}>
+          {healthInsuranceNumber}
+        </a>
+      ),
       hidden: !columnVisibility.insuranceNumber,
     },
     {
-      title: "FULL NAME",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+          }}
+        >
+          FULL NAME
+        </span>
+      ),
       dataIndex: "fullName",
       key: "fullName",
       hidden: !columnVisibility.fullName,
     },
     {
-      title: "DOB",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          DOB
+        </span>
+      ),
       dataIndex: "dateOfBirth",
       key: "dob",
       render: formatDate,
+      width: 120,
+      align: "center" as const,
       hidden: !columnVisibility.dob,
     },
     {
-      title: "GENDER",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+          }}
+        >
+          GENDER
+        </span>
+      ),
       dataIndex: "gender",
       key: "gender",
       hidden: !columnVisibility.gender,
     },
     {
-      title: "ADDRESS",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+          }}
+        >
+          ADDRESS
+        </span>
+      ),
       dataIndex: "address",
       key: "address",
       hidden: !columnVisibility.address,
     },
     {
-      title: "HEALTHCARE PROVIDER",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+          }}
+        >
+          HEALTHCARE PROVIDER
+        </span>
+      ),
       key: "healthcareProvider",
-      render: (record: HealthInsuranceResponseDTO) => 
-        `${record.healthcareProviderName || ""} ${record.healthcareProviderCode ? `(${record.healthcareProviderCode})` : ""}`,
+      render: (record: HealthInsuranceResponseDTO) => (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <span>{record.healthcareProviderName || ""}</span>
+          {record.healthcareProviderCode && (
+            <span style={{ fontSize: "12px", color: "#888" }}>
+              Code: {record.healthcareProviderCode}
+            </span>
+          )}
+        </div>
+      ),
       hidden: !columnVisibility.healthcareProvider,
     },
     {
-      title: "VALID PERIOD",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          VALID PERIOD
+        </span>
+      ),
       key: "validPeriod",
+      width: 180,
+      align: "center" as const,
       render: (record: HealthInsuranceResponseDTO) => 
         `${formatDate(record.validFrom)} - ${formatDate(record.validTo)}`,
       hidden: !columnVisibility.validPeriod,
     },
     {
-      title: "ISSUE DATE",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          ISSUE DATE
+        </span>
+      ),
       dataIndex: "issueDate",
       key: "issueDate",
+      width: 120,
+      align: "center" as const,
       render: formatDate,
       hidden: !columnVisibility.issueDate,
     },
     {
-      title: "IMAGE",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          IMAGE
+        </span>
+      ),
       dataIndex: "imageUrl",
       key: "image",
+      width: 100,
+      align: "center" as const,
       render: (imageUrl: string) => 
         imageUrl ? (
           <Image
@@ -180,82 +343,187 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
       hidden: !columnVisibility.image,
     },
     {
-      title: "CREATED AT",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          CREATED AT
+        </span>
+      ),
       dataIndex: "createdAt",
       key: "createdAt",
+      width: 160,
+      align: "center" as const,
       render: formatDateTime,
       hidden: !columnVisibility.createdAt,
     },
     {
-      title: "CREATED BY",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+          }}
+        >
+          CREATED BY
+        </span>
+      ),
       dataIndex: "createdBy",
       key: "createdBy",
-      render: renderUserInfoSimple,
+      render: (user: any) => renderUserInfoSimple(user),
       hidden: !columnVisibility.createdBy,
     },
     {
-      title: "UPDATED AT",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          UPDATED AT
+        </span>
+      ),
       dataIndex: "updatedAt",
       key: "updatedAt",
+      width: 160,
+      align: "center" as const,
       render: formatDateTime,
       hidden: !columnVisibility.updatedAt,
     },
     {
-      title: "UPDATED BY",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+          }}
+        >
+          UPDATED BY
+        </span>
+      ),
       dataIndex: "updatedBy",
       key: "updatedBy",
-      render: renderUserInfoSimple,
+      render: (user: any) => renderUserInfoSimple(user),
       hidden: !columnVisibility.updatedBy,
     },
     {
-      title: "STATUS",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          STATUS
+        </span>
+      ),
       dataIndex: "status",
       key: "status",
+      width: 150,
+      align: "center" as const,
+      render: (status: string) => getStatusTag(status),
       hidden: !columnVisibility.status,
     },
     {
-      title: "VERIFICATION",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          VERIFICATION
+        </span>
+      ),
       dataIndex: "verificationStatus",
       key: "verification",
+      width: 150,
+      align: "center" as const,
+      render: (status: string) => getVerificationTag(status),
       hidden: !columnVisibility.verification,
     },
     {
-      title: "ACTIONS",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          ACTIONS
+        </span>
+      ),
       key: "actions",
+      fixed: "right" as const,
+      width: 80,
+      align: "center" as const,
       render: (record: HealthInsuranceResponseDTO) => (
-        <Space size="small">
-          <Tooltip title="Soft Delete">
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => handleSoftDelete(record.id)}
-            />
-          </Tooltip>
-        </Space>
+        <div style={{ textAlign: "center" }}>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "view",
+                  icon: <EyeOutlined />,
+                  label: "View Details",
+                  onClick: () => handleViewDetail(record.id),
+                },
+                {
+                  key: "delete",
+                  icon: <DeleteOutlined />,
+                  label: "Soft Delete",
+                  danger: true,
+                  onClick: () => handleSoftDelete(record.id),
+                },
+              ],
+            }}
+            placement="bottomRight"
+            trigger={["click"]}
+          >
+            <Button icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </div>
       ),
     },
-  ].filter(column => !column.hidden);
-
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (keys: React.Key[]) => {
-      setSelectedRowKeys(keys);
-    },
-  };
+  ].filter(column => column.key === "actions" || !column.hidden);
 
   return (
     <>
       {contextHolder}
-      <Table
-        rowKey="id"
-        dataSource={insurances}
-        columns={columns}
-        rowSelection={rowSelection}
-        loading={loading}
-        pagination={false}
-        scroll={{ x: "max-content" }}
-      />
+      <Card className="shadow-sm" bodyStyle={{ padding: "16px" }}>
+        <div style={{ overflowX: "auto" }}>
+          <Table
+            loading={loading}
+            dataSource={insurances}
+            columns={columns}
+            rowKey="id"
+            rowSelection={{
+              selectedRowKeys,
+              onChange: (newSelectedRowKeys) => setSelectedRowKeys(newSelectedRowKeys),
+              columnWidth: 48,
+            }}
+            pagination={false}
+            size="middle"
+            scroll={{ x: "max-content" }}
+            sticky
+            bordered
+          />
+        </div>
+      </Card>
     </>
   );
 };

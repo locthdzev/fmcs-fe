@@ -17,6 +17,12 @@ import {
   CloseCircleOutlined,
   FileImageOutlined,
   UserOutlined,
+  ClockCircleOutlined,
+  SendOutlined,
+  FileExclamationOutlined,
+  WarningOutlined,
+  StopOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import { HealthInsuranceResponseDTO } from "@/api/healthinsurance";
 import { NextRouter } from "next/router";
@@ -48,26 +54,30 @@ const getStatusTag = (status: string | undefined) => {
   if (!status) return <Tag>Unknown</Tag>;
   
   switch (status) {
-    case "Active":
-      return <Tag color="success">Active</Tag>;
-    case "Initial":
-      return <Tag color="processing">Initial</Tag>;
     case "Pending":
-      return <Tag color="warning">Pending</Tag>;
-    case "Expired":
-      return <Tag color="error">Expired</Tag>;
-    case "AboutToExpire":
-      return <Tag color="orange">About To Expire</Tag>;
-    case "SoftDeleted":
-      return <Tag color="default">Soft Deleted</Tag>;
-    case "ExpiredUpdate":
-      return <Tag color="magenta">Expired Update</Tag>;
-    case "NoInsurance":
-      return <Tag color="purple">No Insurance</Tag>;
-    case "Completed":
-      return <Tag color="success">Completed</Tag>;
+      return <Tag icon={<ClockCircleOutlined />} color="processing">Pending</Tag>;
     case "Submitted":
-      return <Tag color="processing">Submitted</Tag>;
+      return <Tag icon={<SendOutlined />} color="blue">Submitted</Tag>;
+    case "Completed":
+      return <Tag icon={<CheckCircleOutlined />} color="success">Completed</Tag>;
+    case "Expired":
+      return <Tag icon={<WarningOutlined />} color="error">Expired</Tag>;
+    case "DeadlineExpired":
+      return <Tag icon={<FileExclamationOutlined />} color="volcano">Deadline Expired</Tag>;
+    case "SoftDeleted":
+      return <Tag icon={<StopOutlined />} color="default">Soft Deleted</Tag>;
+    case "NotApplicable":
+      return <Tag icon={<QuestionCircleOutlined />} color="default">N/A</Tag>;
+    case "Initial":
+      return <Tag icon={<ClockCircleOutlined />} color="processing">Initial</Tag>;
+    case "AboutToExpire":
+      return <Tag icon={<WarningOutlined />} color="orange">About To Expire</Tag>;
+    case "ExpiredUpdate":
+      return <Tag icon={<FileExclamationOutlined />} color="magenta">Expired Update</Tag>;
+    case "NoInsurance":
+      return <Tag icon={<QuestionCircleOutlined />} color="purple">No Insurance</Tag>;
+    case "Active":
+      return <Tag icon={<CheckCircleOutlined />} color="success">Active</Tag>;
     default:
       return <Tag>{status}</Tag>;
   }
@@ -77,14 +87,14 @@ const getVerificationTag = (status: string | undefined) => {
   if (!status) return <Tag>Not Verified</Tag>;
   
   switch (status) {
-    case "Verified":
-      return <Tag color="success">Verified</Tag>;
-    case "Rejected":
-      return <Tag color="error">Rejected</Tag>;
-    case "Pending":
-      return <Tag color="warning">Pending</Tag>;
     case "Unverified":
-      return <Tag color="default">Unverified</Tag>;
+      return <Tag icon={<ClockCircleOutlined />} color="warning">Unverified</Tag>;
+    case "Verified":
+      return <Tag icon={<CheckCircleOutlined />} color="success">Verified</Tag>;
+    case "Rejected":
+      return <Tag icon={<CloseCircleOutlined />} color="error">Rejected</Tag>;
+    case "Pending":
+      return <Tag icon={<ClockCircleOutlined />} color="warning">Pending</Tag>;
     default:
       return <Tag>{status}</Tag>;
   }

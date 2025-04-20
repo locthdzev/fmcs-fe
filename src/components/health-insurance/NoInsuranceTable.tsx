@@ -1,8 +1,10 @@
 import React from "react";
-import { Table, Button, Space, Tooltip, Modal, message } from "antd";
+import { Table, Button, Space, Tooltip, Modal, message, Card, Dropdown, Tag } from "antd";
 import {
   DeleteOutlined,
   ExclamationCircleOutlined,
+  MoreOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
@@ -63,12 +65,22 @@ const NoInsuranceTable: React.FC<NoInsuranceTableProps> = ({
 
   const renderUserInfo = (user: any) => {
     if (!user) return "";
-    return `${user.fullName} (${user.email})`;
+    return (
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <span>{user.fullName}</span>
+        <span style={{ fontSize: "12px", color: "#888" }}>{user.email}</span>
+      </div>
+    );
   };
 
   const renderUserInfoSimple = (user: any) => {
     if (!user) return "";
-    return `${user.userName || ""} (${user.email || ""})`;
+    return (
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <span>{user.userName || ""}</span>
+        <span style={{ fontSize: "12px", color: "#888" }}>{user.email || ""}</span>
+      </div>
+    );
   };
 
   const formatDateTime = (dateStr: string | undefined) => {
@@ -76,85 +88,191 @@ const NoInsuranceTable: React.FC<NoInsuranceTableProps> = ({
     return dayjs(dateStr).format("DD/MM/YYYY HH:mm:ss");
   };
 
+  // Helper function to get status tag
+  const getStatusTag = (status: string) => {
+    if (status === "NoInsurance") {
+      return <Tag icon={<QuestionCircleOutlined />} color="purple">No Insurance</Tag>;
+    }
+    return <Tag>{status}</Tag>;
+  };
+
   const columns = [
     {
-      title: "OWNER",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+          }}
+        >
+          OWNER
+        </span>
+      ),
       dataIndex: ["user"],
       key: "owner",
-      render: renderUserInfo,
+      fixed: "left" as const,
+      width: 200,
+      render: (user: any) => renderUserInfo(user),
       hidden: !columnVisibility.owner,
     },
     {
-      title: "CREATED AT",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          CREATED AT
+        </span>
+      ),
       dataIndex: "createdAt",
       key: "createdAt",
+      width: 160,
+      align: "center" as const,
       render: formatDateTime,
       hidden: !columnVisibility.createdAt,
     },
     {
-      title: "CREATED BY",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+          }}
+        >
+          CREATED BY
+        </span>
+      ),
       dataIndex: "createdBy",
       key: "createdBy",
-      render: renderUserInfoSimple,
+      width: 200,
+      render: (user: any) => renderUserInfoSimple(user),
       hidden: !columnVisibility.createdBy,
     },
     {
-      title: "STATUS",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          STATUS
+        </span>
+      ),
       dataIndex: "status",
       key: "status",
+      width: 150,
+      align: "center" as const,
+      render: (status: string) => getStatusTag(status),
       hidden: !columnVisibility.status,
     },
     {
-      title: "UPDATED AT",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          UPDATED AT
+        </span>
+      ),
       dataIndex: "updatedAt",
       key: "updatedAt",
+      width: 160,
+      align: "center" as const,
       render: formatDateTime,
       hidden: !columnVisibility.updatedAt,
     },
     {
-      title: "UPDATED BY",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+          }}
+        >
+          UPDATED BY
+        </span>
+      ),
       dataIndex: "updatedBy",
       key: "updatedBy",
-      render: renderUserInfoSimple,
+      width: 200,
+      render: (user: any) => renderUserInfoSimple(user),
       hidden: !columnVisibility.updatedBy,
     },
     {
-      title: "ACTIONS",
+      title: (
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          ACTIONS
+        </span>
+      ),
       key: "actions",
+      fixed: "right" as const,
+      width: 80,
+      align: "center" as const,
       render: (record: HealthInsuranceResponseDTO) => (
-        <Space size="small">
-          <Tooltip title="Soft Delete">
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => handleSoftDelete(record.id)}
-            />
-          </Tooltip>
-        </Space>
+        <div style={{ textAlign: "center" }}>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "delete",
+                  icon: <DeleteOutlined />,
+                  label: "Soft Delete",
+                  danger: true,
+                  onClick: () => handleSoftDelete(record.id),
+                },
+              ],
+            }}
+            placement="bottomRight"
+            trigger={["click"]}
+          >
+            <Button icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </div>
       ),
     },
-  ].filter(column => !column.hidden);
-
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (keys: React.Key[]) => {
-      setSelectedRowKeys(keys);
-    },
-  };
+  ].filter(column => column.key === "actions" || !column.hidden);
 
   return (
     <>
       {contextHolder}
-      <Table
-        rowKey="id"
-        dataSource={insurances}
-        columns={columns}
-        rowSelection={rowSelection}
-        loading={loading}
-        pagination={false}
-        scroll={{ x: "max-content" }}
-      />
+      <Card className="shadow-sm" bodyStyle={{ padding: "16px" }}>
+        <div style={{ overflowX: "auto" }}>
+          <Table
+            rowKey="id"
+            dataSource={insurances}
+            columns={columns}
+            rowSelection={{
+              selectedRowKeys,
+              onChange: (keys: React.Key[]) => setSelectedRowKeys(keys),
+              columnWidth: 48,
+            }}
+            loading={loading}
+            pagination={false}
+            size="middle"
+            scroll={{ x: "max-content" }}
+            sticky
+            bordered
+          />
+        </div>
+      </Card>
     </>
   );
 };
