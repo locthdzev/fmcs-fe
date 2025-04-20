@@ -23,9 +23,7 @@ import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 import jwtDecode from "jwt-decode";
 import '@ant-design/v5-patch-for-react-19';
-import { getHealthCheckupByCheckupId } from "@/api/periodic-health-checkup-api";
-import { getAllHealthCheckups } from "@/api/periodic-health-checkup-student-api";
-import { getAllStaffHealthCheckups } from "@/api/periodic-health-checkup-staff-api";
+import { getHealthCheckupsByUserId } from "@/api/periodic-health-checkup-api"; // Updated import
 import {
   EyeOutlined,
   SearchOutlined,
@@ -259,33 +257,6 @@ const MyHealthCheckups: React.FC = () => {
     }
   }, []);
 
-  const fetchDetailedCheckup = useCallback(async (checkupId: string, token: string): Promise<CheckupData> => {
-    const result = await getHealthCheckupByCheckupId(checkupId, token);
-    if (!result.isSuccess || !result.data) {
-      return {
-        id: checkupId,
-        periodicHealthCheckUpId: checkupId,
-        fullName: "Unknown",
-        gender: "Not specified",
-        status: "Unknown",
-        conclusion: "Pending",
-        createdAt: new Date().toISOString(),
-        createdBy: "System",
-      };
-    }
-    return {
-      id: result.data.id,
-      periodicHealthCheckUpId: result.data.id,
-      fullName: result.data.user?.fullName || "Unknown",
-      gender: result.data.user?.gender || "Not specified",
-      status: result.data.status || "Unknown",
-      conclusion: result.data.classification || "Pending",
-      createdAt: result.data.createdAt,
-      updatedAt: result.data.updatedAt,
-      createdBy: result.data.createdBy || "System",
-    };
-  }, []);
-
   const fetchMyCheckups = useCallback(async () => {
     if (state.retryCount >= 3) {
       dispatch({ type: "SET_ERROR", payload: "Max retries reached. Please try again later." });
@@ -302,30 +273,50 @@ const MyHealthCheckups: React.FC = () => {
       const userId = getUserIdFromToken(token);
       if (!userId) throw new Error("Invalid session. Please log in again.");
 
-      const [studentResult, staffResult] = await Promise.all([
-        getAllHealthCheckups(state.page, state.pageSize, userId, "CreatedAt", false, token),
-        getAllStaffHealthCheckups(state.page, state.pageSize, userId, "CreatedAt", false, token),
-      ]);
+      const result = await getHealthCheckupsByUserId(userId, token);
+      if (!result.isSuccess || !result.data) {
+        throw new Error(result.message || "Failed to fetch health checkups");
+      }
 
-      const studentCheckups: EnhancedStudentCheckup[] = studentResult.isSuccess && studentResult.data
-        ? await Promise.all(studentResult.data.map(async (checkup: any) => ({
-            ...(await fetchDetailedCheckup(checkup.periodicHealthCheckUpId, token)),
-            ...checkup,
-          })))
-        : [];
+      // Map the response to combine checkup and details
+      const combinedCheckups: CheckupData[] = result.data.map((item: any) => {
+        const checkup = item.checkup;
+        const details = item.details;
+        const baseCheckup = {
+          id: checkup.id,
+          periodicHealthCheckUpId: checkup.id,
+          fullName: checkup.user?.fullName || "Unknown",
+          gender: checkup.user?.gender || "Not specified",
+          status: checkup.status || "Unknown",
+          conclusion: checkup.classification || details?.conclusion || "Pending",
+          createdAt: checkup.createdAt,
+          updatedAt: checkup.updatedAt,
+          createdBy: checkup.createdBy || "System",
+        };
 
-      const staffCheckups: EnhancedStaffCheckup[] = staffResult.isSuccess && staffResult.data
-        ? await Promise.all(staffResult.data.map(async (checkup: any) => ({
-            ...(await fetchDetailedCheckup(checkup.periodicHealthCheckUpId, token)),
-            ...checkup,
-            hospitalName: checkup.hospitalName || "Unknown Hospital",
-            reportIssuanceDate: checkup.reportIssuanceDate || new Date().toISOString(),
-          })))
-        : [];
+        if (details && "mssv" in details) {
+          // Student checkup
+          return {
+            ...baseCheckup,
+            ...details,
+            mssv: details.mssv || "",
+          } as EnhancedStudentCheckup;
+        } else if (details && "hospitalName" in details) {
+          // Staff checkup
+          return {
+            ...baseCheckup,
+            ...details,
+            hospitalName: details.hospitalName || "Unknown Hospital",
+            reportIssuanceDate: details.reportIssuanceDate || new Date().toISOString(),
+          } as EnhancedStaffCheckup;
+        } else {
+          // Fallback for checkups without details
+          return baseCheckup as CheckupData;
+        }
+      });
 
-      const combinedCheckups = [...studentCheckups, ...staffCheckups];
       dispatch({ type: "SET_CHECKUPS", payload: combinedCheckups });
-      dispatch({ type: "SET_TOTAL", payload: Math.max(combinedCheckups.length, (studentResult.totalRecords || 0) + (staffResult.totalRecords || 0)) });
+      dispatch({ type: "SET_TOTAL", payload: combinedCheckups.length });
     } catch (error: any) {
       const errorMessage = error.message || "Failed to load checkups. Please try again.";
       dispatch({ type: "SET_ERROR", payload: errorMessage });
@@ -339,7 +330,7 @@ const MyHealthCheckups: React.FC = () => {
     } finally {
       dispatch({ type: "SET_LOADING", payload: false });
     }
-  }, [state.page, state.pageSize, state.retryCount, router]);
+  }, [state.retryCount, router]);
 
   useEffect(() => {
     fetchMyCheckups();
@@ -395,7 +386,7 @@ const MyHealthCheckups: React.FC = () => {
   }), [state.checkups]);
 
   const exportToCSV = useCallback(() => {
-    if (!isClient) return;
+    if (typeof window === 'undefined' || !isClient) return;
 
     const headers = ["Date", "Full Name", "Status", "Conclusion", "Created By"];
     const csvContent = [
@@ -462,7 +453,7 @@ const MyHealthCheckups: React.FC = () => {
             <Text type="secondary">View and manage your health records</Text>
           </Col>
           <Col xs={24} md={12} style={{ textAlign: "right" }}>
-            <Space direction={window.innerWidth < 576 ? "vertical" : "horizontal"} size="small">
+            <Space direction={typeof window !== 'undefined' && window.innerWidth < 576 ? "vertical" : "horizontal"} size="small">
               <Button
                 icon={<ReloadOutlined />}
                 onClick={fetchMyCheckups}
@@ -600,7 +591,7 @@ const CheckupList: React.FC<CheckupListProps> = React.memo(({ checkups, handleVi
   return (
     <div className="virtual-list">
       {checkups.map((checkup) => (
-        <div key={checkup.id} style={{ padding: "2px 0" }}> {/* Reduced from 4px 0 */}
+        <div key={checkup.id} style={{ padding: "2px 0" }}>
           <Card
             className="checkup-card"
             onClick={() => handleViewDetails(checkup)}
@@ -615,7 +606,7 @@ const CheckupList: React.FC<CheckupListProps> = React.memo(({ checkups, handleVi
           >
             <Row justify="space-between" align="middle" gutter={[8, 8]}>
               <Col xs={24}>
-                <Space direction={window.innerWidth < 576 ? "vertical" : "horizontal"} size="small">
+                <Space direction={typeof window !== 'undefined' && window.innerWidth < 576 ? "vertical" : "horizontal"} size="small">
                   <UserOutlined style={{ fontSize: 20, color: "#1890ff" }} />
                   {"mssv" in checkup && checkup.mssv && (
                     <Text strong type="secondary">{checkup.mssv}</Text>

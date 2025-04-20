@@ -258,7 +258,7 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
         </div>
 
         {/* Right Column for Health Notifications */}
-        <div className="mt-8 w-full lg:mt-0 lg:w-4/12 lg:pl-4">
+        {/* <div className="mt-8 w-full lg:mt-0 lg:w-4/12 lg:pl-4">
           <div className="rounded-3xl bg-white px-6 pt-6 shadow-lg">
             <div className="flex pb-6 text-2xl font-bold text-gray-800">
               <p>Health Notifications</p>
@@ -291,7 +291,7 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
               ))}
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
