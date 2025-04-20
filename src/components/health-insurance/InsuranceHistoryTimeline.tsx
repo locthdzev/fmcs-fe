@@ -61,9 +61,22 @@ const InsuranceHistoryTimeline: React.FC<InsuranceHistoryTimelineProps> = ({
       // Try to parse as JSON
       if (changeDetails.startsWith('{') && changeDetails.endsWith('}')) {
         const changes = JSON.parse(changeDetails);
+        
+        // Lọc ra những thay đổi thực sự (khi oldValue khác newValue)
+        const changesArray = Object.entries(changes)
+          .filter(([field, value]: [string, any]) => {
+            let oldValue = value.Item1 !== undefined ? value.Item1 : 'N/A';
+            let newValue = value.Item2 !== undefined ? value.Item2 : 'N/A';
+            return oldValue !== newValue;
+          });
+        
+        if (changesArray.length === 0) {
+          return <Text>No changes detected</Text>;
+        }
+        
         return (
           <ul className="mt-1 pl-4">
-            {Object.entries(changes).map(([field, value]: [string, any]) => {
+            {changesArray.map(([field, value]: [string, any]) => {
               // Handle different types of value formats
               let oldValue = 'N/A';
               let newValue = 'N/A';

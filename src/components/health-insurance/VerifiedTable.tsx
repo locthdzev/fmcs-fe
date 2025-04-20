@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Table, Button, Space, Image, Tooltip, Dropdown, Menu, Modal, message } from "antd";
 import {
   EditOutlined,
@@ -13,7 +13,9 @@ import {
   HealthInsuranceResponseDTO,
   updateHealthInsuranceByAdmin,
   softDeleteHealthInsurances,
+  getHealthInsuranceById,
 } from "@/api/healthinsurance";
+import HealthInsuranceEditModal from "./HealthInsuranceEditModal";
 
 interface VerifiedTableProps {
   loading: boolean;
@@ -51,14 +53,31 @@ const VerifiedTable: React.FC<VerifiedTableProps> = ({
 }) => {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedInsurance, setSelectedInsurance] = useState<HealthInsuranceResponseDTO | null>(null);
 
   const handleViewDetail = (id: string) => {
     router.push(`/health-insurance/${id}`);
   };
 
-  const handleEditInsurance = (id: string) => {
-    // Navigate to edit page or open edit modal
-    router.push(`/health-insurance/${id}/edit`);
+  const handleEditInsurance = async (id: string) => {
+    try {
+      const response = await getHealthInsuranceById(id);
+      if (response.isSuccess && response.data) {
+        setSelectedInsurance(response.data);
+        setEditModalVisible(true);
+      } else {
+        messageApi.error("Failed to fetch insurance details");
+      }
+    } catch (error) {
+      messageApi.error("Failed to fetch insurance details");
+      console.error("Error fetching insurance details:", error);
+    }
+  };
+
+  const handleEditSuccess = () => {
+    refreshData();
+    messageApi.success("Health insurance updated successfully");
   };
 
   const handleSoftDelete = (id: string) => {
@@ -251,25 +270,33 @@ const VerifiedTable: React.FC<VerifiedTableProps> = ({
     },
   ].filter(column => !column.hidden);
 
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (keys: React.Key[]) => {
-      setSelectedRowKeys(keys);
-    },
-  };
-
   return (
     <>
       {contextHolder}
-      <Table
-        rowKey="id"
-        dataSource={insurances}
-        columns={columns}
-        rowSelection={rowSelection}
-        loading={loading}
-        pagination={false}
-        scroll={{ x: "max-content" }}
-      />
+      <>
+        <Table
+          loading={loading}
+          dataSource={insurances}
+          columns={columns.filter((col) => !col.hidden)}
+          rowKey="id"
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (newSelectedRowKeys) => setSelectedRowKeys(newSelectedRowKeys),
+          }}
+          pagination={false}
+          size="middle"
+          scroll={{ x: "max-content" }}
+        />
+        {editModalVisible && selectedInsurance && (
+          <HealthInsuranceEditModal
+            visible={editModalVisible}
+            insurance={selectedInsurance}
+            onClose={() => setEditModalVisible(false)}
+            onSuccess={handleEditSuccess}
+            isAdmin={true}
+          />
+        )}
+      </>
     </>
   );
 };

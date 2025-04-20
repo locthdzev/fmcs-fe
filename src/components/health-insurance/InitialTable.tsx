@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Table, Button, Space, Tooltip, Modal, message } from "antd";
 import {
   EditOutlined,
@@ -10,9 +10,10 @@ import dayjs from "dayjs";
 
 import {
   HealthInsuranceResponseDTO,
-  updateHealthInsuranceByAdmin,
   softDeleteHealthInsurances,
+  getHealthInsuranceById,
 } from "@/api/healthinsurance";
+import HealthInsuranceEditModal from "./HealthInsuranceEditModal";
 
 interface InitialTableProps {
   loading: boolean;
@@ -39,10 +40,27 @@ const InitialTable: React.FC<InitialTableProps> = ({
 }) => {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedInsurance, setSelectedInsurance] = useState<HealthInsuranceResponseDTO | null>(null);
 
-  const handleEditInsurance = (id: string) => {
-    // Navigate to edit page or open edit modal
-    router.push(`/health-insurance/${id}/edit`);
+  const handleEditInsurance = async (id: string) => {
+    try {
+      const response = await getHealthInsuranceById(id);
+      if (response.isSuccess && response.data) {
+        setSelectedInsurance(response.data);
+        setEditModalVisible(true);
+      } else {
+        messageApi.error("Failed to fetch insurance details");
+      }
+    } catch (error) {
+      messageApi.error("Failed to fetch insurance details");
+      console.error("Error fetching insurance details:", error);
+    }
+  };
+
+  const handleEditSuccess = () => {
+    refreshData();
+    messageApi.success("Health insurance updated successfully");
   };
 
   const handleSoftDelete = (id: string) => {
@@ -161,6 +179,16 @@ const InitialTable: React.FC<InitialTableProps> = ({
         pagination={false}
         scroll={{ x: "max-content" }}
       />
+      
+      {editModalVisible && selectedInsurance && (
+        <HealthInsuranceEditModal
+          visible={editModalVisible}
+          insurance={selectedInsurance}
+          onClose={() => setEditModalVisible(false)}
+          onSuccess={handleEditSuccess}
+          isAdmin={true}
+        />
+      )}
     </>
   );
 };

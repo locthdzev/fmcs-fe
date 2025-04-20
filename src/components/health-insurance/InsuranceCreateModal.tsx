@@ -63,12 +63,19 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
 
   const fetchUsers = async () => {
     try {
-      const result = await UserApi.getAllUsers();
+      // Sử dụng API mới để lấy chỉ những người dùng active chưa có bảo hiểm
+      const result = await UserApi.getActiveUsersWithoutInsurance();
       if (result.isSuccess) {
         setUsers(result.data);
+        if (result.data.length === 0) {
+          messageApi.info("No users without health insurance found");
+        }
+      } else {
+        messageApi.error(result.message || "Failed to fetch users");
       }
     } catch (error) {
       console.error("Error fetching users:", error);
+      messageApi.error("Failed to fetch users");
     }
   };
 
@@ -78,6 +85,14 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
       setLoading(true);
 
       if (isManual) {
+        // Kiểm tra file ảnh
+        const imageFile = fileList[0]?.originFileObj;
+        if (!imageFile) {
+          messageApi.error("Please upload an insurance card image");
+          setLoading(false);
+          return;
+        }
+
         // Create manual insurance
         const formData: HealthInsuranceCreateManualDTO = {
           userId: values.userId,
@@ -85,15 +100,17 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
           fullName: values.fullName,
           dateOfBirth: values.dateOfBirth?.format("YYYY-MM-DD"),
           gender: values.gender,
-          address: values.address,
+          address: values.address || "",
           healthcareProviderName: values.healthcareProviderName,
-          healthcareProviderCode: values.healthcareProviderCode,
+          healthcareProviderCode: values.healthcareProviderCode || "",
           validFrom: values.validFrom?.format("YYYY-MM-DD"),
           validTo: values.validTo?.format("YYYY-MM-DD"),
           issueDate: values.issueDate?.format("YYYY-MM-DD"),
         };
 
-        const imageFile = fileList[0]?.originFileObj;
+        console.log("Form data being sent:", formData);
+        console.log("Image file being sent:", imageFile);
+
         const result = await createHealthInsuranceManual(formData, imageFile);
         
         if (result.isSuccess) {

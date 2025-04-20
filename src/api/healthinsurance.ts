@@ -117,7 +117,7 @@ export const getAllHealthInsurances = async (
     const response = await api.get("/health-insurance-management/insurances", {
       params: { page, pageSize, search, sortBy, ascending, status, userId },
     });
-    
+
     // Ensure we're returning the complete response object that has isSuccess, data, totalItems, etc.
     return {
       isSuccess: response.data.isSuccess,
@@ -127,7 +127,7 @@ export const getAllHealthInsurances = async (
       data: response.data.data || [],
       totalItems: response.data.totalRecords || 0,
       page: response.data.page || 1,
-      pageSize: response.data.pageSize || pageSize
+      pageSize: response.data.pageSize || pageSize,
     };
   } catch (error) {
     console.error("Error fetching health insurances:", error);
@@ -139,7 +139,7 @@ export const getAllHealthInsurances = async (
       data: [],
       totalItems: 0,
       page: 1,
-      pageSize: pageSize
+      pageSize: pageSize,
     };
   }
 };
@@ -147,7 +147,9 @@ export const getAllHealthInsurances = async (
 export const getHealthInsuranceById = async (id: string) => {
   try {
     console.log("API call to get health insurance by ID:", id);
-    const response = await api.get(`/health-insurance-management/insurances/${id}`);
+    const response = await api.get(
+      `/health-insurance-management/insurances/${id}`
+    );
     console.log("API response for health insurance by ID:", response.data);
     return response.data;
   } catch (error: any) {
@@ -155,9 +157,11 @@ export const getHealthInsuranceById = async (id: string) => {
     return {
       isSuccess: false,
       code: error.response?.status || 500,
-      message: error.response?.data?.message || "Failed to fetch health insurance details",
+      message:
+        error.response?.data?.message ||
+        "Failed to fetch health insurance details",
       responseFailed: error.message,
-      data: null
+      data: null,
     };
   }
 };
@@ -166,24 +170,59 @@ export const createHealthInsuranceManual = async (
   data: HealthInsuranceCreateManualDTO,
   imageFile?: File
 ) => {
+  if (!imageFile) {
+    return {
+      isSuccess: false,
+      code: 400,
+      message: "Image file is required for manual creation.",
+    };
+  }
+
   const formData = new FormData();
-  Object.entries(data).forEach(
-    ([key, value]) => {
-      if (value !== undefined && value !== null) {
-        const pascalCaseKey = key.charAt(0).toUpperCase() + key.slice(1);
-        formData.append(pascalCaseKey, value.toString());
+
+  // Đảm bảo tất cả các trường đều được gửi với định dạng chính xác
+  formData.append("UserId", data.userId);
+  formData.append("HealthInsuranceNumber", data.healthInsuranceNumber || "");
+  formData.append("FullName", data.fullName || "");
+  formData.append("Gender", data.gender || "");
+  formData.append("Address", data.address || "");
+  formData.append("HealthcareProviderName", data.healthcareProviderName || "");
+  formData.append("HealthcareProviderCode", data.healthcareProviderCode || "");
+
+  // Xử lý các trường ngày tháng
+  if (data.dateOfBirth)
+    formData.append("DateOfBirth", data.dateOfBirth.toString());
+  if (data.validFrom) formData.append("ValidFrom", data.validFrom.toString());
+  if (data.validTo) formData.append("ValidTo", data.validTo.toString());
+  if (data.issueDate) formData.append("IssueDate", data.issueDate.toString());
+
+  formData.append("imageFile", imageFile);
+
+  // Debug: Log tất cả các trường trong FormData
+  console.log("createHealthInsuranceManual - FormData being sent:");
+  for (const pair of formData.entries()) {
+    console.log(`${pair[0]}: ${pair[1]}`);
+  }
+
+  try {
+    const response = await api.post(
+      "/health-insurance-management/insurances/create-manual",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
       }
-    }
-  );
-  if (imageFile) formData.append("imageFile", imageFile);
-  const response = await api.post(
-    "/health-insurance-management/insurances/create-manual",
-    formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    }
-  );
-  return response.data;
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("Error in createHealthInsuranceManual:", error);
+    return {
+      isSuccess: false,
+      code: error.response?.status || 500,
+      message:
+        error.response?.data?.message || "Failed to create health insurance",
+      responseFailed: error.message,
+    };
+  }
 };
 
 export const updateHealthInsurance = async (
@@ -193,7 +232,7 @@ export const updateHealthInsurance = async (
 ) => {
   const formData = new FormData();
   console.log("updateHealthInsurance - Data being processed:", data);
-  
+
   // Thêm tất cả các trường vào FormData, đảm bảo xử lý chuỗi chính xác
   formData.append("HasInsurance", data.hasInsurance ? "true" : "false");
   formData.append("HealthInsuranceNumber", data.healthInsuranceNumber || "");
@@ -202,23 +241,26 @@ export const updateHealthInsurance = async (
   formData.append("Address", data.address || "");
   formData.append("HealthcareProviderName", data.healthcareProviderName || "");
   formData.append("HealthcareProviderCode", data.healthcareProviderCode || "");
-  
+
   // Xử lý các trường ngày tháng đặc biệt - PHẢI chuyển sang chuỗi
-  if (data.dateOfBirth) formData.append("DateOfBirth", data.dateOfBirth.toString());
+  if (data.dateOfBirth)
+    formData.append("DateOfBirth", data.dateOfBirth.toString());
   if (data.validFrom) formData.append("ValidFrom", data.validFrom.toString());
   if (data.validTo) formData.append("ValidTo", data.validTo.toString());
   if (data.issueDate) formData.append("IssueDate", data.issueDate.toString());
-  
+
   if (imageFile) {
     formData.append("imageFile", imageFile);
     console.log("updateHealthInsurance - Added image file to FormData");
   }
-  
+
   // Debug: Log all form data entries
   for (const pair of formData.entries()) {
-    console.log(`updateHealthInsurance - FormData contains: ${pair[0]}: ${pair[1]}`);
+    console.log(
+      `updateHealthInsurance - FormData contains: ${pair[0]}: ${pair[1]}`
+    );
   }
-  
+
   const response = await api.put(
     `/health-insurance-management/insurances/${id}`,
     formData,
@@ -237,7 +279,7 @@ export const updateHealthInsuranceByAdmin = async (
   const formData = new FormData();
   console.log("updateHealthInsuranceByAdmin - Data being processed:", data);
   
-  // Thêm tất cả các trường vào FormData, đảm bảo xử lý chuỗi chính xác
+  // Add all fields to FormData, ensuring string conversion is handled properly
   formData.append("HasInsurance", data.hasInsurance ? "true" : "false");
   formData.append("HealthInsuranceNumber", data.healthInsuranceNumber || "");
   formData.append("FullName", data.fullName || "");
@@ -246,20 +288,22 @@ export const updateHealthInsuranceByAdmin = async (
   formData.append("HealthcareProviderName", data.healthcareProviderName || "");
   formData.append("HealthcareProviderCode", data.healthcareProviderCode || "");
   
-  // Xử lý các trường ngày tháng đặc biệt - PHẢI chuyển sang chuỗi
+  // Handle date fields carefully - must convert to string
   if (data.dateOfBirth) formData.append("DateOfBirth", data.dateOfBirth.toString());
   if (data.validFrom) formData.append("ValidFrom", data.validFrom.toString());
   if (data.validTo) formData.append("ValidTo", data.validTo.toString());
   if (data.issueDate) formData.append("IssueDate", data.issueDate.toString());
   
+  // Always add the image file if it exists - this is critical for detecting image-only changes
   if (imageFile) {
     formData.append("imageFile", imageFile);
     console.log("updateHealthInsuranceByAdmin - Added image file to FormData");
   }
   
   // Debug: Log all form data entries
+  console.log("updateHealthInsuranceByAdmin - FormData entries:");
   for (const pair of formData.entries()) {
-    console.log(`updateHealthInsuranceByAdmin - FormData contains: ${pair[0]}: ${pair[1]}`);
+    console.log(`${pair[0]}: ${pair[1]}`);
   }
   
   const response = await api.put(
@@ -279,7 +323,7 @@ export const requestHealthInsuranceUpdate = async (
 ) => {
   const formData = new FormData();
   console.log("requestHealthInsuranceUpdate - Data being processed:", data);
-  
+
   // Thêm tất cả các trường vào FormData, đảm bảo xử lý chuỗi chính xác
   formData.append("HasInsurance", data.hasInsurance ? "true" : "false");
   formData.append("HealthInsuranceNumber", data.healthInsuranceNumber || "");
@@ -288,23 +332,26 @@ export const requestHealthInsuranceUpdate = async (
   formData.append("Address", data.address || "");
   formData.append("HealthcareProviderName", data.healthcareProviderName || "");
   formData.append("HealthcareProviderCode", data.healthcareProviderCode || "");
-  
+
   // Xử lý các trường ngày tháng đặc biệt - PHẢI chuyển sang chuỗi
-  if (data.dateOfBirth) formData.append("DateOfBirth", data.dateOfBirth.toString());
+  if (data.dateOfBirth)
+    formData.append("DateOfBirth", data.dateOfBirth.toString());
   if (data.validFrom) formData.append("ValidFrom", data.validFrom.toString());
   if (data.validTo) formData.append("ValidTo", data.validTo.toString());
   if (data.issueDate) formData.append("IssueDate", data.issueDate.toString());
-  
+
   if (imageFile) {
     formData.append("imageFile", imageFile);
     console.log("requestHealthInsuranceUpdate - Added image file to FormData");
   }
-  
+
   // Debug: Log all form data entries
   for (const pair of formData.entries()) {
-    console.log(`requestHealthInsuranceUpdate - FormData contains: ${pair[0]}: ${pair[1]}`);
+    console.log(
+      `requestHealthInsuranceUpdate - FormData contains: ${pair[0]}: ${pair[1]}`
+    );
   }
-  
+
   const response = await api.post(
     `/health-insurance-management/insurances/${id}/request-update`,
     formData,
@@ -376,24 +423,27 @@ export const getUpdateRequests = async (
 ) => {
   try {
     let requestParams: UpdateRequestParams;
-    
-    if (typeof params === 'number') {
+
+    if (typeof params === "number") {
       requestParams = {
         page: params,
         pageSize,
         search,
         sortBy,
         ascending,
-        status
+        status,
       };
     } else {
       requestParams = params;
     }
-    
-    const response = await api.get("/health-insurance-management/insurances/update-requests", {
-      params: requestParams,
-    });
-    
+
+    const response = await api.get(
+      "/health-insurance-management/insurances/update-requests",
+      {
+        params: requestParams,
+      }
+    );
+
     return {
       isSuccess: response.data.isSuccess,
       code: response.data.code,
@@ -402,7 +452,7 @@ export const getUpdateRequests = async (
       data: response.data.data || [],
       totalItems: response.data.totalRecords || 0,
       page: response.data.page || 1,
-      pageSize: requestParams.pageSize || pageSize
+      pageSize: requestParams.pageSize || pageSize,
     };
   } catch (error) {
     console.error("Error fetching update requests:", error);
@@ -414,7 +464,7 @@ export const getUpdateRequests = async (
       data: [],
       totalItems: 0,
       page: 1,
-      pageSize: pageSize
+      pageSize: pageSize,
     };
   }
 };
@@ -519,17 +569,17 @@ export const getVerifiedInsurances = async (
 ) => {
   try {
     const response = await api.get("/health-insurance-management/insurances", {
-      params: { 
-        page, 
-        pageSize, 
-        search, 
-        sortBy, 
-        ascending, 
-        status: "Completed", 
-        userId 
+      params: {
+        page,
+        pageSize,
+        search,
+        sortBy,
+        ascending,
+        status: "Completed",
+        userId,
       },
     });
-    
+
     return {
       isSuccess: response.data.isSuccess,
       code: response.data.code,
@@ -538,7 +588,7 @@ export const getVerifiedInsurances = async (
       data: response.data.data || [],
       totalItems: response.data.totalRecords || 0,
       page: response.data.page || 1,
-      pageSize: response.data.pageSize || pageSize
+      pageSize: response.data.pageSize || pageSize,
     };
   } catch (error) {
     console.error("Error fetching verified insurances:", error);
@@ -550,7 +600,7 @@ export const getVerifiedInsurances = async (
       data: [],
       totalItems: 0,
       page: 1,
-      pageSize: pageSize
+      pageSize: pageSize,
     };
   }
 };
@@ -565,35 +615,39 @@ export const getInitialInsurances = async (
 ) => {
   try {
     // Lấy tất cả dữ liệu với pageSize lớn để đảm bảo lọc client-side chính xác
-    const totalResponse = await api.get("/health-insurance-management/insurances", {
-      params: { 
-        page: 1, 
-        pageSize: 1000, // Lấy với số lượng lớn để đếm tổng
-        search, 
-        sortBy, 
-        ascending, 
-        status: "Pending", 
-        userId 
-      },
-    });
-    
+    const totalResponse = await api.get(
+      "/health-insurance-management/insurances",
+      {
+        params: {
+          page: 1,
+          pageSize: 1000, // Lấy với số lượng lớn để đếm tổng
+          search,
+          sortBy,
+          ascending,
+          status: "Pending",
+          userId,
+        },
+      }
+    );
+
     // Để lấy tổng số bản ghi thực tế sau khi lọc
     let totalItems = 0;
     let filteredData: HealthInsuranceResponseDTO[] = [];
-    
+
     if (totalResponse.data.isSuccess) {
       // Lọc client-side để lấy tổng số bản ghi thực tế
       const allData = totalResponse.data.data || [];
       filteredData = allData.filter(
-        (insurance: HealthInsuranceResponseDTO) => insurance.verificationStatus === "Unverified"
+        (insurance: HealthInsuranceResponseDTO) =>
+          insurance.verificationStatus === "Unverified"
       );
       totalItems = filteredData.length;
-      
+
       // Thực hiện phân trang client-side
       const startIndex = (page - 1) * pageSize;
       const endIndex = startIndex + pageSize;
       const pagedData = filteredData.slice(startIndex, endIndex);
-      
+
       return {
         isSuccess: true,
         code: totalResponse.data.code,
@@ -602,7 +656,7 @@ export const getInitialInsurances = async (
         data: pagedData,
         totalItems: totalItems,
         page: page,
-        pageSize: pageSize
+        pageSize: pageSize,
       };
     } else {
       return {
@@ -613,7 +667,7 @@ export const getInitialInsurances = async (
         data: [],
         totalItems: 0,
         page: page,
-        pageSize: pageSize
+        pageSize: pageSize,
       };
     }
   } catch (error) {
@@ -626,7 +680,7 @@ export const getInitialInsurances = async (
       data: [],
       totalItems: 0,
       page: 1,
-      pageSize: pageSize
+      pageSize: pageSize,
     };
   }
 };
@@ -641,17 +695,17 @@ export const getExpiredUpdateInsurances = async (
 ) => {
   try {
     const response = await api.get("/health-insurance-management/insurances", {
-      params: { 
-        page, 
-        pageSize, 
-        search, 
-        sortBy, 
-        ascending, 
-        status: "DeadlineExpired", 
-        userId 
+      params: {
+        page,
+        pageSize,
+        search,
+        sortBy,
+        ascending,
+        status: "DeadlineExpired",
+        userId,
       },
     });
-    
+
     return {
       isSuccess: response.data.isSuccess,
       code: response.data.code,
@@ -660,7 +714,7 @@ export const getExpiredUpdateInsurances = async (
       data: response.data.data || [],
       totalItems: response.data.totalRecords || 0,
       page: response.data.page || 1,
-      pageSize: response.data.pageSize || pageSize
+      pageSize: response.data.pageSize || pageSize,
     };
   } catch (error) {
     console.error("Error fetching expired update insurances:", error);
@@ -672,7 +726,7 @@ export const getExpiredUpdateInsurances = async (
       data: [],
       totalItems: 0,
       page: 1,
-      pageSize: pageSize
+      pageSize: pageSize,
     };
   }
 };
@@ -687,17 +741,17 @@ export const getExpiredInsurances = async (
 ) => {
   try {
     const response = await api.get("/health-insurance-management/insurances", {
-      params: { 
-        page, 
-        pageSize, 
-        search, 
-        sortBy, 
-        ascending, 
-        status: "Expired", 
-        userId 
+      params: {
+        page,
+        pageSize,
+        search,
+        sortBy,
+        ascending,
+        status: "Expired",
+        userId,
       },
     });
-    
+
     return {
       isSuccess: response.data.isSuccess,
       code: response.data.code,
@@ -706,7 +760,7 @@ export const getExpiredInsurances = async (
       data: response.data.data || [],
       totalItems: response.data.totalRecords || 0,
       page: response.data.page || 1,
-      pageSize: response.data.pageSize || pageSize
+      pageSize: response.data.pageSize || pageSize,
     };
   } catch (error) {
     console.error("Error fetching expired insurances:", error);
@@ -718,7 +772,7 @@ export const getExpiredInsurances = async (
       data: [],
       totalItems: 0,
       page: 1,
-      pageSize: pageSize
+      pageSize: pageSize,
     };
   }
 };
@@ -733,17 +787,17 @@ export const getUninsuredRecords = async (
 ) => {
   try {
     const response = await api.get("/health-insurance-management/insurances", {
-      params: { 
-        page, 
-        pageSize, 
-        search, 
-        sortBy, 
-        ascending, 
-        status: "NotApplicable", 
-        userId 
+      params: {
+        page,
+        pageSize,
+        search,
+        sortBy,
+        ascending,
+        status: "NotApplicable",
+        userId,
       },
     });
-    
+
     return {
       isSuccess: response.data.isSuccess,
       code: response.data.code,
@@ -752,7 +806,7 @@ export const getUninsuredRecords = async (
       data: response.data.data || [],
       totalItems: response.data.totalRecords || 0,
       page: response.data.page || 1,
-      pageSize: response.data.pageSize || pageSize
+      pageSize: response.data.pageSize || pageSize,
     };
   } catch (error) {
     console.error("Error fetching uninsured records:", error);
@@ -764,7 +818,7 @@ export const getUninsuredRecords = async (
       data: [],
       totalItems: 0,
       page: 1,
-      pageSize: pageSize
+      pageSize: pageSize,
     };
   }
 };
@@ -779,17 +833,17 @@ export const getSoftDeletedInsurances = async (
 ) => {
   try {
     const response = await api.get("/health-insurance-management/insurances", {
-      params: { 
-        page, 
-        pageSize, 
-        search, 
-        sortBy, 
-        ascending, 
-        status: "SoftDeleted", 
-        userId 
+      params: {
+        page,
+        pageSize,
+        search,
+        sortBy,
+        ascending,
+        status: "SoftDeleted",
+        userId,
       },
     });
-    
+
     return {
       isSuccess: response.data.isSuccess,
       code: response.data.code,
@@ -798,7 +852,7 @@ export const getSoftDeletedInsurances = async (
       data: response.data.data || [],
       totalItems: response.data.totalRecords || 0,
       page: response.data.page || 1,
-      pageSize: response.data.pageSize || pageSize
+      pageSize: response.data.pageSize || pageSize,
     };
   } catch (error) {
     console.error("Error fetching soft deleted insurances:", error);
@@ -810,7 +864,7 @@ export const getSoftDeletedInsurances = async (
       data: [],
       totalItems: 0,
       page: 1,
-      pageSize: pageSize
+      pageSize: pageSize,
     };
   }
 };
@@ -827,16 +881,16 @@ export const getVerificationRequests = async (
     // Chúng ta sẽ dùng chung endpoint với update requests, nhưng lọc theo status Pending và verificationStatus Unverified
     // Hoặc dùng getAllHealthInsurances với status SUBMITTED
     const response = await api.get("/health-insurance-management/insurances", {
-      params: { 
-        page, 
-        pageSize, 
-        search, 
-        sortBy, 
-        ascending, 
-        status: "Submitted"  // Dùng status SUBMITTED cho verification requests
+      params: {
+        page,
+        pageSize,
+        search,
+        sortBy,
+        ascending,
+        status: "Submitted", // Dùng status SUBMITTED cho verification requests
       },
     });
-    
+
     return {
       isSuccess: response.data.isSuccess,
       code: response.data.code,
@@ -845,7 +899,7 @@ export const getVerificationRequests = async (
       data: response.data.data || [],
       totalItems: response.data.totalRecords || 0,
       page: response.data.page || 1,
-      pageSize: pageSize
+      pageSize: pageSize,
     };
   } catch (error) {
     console.error("Error fetching verification requests:", error);
@@ -857,7 +911,7 @@ export const getVerificationRequests = async (
       data: [],
       totalItems: 0,
       page: 1,
-      pageSize: pageSize
+      pageSize: pageSize,
     };
   }
 };

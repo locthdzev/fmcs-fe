@@ -1,60 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import {
-  Button,
-  Card,
-  Descriptions,
-  Divider,
-  Space,
   Spin,
   Typography,
-  Image,
-  Tag,
   Tabs,
   message,
   Modal,
   Form,
-  Input,
-  DatePicker,
-  Select,
-  Upload,
-  Row,
-  Col,
-  Avatar,
-  Timeline,
-  Empty,
-  Radio,
-  Steps,
-  Result,
 } from "antd";
 import {
-  ArrowLeftOutlined,
-  EditOutlined,
-  HistoryOutlined,
   ExclamationCircleOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  DeleteOutlined,
-  SaveOutlined,
-  UserOutlined,
-  UploadOutlined,
-  FileImageOutlined,
-  FormOutlined,
-  PlusOutlined,
-  UndoOutlined,
 } from "@ant-design/icons";
-import type { UploadFile, RcFile } from "antd/es/upload/interface";
-import dayjs from "dayjs";
+import type { UploadFile } from "antd/es/upload/interface";
 
 import PageContainer from "@/components/shared/PageContainer";
 import {
   getHealthInsuranceById,
   getHealthInsuranceHistory,
-  updateHealthInsuranceByAdmin,
   verifyHealthInsurance,
   softDeleteHealthInsurances,
   HealthInsuranceResponseDTO,
-  HealthInsuranceUpdateRequestDTO,
   HistoryDTO,
 } from "@/api/healthinsurance";
 import { UserResponseDTO, getAllUsers } from "@/api/user";
@@ -62,14 +27,11 @@ import { UserResponseDTO, getAllUsers } from "@/api/user";
 // Import sub-components
 import InsuranceHistoryTimeline from "./InsuranceHistoryTimeline";
 import InsuranceDetailsView from "./InsuranceDetailsView";
-import InsuranceEditForm from "./InsuranceEditForm";
 import InsuranceNotFound from "./InsuranceNotFound";
+import HealthInsuranceEditModal from "./HealthInsuranceEditModal";
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
-const { Option } = Select;
-const { TextArea } = Input;
-const { TabPane } = Tabs;
 
 interface InsuranceDetailProps {
   id: string;
@@ -78,22 +40,14 @@ interface InsuranceDetailProps {
 export const InsuranceDetail: React.FC<InsuranceDetailProps> = ({ id }) => {
   console.log("InsuranceDetail component received ID:", id);
   const router = useRouter();
-  const { edit } = router.query;
-  const isEditMode = edit === "true";
 
-  const [form] = Form.useForm();
-  const [insurance, setInsurance] = useState<HealthInsuranceResponseDTO | null>(
-    null
-  );
+  const [insurance, setInsurance] = useState<HealthInsuranceResponseDTO | null>(null);
   const [histories, setHistories] = useState<HistoryDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [historyLoading, setHistoryLoading] = useState<boolean>(false);
-  const [saving, setSaving] = useState<boolean>(false);
-  const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [messageApi, contextHolder] = message.useMessage();
   const [users, setUsers] = useState<UserResponseDTO[]>([]);
-  const [currentStep, setCurrentStep] = useState<number>(0);
-  const [hasInsurance, setHasInsurance] = useState<boolean>(true);
+  const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
 
   useEffect(() => {
     if (id && typeof id === "string" && id !== "undefined") {
@@ -107,39 +61,6 @@ export const InsuranceDetail: React.FC<InsuranceDetailProps> = ({ id }) => {
       setLoading(false);
     }
   }, [id]);
-
-  useEffect(() => {
-    if (insurance && isEditMode) {
-      setHasInsurance(insurance.status !== "NotApplicable");
-      form.setFieldsValue({
-        hasInsurance: insurance.status !== "NotApplicable",
-        userId: insurance.user?.id,
-        healthInsuranceNumber: insurance.healthInsuranceNumber,
-        fullName: insurance.fullName,
-        dateOfBirth: insurance.dateOfBirth
-          ? dayjs(insurance.dateOfBirth)
-          : undefined,
-        gender: insurance.gender,
-        address: insurance.address,
-        healthcareProviderName: insurance.healthcareProviderName,
-        healthcareProviderCode: insurance.healthcareProviderCode,
-        validFrom: insurance.validFrom ? dayjs(insurance.validFrom) : undefined,
-        validTo: insurance.validTo ? dayjs(insurance.validTo) : undefined,
-        issueDate: insurance.issueDate ? dayjs(insurance.issueDate) : undefined,
-      });
-
-      if (insurance.imageUrl) {
-        setFileList([
-          {
-            uid: "-1",
-            name: "Insurance Card",
-            status: "done",
-            url: insurance.imageUrl,
-          },
-        ]);
-      }
-    }
-  }, [insurance, isEditMode, form]);
 
   const fetchInsuranceDetail = async () => {
     setLoading(true);
@@ -204,11 +125,13 @@ export const InsuranceDetail: React.FC<InsuranceDetailProps> = ({ id }) => {
   };
 
   const handleEditInsurance = () => {
-    router.push(`/health-insurance/${id}?edit=true`);
+    setEditModalVisible(true);
   };
 
-  const handleCancelEdit = () => {
-    router.push(`/health-insurance/${id}`);
+  const handleEditSuccess = () => {
+    fetchInsuranceDetail();
+    fetchHistories();
+    messageApi.success("Health insurance updated successfully");
   };
 
   const handleVerifyInsurance = async (status: string) => {
@@ -243,31 +166,6 @@ export const InsuranceDetail: React.FC<InsuranceDetailProps> = ({ id }) => {
     }
   };
 
-  const handleSubmit = async (values: any) => {
-    setSaving(true);
-
-    try {
-      const imageFile =
-        fileList.length > 0 && fileList[0].originFileObj
-          ? (fileList[0].originFileObj as File)
-          : undefined;
-
-      const result = await updateHealthInsuranceByAdmin(id, values, imageFile);
-
-      if (result.isSuccess) {
-        messageApi.success("Health insurance updated successfully");
-        router.push(`/health-insurance/${id}`);
-      } else {
-        messageApi.error(result.message || "Failed to update health insurance");
-      }
-    } catch (error) {
-      messageApi.error("Failed to update health insurance");
-      console.error("Error updating health insurance:", error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -294,25 +192,6 @@ export const InsuranceDetail: React.FC<InsuranceDetailProps> = ({ id }) => {
     );
   }
 
-  if (isEditMode) {
-    return (
-      <InsuranceEditForm
-        form={form}
-        insurance={insurance}
-        users={users}
-        fileList={fileList}
-        setFileList={setFileList}
-        currentStep={currentStep}
-        setCurrentStep={setCurrentStep}
-        hasInsurance={hasInsurance}
-        setHasInsurance={setHasInsurance}
-        onCancel={handleCancelEdit}
-        onSubmit={handleSubmit}
-        saving={saving}
-      />
-    );
-  }
-
   return (
     <PageContainer
       title="Health Insurance Details"
@@ -334,6 +213,16 @@ export const InsuranceDetail: React.FC<InsuranceDetailProps> = ({ id }) => {
         histories={histories}
         loading={historyLoading}
       />
+
+      {insurance && (
+        <HealthInsuranceEditModal
+          visible={editModalVisible}
+          insurance={insurance}
+          onClose={() => setEditModalVisible(false)}
+          onSuccess={handleEditSuccess}
+          isAdmin={true}
+        />
+      )}
     </PageContainer>
   );
 };
