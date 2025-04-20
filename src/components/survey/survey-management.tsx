@@ -945,6 +945,7 @@ export const SurveyManagement: React.FC<SurveyManagementProps> = () => {
               <Option value={15}>15</Option>
               <Option value={20}>20</Option>
               <Option value={50}>50</Option>
+              <Option value={100}>100</Option>
             </Select>
           </div>
         </div>

@@ -12,9 +12,6 @@ import {
   Divider,
   Typography,
   Badge,
-  Radio,
-  Dropdown,
-  Menu,
   Select,
   Tooltip as AntTooltip,
   Progress,
@@ -23,6 +20,7 @@ import {
   Modal,
   message,
   Tag,
+  Empty,
 } from "antd";
 import {
   BarChart,
@@ -45,13 +43,10 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  Treemap,
   ScatterChart,
   Scatter,
-  ComposedChart,
 } from "recharts";
-import { getTreatmentPlanStatistics } from "@/api/treatment-plan";
-import type { DatePickerProps, RangePickerProps } from "antd/es/date-picker";
+import { getInventoryStatistics, InventoryStatisticsDTO, DrugStatisticsDTO } from "@/api/inventoryrecord";
 import dayjs from "dayjs";
 import {
   BarChartOutlined,
@@ -62,34 +57,18 @@ import {
   DotChartOutlined,
   AppstoreOutlined,
   ReloadOutlined,
-  DownloadOutlined,
-  TableOutlined,
   FileExcelOutlined,
   QuestionCircleOutlined,
   ArrowLeftOutlined,
+  MedicineBoxOutlined,
+  ExceptionOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
-import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
+import * as ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 // Type definitions
-interface StatisticsData {
-  totalTreatmentPlans: number;
-  totalActiveTreatmentPlans: number;
-  totalCompletedTreatmentPlans: number;
-  totalCancelledTreatmentPlans: number;
-  treatmentPlansByStatus: Record<string, number>;
-  treatmentPlansByMonth: Record<string, number>;
-  treatmentPlansByDrug: Record<string, number>;
-  treatmentPlansByUser: Record<string, number>;
-  averageDuration: number;
-  completionRate: number;
-  cancellationRate: number;
-  averageTreatmentPlansPerPatient: number;
-  patientDistribution: Record<string, number>;
-  dateRange: any;
-}
-
 interface ChartDataItem {
   name: string;
   value: number;
@@ -102,9 +81,8 @@ interface ChartTypeOption {
   label: string;
 }
 
-const { TabPane } = Tabs;
 const { RangePicker } = DatePicker;
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { useToken } = theme;
 
 // Enhanced color palette
@@ -131,10 +109,10 @@ const chartTypes: Record<string, ChartTypeOption> = {
   scatter: { icon: <DotChartOutlined />, label: "Scatter Chart" },
 };
 
-export function TreatmentPlanStatistics() {
+export function InventoryRecordStatistic() {
   const { token } = useToken();
   const router = useRouter();
-  const [statistics, setStatistics] = useState<StatisticsData | null>(null);
+  const [statistics, setStatistics] = useState<InventoryStatisticsDTO | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([
     null,
@@ -149,11 +127,7 @@ export function TreatmentPlanStatistics() {
 
   // Chart type states
   const [statusChartType, setStatusChartType] = useState<string>("pie");
-  const [monthlyChartType, setMonthlyChartType] = useState<string>("line");
-  const [drugChartType, setDrugChartType] = useState<string>("bar");
-  const [staffChartType, setStaffChartType] = useState<string>("bar");
-  const [patientDistChartType, setPatientDistChartType] =
-    useState<string>("pie");
+  const [drugsChartType, setDrugsChartType] = useState<string>("bar");
   const [activeTab, setActiveTab] = useState<string>("1");
 
   useEffect(() => {
@@ -163,39 +137,21 @@ export function TreatmentPlanStatistics() {
   const fetchStatistics = async (startDate?: Date, endDate?: Date) => {
     setLoading(true);
     try {
-      const response = await getTreatmentPlanStatistics(startDate, endDate);
-      if (response && response.isSuccess && response.data) {
-        // Map the response to match the expected format
-        const formattedData: StatisticsData = {
-          totalTreatmentPlans: response.data.totalCount || 0,
-          totalActiveTreatmentPlans:
-            response.data.statusDistribution?.InProgress || 0,
-          totalCompletedTreatmentPlans:
-            response.data.statusDistribution?.Completed || 0,
-          totalCancelledTreatmentPlans:
-            response.data.statusDistribution?.Cancelled || 0,
-          treatmentPlansByStatus: response.data.statusDistribution || {},
-          treatmentPlansByMonth: response.data.monthlyDistribution || {},
-          treatmentPlansByDrug: response.data.top5Drugs || {},
-          treatmentPlansByUser: response.data.top5Staff || {},
-          averageDuration: response.data.averageDuration || 0,
-          completionRate: response.data.completionRate || 0,
-          cancellationRate: response.data.cancellationRate || 0,
-          averageTreatmentPlansPerPatient:
-            response.data.averageTreatmentPlansPerPatient || 0,
-          patientDistribution: response.data.patientDistribution || {},
-          dateRange: response.data.dateRange || {},
-        };
-        setStatistics(formattedData);
+      const response = await getInventoryStatistics(startDate, endDate);
+      if (response && response.success && response.data) {
+        setStatistics(response.data);
+      } else {
+        messageApi.error(response.message || "Failed to fetch statistics");
       }
     } catch (error) {
       console.error("Error fetching statistics:", error);
+      messageApi.error("An error occurred while fetching statistics");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDateRangeChange = (dates: RangePickerProps["value"]) => {
+  const handleDateRangeChange = (dates: any) => {
     if (dates && dates[0] && dates[1]) {
       const startDate = dates[0].toDate();
       const endDate = dates[1].toDate();
@@ -260,7 +216,12 @@ export function TreatmentPlanStatistics() {
     fetchStatistics(startDate || undefined, endDate);
   };
 
-  // Add Excel export function
+  // Format date for display and filenames
+  const formatDate = (date: Date | null): string => {
+    return date ? dayjs(date).format("DD/MM/YYYY") : "";
+  };
+
+  // Excel export function
   const exportToExcel = async (startDate?: Date, endDate?: Date) => {
     try {
       if (!statistics) {
@@ -274,29 +235,11 @@ export function TreatmentPlanStatistics() {
       let dataToExport = statistics;
       if (startDate && endDate) {
         try {
-          const response = await getTreatmentPlanStatistics(startDate, endDate);
-          if (response && response.isSuccess && response.data) {
-            // Map the response to match the expected format
-            dataToExport = {
-              totalTreatmentPlans: response.data.totalCount || 0,
-              totalActiveTreatmentPlans:
-                response.data.statusDistribution?.InProgress || 0,
-              totalCompletedTreatmentPlans:
-                response.data.statusDistribution?.Completed || 0,
-              totalCancelledTreatmentPlans:
-                response.data.statusDistribution?.Cancelled || 0,
-              treatmentPlansByStatus: response.data.statusDistribution || {},
-              treatmentPlansByMonth: response.data.monthlyDistribution || {},
-              treatmentPlansByDrug: response.data.top5Drugs || {},
-              treatmentPlansByUser: response.data.top5Staff || {},
-              averageDuration: response.data.averageDuration || 0,
-              completionRate: response.data.completionRate || 0,
-              cancellationRate: response.data.cancellationRate || 0,
-              averageTreatmentPlansPerPatient:
-                response.data.averageTreatmentPlansPerPatient || 0,
-              patientDistribution: response.data.patientDistribution || {},
-              dateRange: response.data.dateRange || {},
-            };
+          const response = await getInventoryStatistics(startDate, endDate);
+          if (response && response.success && response.data) {
+            dataToExport = response.data;
+          } else {
+            throw new Error("Failed to fetch statistics for export");
           }
         } catch (error) {
           console.error("Error fetching export data:", error);
@@ -358,7 +301,8 @@ export function TreatmentPlanStatistics() {
         { info: 'Export Time', value: now.toLocaleTimeString() },
         { info: 'Date Range', value: startDate && endDate ? 
             `${formatDate(startDate)} to ${formatDate(endDate)}` : 'All Time' },
-        { info: 'Total Treatment Plans', value: dataToExport.totalTreatmentPlans || 0 },
+        { info: 'Total Active Inventory Records', value: dataToExport.totalActiveInventoryRecords || 0 },
+        { info: 'Total Drugs in Stock', value: dataToExport.totalDrugsInStock || 0 },
         { info: 'Generated By', value: 'FMCS System' }
       ];
       
@@ -383,7 +327,7 @@ export function TreatmentPlanStatistics() {
       // Create summary sheet
       const summarySheet = workbook.addWorksheet('Summary');
       summarySheet.columns = [
-        { header: 'Metric', key: 'metric', width: 25 },
+        { header: 'Metric', key: 'metric', width: 35 },
         { header: 'Value', key: 'value', width: 15 }
       ];
       
@@ -392,14 +336,10 @@ export function TreatmentPlanStatistics() {
       
       // Add summary data
       const summaryData = [
-        { metric: 'Total Treatment Plans', value: dataToExport.totalTreatmentPlans || 0 },
-        { metric: 'Active Treatment Plans', value: dataToExport.totalActiveTreatmentPlans || 0 },
-        { metric: 'Completed Treatment Plans', value: dataToExport.totalCompletedTreatmentPlans || 0 },
-        { metric: 'Cancelled Treatment Plans', value: dataToExport.totalCancelledTreatmentPlans || 0 },
-        { metric: 'Average Duration (days)', value: dataToExport.averageDuration?.toFixed(2) || 0 },
-        { metric: 'Completion Rate (%)', value: dataToExport.completionRate?.toFixed(2) || 0 },
-        { metric: 'Cancellation Rate (%)', value: dataToExport.cancellationRate?.toFixed(2) || 0 },
-        { metric: 'Avg Plans Per Patient', value: dataToExport.averageTreatmentPlansPerPatient?.toFixed(2) || 0 },
+        { metric: 'Total Active Inventory Records', value: dataToExport.totalActiveInventoryRecords || 0 },
+        { metric: 'Total Drugs in Stock', value: dataToExport.totalDrugsInStock || 0 },
+        { metric: 'Total Quantity in Stock', value: dataToExport.totalQuantityInStock || 0 },
+        { metric: 'Low Stock Items', value: dataToExport.lowStockItems || 0 },
       ];
       
       summaryData.forEach(item => {
@@ -428,11 +368,11 @@ export function TreatmentPlanStatistics() {
       formatSheetHeader(statusSheet);
       
       // Calculate total for percentages
-      const totalPlans = dataToExport.totalTreatmentPlans || 1; // Prevent division by zero
+      const totalRecords = dataToExport.totalActiveInventoryRecords || 1; // Prevent division by zero
       
       // Add status data
-      Object.entries(dataToExport.treatmentPlansByStatus || {}).forEach(([status, count]) => {
-        const percentage = ((count as number) / totalPlans * 100).toFixed(2) + '%';
+      Object.entries(dataToExport.inventoryStatusDistribution || {}).forEach(([status, count]) => {
+        const percentage = ((count as number) / totalRecords * 100).toFixed(2) + '%';
         const row = statusSheet.addRow({ status, count, percentage });
         row.height = ROW_HEIGHT;
         row.eachCell({ includeEmpty: true }, (cell) => {
@@ -446,107 +386,25 @@ export function TreatmentPlanStatistics() {
         });
       });
       
-      // Create monthly distribution sheet
-      const monthlySheet = workbook.addWorksheet('Monthly Distribution');
-      monthlySheet.columns = [
-        { header: 'Month', key: 'month', width: 20 },
-        { header: 'Count', key: 'count', width: 15 },
-        { header: 'Percentage', key: 'percentage', width: 15 }
-      ];
-      
-      // Format header
-      formatSheetHeader(monthlySheet);
-      
-      // Add monthly data
-      Object.entries(dataToExport.treatmentPlansByMonth || {}).forEach(([month, count]) => {
-        const percentage = ((count as number) / totalPlans * 100).toFixed(2) + '%';
-        const row = monthlySheet.addRow({ month, count, percentage });
-        row.height = ROW_HEIGHT;
-        row.eachCell({ includeEmpty: true }, (cell) => {
-          cell.border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' }
-          };
-          cell.alignment = { vertical: 'middle', horizontal: 'left' };
-        });
-      });
-      
-      // Create drugs distribution sheet
-      const drugsSheet = workbook.addWorksheet('Top Drugs');
+      // Create top drugs sheet
+      const drugsSheet = workbook.addWorksheet('Top Drugs by Quantity');
       drugsSheet.columns = [
-        { header: 'Drug', key: 'drug', width: 30 },
-        { header: 'Count', key: 'count', width: 15 },
+        { header: 'Drug Name', key: 'drugName', width: 30 },
+        { header: 'Drug Code', key: 'drugCode', width: 15 },
+        { header: 'Quantity', key: 'quantity', width: 15 },
         { header: 'Percentage', key: 'percentage', width: 15 }
       ];
       
       // Format header
       formatSheetHeader(drugsSheet);
       
-      // Add drugs data
-      Object.entries(dataToExport.treatmentPlansByDrug || {}).forEach(([drug, count]) => {
-        const percentage = ((count as number) / totalPlans * 100).toFixed(2) + '%';
-        const row = drugsSheet.addRow({ drug, count, percentage });
-        row.height = ROW_HEIGHT;
-        row.eachCell({ includeEmpty: true }, (cell) => {
-          cell.border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' }
-          };
-          cell.alignment = { vertical: 'middle', horizontal: 'left' };
-        });
-      });
-      
-      // Create staff distribution sheet
-      const staffSheet = workbook.addWorksheet('Top Staff');
-      staffSheet.columns = [
-        { header: 'Staff', key: 'staff', width: 30 },
-        { header: 'Count', key: 'count', width: 15 },
-        { header: 'Percentage', key: 'percentage', width: 15 }
-      ];
-      
-      // Format header
-      formatSheetHeader(staffSheet);
-      
-      // Add staff data
-      Object.entries(dataToExport.treatmentPlansByUser || {}).forEach(([staff, count]) => {
-        const percentage = ((count as number) / totalPlans * 100).toFixed(2) + '%';
-        const row = staffSheet.addRow({ staff, count, percentage });
-        row.height = ROW_HEIGHT;
-        row.eachCell({ includeEmpty: true }, (cell) => {
-          cell.border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' }
-          };
-          cell.alignment = { vertical: 'middle', horizontal: 'left' };
-        });
-      });
-      
-      // Create patient distribution sheet
-      const patientSheet = workbook.addWorksheet('Patient Distribution');
-      patientSheet.columns = [
-        { header: 'Treatment Plans', key: 'planCount', width: 20 },
-        { header: 'Patient Count', key: 'patientCount', width: 15 },
-        { header: 'Percentage', key: 'percentage', width: 15 }
-      ];
-      
-      // Format header
-      formatSheetHeader(patientSheet);
-      
-      // Calculate total patients
-      const totalPatients = Object.values(dataToExport.patientDistribution || {}).reduce((sum, count) => sum + (count as number), 0) || 1;
-      
-      // Add patient distribution data
-      Object.entries(dataToExport.patientDistribution || {}).forEach(([planCount, patientCount]) => {
-        const percentage = ((patientCount as number) / totalPatients * 100).toFixed(2) + '%';
-        const row = patientSheet.addRow({ 
-          planCount: `${planCount} plan(s)`,
-          patientCount,
+      // Add top drugs data
+      dataToExport.topDrugsByQuantity.forEach(drug => {
+        const percentage = ((drug.totalQuantity) / (dataToExport.totalQuantityInStock || 1) * 100).toFixed(2) + '%';
+        const row = drugsSheet.addRow({ 
+          drugName: drug.drugName, 
+          drugCode: drug.drugCode, 
+          quantity: drug.totalQuantity,
           percentage
         });
         row.height = ROW_HEIGHT;
@@ -564,7 +422,7 @@ export function TreatmentPlanStatistics() {
       // Add export title with timestamp to each sheet
       const addExportHeader = (sheet: ExcelJS.Worksheet) => {
         sheet.insertRow(1, []);
-        sheet.insertRow(1, [`Treatment Plan Statistics Report - Exported on ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`]);
+        sheet.insertRow(1, [`Inventory Record Statistics Report - Exported on ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`]);
         sheet.getRow(1).font = { bold: true, size: 14 };
         sheet.getRow(1).height = 30;
         sheet.mergeCells(`A1:${String.fromCharCode(64 + sheet.columns.length)}1`);
@@ -578,9 +436,9 @@ export function TreatmentPlanStatistics() {
       
       // Generate filename with date
       const dateStr = startDate && endDate 
-        ? `_${formatDate(startDate)}_to_${formatDate(endDate)}`.replace(/\//g, '-')
+        ? `_${formatDate(startDate).replace(/\//g, '-')}_to_${formatDate(endDate).replace(/\//g, '-')}`
         : '_all_time';
-      const fileName = `treatment_plan_statistics${dateStr}.xlsx`;
+      const fileName = `inventory_statistics${dateStr}.xlsx`;
       
       // Export to file
       const buffer = await workbook.xlsx.writeBuffer();
@@ -615,7 +473,7 @@ export function TreatmentPlanStatistics() {
         title={
           <Space>
             <FileExcelOutlined style={{ color: '#52c41a' }} />
-            <span>Export Treatment Plan Statistics Report</span>
+            <span>Export Inventory Statistics Report</span>
           </Space>
         }
         open={exportModalVisible}
@@ -629,6 +487,7 @@ export function TreatmentPlanStatistics() {
             key="exportAll"
             type="primary"
             icon={<FileExcelOutlined />}
+            loading={loading}
             onClick={() => exportToExcel()}
           >
             Export All Data
@@ -637,6 +496,7 @@ export function TreatmentPlanStatistics() {
             key="exportRange"
             type="primary"
             icon={<FileExcelOutlined />}
+            loading={loading}
             disabled={!exportDateRange[0] || !exportDateRange[1]}
             onClick={() => {
               if (exportDateRange[0] && exportDateRange[1]) {
@@ -668,9 +528,9 @@ export function TreatmentPlanStatistics() {
               message="Report Contents"
               description={
                 <div>
-                  The export includes detailed statistics about treatment plans
-                  across multiple sheets including summary data, status distribution, 
-                  monthly trends, top drugs, and staff performance metrics.
+                  The export includes detailed statistics about inventory records
+                  across multiple sheets including summary data, status distribution,
+                  and top drugs by quantity.
                 </div>
               }
               type="info"
@@ -685,10 +545,7 @@ export function TreatmentPlanStatistics() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: "8px" }}>
             <Tag color="orange">Summary Statistics</Tag>
             <Tag color="green">Status Distribution</Tag>
-            <Tag color="blue">Monthly Distribution</Tag>
-            <Tag color="purple">Top Drugs</Tag>
-            <Tag color="cyan">Top Staff</Tag>
-            <Tag color="magenta">Patient Distribution</Tag>
+            <Tag color="blue">Top Drugs by Quantity</Tag>
           </div>
         </div>
       </Modal>
@@ -703,87 +560,53 @@ export function TreatmentPlanStatistics() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
+        {contextHolder}
         <Spin size="large" />
       </div>
     );
   }
 
-  if (!statistics) return null;
+  if (!statistics) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        {contextHolder}
+        <Empty description="No statistics available" />
+      </div>
+    );
+  }
 
   // Data processing functions
   const prepareChartData = () => {
     // Status distribution data
     const statusChartData: ChartDataItem[] = Object.entries(
-      statistics.treatmentPlansByStatus || {}
+      statistics.inventoryStatusDistribution || {}
     ).map(([status, count]) => ({
       name: status,
       value: count as number,
     }));
 
-    // Monthly distribution data
-    const monthlyChartData: ChartDataItem[] = Object.entries(
-      statistics.treatmentPlansByMonth || {}
-    ).map(([month, count]) => ({
-      name: month,
-      count: count as number,
-      value: count as number,
-    }));
-
-    // Top drugs data
-    const drugChartData: ChartDataItem[] = Object.entries(
-      statistics.treatmentPlansByDrug || {}
-    ).map(([drug, count], index) => ({
-      name: drug,
-      count: count as number,
-      value: count as number,
+    // Top drugs by quantity data
+    const drugsChartData: ChartDataItem[] = statistics.topDrugsByQuantity.map((drug, index) => ({
+      name: drug.drugName,
+      value: drug.totalQuantity,
+      drugCode: drug.drugCode,
       fill: COLORS[index % COLORS.length],
-    }));
-
-    // Top staff data
-    const userChartData: ChartDataItem[] = Object.entries(
-      statistics.treatmentPlansByUser || {}
-    ).map(([user, count], index) => ({
-      name: user,
-      count: count as number,
-      value: count as number,
-      fill: COLORS[index % COLORS.length],
-    }));
-
-    // Patient distribution data
-    const patientDistributionData: ChartDataItem[] = Object.entries(
-      statistics.patientDistribution || {}
-    ).map(([planCount, patientCount]) => ({
-      name: `${planCount} plan(s)`,
-      value: patientCount as number,
     }));
 
     return {
       statusChartData,
-      monthlyChartData,
-      drugChartData,
-      userChartData,
-      patientDistributionData,
+      drugsChartData,
     };
   };
 
   // Format date range display
-  const formatDate = (date: Date | null): string => {
-    return date ? dayjs(date).format("DD/MM/YYYY") : "";
-  };
-
   const dateRangeDisplay =
     dateRange[0] && dateRange[1]
       ? `${formatDate(dateRange[0])} to ${formatDate(dateRange[1])}`
       : "All Time";
 
   // Extract chart data
-  const {
-    statusChartData,
-    monthlyChartData,
-    drugChartData,
-    userChartData,
-    patientDistributionData,
-  } = prepareChartData();
+  const { statusChartData, drugsChartData } = prepareChartData();
 
   // Custom chart renderer based on type
   const renderChart = (
@@ -841,7 +664,7 @@ export function TreatmentPlanStatistics() {
                     />
                   ))}
                 </Pie>
-                <RechartsTooltip formatter={(value) => [`${value} plans`]} />
+                <RechartsTooltip formatter={(value) => [`${value} items`]} />
                 <Legend
                   layout="vertical"
                   verticalAlign="middle"
@@ -865,13 +688,13 @@ export function TreatmentPlanStatistics() {
                   height={70}
                 />
                 <YAxis />
-                <RechartsTooltip formatter={(value) => [`${value} plans`]} />
+                <RechartsTooltip formatter={(value) => [`${value} items`]} />
                 <Legend />
-                <Bar dataKey="value" name="Number of Plans">
+                <Bar dataKey="value" name="Quantity">
                   {data.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
+                      fill={entry.fill || COLORS[index % COLORS.length]}
                     />
                   ))}
                 </Bar>
@@ -893,13 +716,13 @@ export function TreatmentPlanStatistics() {
                   height={70}
                 />
                 <YAxis />
-                <RechartsTooltip formatter={(value) => [`${value} plans`]} />
+                <RechartsTooltip formatter={(value) => [`${value} items`]} />
                 <Legend />
                 <Line
                   type="monotone"
                   dataKey="value"
                   stroke={token.colorPrimary}
-                  name="Number of Plans"
+                  name="Quantity"
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -919,14 +742,14 @@ export function TreatmentPlanStatistics() {
                   height={70}
                 />
                 <YAxis />
-                <RechartsTooltip formatter={(value) => [`${value} plans`]} />
+                <RechartsTooltip formatter={(value) => [`${value} items`]} />
                 <Legend />
                 <Area
                   type="monotone"
                   dataKey="value"
                   stroke={token.colorPrimary}
                   fill={token.colorPrimaryBg}
-                  name="Number of Plans"
+                  name="Quantity"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -939,14 +762,14 @@ export function TreatmentPlanStatistics() {
                 <PolarAngleAxis dataKey="name" />
                 <PolarRadiusAxis />
                 <Radar
-                  name="Number of Plans"
+                  name="Quantity"
                   dataKey="value"
                   stroke={token.colorPrimary}
                   fill={token.colorPrimaryBg}
                   fillOpacity={0.6}
                 />
                 <Legend />
-                <RechartsTooltip formatter={(value) => [`${value} plans`]} />
+                <RechartsTooltip formatter={(value) => [`${value} items`]} />
               </RadarChart>
             </ResponsiveContainer>
           );
@@ -968,11 +791,11 @@ export function TreatmentPlanStatistics() {
                 <YAxis type="number" dataKey="value" name="Value" />
                 <RechartsTooltip
                   cursor={{ strokeDasharray: "3 3" }}
-                  formatter={(value) => [`${value} plans`]}
+                  formatter={(value) => [`${value} items`]}
                 />
                 <Legend />
                 <Scatter
-                  name="Number of Plans"
+                  name="Quantity"
                   data={data}
                   fill={token.colorPrimary}
                 />
@@ -994,13 +817,13 @@ export function TreatmentPlanStatistics() {
                   height={70}
                 />
                 <YAxis />
-                <RechartsTooltip formatter={(value) => [`${value} plans`]} />
+                <RechartsTooltip formatter={(value) => [`${value} items`]} />
                 <Legend />
-                <Bar dataKey="value" name="Number of Plans">
+                <Bar dataKey="value" name="Quantity">
                   {data.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
+                      fill={entry.fill || COLORS[index % COLORS.length]}
                     />
                   ))}
                 </Bar>
@@ -1026,12 +849,12 @@ export function TreatmentPlanStatistics() {
       label: (
         <Space align="center">
           Status Distribution
-          <AntTooltip title="Shows distribution of treatment plans by their status (e.g., Active, Completed, Cancelled)">
+          <AntTooltip title="Shows distribution of inventory records by their status (e.g., Active, Inactive)">
             <QuestionCircleOutlined />
           </AntTooltip>
         </Space>
       ),
-      content: renderChart(
+      children: renderChart(
         "status",
         statusChartData,
         statusChartType,
@@ -1042,68 +865,17 @@ export function TreatmentPlanStatistics() {
       key: "2",
       label: (
         <Space align="center">
-          Monthly Distribution
-          <AntTooltip title="Shows number of treatment plans created in each month">
+          Top Drugs by Quantity
+          <AntTooltip title="Shows the top drugs with the highest quantity in stock">
             <QuestionCircleOutlined />
           </AntTooltip>
         </Space>
       ),
-      content: renderChart(
-        "monthly",
-        monthlyChartData,
-        monthlyChartType,
-        setMonthlyChartType
-      ),
-    },
-    {
-      key: "3",
-      label: (
-        <Space align="center">
-          Top Drugs
-          <AntTooltip title="Shows the most frequently used drugs in treatment plans">
-            <QuestionCircleOutlined />
-          </AntTooltip>
-        </Space>
-      ),
-      content: renderChart(
+      children: renderChart(
         "drugs",
-        drugChartData,
-        drugChartType,
-        setDrugChartType
-      ),
-    },
-    {
-      key: "4",
-      label: (
-        <Space align="center">
-          Top Staff
-          <AntTooltip title="Shows staff members who created the most treatment plans">
-            <QuestionCircleOutlined />
-          </AntTooltip>
-        </Space>
-      ),
-      content: renderChart(
-        "staff",
-        userChartData,
-        staffChartType,
-        setStaffChartType
-      ),
-    },
-    {
-      key: "5",
-      label: (
-        <Space align="center">
-          Patient Distribution
-          <AntTooltip title="Shows distribution of patients by the number of treatment plans they have">
-            <QuestionCircleOutlined />
-          </AntTooltip>
-        </Space>
-      ),
-      content: renderChart(
-        "patient",
-        patientDistributionData,
-        patientDistChartType,
-        setPatientDistChartType
+        drugsChartData,
+        drugsChartType,
+        setDrugsChartType
       ),
     },
   ];
@@ -1123,7 +895,7 @@ export function TreatmentPlanStatistics() {
           </Button>
           <BarChartOutlined style={{ fontSize: "24px" }} />
           <h3 className="text-xl font-bold">
-            Treatment Plan Statistics Dashboard
+            Inventory Record Statistics Dashboard
           </h3>
         </div>
       </div>
@@ -1253,336 +1025,172 @@ export function TreatmentPlanStatistics() {
   );
 
   const renderStatisticsCards = () => (
-    <>
-      <Row gutter={16} className="mb-6">
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    Total Treatment Plans
-                  </Title>
-                  <AntTooltip title="Total number of treatment plans in the selected time period">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics.totalTreatmentPlans}
-              prefix={<Badge status="default" />}
-              valueStyle={{ color: token.colorTextHeading }}
-            />
-            <div style={{ marginTop: "10px" }}>
-              <Progress
-                percent={100}
-                showInfo={false}
-                strokeColor={token.colorTextHeading}
-              />
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    Active Treatment Plans
-                  </Title>
-                  <AntTooltip title="Number of treatment plans currently in progress or active status">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics.totalActiveTreatmentPlans}
-              prefix={<Badge status="processing" />}
-              valueStyle={{ color: "#1677ff" }}
-            />
-            <div style={{ marginTop: "10px" }}>
-              <Progress
-                percent={
-                  (statistics.totalActiveTreatmentPlans /
-                    statistics.totalTreatmentPlans) *
-                  100
-                }
-                showInfo={false}
-                strokeColor="#1677ff"
-              />
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    Completed Treatment Plans
-                  </Title>
-                  <AntTooltip title="Number of treatment plans that have been successfully completed">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics.totalCompletedTreatmentPlans}
-              prefix={<Badge status="success" />}
-              valueStyle={{ color: "#52c41a" }}
-            />
-            <div style={{ marginTop: "10px" }}>
-              <Progress
-                percent={
-                  (statistics.totalCompletedTreatmentPlans /
-                    statistics.totalTreatmentPlans) *
-                  100
-                }
-                showInfo={false}
-                strokeColor="#52c41a"
-              />
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    Cancelled Treatment Plans
-                  </Title>
-                  <AntTooltip title="Number of treatment plans that were cancelled before completion">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics.totalCancelledTreatmentPlans}
-              prefix={<Badge status="error" />}
-              valueStyle={{ color: "#cf1322" }}
-            />
-            <div style={{ marginTop: "10px" }}>
-              <Progress
-                percent={
-                  (statistics.totalCancelledTreatmentPlans /
-                    statistics.totalTreatmentPlans) *
-                  100
-                }
-                showInfo={false}
-                strokeColor="#cf1322"
-              />
-            </div>
-          </Card>
-        </Col>
-      </Row>
+    <div className="statistics-cards-container" style={{ 
+      display: "flex", 
+      flexWrap: "wrap", 
+      gap: "16px", 
+      marginBottom: "24px" 
+    }}>
+      <Card
+        hoverable
+        className="statistic-card"
+        style={{
+          flex: "1 1 260px",
+          minWidth: "260px",
+          maxWidth: "100%",
+          borderRadius: "8px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+        }}
+      >
+        <Statistic
+          title={
+            <Space align="center">
+              <Title level={5} style={{ margin: 0 }}>
+                Active Inventory Records
+              </Title>
+              <AntTooltip title="Total number of active inventory records">
+                <QuestionCircleOutlined
+                  style={{
+                    fontSize: "14px",
+                    color: token.colorTextSecondary,
+                  }}
+                />
+              </AntTooltip>
+            </Space>
+          }
+          value={statistics.totalActiveInventoryRecords}
+          prefix={<MedicineBoxOutlined />}
+          valueStyle={{ color: token.colorTextHeading }}
+        />
+        <div style={{ marginTop: "10px" }}>
+          <Progress
+            percent={100}
+            showInfo={false}
+            strokeColor={token.colorTextHeading}
+          />
+        </div>
+      </Card>
 
-      <Row gutter={16} className="mb-6">
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    Average Duration (days)
-                  </Title>
-                  <AntTooltip title="Average number of days between the start and end dates of treatment plans">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics.averageDuration?.toFixed(2) || 0}
-              precision={2}
-              valueStyle={{ color: token.colorInfo }}
-            />
-            <div style={{ marginTop: "10px" }}>
-              <Progress
-                percent={Math.min((statistics.averageDuration / 30) * 100, 100)}
-                showInfo={false}
-                strokeColor={token.colorInfo}
-              />
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    Completion Rate (%)
-                  </Title>
-                  <AntTooltip title="Percentage of treatment plans that were successfully completed out of the total plans">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics.completionRate?.toFixed(2) || 0}
-              precision={2}
-              valueStyle={{ color: "#1677ff" }}
-              suffix="%"
-            />
-            <div style={{ marginTop: "10px" }}>
-              <Progress
-                percent={statistics.completionRate}
-                showInfo={false}
-                strokeColor="#1677ff"
-              />
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    Cancellation Rate (%)
-                  </Title>
-                  <AntTooltip title="Percentage of treatment plans that were cancelled out of the total plans">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics.cancellationRate?.toFixed(2) || 0}
-              precision={2}
-              valueStyle={{ color: "#cf1322" }}
-              suffix="%"
-            />
-            <div style={{ marginTop: "10px" }}>
-              <Progress
-                percent={statistics.cancellationRate}
-                showInfo={false}
-                strokeColor="#cf1322"
-              />
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    Avg Plans Per Patient
-                  </Title>
-                  <AntTooltip title="Average number of treatment plans per patient, indicating how many treatments patients typically receive">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={
-                statistics.averageTreatmentPlansPerPatient?.toFixed(2) || 0
-              }
-              precision={2}
-              valueStyle={{ color: token.colorSuccess }}
-            />
-            <div style={{ marginTop: "10px" }}>
-              <Progress
-                percent={Math.min(
-                  (statistics.averageTreatmentPlansPerPatient / 3) * 100,
-                  100
-                )}
-                showInfo={false}
-                strokeColor={token.colorSuccess}
-              />
-            </div>
-          </Card>
-        </Col>
-      </Row>
-    </>
+      <Card
+        hoverable
+        className="statistic-card"
+        style={{
+          flex: "1 1 260px",
+          minWidth: "260px",
+          maxWidth: "100%",
+          borderRadius: "8px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+        }}
+      >
+        <Statistic
+          title={
+            <Space align="center">
+              <Title level={5} style={{ margin: 0 }}>
+                Drugs in Stock
+              </Title>
+              <AntTooltip title="Number of unique drugs currently in stock">
+                <QuestionCircleOutlined
+                  style={{
+                    fontSize: "14px",
+                    color: token.colorTextSecondary,
+                  }}
+                />
+              </AntTooltip>
+            </Space>
+          }
+          value={statistics.totalDrugsInStock}
+          prefix={<Badge status="success" />}
+          valueStyle={{ color: "#52c41a" }}
+        />
+        <div style={{ marginTop: "10px" }}>
+          <Progress
+            percent={100}
+            showInfo={false}
+            strokeColor="#52c41a"
+          />
+        </div>
+      </Card>
+
+      <Card
+        hoverable
+        className="statistic-card"
+        style={{
+          flex: "1 1 260px",
+          minWidth: "260px",
+          maxWidth: "100%",
+          borderRadius: "8px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+        }}
+      >
+        <Statistic
+          title={
+            <Space align="center">
+              <Title level={5} style={{ margin: 0 }}>
+                Total Quantity
+              </Title>
+              <AntTooltip title="Total quantity of all drugs in inventory">
+                <QuestionCircleOutlined
+                  style={{
+                    fontSize: "14px",
+                    color: token.colorTextSecondary,
+                  }}
+                />
+              </AntTooltip>
+            </Space>
+          }
+          value={statistics.totalQuantityInStock}
+          prefix={<Badge status="processing" />}
+          valueStyle={{ color: "#1677ff" }}
+        />
+        <div style={{ marginTop: "10px" }}>
+          <Progress
+            percent={100}
+            showInfo={false}
+            strokeColor="#1677ff"
+          />
+        </div>
+      </Card>
+
+      <Card
+        hoverable
+        className="statistic-card"
+        style={{
+          flex: "1 1 260px",
+          minWidth: "260px",
+          maxWidth: "100%",
+          borderRadius: "8px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+        }}
+      >
+        <Statistic
+          title={
+            <Space align="center">
+              <Title level={5} style={{ margin: 0 }}>
+                Low Stock Items
+              </Title>
+              <AntTooltip title="Number of items below their reorder level">
+                <QuestionCircleOutlined
+                  style={{
+                    fontSize: "14px",
+                    color: token.colorTextSecondary,
+                  }}
+                />
+              </AntTooltip>
+            </Space>
+          }
+          value={statistics.lowStockItems}
+          prefix={<WarningOutlined style={{ color: "#faad14" }} />}
+          valueStyle={{ color: "#faad14" }}
+        />
+        <div style={{ marginTop: "10px" }}>
+          <Progress
+            percent={(statistics.lowStockItems / (statistics.totalActiveInventoryRecords || 1)) * 100}
+            showInfo={false}
+            strokeColor="#faad14"
+          />
+        </div>
+      </Card>
+    </div>
   );
 
   const renderChartTabs = () => (
@@ -1597,23 +1205,24 @@ export function TreatmentPlanStatistics() {
         tabBarStyle={{ marginBottom: "24px" }}
         tabBarGutter={20}
         type="card"
-        items={tabItems.map((item) => ({
-          key: item.key,
-          label: item.label,
-          children: item.content,
-        }))}
+        items={tabItems}
       />
     </Card>
   );
 
   // Main component return
   return (
-    <div className="history-container" style={{ padding: "20px" }}>
+    <div className="inventory-statistics-container">
       {contextHolder}
-      {renderFilterSection()}
-      {renderStatisticsCards()}
-      {renderChartTabs()}
-      {renderExportModal()}
+      <div className="container px-4 sm:px-6 mx-auto" style={{ maxWidth: "1600px" }}>
+        {renderFilterSection()}
+        {renderStatisticsCards()}
+        <div className="chart-container" style={{ maxWidth: "100%", overflowX: "auto" }}>
+          {renderChartTabs()}
+        </div>
+        {renderExportModal()}
+      </div>
     </div>
   );
 }
+
