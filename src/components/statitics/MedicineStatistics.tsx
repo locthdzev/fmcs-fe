@@ -305,7 +305,7 @@ export function DrugStatistics() {
             bottom: { style: 'thin' },
             right: { style: 'thin' }
           };
-          cell.alignment = { vertical: 'middle' };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
         });
       });
       
@@ -346,7 +346,7 @@ export function DrugStatistics() {
             bottom: { style: 'thin' },
             right: { style: 'thin' }
           };
-          cell.alignment = { vertical: 'middle' };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
         });
       });
       
@@ -376,7 +376,7 @@ export function DrugStatistics() {
             bottom: { style: 'thin' },
             right: { style: 'thin' }
           };
-          cell.alignment = { vertical: 'middle' };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
         });
       });
       
@@ -413,7 +413,7 @@ export function DrugStatistics() {
                 bottom: { style: 'thin' },
                 right: { style: 'thin' }
               };
-              cell.alignment = { vertical: 'middle' };
+              cell.alignment = { vertical: 'middle', horizontal: 'left' };
             });
           });
         }
@@ -439,7 +439,7 @@ export function DrugStatistics() {
                 bottom: { style: 'thin' },
                 right: { style: 'thin' }
               };
-              cell.alignment = { vertical: 'middle' };
+              cell.alignment = { vertical: 'middle', horizontal: 'left' };
             });
           });
         }
@@ -465,7 +465,7 @@ export function DrugStatistics() {
                 bottom: { style: 'thin' },
                 right: { style: 'thin' }
               };
-              cell.alignment = { vertical: 'middle' };
+              cell.alignment = { vertical: 'middle', horizontal: 'left' };
             });
           });
         }
@@ -491,7 +491,7 @@ export function DrugStatistics() {
                 bottom: { style: 'thin' },
                 right: { style: 'thin' }
               };
-              cell.alignment = { vertical: 'middle' };
+              cell.alignment = { vertical: 'middle', horizontal: 'left' };
             });
           });
         }
@@ -518,7 +518,7 @@ export function DrugStatistics() {
                 bottom: { style: 'thin' },
                 right: { style: 'thin' }
               };
-              cell.alignment = { vertical: 'middle' };
+              cell.alignment = { vertical: 'middle', horizontal: 'left' };
             });
           });
         }
@@ -545,7 +545,7 @@ export function DrugStatistics() {
                 bottom: { style: 'thin' },
                 right: { style: 'thin' }
               };
-              cell.alignment = { vertical: 'middle' };
+              cell.alignment = { vertical: 'middle', horizontal: 'left' };
             });
           });
         }
@@ -586,10 +586,7 @@ export function DrugStatistics() {
             bottom: { style: 'thin' },
             right: { style: 'thin' }
           };
-          cell.alignment = { vertical: 'middle' };
-          
-          // Apply common formatting to all cells
-          cell.alignment = { vertical: 'middle' };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
         });
       });
 
@@ -624,7 +621,7 @@ export function DrugStatistics() {
             bottom: { style: 'thin' },
             right: { style: 'thin' }
           };
-          cell.alignment = { vertical: 'middle' };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
         });
       });
       
@@ -2126,23 +2123,7 @@ export function DrugStatistics() {
         <Divider orientation="left">Report Format Information</Divider>
         
         <div style={{ marginBottom: "16px" }}>
-          <Space direction="vertical" style={{ width: '100%' }}>
-            <Alert
-              message="New Excel Export Format Features"
-              description={
-                <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
-                  <li>Orange headers with white bold text for better visibility</li>
-                  <li>Consistent row heights across all tables</li>
-                  <li>Export timestamp information in each sheet header</li>
-                  <li>Added percentage calculations for statistical data</li>
-                  <li>Improved table formatting with borders for better readability</li>
-                  <li>Information sheet with export details</li>
-                </ul>
-              }
-              type="success"
-              showIcon
-            />
-            
+          <Space direction="vertical" style={{ width: '100%' }}>            
             <Alert
               message="Report Contents"
               description={

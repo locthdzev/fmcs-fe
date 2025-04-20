@@ -307,9 +307,21 @@ export const restoreSoftDeletedPrescriptions = async (
   }
 };
 
-export const getPrescriptionStatistics = async () => {
+export const getPrescriptionStatistics = async (startDate?: Date, endDate?: Date) => {
   try {
-    const response = await api.get("/prescription-management/prescriptions/statistics");
+    const params: any = {};
+    
+    if (startDate) {
+      params.startDate = startDate.toISOString();
+    }
+    
+    if (endDate) {
+      params.endDate = endDate.toISOString();
+    }
+    
+    const response = await api.get("/prescription-management/prescriptions/statistics", {
+      params
+    });
     const data = response.data;
     // Map isSuccess to success if needed
     if (data.isSuccess !== undefined && data.success === undefined) {

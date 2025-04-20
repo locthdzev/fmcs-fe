@@ -30,6 +30,9 @@ import { SurveyForUserIcon } from "./icons/SurveyForUserIcon";
 import { SurveyStatisticsIcon } from "./icons/SurveyStatisticsIcon";
 import { StatisticsofalldrugsIcon } from "./icons/Statisticsofalldrugs";
 import { SurveyForStaffIcon } from "./icons/SurveyForStaffIcon";
+import { PrescriptionStatisticsIcon } from "./icons/PrescriptionStatisticsIcon";
+import CanteenOrderStatisticsIcon from "./icons/CanteenOrderStatisticsIcon";
+import InventoryRecordStatictisIcon from "./icons/InventoryRecordStatictisIcon";
 
 export const data = [
   {
@@ -60,6 +63,21 @@ export const data = [
             title: "Survey Statistics",
             icon: <SurveyStatisticsIcon />,
             link: "/statistics/survey",
+          },
+          {
+            title: "Prescription Statistics",
+            icon: <PrescriptionStatisticsIcon />,
+            link: "/statistics/prescription",
+          },
+          {
+            title: "Canteen Order Statistics",
+            icon: <CanteenOrderStatisticsIcon />,
+            link: "/statistics/canteenorder",
+          },
+          {
+            title: "Inventory Record Statistics",
+            icon: <InventoryRecordStatictisIcon />,
+            link: "/statistics/inventoryrecord",
           },
         ],
       },

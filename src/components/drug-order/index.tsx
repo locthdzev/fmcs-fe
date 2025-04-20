@@ -1251,7 +1251,7 @@ export function DrugOrders() {
             supplierName: supplier.supplierName,
           }))
         );
-      } catch (error) {
+    } catch (error) {
         console.error("Error loading export options:", error);
       }
     };

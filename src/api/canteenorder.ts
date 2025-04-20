@@ -287,3 +287,53 @@ export const exportCanteenOrdersToExcel = async (config: CanteenOrderExportConfi
     throw new Error(error.message || "Failed to export to Excel");
   }
 };
+
+export interface CanteenOrderStatisticsDTO {
+  totalOrders: number;
+  pendingOrders: number;
+  approvedOrders: number;
+  rejectedOrders: number;
+  completedOrders: number;
+  startDate?: string;
+  endDate?: string;
+  ordersByTruck: Record<string, number>;
+  ordersByDate: Record<string, number>;
+}
+
+export const getCanteenOrderStatistics = async (startDate?: Date, endDate?: Date) => {
+  try {
+    const params: any = {};
+    
+    if (startDate) {
+      params.startDate = startDate.toISOString();
+    }
+    
+    if (endDate) {
+      params.endDate = endDate.toISOString();
+    }
+    
+    const response = await api.get("/canteenorder-management/statistics", { params });
+    
+    // Check for success
+    if (response.data && (response.data.isSuccess || response.data.IsSuccess)) {
+      return {
+        success: true,
+        data: response.data.data || response.data.Data,
+        message: response.data.message || response.data.Message
+      };
+    } else {
+      return {
+        success: false,
+        message: response.data.message || response.data.Message || "Failed to fetch canteen order statistics",
+        data: null
+      };
+    }
+  } catch (error: any) {
+    console.error("Error fetching canteen order statistics:", error);
+    return {
+      success: false,
+      message: error.response?.data?.message || error.message || "An unexpected error occurred",
+      data: null
+    };
+  }
+};
