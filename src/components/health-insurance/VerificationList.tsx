@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { List, Card, Button, Avatar, Tag, Skeleton, Typography, Space, Row, Col, Empty, message } from "antd";
-import { UserOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined } from "@ant-design/icons";
+import { UserOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import VerificationModal from "./VerificationModal";
@@ -78,15 +78,9 @@ const VerificationList: React.FC<VerificationListProps> = ({
             <Card
               hoverable
               className="verification-card"
+              onClick={() => handleViewDetails(request)}
               actions={[
-                <Button 
-                  key="view" 
-                  type="primary" 
-                  icon={<EyeOutlined />} 
-                  onClick={() => handleViewDetails(request)}
-                >
-                  View Details
-                </Button>,
+                <RightOutlined key="arrow" style={{ fontSize: '16px', color: '#1890ff' }} />,
               ]}
             >
               <Skeleton loading={loading} active avatar>

@@ -930,6 +930,7 @@ const HealthInsuranceManagement: React.FC = () => {
         selectedRowKeys={selectedRowKeys}
         pageSize={pageSize}
         onPageSizeChange={setPageSize}
+        useItemsLabel={activeTab === "verification" || activeTab === "updateRequest"}
         bulkActions={
           ["verification", "updateRequest", "softDelete"].indexOf(activeTab) ===
           -1
@@ -1052,6 +1053,7 @@ const HealthInsuranceManagement: React.FC = () => {
         pageSize={pageSize}
         total={total}
         onChange={handlePageChange}
+        useItemsLabel={activeTab === "verification" || activeTab === "updateRequest"}
       />
 
       {/* Modals */}

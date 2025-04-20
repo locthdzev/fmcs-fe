@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { List, Card, Button, Avatar, Tag, Skeleton, Typography, Space, Row, Col, message } from "antd";
-import { UserOutlined, EyeOutlined } from "@ant-design/icons";
+import { UserOutlined, EyeOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import ReviewModal from "./ReviewModal";
@@ -62,15 +62,9 @@ const InsuranceUpdateRequestList: React.FC<InsuranceUpdateRequestListProps> = ({
             <Card
               hoverable
               className="update-request-card"
+              onClick={() => handleViewDetails(request)}
               actions={[
-                <Button 
-                  key="view" 
-                  type="primary" 
-                  icon={<EyeOutlined />} 
-                  onClick={() => handleViewDetails(request)}
-                >
-                  Review Request
-                </Button>,
+                <RightOutlined key="arrow" style={{ fontSize: '16px', color: '#1890ff' }} />,
               ]}
             >
               <Skeleton loading={loading} active avatar>
