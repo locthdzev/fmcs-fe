@@ -1030,7 +1030,11 @@ export function Trucks() {
 
         {selectedItemTypes.hasInactive && (
           <AntButton
-            className="bg-success-100 text-success border-success"
+            style={{ 
+              backgroundColor: "#f6ffed", 
+              color: "#52c41a", 
+              borderColor: "#b7eb8f" 
+            }}
             onClick={() => handleOpenConfirmBulkAction("activate")}
             disabled={loading}
           >
@@ -1040,7 +1044,11 @@ export function Trucks() {
 
         {selectedItemTypes.hasActive && (
           <AntButton
-            className="bg-danger-100 text-danger border-danger"
+            style={{ 
+              backgroundColor: "#fff2f0", 
+              color: "#ff4d4f", 
+              borderColor: "#ffccc7" 
+            }}
             onClick={() => handleOpenConfirmBulkAction("deactivate")}
             disabled={loading}
           >
@@ -1066,6 +1074,8 @@ export function Trucks() {
           <Select.Option value={10}>10</Select.Option>
           <Select.Option value={15}>15</Select.Option>
           <Select.Option value={20}>20</Select.Option>
+          <Select.Option value={50}>50</Select.Option>
+          <Select.Option value={100}>100</Select.Option>
         </Select>
       </div>
     );
@@ -1189,7 +1199,6 @@ export function Trucks() {
                           disabled={!isFiltersApplied && !filterValue}
                           style={{ height: "32px" }}
                         >
-                          Reset
                         </AntButton>
                       </AntTooltip>
 
