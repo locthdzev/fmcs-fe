@@ -419,18 +419,30 @@ export const getUserStatistics = async (
 
 export const getUserById = async (userId: string): Promise<UserResponseDTO> => {
   try {
-    const response = await api.get<{
-      isSuccess: boolean;
-      data: UserResponseDTO;
-      code: number;
-      message?: string;
-    }>(`/user-management/users/${userId}`);
-    if (response.data.isSuccess && response.data.data) {
-      return response.data.data;
-    }
-    throw new Error(response.data.message || "Failed to fetch user.");
+    const response = await api.get(`/user-management/users/${userId}`);
+    return response.data.data;
   } catch (error) {
     throw error;
+  }
+};
+
+export const getActiveUsersWithoutInsurance = async () => {
+  try {
+    const response = await api.get("/user-management/users/active-without-insurance");
+    return {
+      isSuccess: response.data.isSuccess,
+      code: response.data.code,
+      message: response.data.message,
+      data: response.data.data || [],
+    };
+  } catch (error: any) {
+    console.error("Error fetching active users without insurance:", error);
+    return {
+      isSuccess: false,
+      code: error.response?.status || 500,
+      message: error.response?.data?.message || "Failed to fetch users without insurance",
+      data: [],
+    };
   }
 };
 
