@@ -112,9 +112,7 @@ const VerifiedTable: React.FC<VerifiedTableProps> = ({
         messageApi.success("Health insurance deleted successfully");
         refreshData();
       } else {
-        messageApi.error(
-          result.message || "Failed to delete health insurance"
-        );
+        messageApi.error(result.message || "Failed to delete health insurance");
       }
     } catch (error) {
       messageApi.error("Failed to delete health insurance");
@@ -228,7 +226,10 @@ const VerifiedTable: React.FC<VerifiedTableProps> = ({
         if (!user) return "";
         return (
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <a onClick={() => router.push(`/user/${user.id}`)} style={{ color: "#1890ff" }}>
+            <a
+              onClick={() => router.push(`/user/${user.id}`)}
+              style={{ color: "#1890ff" }}
+            >
               {user.fullName}
             </a>
             <span style={{ fontSize: "12px", color: "#888" }}>
@@ -253,8 +254,14 @@ const VerifiedTable: React.FC<VerifiedTableProps> = ({
       dataIndex: "healthInsuranceNumber",
       key: "insuranceNumber",
       width: 200,
-      render: (healthInsuranceNumber: string, record: HealthInsuranceResponseDTO) => (
-        <a onClick={() => router.push(`/health-insurance/${record.id}`)} style={{ color: "#1890ff" }}>
+      render: (
+        healthInsuranceNumber: string,
+        record: HealthInsuranceResponseDTO
+      ) => (
+        <a
+          onClick={() => router.push(`/health-insurance/${record.id}`)}
+          style={{ color: "#1890ff" }}
+        >
           {healthInsuranceNumber}
         </a>
       ),
@@ -584,12 +591,6 @@ const VerifiedTable: React.FC<VerifiedTableProps> = ({
                   onClick: () => handleEditInsurance(record.id),
                 },
                 {
-                  key: "view",
-                  icon: <EyeOutlined />,
-                  label: "View Details",
-                  onClick: () => handleViewDetail(record.id),
-                },
-                {
                   key: "delete",
                   icon: <DeleteOutlined />,
                   label: (
@@ -599,7 +600,9 @@ const VerifiedTable: React.FC<VerifiedTableProps> = ({
                       onConfirm={() => handleSoftDelete(record.id)}
                       okText="Yes"
                       cancelText="No"
-                      icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
+                      icon={
+                        <ExclamationCircleOutlined style={{ color: "red" }} />
+                      }
                     >
                       <span style={{ color: "#ff4d4f" }}>Soft Delete</span>
                     </Popconfirm>
@@ -617,7 +620,7 @@ const VerifiedTable: React.FC<VerifiedTableProps> = ({
       ),
       hidden: !columnVisibility.actions,
     },
-  ].filter(column => column.key === "actions" || !column.hidden);
+  ].filter((column) => column.key === "actions" || !column.hidden);
 
   return (
     <>
@@ -631,7 +634,8 @@ const VerifiedTable: React.FC<VerifiedTableProps> = ({
             rowKey="id"
             rowSelection={{
               selectedRowKeys,
-              onChange: (newSelectedRowKeys) => setSelectedRowKeys(newSelectedRowKeys),
+              onChange: (newSelectedRowKeys) =>
+                setSelectedRowKeys(newSelectedRowKeys),
               columnWidth: 48,
             }}
             pagination={false}

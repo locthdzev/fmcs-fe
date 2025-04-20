@@ -1,5 +1,16 @@
 import React from "react";
-import { Table, Button, Space, Tooltip, Modal, message, Card, Dropdown, Tag, Popconfirm } from "antd";
+import {
+  Table,
+  Button,
+  Space,
+  Tooltip,
+  Modal,
+  message,
+  Card,
+  Dropdown,
+  Tag,
+  Popconfirm,
+} from "antd";
 import {
   UndoOutlined,
   ExclamationCircleOutlined,
@@ -49,7 +60,9 @@ const SoftDeleteTable: React.FC<SoftDeleteTableProps> = ({
         messageApi.success("Health insurance restored successfully");
         refreshData();
       } else {
-        messageApi.error(result.message || "Failed to restore health insurance");
+        messageApi.error(
+          result.message || "Failed to restore health insurance"
+        );
       }
     } catch (error) {
       messageApi.error("Failed to restore health insurance");
@@ -61,7 +74,10 @@ const SoftDeleteTable: React.FC<SoftDeleteTableProps> = ({
     if (!user) return "";
     return (
       <div style={{ display: "flex", flexDirection: "column" }}>
-        <a onClick={() => router.push(`/user/${user.id}`)} style={{ color: "#1890ff" }}>
+        <a
+          onClick={() => router.push(`/user/${user.id}`)}
+          style={{ color: "#1890ff" }}
+        >
           {user.fullName}
         </a>
         <span style={{ fontSize: "12px", color: "#888" }}>{user.email}</span>
@@ -74,7 +90,9 @@ const SoftDeleteTable: React.FC<SoftDeleteTableProps> = ({
     return (
       <div style={{ display: "flex", flexDirection: "column" }}>
         <span>{user.userName || ""}</span>
-        <span style={{ fontSize: "12px", color: "#888" }}>{user.email || ""}</span>
+        <span style={{ fontSize: "12px", color: "#888" }}>
+          {user.email || ""}
+        </span>
       </div>
     );
   };
@@ -87,7 +105,11 @@ const SoftDeleteTable: React.FC<SoftDeleteTableProps> = ({
   // Helper function to get status tag
   const getStatusTag = (status: string) => {
     if (status === "SoftDeleted") {
-      return <Tag icon={<StopOutlined />} color="default">Soft Deleted</Tag>;
+      return (
+        <Tag icon={<StopOutlined />} color="default">
+          Soft Deleted
+        </Tag>
+      );
     }
     return <Tag>{status}</Tag>;
   };
@@ -125,15 +147,20 @@ const SoftDeleteTable: React.FC<SoftDeleteTableProps> = ({
       dataIndex: "healthInsuranceNumber",
       key: "insuranceNumber",
       width: 160,
-      render: (healthInsuranceNumber: string, record: HealthInsuranceResponseDTO) => (
+      render: (
+        healthInsuranceNumber: string,
+        record: HealthInsuranceResponseDTO
+      ) =>
         healthInsuranceNumber ? (
-          <a onClick={() => router.push(`/health-insurance/${record.id}`)} style={{ color: "#1890ff" }}>
+          <a
+            onClick={() => router.push(`/health-insurance/${record.id}`)}
+            style={{ color: "#1890ff" }}
+          >
             {healthInsuranceNumber}
           </a>
         ) : (
           "Not Available"
-        )
-      ),
+        ),
       hidden: !columnVisibility.insuranceNumber,
     },
     {
@@ -254,13 +281,13 @@ const SoftDeleteTable: React.FC<SoftDeleteTableProps> = ({
           onConfirm={() => handleRestore(record.id)}
           okText="Yes"
           cancelText="No"
-          icon={<ExclamationCircleOutlined style={{ color: 'blue' }} />}
+          icon={<ExclamationCircleOutlined style={{ color: "blue" }} />}
         >
-          <Button icon={<UndoOutlined />} size="small" type="primary" style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }} />
+          <Button icon={<UndoOutlined />} size="small" />
         </Popconfirm>
       ),
     },
-  ].filter(column => column.key === "actions" || !column.hidden);
+  ].filter((column) => column.key === "actions" || !column.hidden);
 
   return (
     <>

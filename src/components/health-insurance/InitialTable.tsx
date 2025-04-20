@@ -90,7 +90,12 @@ const InitialTable: React.FC<InitialTableProps> = ({
     if (!user) return "";
     return (
       <div style={{ display: "flex", flexDirection: "column" }}>
-        <span>{user.fullName}</span>
+        <a
+          onClick={() => router.push(`/user/${user.id}`)}
+          style={{ color: "#1890ff" }}
+        >
+          {user.fullName}
+        </a>
         <span style={{ fontSize: "12px", color: "#888" }}>{user.email}</span>
       </div>
     );

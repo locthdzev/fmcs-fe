@@ -16,6 +16,7 @@ import {
   Typography,
   Space,
   Avatar,
+  Checkbox,
 } from "antd";
 import {
   HealthInsuranceResponseDTO,
@@ -59,10 +60,19 @@ export default function HealthInsuranceEditModal({
   const [imageFile, setImageFile] = useState<File>();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [messageApi, contextHolder] = message.useMessage();
+  const [hasInsurance, setHasInsurance] = useState(true);
 
   React.useEffect(() => {
     if (visible && insurance) {
+      const hasInsuranceValue =
+        insurance.healthInsuranceNumber != null ||
+        (insurance.status !== "NotApplicable" &&
+          insurance.status !== "NoInsurance");
+
+      setHasInsurance(hasInsuranceValue);
+
       form.setFieldsValue({
+        hasInsurance: hasInsuranceValue,
         healthInsuranceNumber: insurance.healthInsuranceNumber,
         fullName: insurance.fullName,
         dateOfBirth: insurance.dateOfBirth
@@ -100,23 +110,42 @@ export default function HealthInsuranceEditModal({
 
       // Ensure all fields are included and properly formatted
       const formattedValues = {
-        hasInsurance: true,
-        healthInsuranceNumber: values.healthInsuranceNumber || "",
-        fullName: values.fullName || "",
-        dateOfBirth: values.dateOfBirth?.format("YYYY-MM-DD") || null,
-        gender: values.gender || "",
-        address: values.address || "",
-        healthcareProviderName: values.healthcareProviderName || "",
-        healthcareProviderCode: values.healthcareProviderCode || "",
-        validFrom: values.validFrom?.format("YYYY-MM-DD") || null,
-        validTo: values.validTo?.format("YYYY-MM-DD") || null,
-        issueDate: values.issueDate?.format("YYYY-MM-DD") || null,
+        hasInsurance: values.hasInsurance,
+        healthInsuranceNumber: values.hasInsurance
+          ? values.healthInsuranceNumber || ""
+          : null,
+        fullName: values.hasInsurance ? values.fullName || "" : null,
+        dateOfBirth:
+          values.hasInsurance && values.dateOfBirth
+            ? values.dateOfBirth.format("YYYY-MM-DD")
+            : null,
+        gender: values.hasInsurance ? values.gender || "" : null,
+        address: values.hasInsurance ? values.address || "" : null,
+        healthcareProviderName: values.hasInsurance
+          ? values.healthcareProviderName || ""
+          : null,
+        healthcareProviderCode: values.hasInsurance
+          ? values.healthcareProviderCode || ""
+          : null,
+        validFrom:
+          values.hasInsurance && values.validFrom
+            ? values.validFrom.format("YYYY-MM-DD")
+            : null,
+        validTo:
+          values.hasInsurance && values.validTo
+            ? values.validTo.format("YYYY-MM-DD")
+            : null,
+        issueDate:
+          values.hasInsurance && values.issueDate
+            ? values.issueDate.format("YYYY-MM-DD")
+            : null,
       };
 
       console.log("Form values:", values);
       console.log("Formatted values for API:", formattedValues);
       console.log("Image file:", imageFile);
       console.log("Image changed:", values.imageChanged);
+      console.log("Has insurance:", values.hasInsurance);
 
       const submitFunc = isAdmin
         ? updateHealthInsuranceByAdmin
@@ -124,7 +153,7 @@ export default function HealthInsuranceEditModal({
       const response = await submitFunc(
         insurance!.id,
         formattedValues,
-        imageFile
+        values.hasInsurance ? imageFile : undefined
       );
 
       if (response.isSuccess) {
@@ -158,6 +187,10 @@ export default function HealthInsuranceEditModal({
     }
   };
 
+  const handleHasInsuranceChange = (e: any) => {
+    setHasInsurance(e.target.checked);
+  };
+
   if (!insurance) return null;
 
   return (
@@ -165,7 +198,6 @@ export default function HealthInsuranceEditModal({
       title={
         <Typography.Title level={4} style={{ margin: 0 }}>
           <Space>
-            <FormOutlined />
             {isAdmin ? "Edit Health Insurance" : "Request Insurance Update"}
           </Space>
         </Typography.Title>
@@ -191,20 +223,53 @@ export default function HealthInsuranceEditModal({
       {contextHolder}
       <Card className="shadow-sm mb-4">
         <Row align="middle" gutter={16}>
-          <Col>
-            <Avatar size={64} icon={<UserOutlined />} className="bg-blue-500" />
-          </Col>
           <Col flex="1">
-            <Typography.Title level={5} style={{ margin: 0 }}>
-              {insurance.user.fullName}
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              <Space>
-                <MailOutlined />
-                {insurance.user.email}
-              </Space>
-            </Typography.Text>
+            <Space align="start">
+              <Avatar
+                size={64}
+                icon={<UserOutlined />}
+                className="bg-blue-500"
+              />
+              <div>
+                <Typography.Title level={5} style={{ margin: 0 }}>
+                  {insurance.user.fullName}
+                </Typography.Title>
+                <Typography.Text type="secondary">
+                  <Space>
+                    <MailOutlined />
+                    {insurance.user.email}
+                  </Space>
+                </Typography.Text>
+              </div>
+            </Space>
           </Col>
+          {insurance?.imageUrl && (
+            <Col>
+              <Image
+                src={insurance.imageUrl}
+                alt="Insurance Card"
+                style={{
+                  height: "80px",
+                  objectFit: "contain",
+                }}
+                preview={{
+                  mask: (
+                    <div
+                      style={{
+                        backgroundColor: "rgba(0, 0, 0, 0.5)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "12px",
+                      }}
+                    >
+                      <span style={{ color: "white" }}>Preview</span>
+                    </div>
+                  ),
+                }}
+              />
+            </Col>
+          )}
         </Row>
       </Card>
 
@@ -214,225 +279,243 @@ export default function HealthInsuranceEditModal({
           <Input />
         </Form.Item>
 
-        <Row gutter={24}>
-          <Col span={8}>
-            <Card
-              title={
-                <Space>
-                  <UserOutlined /> Personal Information
-                </Space>
-              }
-              className="shadow-sm"
-            >
-              <Form.Item
-                name="healthInsuranceNumber"
-                label={
-                  <Space>
-                    <IdcardOutlined />
-                    Insurance Number
-                  </Space>
-                }
-                rules={[
-                  { required: true, message: "Please input insurance number!" },
-                ]}
-              >
-                <Input placeholder="Enter insurance number" />
-              </Form.Item>
+        <Form.Item
+          name="hasInsurance"
+          valuePropName="checked"
+          initialValue={true}
+        >
+          <Checkbox onChange={handleHasInsuranceChange}>
+            <Typography.Text strong>Has Health Insurance</Typography.Text>
+          </Checkbox>
+        </Form.Item>
 
-              <Form.Item
-                name="fullName"
-                label={
+        {hasInsurance && (
+          <Row gutter={24}>
+            <Col span={8}>
+              <Card
+                title={
                   <Space>
-                    <UserOutlined />
-                    Full Name
+                    <UserOutlined /> Personal Information
                   </Space>
                 }
-                rules={[{ required: true, message: "Please input full name!" }]}
+                className="shadow-sm"
               >
-                <Input placeholder="Enter full name" />
-              </Form.Item>
-
-              <Form.Item
-                name="dateOfBirth"
-                label={
-                  <Space>
-                    <CalendarOutlined />
-                    Date of Birth
-                  </Space>
-                }
-                rules={[
-                  { required: true, message: "Please select date of birth!" },
-                ]}
-              >
-                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
-              </Form.Item>
-
-              <Form.Item
-                name="gender"
-                label={
-                  <Space>
-                    <UserSwitchOutlined />
-                    Gender
-                  </Space>
-                }
-                rules={[{ required: true, message: "Please select gender!" }]}
-              >
-                <Select placeholder="Select gender">
-                  <Select.Option value="Male">Male</Select.Option>
-                  <Select.Option value="Female">Female</Select.Option>
-                  <Select.Option value="Other">Other</Select.Option>
-                </Select>
-              </Form.Item>
-            </Card>
-          </Col>
-
-          <Col span={8}>
-            <Card
-              title={
-                <Space>
-                  <HomeOutlined /> Contact Information
-                </Space>
-              }
-              className="shadow-sm"
-            >
-              <Form.Item
-                name="address"
-                label={
-                  <Space>
-                    <HomeOutlined />
-                    Address
-                  </Space>
-                }
-              >
-                <Input.TextArea
-                  rows={4}
-                  placeholder="Enter address"
-                  style={{ resize: "none" }}
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="healthcareProviderName"
-                label={
-                  <Space>
-                    <MedicineBoxOutlined />
-                    Healthcare Provider Name
-                  </Space>
-                }
-              >
-                <Input placeholder="Enter healthcare provider name" />
-              </Form.Item>
-
-              <Form.Item
-                name="healthcareProviderCode"
-                label={
-                  <Space>
-                    <NumberOutlined />
-                    Healthcare Provider Code
-                  </Space>
-                }
-              >
-                <Input placeholder="Enter healthcare provider code" />
-              </Form.Item>
-            </Card>
-          </Col>
-
-          <Col span={8}>
-            <Card
-              title={
-                <Space>
-                  <CalendarOutlined /> Insurance Details
-                </Space>
-              }
-              className="shadow-sm"
-            >
-              <Form.Item
-                name="validFrom"
-                label={
-                  <Space>
-                    <CalendarOutlined />
-                    Valid From
-                  </Space>
-                }
-                rules={[
-                  { required: true, message: "Please select valid from date!" },
-                ]}
-              >
-                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
-              </Form.Item>
-
-              <Form.Item
-                name="validTo"
-                label={
-                  <Space>
-                    <CalendarOutlined />
-                    Valid To
-                  </Space>
-                }
-                rules={[
-                  { required: true, message: "Please select valid to date!" },
-                ]}
-              >
-                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
-              </Form.Item>
-
-              <Form.Item
-                name="issueDate"
-                label={
-                  <Space>
-                    <CalendarOutlined />
-                    Issue Date
-                  </Space>
-                }
-                rules={[
-                  { required: true, message: "Please select issue date!" },
-                ]}
-              >
-                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
-              </Form.Item>
-
-              <Form.Item
-                label={
-                  <Space>
-                    <FileImageOutlined />
-                    Insurance Image
-                  </Space>
-                }
-              >
-                <Upload
-                  accept="image/*"
-                  fileList={fileList}
-                  onChange={handleUploadChange}
-                  beforeUpload={() => false}
-                  maxCount={1}
-                  className="upload-list-inline"
+                <Form.Item
+                  name="healthInsuranceNumber"
+                  label={
+                    <Space>
+                      <IdcardOutlined />
+                      Insurance Number
+                    </Space>
+                  }
+                  rules={[
+                    {
+                      required: hasInsurance,
+                      message: "Please input insurance number!",
+                    },
+                  ]}
                 >
-                  <Button icon={<UploadOutlined />} block>
-                    Click to Upload New Image
-                  </Button>
-                </Upload>
-                {insurance?.imageUrl && !fileList.length && (
-                  <Card className="mt-4">
-                    <Typography.Text type="secondary">
-                      Current Image:
-                    </Typography.Text>
-                    <div className="mt-2">
-                      <Image
-                        src={insurance.imageUrl}
-                        alt="Current Insurance"
-                        style={{
-                          maxWidth: "100%",
-                          maxHeight: "200px",
-                          objectFit: "contain",
-                        }}
-                      />
-                    </div>
-                  </Card>
-                )}
-              </Form.Item>
-            </Card>
-          </Col>
-        </Row>
+                  <Input placeholder="Enter insurance number" />
+                </Form.Item>
+
+                <Form.Item
+                  name="fullName"
+                  label={
+                    <Space>
+                      <UserOutlined />
+                      Full Name
+                    </Space>
+                  }
+                  rules={[
+                    {
+                      required: hasInsurance,
+                      message: "Please input full name!",
+                    },
+                  ]}
+                >
+                  <Input placeholder="Enter full name" />
+                </Form.Item>
+
+                <Form.Item
+                  name="dateOfBirth"
+                  label={
+                    <Space>
+                      <CalendarOutlined />
+                      Date of Birth
+                    </Space>
+                  }
+                  rules={[
+                    {
+                      required: hasInsurance,
+                      message: "Please select date of birth!",
+                    },
+                  ]}
+                >
+                  <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                </Form.Item>
+
+                <Form.Item
+                  name="gender"
+                  label={
+                    <Space>
+                      <UserSwitchOutlined />
+                      Gender
+                    </Space>
+                  }
+                  rules={[
+                    {
+                      required: hasInsurance,
+                      message: "Please select gender!",
+                    },
+                  ]}
+                >
+                  <Select placeholder="Select gender">
+                    <Select.Option value="Male">Male</Select.Option>
+                    <Select.Option value="Female">Female</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Card>
+            </Col>
+
+            <Col span={8}>
+              <Card
+                title={
+                  <Space>
+                    <HomeOutlined /> Contact Information
+                  </Space>
+                }
+                className="shadow-sm"
+              >
+                <Form.Item
+                  name="address"
+                  label={
+                    <Space>
+                      <HomeOutlined />
+                      Address
+                    </Space>
+                  }
+                >
+                  <Input.TextArea
+                    rows={4}
+                    placeholder="Enter address"
+                    style={{ resize: "none" }}
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  name="healthcareProviderName"
+                  label={
+                    <Space>
+                      <MedicineBoxOutlined />
+                      Healthcare Provider Name
+                    </Space>
+                  }
+                >
+                  <Input placeholder="Enter healthcare provider name" />
+                </Form.Item>
+
+                <Form.Item
+                  name="healthcareProviderCode"
+                  label={
+                    <Space>
+                      <NumberOutlined />
+                      Healthcare Provider Code
+                    </Space>
+                  }
+                >
+                  <Input placeholder="Enter healthcare provider code" />
+                </Form.Item>
+              </Card>
+            </Col>
+
+            <Col span={8}>
+              <Card
+                title={
+                  <Space>
+                    <CalendarOutlined /> Insurance Details
+                  </Space>
+                }
+                className="shadow-sm"
+              >
+                <Form.Item
+                  name="validFrom"
+                  label={
+                    <Space>
+                      <CalendarOutlined />
+                      Valid From
+                    </Space>
+                  }
+                  rules={[
+                    {
+                      required: hasInsurance,
+                      message: "Please select valid from date!",
+                    },
+                  ]}
+                >
+                  <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                </Form.Item>
+
+                <Form.Item
+                  name="validTo"
+                  label={
+                    <Space>
+                      <CalendarOutlined />
+                      Valid To
+                    </Space>
+                  }
+                  rules={[
+                    {
+                      required: hasInsurance,
+                      message: "Please select valid to date!",
+                    },
+                  ]}
+                >
+                  <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                </Form.Item>
+
+                <Form.Item
+                  name="issueDate"
+                  label={
+                    <Space>
+                      <CalendarOutlined />
+                      Issue Date
+                    </Space>
+                  }
+                  rules={[
+                    {
+                      required: hasInsurance,
+                      message: "Please select issue date!",
+                    },
+                  ]}
+                >
+                  <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                </Form.Item>
+
+                <Form.Item
+                  label={
+                    <Space>
+                      <FileImageOutlined />
+                      Insurance Image
+                    </Space>
+                  }
+                >
+                  <Upload
+                    accept="image/*"
+                    fileList={fileList}
+                    onChange={handleUploadChange}
+                    beforeUpload={() => false}
+                    maxCount={1}
+                    className="upload-list-inline"
+                  >
+                    <Button icon={<UploadOutlined />} block>
+                      Click to Upload New Image
+                    </Button>
+                  </Upload>
+                </Form.Item>
+              </Card>
+            </Col>
+          </Row>
+        )}
       </Form>
     </Modal>
   );

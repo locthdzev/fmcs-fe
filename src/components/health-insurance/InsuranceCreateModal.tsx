@@ -112,22 +112,26 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
         console.log("Image file being sent:", imageFile);
 
         const result = await createHealthInsuranceManual(formData, imageFile);
-        
+
         if (result.isSuccess) {
           messageApi.success("Health insurance created successfully");
           onSuccess();
         } else {
-          messageApi.error(result.message || "Failed to create health insurance");
+          messageApi.error(
+            result.message || "Failed to create health insurance"
+          );
         }
       } else {
         // Create initial insurances
         const result = await createInitialHealthInsurances();
-        
+
         if (result.isSuccess) {
           messageApi.success("Initial health insurances created successfully");
           onSuccess();
         } else {
-          messageApi.error(result.message || "Failed to create initial health insurances");
+          messageApi.error(
+            result.message || "Failed to create initial health insurances"
+          );
         }
       }
     } catch (error) {
@@ -150,13 +154,13 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
   };
 
   const beforeUpload = (file: UploadFile) => {
-    const isImage = file.type ? file.type.startsWith('image/') : false;
+    const isImage = file.type ? file.type.startsWith("image/") : false;
     if (!isImage) {
-      messageApi.error('You can only upload image files!');
+      messageApi.error("You can only upload image files!");
     }
     const isLt2M = (file.size || 0) / 1024 / 1024 < 2;
     if (!isLt2M) {
-      messageApi.error('Image must be smaller than 2MB!');
+      messageApi.error("Image must be smaller than 2MB!");
     }
     return isImage && isLt2M;
   };
@@ -167,7 +171,9 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
         <Space>
           <PlusOutlined />
           <Title level={4} style={{ margin: 0 }}>
-            {isManual ? "Create Health Insurance" : "Create Initial Health Insurances"}
+            {isManual
+              ? "Create Health Insurance"
+              : "Create Initial Health Insurances"}
           </Title>
         </Space>
       }
@@ -180,10 +186,7 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
       {contextHolder}
 
       {isManual ? (
-        <Form 
-          form={form} 
-          layout="vertical"
-        >
+        <Form form={form} layout="vertical">
           <Card className="mb-4">
             <Space align="center" className="mb-2">
               <UserOutlined />
@@ -201,9 +204,11 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
                 placeholder="Select a user"
                 optionFilterProp="children"
                 filterOption={(input, option) =>
-                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
                 }
-                options={users.map(user => ({
+                options={users.map((user) => ({
                   value: user.id,
                   label: `${user.fullName} (${user.email})`,
                 }))}
@@ -221,7 +226,12 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
             <Form.Item
               name="healthInsuranceNumber"
               label="Health Insurance Number"
-              rules={[{ required: true, message: "Please input health insurance number" }]}
+              rules={[
+                {
+                  required: true,
+                  message: "Please input health insurance number",
+                },
+              ]}
             >
               <Input placeholder="Enter health insurance number" />
             </Form.Item>
@@ -237,7 +247,9 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
             <Form.Item
               name="dateOfBirth"
               label="Date of Birth"
-              rules={[{ required: true, message: "Please select date of birth" }]}
+              rules={[
+                { required: true, message: "Please select date of birth" },
+              ]}
             >
               <DatePicker style={{ width: "100%" }} />
             </Form.Item>
@@ -250,7 +262,6 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
               <Select placeholder="Select gender">
                 <Option value="Male">Male</Option>
                 <Option value="Female">Female</Option>
-                <Option value="Other">Other</Option>
               </Select>
             </Form.Item>
 
@@ -265,7 +276,12 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
             <Form.Item
               name="healthcareProviderName"
               label="Healthcare Provider Name"
-              rules={[{ required: true, message: "Please input healthcare provider name" }]}
+              rules={[
+                {
+                  required: true,
+                  message: "Please input healthcare provider name",
+                },
+              ]}
             >
               <Input placeholder="Enter healthcare provider name" />
             </Form.Item>
@@ -273,7 +289,12 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
             <Form.Item
               name="healthcareProviderCode"
               label="Healthcare Provider Code"
-              rules={[{ required: true, message: "Please input healthcare provider code" }]}
+              rules={[
+                {
+                  required: true,
+                  message: "Please input healthcare provider code",
+                },
+              ]}
             >
               <Input placeholder="Enter healthcare provider code" />
             </Form.Item>
@@ -281,7 +302,9 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
             <Form.Item
               name="validFrom"
               label="Valid From"
-              rules={[{ required: true, message: "Please select valid from date" }]}
+              rules={[
+                { required: true, message: "Please select valid from date" },
+              ]}
             >
               <DatePicker style={{ width: "100%" }} />
             </Form.Item>
@@ -289,7 +312,9 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
             <Form.Item
               name="validTo"
               label="Valid To"
-              rules={[{ required: true, message: "Please select valid to date" }]}
+              rules={[
+                { required: true, message: "Please select valid to date" },
+              ]}
             >
               <DatePicker style={{ width: "100%" }} />
             </Form.Item>
@@ -324,8 +349,9 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
       ) : (
         <div className="mb-4">
           <Text>
-            This action will create initial health insurance records for all users who don't have one yet. 
-            The users will be asked to provide their health insurance details later.
+            This action will create initial health insurance records for all
+            users who don't have one yet. The users will be asked to provide
+            their health insurance details later.
           </Text>
         </div>
       )}
@@ -333,11 +359,7 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
       <div className="flex justify-end">
         <Space>
           <Button onClick={onClose}>Cancel</Button>
-          <Button 
-            type="primary" 
-            onClick={handleSubmit}
-            loading={loading}
-          >
+          <Button type="primary" onClick={handleSubmit} loading={loading}>
             {isManual ? "Create Health Insurance" : "Create Initial Insurances"}
           </Button>
         </Space>

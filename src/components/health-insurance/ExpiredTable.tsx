@@ -1,5 +1,16 @@
 import React from "react";
-import { Table, Button, Space, Image, Tooltip, Modal, message, Tag, Card, Dropdown } from "antd";
+import {
+  Table,
+  Button,
+  Space,
+  Image,
+  Tooltip,
+  Modal,
+  message,
+  Tag,
+  Card,
+  Dropdown,
+} from "antd";
 import {
   DeleteOutlined,
   EyeOutlined,
@@ -75,7 +86,9 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
             messageApi.success("Health insurance deleted successfully");
             refreshData();
           } else {
-            messageApi.error(result.message || "Failed to delete health insurance");
+            messageApi.error(
+              result.message || "Failed to delete health insurance"
+            );
           }
         } catch (error) {
           messageApi.error("Failed to delete health insurance");
@@ -89,7 +102,10 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
     if (!user) return "";
     return (
       <div style={{ display: "flex", flexDirection: "column" }}>
-        <a onClick={() => router.push(`/user/${user.id}`)} style={{ color: "#1890ff" }}>
+        <a
+          onClick={() => router.push(`/user/${user.id}`)}
+          style={{ color: "#1890ff" }}
+        >
           {user.fullName}
         </a>
         <span style={{ fontSize: "12px", color: "#888" }}>{user.email}</span>
@@ -102,7 +118,9 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
     return (
       <div style={{ display: "flex", flexDirection: "column" }}>
         <span>{user.userName || ""}</span>
-        <span style={{ fontSize: "12px", color: "#888" }}>{user.email || ""}</span>
+        <span style={{ fontSize: "12px", color: "#888" }}>
+          {user.email || ""}
+        </span>
       </div>
     );
   };
@@ -121,7 +139,11 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
   const getStatusTag = (status: string) => {
     switch (status) {
       case "Expired":
-        return <Tag icon={<WarningOutlined />} color="error">Expired</Tag>;
+        return (
+          <Tag icon={<WarningOutlined />} color="error">
+            Expired
+          </Tag>
+        );
       default:
         return <Tag>{status}</Tag>;
     }
@@ -131,11 +153,23 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
   const getVerificationTag = (status: string) => {
     switch (status) {
       case "Unverified":
-        return <Tag icon={<ClockCircleOutlined />} color="warning">Unverified</Tag>;
+        return (
+          <Tag icon={<ClockCircleOutlined />} color="warning">
+            Unverified
+          </Tag>
+        );
       case "Verified":
-        return <Tag icon={<CheckCircleOutlined />} color="success">Verified</Tag>;
+        return (
+          <Tag icon={<CheckCircleOutlined />} color="success">
+            Verified
+          </Tag>
+        );
       case "Rejected":
-        return <Tag icon={<CloseCircleOutlined />} color="error">Rejected</Tag>;
+        return (
+          <Tag icon={<CloseCircleOutlined />} color="error">
+            Rejected
+          </Tag>
+        );
       default:
         return <Tag>{status}</Tag>;
     }
@@ -157,7 +191,8 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
       key: "owner",
       fixed: "left" as const,
       width: 200,
-      render: (user: any, record: HealthInsuranceResponseDTO) => renderUserInfo(user, record),
+      render: (user: any, record: HealthInsuranceResponseDTO) =>
+        renderUserInfo(user, record),
       hidden: !columnVisibility.owner,
     },
     {
@@ -174,8 +209,14 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
       dataIndex: "healthInsuranceNumber",
       key: "insuranceNumber",
       width: 160,
-      render: (healthInsuranceNumber: string, record: HealthInsuranceResponseDTO) => (
-        <a onClick={() => router.push(`/health-insurance/${record.id}`)} style={{ color: "#1890ff" }}>
+      render: (
+        healthInsuranceNumber: string,
+        record: HealthInsuranceResponseDTO
+      ) => (
+        <a
+          onClick={() => router.push(`/health-insurance/${record.id}`)}
+          style={{ color: "#1890ff" }}
+        >
           {healthInsuranceNumber}
         </a>
       ),
@@ -286,7 +327,7 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
       key: "validPeriod",
       width: 180,
       align: "center" as const,
-      render: (record: HealthInsuranceResponseDTO) => 
+      render: (record: HealthInsuranceResponseDTO) =>
         `${formatDate(record.validFrom)} - ${formatDate(record.validTo)}`,
       hidden: !columnVisibility.validPeriod,
     },
@@ -327,7 +368,7 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
       key: "image",
       width: 100,
       align: "center" as const,
-      render: (imageUrl: string) => 
+      render: (imageUrl: string) =>
         imageUrl ? (
           <Image
             src={imageUrl}
@@ -477,12 +518,6 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
             menu={{
               items: [
                 {
-                  key: "view",
-                  icon: <EyeOutlined />,
-                  label: "View Details",
-                  onClick: () => handleViewDetail(record.id),
-                },
-                {
                   key: "delete",
                   icon: <DeleteOutlined />,
                   label: "Soft Delete",
@@ -499,7 +534,7 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
         </div>
       ),
     },
-  ].filter(column => column.key === "actions" || !column.hidden);
+  ].filter((column) => column.key === "actions" || !column.hidden);
 
   return (
     <>
@@ -513,7 +548,8 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
             rowKey="id"
             rowSelection={{
               selectedRowKeys,
-              onChange: (newSelectedRowKeys) => setSelectedRowKeys(newSelectedRowKeys),
+              onChange: (newSelectedRowKeys) =>
+                setSelectedRowKeys(newSelectedRowKeys),
               columnWidth: 48,
             }}
             pagination={false}
