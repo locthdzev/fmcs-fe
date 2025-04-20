@@ -232,19 +232,21 @@ export const UserHealthInsurance: React.FC = () => {
 
       if (response.isSuccess) {
         // Hiển thị thông báo thành công nổi bật hơn
-        messageApi.success({
-          content: confirmationMode === 'update'
-            ? "Your insurance has been updated and is waiting for verification"
-            : "Your update request has been submitted for review",
-          duration: 10,
-          icon: confirmationMode === 'update' 
-            ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> 
-            : <SendOutlined style={{ color: '#1677ff' }} />,
-          style: {
-            marginTop: '20vh',
-            fontWeight: 'bold'
-          }
-        });
+        setTimeout(() => {
+          messageApi.success({
+            content: confirmationMode === 'update'
+              ? "Your insurance has been updated and is waiting for verification"
+              : "Your update request has been submitted for review",
+            duration: 5,
+            icon: confirmationMode === 'update' 
+              ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> 
+              : <SendOutlined style={{ color: '#1677ff' }} />,
+            style: {
+              marginTop: '20vh',
+              fontWeight: 'bold'
+            }
+          });
+        }, 300);
         
         // Thêm modal thông báo thành công
         setSuccessMessage(confirmationMode === 'update'
@@ -267,23 +269,27 @@ export const UserHealthInsurance: React.FC = () => {
         // Show success modal
         setSuccessModalVisible(true);
       } else {
+        setTimeout(() => {
+          messageApi.error({
+            content: response.message || `Failed to ${confirmationMode} health insurance`,
+            duration: 5,
+            style: {
+              marginTop: '20vh'
+            }
+          });
+        }, 300);
+      }
+    } catch (error) {
+      console.error(`Error in ${confirmationMode}:`, error);
+      setTimeout(() => {
         messageApi.error({
-          content: response.message || `Failed to ${confirmationMode} health insurance`,
-          duration: 10,
+          content: `Failed to ${confirmationMode} health insurance`,
+          duration: 5,
           style: {
             marginTop: '20vh'
           }
         });
-      }
-    } catch (error) {
-      console.error(`Error in ${confirmationMode}:`, error);
-      messageApi.error({
-        content: `Failed to ${confirmationMode} health insurance`,
-        duration: 10,
-        style: {
-          marginTop: '20vh'
-        }
-      });
+      }, 300);
     } finally {
       setLoading(false);
     }
@@ -538,14 +544,14 @@ export const UserHealthInsurance: React.FC = () => {
           <Row gutter={[24, 24]} align="top">
             <Col xs={24} md={14}>
               <Text strong className="block mb-2">Updated Information</Text>
-              <Descriptions bordered column={1}>
-                <Descriptions.Item label="Has Insurance">
+              <Descriptions bordered column={2}>
+                <Descriptions.Item label="Has Insurance" span={2}>
                   {confirmationData.formData.hasInsurance ? "Yes" : "No"}
                 </Descriptions.Item>
                 
                 {confirmationData.formData.hasInsurance && (
                   <>
-                    <Descriptions.Item label="Insurance Number">
+                    <Descriptions.Item label="Insurance Number" span={2}>
                       {confirmationData.formData.healthInsuranceNumber || "-"}
                     </Descriptions.Item>
                     <Descriptions.Item label="Full Name">
@@ -559,10 +565,10 @@ export const UserHealthInsurance: React.FC = () => {
                     <Descriptions.Item label="Gender">
                       {confirmationData.formData.gender || "-"}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Address">
+                    <Descriptions.Item label="Address" span={2}>
                       {confirmationData.formData.address || "-"}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Healthcare Provider">
+                    <Descriptions.Item label="Healthcare Provider" span={2}>
                       {confirmationData.formData.healthcareProviderName} 
                       {confirmationData.formData.healthcareProviderCode 
                         ? ` (${confirmationData.formData.healthcareProviderCode})` 
@@ -578,7 +584,7 @@ export const UserHealthInsurance: React.FC = () => {
                         ? dayjs(confirmationData.formData.validTo).format("DD/MM/YYYY") 
                         : "-"}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Issue Date">
+                    <Descriptions.Item label="Issue Date" span={2}>
                       {confirmationData.formData.issueDate 
                         ? dayjs(confirmationData.formData.issueDate).format("DD/MM/YYYY") 
                         : "-"}

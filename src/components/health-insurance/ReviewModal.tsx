@@ -110,25 +110,44 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
               <Text strong className="block mb-2">Insurance Update Details</Text>
               <Descriptions
                 bordered
-                column={1}
+                column={2}
                 size="small"
-                layout="vertical"
               >
-                <Descriptions.Item label="Insurance Number">{request.healthInsuranceNumber || "-"}</Descriptions.Item>
-                <Descriptions.Item label="Full Name">{request.fullName || "-"}</Descriptions.Item>
-                <Descriptions.Item label="Date of Birth">{formatDate(request.dateOfBirth)}</Descriptions.Item>
-                <Descriptions.Item label="Gender">{request.gender || "-"}</Descriptions.Item>
-                <Descriptions.Item label="Address">{request.address || "-"}</Descriptions.Item>
-                <Descriptions.Item label="Healthcare Provider">
+                <Descriptions.Item label="Insurance Number" span={2}>{request.healthInsuranceNumber || "-"}</Descriptions.Item>
+                <Descriptions.Item label="Full Name">
+                  {request.fullName || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Date of Birth">
+                  {formatDate(request.dateOfBirth)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Gender">
+                  {request.gender || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Address" span={2}>
+                  {request.address || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Healthcare Provider" span={2}>
                   {request.healthcareProviderName}{" "}
                   {request.healthcareProviderCode ? `(${request.healthcareProviderCode})` : ""}
                 </Descriptions.Item>
-                <Descriptions.Item label="Valid From">{formatDate(request.validFrom)}</Descriptions.Item>
-                <Descriptions.Item label="Valid To">{formatDate(request.validTo)}</Descriptions.Item>
-                <Descriptions.Item label="Issue Date">{formatDate(request.issueDate)}</Descriptions.Item>
-                <Descriptions.Item label="Has Insurance">{request.hasInsurance ? "Yes" : "No"}</Descriptions.Item>
-                <Descriptions.Item label="Status">{request.status}</Descriptions.Item>
-                <Descriptions.Item label="Requested At">{formatDateTime(request.requestedAt)}</Descriptions.Item>
+                <Descriptions.Item label="Valid From">
+                  {formatDate(request.validFrom)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Valid To">
+                  {formatDate(request.validTo)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Issue Date">
+                  {formatDate(request.issueDate)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Status">
+                  {request.status}
+                </Descriptions.Item>
+                <Descriptions.Item label="Has Insurance" span={2}>
+                  {request.hasInsurance ? "Yes" : "No"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Requested At" span={2}>
+                  {formatDateTime(request.requestedAt)}
+                </Descriptions.Item>
               </Descriptions>
             </>
           ) : (
@@ -136,13 +155,12 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
               <Text strong className="block mb-2">No Insurance Declaration</Text>
               <Descriptions
                 bordered
-                column={1}
+                column={2}
                 size="small"
-                layout="vertical"
               >
-                <Descriptions.Item label="Has Insurance">No</Descriptions.Item>
-                <Descriptions.Item label="Requested At">{formatDateTime(request.requestedAt)}</Descriptions.Item>
-                <Descriptions.Item label="Status">{request.status}</Descriptions.Item>
+                <Descriptions.Item label="Has Insurance" span={2}>No</Descriptions.Item>
+                <Descriptions.Item label="Status" span={2}>{request.status}</Descriptions.Item>
+                <Descriptions.Item label="Requested At" span={2}>{formatDateTime(request.requestedAt)}</Descriptions.Item>
               </Descriptions>
             </>
           )}
