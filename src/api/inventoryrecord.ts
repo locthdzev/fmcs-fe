@@ -97,17 +97,29 @@ export interface DrugStatisticsDTO {
   drugName: string;
   drugCode: string;
   totalQuantity: number;
+  status?: string;
+  reorderLevel?: number;
 }
 
 export interface InventoryStatisticsDTO {
+  totalInventoryRecords: number;
   totalActiveInventoryRecords: number;
+  totalInactiveInventoryRecords: number;
+  totalExpiredInventoryRecords: number;
+  totalNearExpiryInventoryRecords: number;
+  totalPriorityInventoryRecords: number;
   totalDrugsInStock: number;
   totalQuantityInStock: number;
+  activeQuantityInStock: number;
+  nearExpiryQuantityInStock: number;
+  priorityQuantityInStock: number;
   lowStockItems: number;
+  zeroStockItems: number;
   periodStart?: string;
   periodEnd?: string;
   inventoryStatusDistribution: Record<string, number>;
   topDrugsByQuantity: DrugStatisticsDTO[];
+  drugsLowOnStock: DrugStatisticsDTO[];
 }
 
 export const getInventoryStatistics = async (startDate?: Date, endDate?: Date) => {
