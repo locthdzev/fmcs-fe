@@ -36,6 +36,7 @@ export interface HealthInsuranceUpdateRequestDTO {
   validFrom?: string;
   validTo?: string;
   issueDate?: string;
+  imageChanged?: boolean;
 }
 
 export interface HealthInsuranceCreateManualDTO {
@@ -232,43 +233,80 @@ export const updateHealthInsurance = async (
 ) => {
   const formData = new FormData();
   console.log("updateHealthInsurance - Data being processed:", data);
+  console.log("updateHealthInsurance - Image file:", imageFile);
 
   // Thêm tất cả các trường vào FormData, đảm bảo xử lý chuỗi chính xác
   formData.append("HasInsurance", data.hasInsurance ? "true" : "false");
-  formData.append("HealthInsuranceNumber", data.healthInsuranceNumber || "");
-  formData.append("FullName", data.fullName || "");
-  formData.append("Gender", data.gender || "");
-  formData.append("Address", data.address || "");
-  formData.append("HealthcareProviderName", data.healthcareProviderName || "");
-  formData.append("HealthcareProviderCode", data.healthcareProviderCode || "");
+  
+  if (data.imageChanged !== undefined) {
+    formData.append("ImageChanged", data.imageChanged ? "true" : "false");
+  }
+  
+  // Thêm các trường dữ liệu khác
+  if (data.healthInsuranceNumber !== null) {
+    formData.append("HealthInsuranceNumber", data.healthInsuranceNumber || "");
+  }
+  if (data.fullName !== null) {
+    formData.append("FullName", data.fullName || "");
+  }
+  if (data.gender !== null) {
+    formData.append("Gender", data.gender || "");
+  }
+  if (data.address !== null) {
+    formData.append("Address", data.address || "");
+  }
+  if (data.healthcareProviderName !== null) {
+    formData.append("HealthcareProviderName", data.healthcareProviderName || "");
+  }
+  if (data.healthcareProviderCode !== null) {
+    formData.append("HealthcareProviderCode", data.healthcareProviderCode || "");
+  }
 
   // Xử lý các trường ngày tháng đặc biệt - PHẢI chuyển sang chuỗi
-  if (data.dateOfBirth)
+  if (data.dateOfBirth) {
     formData.append("DateOfBirth", data.dateOfBirth.toString());
-  if (data.validFrom) formData.append("ValidFrom", data.validFrom.toString());
-  if (data.validTo) formData.append("ValidTo", data.validTo.toString());
-  if (data.issueDate) formData.append("IssueDate", data.issueDate.toString());
+  }
+  if (data.validFrom) {
+    formData.append("ValidFrom", data.validFrom.toString());
+  }
+  if (data.validTo) {
+    formData.append("ValidTo", data.validTo.toString());
+  }
+  if (data.issueDate) {
+    formData.append("IssueDate", data.issueDate.toString());
+  }
 
+  // Append image file if provided
   if (imageFile) {
     formData.append("imageFile", imageFile);
-    console.log("updateHealthInsurance - Added image file to FormData");
+    console.log("Added image file to form data");
   }
 
-  // Debug: Log all form data entries
+  // Debug: Log tất cả các trường trong FormData
+  console.log("FormData being sent:");
   for (const pair of formData.entries()) {
-    console.log(
-      `updateHealthInsurance - FormData contains: ${pair[0]}: ${pair[1]}`
-    );
+    console.log(`${pair[0]}: ${pair[1]}`);
   }
 
-  const response = await api.put(
-    `/health-insurance-management/insurances/${id}`,
-    formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    }
-  );
-  return response.data;
+  try {
+    const response = await api.put(
+      `/health-insurance-management/insurances/${id}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("Error in updateHealthInsurance:", error);
+    return {
+      isSuccess: false,
+      code: error.response?.status || 500,
+      message:
+        error.response?.data?.message || "Failed to update health insurance",
+      responseFailed: error.message,
+    };
+  }
 };
 
 export const updateHealthInsuranceByAdmin = async (
@@ -323,43 +361,80 @@ export const requestHealthInsuranceUpdate = async (
 ) => {
   const formData = new FormData();
   console.log("requestHealthInsuranceUpdate - Data being processed:", data);
+  console.log("requestHealthInsuranceUpdate - Image file:", imageFile);
 
   // Thêm tất cả các trường vào FormData, đảm bảo xử lý chuỗi chính xác
   formData.append("HasInsurance", data.hasInsurance ? "true" : "false");
-  formData.append("HealthInsuranceNumber", data.healthInsuranceNumber || "");
-  formData.append("FullName", data.fullName || "");
-  formData.append("Gender", data.gender || "");
-  formData.append("Address", data.address || "");
-  formData.append("HealthcareProviderName", data.healthcareProviderName || "");
-  formData.append("HealthcareProviderCode", data.healthcareProviderCode || "");
+  
+  if (data.imageChanged !== undefined) {
+    formData.append("ImageChanged", data.imageChanged ? "true" : "false");
+  }
+  
+  // Thêm các trường dữ liệu khác
+  if (data.healthInsuranceNumber !== null) {
+    formData.append("HealthInsuranceNumber", data.healthInsuranceNumber || "");
+  }
+  if (data.fullName !== null) {
+    formData.append("FullName", data.fullName || "");
+  }
+  if (data.gender !== null) {
+    formData.append("Gender", data.gender || "");
+  }
+  if (data.address !== null) {
+    formData.append("Address", data.address || "");
+  }
+  if (data.healthcareProviderName !== null) {
+    formData.append("HealthcareProviderName", data.healthcareProviderName || "");
+  }
+  if (data.healthcareProviderCode !== null) {
+    formData.append("HealthcareProviderCode", data.healthcareProviderCode || "");
+  }
 
   // Xử lý các trường ngày tháng đặc biệt - PHẢI chuyển sang chuỗi
-  if (data.dateOfBirth)
+  if (data.dateOfBirth) {
     formData.append("DateOfBirth", data.dateOfBirth.toString());
-  if (data.validFrom) formData.append("ValidFrom", data.validFrom.toString());
-  if (data.validTo) formData.append("ValidTo", data.validTo.toString());
-  if (data.issueDate) formData.append("IssueDate", data.issueDate.toString());
+  }
+  if (data.validFrom) {
+    formData.append("ValidFrom", data.validFrom.toString());
+  }
+  if (data.validTo) {
+    formData.append("ValidTo", data.validTo.toString());
+  }
+  if (data.issueDate) {
+    formData.append("IssueDate", data.issueDate.toString());
+  }
 
+  // Append image file if provided
   if (imageFile) {
     formData.append("imageFile", imageFile);
-    console.log("requestHealthInsuranceUpdate - Added image file to FormData");
+    console.log("Added image file to form data");
   }
 
-  // Debug: Log all form data entries
+  // Debug: Log tất cả các trường trong FormData
+  console.log("FormData being sent:");
   for (const pair of formData.entries()) {
-    console.log(
-      `requestHealthInsuranceUpdate - FormData contains: ${pair[0]}: ${pair[1]}`
-    );
+    console.log(`${pair[0]}: ${pair[1]}`);
   }
 
-  const response = await api.post(
-    `/health-insurance-management/insurances/${id}/request-update`,
-    formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    }
-  );
-  return response.data;
+  try {
+    const response = await api.post(
+      `/health-insurance-management/insurances/${id}/request-update`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("Error in requestHealthInsuranceUpdate:", error);
+    return {
+      isSuccess: false,
+      code: error.response?.status || 500,
+      message:
+        error.response?.data?.message || "Failed to submit update request",
+      responseFailed: error.message,
+    };
+  }
 };
 
 export const reviewUpdateRequest = async (

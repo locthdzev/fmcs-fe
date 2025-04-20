@@ -45,7 +45,7 @@ interface MyInsuranceUpdateRequestModalProps {
   visible: boolean;
   insurance: HealthInsuranceResponseDTO | null;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (formData: any, imageFile?: File) => void;
 }
 
 export default function MyInsuranceUpdateRequestModal({
@@ -111,12 +111,24 @@ export default function MyInsuranceUpdateRequestModal({
     try {
       const values = await form.validateFields();
       console.log("Form values:", values);
-      console.log("Current image file:", imageFile);
-      console.log("File list:", fileList);
       
-      // Don't validate image file anymore - we'll use existing one if no new upload
+      // Prepare file to send
+      let fileToSend: File | undefined = imageFile;
+      
+      // If we have a file in fileList but not in imageFile, use that
+      if (!fileToSend && values.hasInsurance && fileList.length > 0) {
+        if (fileList[0].originFileObj) {
+          fileToSend = fileList[0].originFileObj as File;
+          console.log("Using file from fileList:", fileToSend);
+        } else if (fileList[0].url && !values.imageChanged) {
+          console.log("Using existing image URL:", fileList[0].url);
+          // We don't set fileToSend here as we'll use existing image on server
+        }
+      }
+      
       // Only validate if user doesn't have insurance but wants to add it
-      if (values.hasInsurance && !insurance?.healthInsuranceNumber && !imageFile && (!fileList.length || !fileList[0].originFileObj)) {
+      if (values.hasInsurance && !insurance?.healthInsuranceNumber 
+          && !fileToSend && (!fileList.length || !fileList[0].url)) {
         messageApi.error("Please upload an insurance card image");
         return;
       }
@@ -153,33 +165,17 @@ export default function MyInsuranceUpdateRequestModal({
           values.hasInsurance && values.issueDate
             ? values.issueDate.format("YYYY-MM-DD")
             : null,
+        imageChanged: values.imageChanged || (fileToSend ? true : false),
       };
 
-      // Get file from fileList if imageFile is undefined
-      const fileToSend = values.hasInsurance && imageFile ? imageFile : undefined;
-
-      console.log("Submitting update request with:", {
-        formattedValues,
-        hasImage: !!fileToSend,
-        fileToSend
-      });
-
-      const response = await requestHealthInsuranceUpdate(
-        insurance!.id,
-        formattedValues,
-        fileToSend
-      );
-
-      if (response.isSuccess) {
-        messageApi.success("Your update request has been submitted for review.");
-        onSuccess();
-        onClose();
-      } else {
-        messageApi.error(response.message || "Failed to submit update request");
-      }
+      console.log("Passing data to parent:", { formattedValues, fileToSend });
+      
+      // Just pass data to parent component
+      onSuccess(formattedValues, fileToSend);
+      
     } catch (error) {
-      messageApi.error("Failed to submit update request");
-      console.error("Error submitting update request:", error);
+      messageApi.error("Failed to validate form");
+      console.error("Error validating form:", error);
     } finally {
       setLoading(false);
     }

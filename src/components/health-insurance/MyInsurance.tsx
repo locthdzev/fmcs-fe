@@ -14,6 +14,8 @@ import {
   Divider,
   message,
   Alert,
+  Modal,
+  Result,
 } from "antd";
 import {
   FileImageOutlined,
@@ -28,6 +30,8 @@ import {
   CloseCircleOutlined,
   QuestionCircleOutlined,
   StopOutlined,
+  MedicineBoxOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import {
@@ -35,9 +39,13 @@ import {
   HealthInsuranceResponseDTO,
   getCurrentUserPendingUpdateRequests,
   UpdateRequestDTO,
+  updateHealthInsurance,
+  requestHealthInsuranceUpdate
 } from "@/api/healthinsurance";
 import MyInsuranceUpdateModal from "./MyInsuranceUpdateModal";
 import MyInsuranceUpdateRequestModal from "./MyInsuranceUpdateRequestModal";
+import PageContainer from "@/components/shared/PageContainer";
+import { useRouter } from "next/router";
 
 const { Title, Text } = Typography;
 
@@ -107,7 +115,14 @@ export const UserHealthInsurance: React.FC = () => {
   const [pendingRequests, setPendingRequests] = useState<UpdateRequestDTO[]>([]);
   const [updateModalVisible, setUpdateModalVisible] = useState<boolean>(false);
   const [updateRequestModalVisible, setUpdateRequestModalVisible] = useState<boolean>(false);
+  const [confirmationModalVisible, setConfirmationModalVisible] = useState<boolean>(false);
+  const [confirmationData, setConfirmationData] = useState<any>(null);
+  const [confirmationMode, setConfirmationMode] = useState<'update' | 'request'>('update');
   const [messageApi, contextHolder] = message.useMessage();
+  const router = useRouter();
+  const [successModalVisible, setSuccessModalVisible] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [successIcon, setSuccessIcon] = useState<React.ReactNode | null>(null);
 
   const fetchInsurance = async () => {
     try {
@@ -147,43 +162,176 @@ export const UserHealthInsurance: React.FC = () => {
   }, []);
 
   const handleUpdate = () => {
+    setConfirmationMode('update');
     setUpdateModalVisible(true);
   };
 
   const handleUpdateRequest = () => {
+    setConfirmationMode('request');
     setUpdateRequestModalVisible(true);
   };
 
-  const handleUpdateSuccess = () => {
-    fetchInsurance();
-    fetchPendingRequests();
+  const handleUpdateSuccess = (formData: any, imageFile?: File) => {
+    // Just transfer data to confirmation modal, don't call API here
+    console.log("Got data from update modal:", formData, imageFile);
+    setConfirmationData({
+      formData,
+      imageFile,
+      currentImage: insurance?.imageUrl
+    });
     setUpdateModalVisible(false);
-    messageApi.success("Your insurance has been updated and is waiting for verification");
+    setConfirmationModalVisible(true);
   };
 
-  const handleUpdateRequestSuccess = () => {
-    fetchInsurance();
-    fetchPendingRequests();
+  const handleUpdateRequestSuccess = (formData: any, imageFile?: File) => {
+    // Just transfer data to confirmation modal, don't call API here
+    console.log("Got data from update request modal:", formData, imageFile);
+    setConfirmationData({
+      formData,
+      imageFile,
+      currentImage: insurance?.imageUrl
+    });
     setUpdateRequestModalVisible(false);
-    messageApi.success("Your update request has been submitted for review");
+    setConfirmationModalVisible(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    try {
+      if (!confirmationData) {
+        messageApi.error("No data to submit");
+        return;
+      }
+      
+      setLoading(true);
+      console.log("Submitting data:", confirmationData);
+      
+      // Đảm bảo cờ imageChanged được thiết lập
+      const formData = {
+        ...confirmationData.formData,
+        imageChanged: confirmationData.imageFile ? true : false
+      };
+      
+      let response;
+      if (confirmationMode === 'update') {
+        // Logic for update
+        response = await updateHealthInsurance(
+          insurance!.id,
+          formData,
+          confirmationData.imageFile
+        );
+        console.log("Update response:", response);
+      } else {
+        // Logic for update request
+        response = await requestHealthInsuranceUpdate(
+          insurance!.id,
+          formData,
+          confirmationData.imageFile
+        );
+        console.log("Request response:", response);
+      }
+
+      if (response.isSuccess) {
+        // Hiển thị thông báo thành công nổi bật hơn
+        messageApi.success({
+          content: confirmationMode === 'update'
+            ? "Your insurance has been updated and is waiting for verification"
+            : "Your update request has been submitted for review",
+          duration: 10,
+          icon: confirmationMode === 'update' 
+            ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> 
+            : <SendOutlined style={{ color: '#1677ff' }} />,
+          style: {
+            marginTop: '20vh',
+            fontWeight: 'bold'
+          }
+        });
+        
+        // Thêm modal thông báo thành công
+        setSuccessMessage(confirmationMode === 'update'
+          ? "Your insurance has been updated and is waiting for verification"
+          : "Your update request has been submitted for review");
+          
+        setSuccessIcon(confirmationMode === 'update' 
+          ? <CheckCircleOutlined style={{ fontSize: 72, color: '#52c41a' }} /> 
+          : <SendOutlined style={{ fontSize: 72, color: '#1677ff' }} />);
+        
+        fetchInsurance();
+        fetchPendingRequests();
+        
+        // Close all modals
+        setUpdateModalVisible(false);
+        setUpdateRequestModalVisible(false);
+        setConfirmationModalVisible(false);
+        setConfirmationData(null);
+        
+        // Show success modal
+        setSuccessModalVisible(true);
+      } else {
+        messageApi.error({
+          content: response.message || `Failed to ${confirmationMode} health insurance`,
+          duration: 10,
+          style: {
+            marginTop: '20vh'
+          }
+        });
+      }
+    } catch (error) {
+      console.error(`Error in ${confirmationMode}:`, error);
+      messageApi.error({
+        content: `Failed to ${confirmationMode} health insurance`,
+        duration: 10,
+        style: {
+          marginTop: '20vh'
+        }
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelConfirmation = () => {
+    setConfirmationModalVisible(false);
+    if (confirmationMode === 'update') {
+      setUpdateModalVisible(true);
+    } else {
+      setUpdateRequestModalVisible(true);
+    }
+  };
+
+  const handleBack = () => {
+    router.back();
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <Spin size="large" tip="Loading your health insurance information..." />
-      </div>
+      <PageContainer
+        title="My Health Insurance"
+        icon={<MedicineBoxOutlined style={{ fontSize: "24px" }} />}
+        onBack={handleBack}
+      >
+        <Card className="mt-4 shadow">
+          <div className="flex justify-center items-center py-8">
+            <Spin size="large" tip="Loading your health insurance information..." />
+          </div>
+        </Card>
+      </PageContainer>
     );
   }
 
   if (!insurance) {
     return (
-      <Card>
-        <Empty
-          description="No health insurance information found"
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
-      </Card>
+      <PageContainer
+        title="My Health Insurance"
+        icon={<MedicineBoxOutlined style={{ fontSize: "24px" }} />}
+        onBack={handleBack}
+      >
+        <Card className="mt-4 shadow">
+          <Empty
+            description="No health insurance information found"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        </Card>
+      </PageContainer>
     );
   }
 
@@ -198,11 +346,14 @@ export const UserHealthInsurance: React.FC = () => {
   const hasPendingRequests = pendingRequests.length > 0;
 
   return (
-    <>
+    <PageContainer
+      title="My Health Insurance"
+      icon={<MedicineBoxOutlined style={{ fontSize: "24px" }} />}
+      onBack={handleBack}
+    >
       {contextHolder}
-      <Card className="shadow-md rounded-lg mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <Title level={4} className="m-0">My Health Insurance</Title>
+      <Card className="mt-4 shadow">
+        <div className="flex justify-end items-center mb-4">
           <Space>
             {canUpdateDirectly && !hasPendingRequests && (
               <Button 
@@ -293,22 +444,13 @@ export const UserHealthInsurance: React.FC = () => {
                 <Descriptions.Item label="Deadline" span={insurance.deadline ? 1 : 2}>
                   {insurance.deadline ? formatDateTime(insurance.deadline) : "-"}
                 </Descriptions.Item>
-              </Descriptions>
-            </Card>
-
-            <Card title="Record Information">
-              <Descriptions column={1} bordered>
-                <Descriptions.Item label="Created At">
-                  {formatDateTime(insurance.createdAt)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Created By">
-                  {insurance.createdBy ? `${insurance.createdBy.userName || ""} (${insurance.createdBy.email || ""})` : "-"}
-                </Descriptions.Item>
-                <Descriptions.Item label="Updated At">
-                  {formatDateTime(insurance.updatedAt)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Updated By">
-                  {insurance.updatedBy ? `${insurance.updatedBy.userName || ""} (${insurance.updatedBy.email || ""})` : "-"}
+                <Descriptions.Item label="Last Updated" span={2}>
+                  {insurance.updatedBy 
+                    ? `${insurance.updatedBy.userName || ""} (${insurance.updatedBy.email || ""}) - ${formatDateTime(insurance.updatedAt)}`
+                    : (insurance.createdBy 
+                      ? `${insurance.createdBy.userName || ""} (${insurance.createdBy.email || ""}) - ${formatDateTime(insurance.createdAt)}`
+                      : formatDateTime(insurance.createdAt))
+                  }
                 </Descriptions.Item>
               </Descriptions>
             </Card>
@@ -363,7 +505,144 @@ export const UserHealthInsurance: React.FC = () => {
         onClose={() => setUpdateRequestModalVisible(false)}
         onSuccess={handleUpdateRequestSuccess}
       />
-    </>
+
+      {/* Confirmation Modal */}
+      <Modal
+        title={
+          <div className="flex items-center">
+            <ExclamationCircleOutlined className="text-warning mr-2" />
+            <span>
+              {confirmationMode === 'update' 
+                ? "Confirm Insurance Update" 
+                : "Confirm Update Request"}
+            </span>
+          </div>
+        }
+        open={confirmationModalVisible}
+        onOk={handleConfirmSubmit}
+        onCancel={handleCancelConfirmation}
+        width={1000}
+        okText="Submit"
+        okButtonProps={{ loading }}
+        cancelText="Back to Edit"
+      >
+        <Alert
+          message="Please review your information carefully"
+          description="Make sure all the details and the uploaded image are correct before submitting."
+          type="warning"
+          showIcon
+          className="mb-4"
+        />
+
+        {confirmationData && (
+          <Row gutter={[24, 24]} align="top">
+            <Col xs={24} md={14}>
+              <Text strong className="block mb-2">Updated Information</Text>
+              <Descriptions bordered column={1}>
+                <Descriptions.Item label="Has Insurance">
+                  {confirmationData.formData.hasInsurance ? "Yes" : "No"}
+                </Descriptions.Item>
+                
+                {confirmationData.formData.hasInsurance && (
+                  <>
+                    <Descriptions.Item label="Insurance Number">
+                      {confirmationData.formData.healthInsuranceNumber || "-"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Full Name">
+                      {confirmationData.formData.fullName || "-"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Date of Birth">
+                      {confirmationData.formData.dateOfBirth 
+                        ? dayjs(confirmationData.formData.dateOfBirth).format("DD/MM/YYYY") 
+                        : "-"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Gender">
+                      {confirmationData.formData.gender || "-"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Address">
+                      {confirmationData.formData.address || "-"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Healthcare Provider">
+                      {confirmationData.formData.healthcareProviderName} 
+                      {confirmationData.formData.healthcareProviderCode 
+                        ? ` (${confirmationData.formData.healthcareProviderCode})` 
+                        : ""}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Valid From">
+                      {confirmationData.formData.validFrom 
+                        ? dayjs(confirmationData.formData.validFrom).format("DD/MM/YYYY") 
+                        : "-"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Valid To">
+                      {confirmationData.formData.validTo 
+                        ? dayjs(confirmationData.formData.validTo).format("DD/MM/YYYY") 
+                        : "-"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Issue Date">
+                      {confirmationData.formData.issueDate 
+                        ? dayjs(confirmationData.formData.issueDate).format("DD/MM/YYYY") 
+                        : "-"}
+                    </Descriptions.Item>
+                  </>
+                )}
+              </Descriptions>
+            </Col>
+            
+            <Col xs={24} md={10}>
+              <>
+                <Text strong className="block mb-2">Insurance Card Image</Text>
+                <div className="border rounded-md p-3">
+                  {confirmationData.imageFile ? (
+                    <div className="flex justify-center">
+                      <Image
+                        src={URL.createObjectURL(confirmationData.imageFile)}
+                        alt="New Insurance Card"
+                        style={{ maxWidth: "100%", maxHeight: "350px" }}
+                      />
+                    </div>
+                  ) : confirmationData.currentImage ? (
+                    <div className="flex justify-center">
+                      <div className="text-center">
+                        <div className="mb-2">(Using current image)</div>
+                        <Image
+                          src={confirmationData.currentImage}
+                          alt="Current Insurance Card"
+                          style={{ maxWidth: "100%", maxHeight: "350px" }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <FileImageOutlined style={{ fontSize: 48, color: '#ccc' }} />
+                      <div className="mt-2">No image provided</div>
+                    </div>
+                  )}
+                </div>
+              </>
+            </Col>
+          </Row>
+        )}
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal
+        open={successModalVisible}
+        onCancel={() => setSuccessModalVisible(false)}
+        footer={[
+          <Button key="ok" type="primary" onClick={() => setSuccessModalVisible(false)}>
+            OK
+          </Button>
+        ]}
+        width={500}
+        centered
+      >
+        <Result
+          icon={successIcon}
+          title="Success!"
+          subTitle={successMessage}
+        />
+      </Modal>
+    </PageContainer>
   );
 };
 

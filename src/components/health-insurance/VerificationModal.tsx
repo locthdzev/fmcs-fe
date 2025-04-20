@@ -11,6 +11,9 @@ import {
   Radio,
   Input,
   Form,
+  Row,
+  Col,
+  Card,
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -83,7 +86,7 @@ const VerificationModal: React.FC<VerificationModalProps> = ({
       title={<Title level={4}>Verify Health Insurance</Title>}
       open={visible}
       onCancel={onClose}
-      width={800}
+      width={1000}
       footer={null}
     >
       {contextHolder}
@@ -100,45 +103,48 @@ const VerificationModal: React.FC<VerificationModalProps> = ({
 
       <Divider />
 
-      <Descriptions
-        bordered
-        column={2}
-        size="small"
-        layout="vertical"
-        title={<Text strong>Insurance Details</Text>}
-      >
-        <Descriptions.Item label="Insurance Number">{request.healthInsuranceNumber || "-"}</Descriptions.Item>
-        <Descriptions.Item label="Full Name">{request.fullName || "-"}</Descriptions.Item>
-        <Descriptions.Item label="Date of Birth">{formatDate(request.dateOfBirth)}</Descriptions.Item>
-        <Descriptions.Item label="Gender">{request.gender || "-"}</Descriptions.Item>
-        <Descriptions.Item label="Address">{request.address || "-"}</Descriptions.Item>
-        <Descriptions.Item label="Healthcare Provider">
-          {request.healthcareProviderName}{" "}
-          {request.healthcareProviderCode ? `(${request.healthcareProviderCode})` : ""}
-        </Descriptions.Item>
-        <Descriptions.Item label="Valid From">{formatDate(request.validFrom)}</Descriptions.Item>
-        <Descriptions.Item label="Valid To">{formatDate(request.validTo)}</Descriptions.Item>
-        <Descriptions.Item label="Issue Date">{formatDate(request.issueDate)}</Descriptions.Item>
-        <Descriptions.Item label="Has Insurance">{request.hasInsurance ? "Yes" : "No"}</Descriptions.Item>
-        <Descriptions.Item label="Status">{request.status}</Descriptions.Item>
-        <Descriptions.Item label="Requested At">{formatDateTime(request.requestedAt)}</Descriptions.Item>
-      </Descriptions>
+      <Row gutter={[24, 24]} align="top">
+        <Col xs={24} md={14}>
+          <Text strong className="block mb-2">Insurance Details</Text>
+          <Descriptions
+            bordered
+            column={1}
+            size="small"
+            layout="vertical"
+          >
+            <Descriptions.Item label="Insurance Number">{request.healthInsuranceNumber || "-"}</Descriptions.Item>
+            <Descriptions.Item label="Full Name">{request.fullName || "-"}</Descriptions.Item>
+            <Descriptions.Item label="Date of Birth">{formatDate(request.dateOfBirth)}</Descriptions.Item>
+            <Descriptions.Item label="Gender">{request.gender || "-"}</Descriptions.Item>
+            <Descriptions.Item label="Address">{request.address || "-"}</Descriptions.Item>
+            <Descriptions.Item label="Healthcare Provider">
+              {request.healthcareProviderName}{" "}
+              {request.healthcareProviderCode ? `(${request.healthcareProviderCode})` : ""}
+            </Descriptions.Item>
+            <Descriptions.Item label="Valid From">{formatDate(request.validFrom)}</Descriptions.Item>
+            <Descriptions.Item label="Valid To">{formatDate(request.validTo)}</Descriptions.Item>
+            <Descriptions.Item label="Issue Date">{formatDate(request.issueDate)}</Descriptions.Item>
+            <Descriptions.Item label="Has Insurance">{request.hasInsurance ? "Yes" : "No"}</Descriptions.Item>
+            <Descriptions.Item label="Status">{request.status}</Descriptions.Item>
+            <Descriptions.Item label="Requested At">{formatDateTime(request.requestedAt)}</Descriptions.Item>
+          </Descriptions>
+        </Col>
 
-      {request.imageUrl && (
-        <>
-          <Divider />
-          <div className="text-center">
-            <Text strong>Insurance Card Image</Text>
-            <div className="mt-2">
-              <Image 
-                src={request.imageUrl} 
-                alt="Insurance Card" 
-                style={{ maxWidth: "100%", maxHeight: "300px" }} 
-              />
-            </div>
-          </div>
-        </>
-      )}
+        <Col xs={24} md={10}>
+          {request.imageUrl && (
+            <>
+              <Text strong className="block mb-2">Insurance Card Image</Text>
+              <div className="flex justify-center border rounded-md p-3">
+                <Image 
+                  src={request.imageUrl} 
+                  alt="Insurance Card" 
+                  style={{ maxWidth: "100%", maxHeight: "350px" }} 
+                />
+              </div>
+            </>
+          )}
+        </Col>
+      </Row>
 
       <Divider />
 
