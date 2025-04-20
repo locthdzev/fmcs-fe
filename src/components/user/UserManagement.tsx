@@ -931,6 +931,7 @@ export function UserManagement() {
               onChange={handleFullNameSearch}
               style={{ width: "320px" }}
               allowClear
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               filterOption={(input, option) =>
                 (option?.value?.toString().toLowerCase() || "").includes(
                   input.toLowerCase()

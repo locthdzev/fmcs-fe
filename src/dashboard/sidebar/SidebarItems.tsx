@@ -83,6 +83,7 @@ const roleRoutes = {
     "/statistics/prescription",
     "/statistics/canteenorder",
     "/statistics/inventoryrecord",
+    "/statistics/health-check-result",
     "/user",
     "/drug",
     "/drug-group",

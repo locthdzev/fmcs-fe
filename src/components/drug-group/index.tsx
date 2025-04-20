@@ -1259,6 +1259,7 @@ export function DrugGroups() {
                           <span>Search by group name...</span>
                         </div>
                       }
+                      prefix={<SearchOutlined style={{ color: "blue" }} />}
                       value={filterValue || undefined}
                       onChange={handleSearchSelectChange}
                       style={{ width: "300px" }}

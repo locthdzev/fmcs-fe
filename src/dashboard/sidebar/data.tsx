@@ -79,6 +79,11 @@ export const data = [
             icon: <InventoryRecordStatictisIcon />,
             link: "/statistics/inventoryrecord",
           },
+          {
+            title: "Health Check Result Statistics",
+            icon: <StatusIcon />,
+            link: "/statistics/health-check-result",
+          },
         ],
       },
     ],
@@ -232,39 +237,9 @@ export const data = [
         icon: <HealthInsuranceIcon />,
         submenu: [
           {
-            title: "Insurance List",
+            title: "Manage Insurances",
             icon: <HealthInsuranceIcon />,
             link: "/health-insurance",
-          },
-          {
-            title: "Initial Registration",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/initial",
-          },
-          {
-            title: "Expired Update",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/expired-update",
-          },
-          {
-            title: "Soft Deleted",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/soft-deleted",
-          },
-          {
-            title: "Verification",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/verification",
-          },
-          {
-            title: "Uninsured",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/no-insurance",
-          },
-          {
-            title: "Update Requests",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/update-requests",
           },
           {
             title: "Insurance History",

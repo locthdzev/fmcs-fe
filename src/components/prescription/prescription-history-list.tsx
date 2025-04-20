@@ -482,7 +482,7 @@ export function PrescriptionHistoryList() {
               placeholder="Search by Prescription Code"
               value={prescriptionCode}
               onChange={(e) => setPrescriptionCode(e.target.value)}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               allowClear
             />
           </Col>
@@ -492,7 +492,7 @@ export function PrescriptionHistoryList() {
               placeholder="Search by Health Check Code"
               value={healthCheckResultCode}
               onChange={(e) => setHealthCheckResultCode(e.target.value)}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               allowClear
             />
           </Col>
@@ -519,7 +519,7 @@ export function PrescriptionHistoryList() {
               placeholder="Search by Performed By"
               value={performedBySearch}
               onChange={(e) => setPerformedBySearch(e.target.value)}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               allowClear
             />
           </Col>

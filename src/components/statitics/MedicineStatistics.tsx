@@ -172,7 +172,6 @@ export function DrugStatistics() {
       const response = await getAllDrugsStatistics(params);
       if (response && response.isSuccess && response.data) {
         setStatistics(response.data);
-        messageApi.success("Statistics loaded successfully");
       }
     } catch (error) {
       console.error("Error fetching drug statistics:", error);

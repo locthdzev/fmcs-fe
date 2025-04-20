@@ -1826,7 +1826,7 @@ export function HealthCheckResultManagement() {
                 placeholder="Search by result code"
                 value={codeSearch}
                 onChange={(e) => setCodeSearch(e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 style={{ width: 200 }}
                 allowClear
               />
@@ -2217,6 +2217,7 @@ export function HealthCheckResultManagement() {
                     placeholder="Search by result code"
                     allowClear
                     showSearch
+                    prefix={<SearchOutlined style={{ color: "blue" }} />}
                     defaultValue={codeSearch || undefined}
                     style={{ width: "100%" }}
                     filterOption={(input, option) =>
@@ -2245,6 +2246,7 @@ export function HealthCheckResultManagement() {
                     showSearch
                     defaultValue={userSearch || undefined}
                     style={{ width: "100%" }}
+                    prefix={<SearchOutlined style={{ color: "blue" }} />}
                     filterOption={(input, option) =>
                       (option?.children as unknown as string)
                         ?.toLowerCase()
@@ -2275,6 +2277,7 @@ export function HealthCheckResultManagement() {
                     showSearch
                     defaultValue={staffSearch || undefined}
                     style={{ width: "100%" }}
+                    prefix={<SearchOutlined style={{ color: "blue" }} />}
                     filterOption={(input, option) =>
                       (option?.children as unknown as string)
                         ?.toLowerCase()
