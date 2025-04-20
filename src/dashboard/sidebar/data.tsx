@@ -61,6 +61,11 @@ export const data = [
             icon: <SurveyStatisticsIcon />,
             link: "/statistics/survey",
           },
+          {
+            title: "Health Check Result Statistics",
+            icon: <StatusIcon />,
+            link: "/statistics/health-check-result",
+          },
         ],
       },
     ],
