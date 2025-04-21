@@ -100,3 +100,15 @@ export const getVerificationTag = (status: string) => {
       return <Tag>{status}</Tag>;
   }
 };
+
+/**
+ * Returns the formatted text for a status.
+ * @param status Status string value 
+ * @returns Formatted status text
+ */
+export const formatStatusText = (status: string | undefined): string => {
+  if (!status) return 'N/A';
+  
+  // Convert to title case (first letter uppercase, rest lowercase)
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+};

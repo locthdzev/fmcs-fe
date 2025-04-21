@@ -51,6 +51,7 @@ import {
 import type { RangePickerProps } from "antd/es/date-picker";
 import InsuranceHistoryFilterModal from "./InsuranceHistoryFilterModal";
 import { getStatusTag, getVerificationTag } from "@/utils/statusTagUtils";
+import InsuranceHistoryExportConfig from "./InsuranceHistoryExportConfig";
 
 const { Option } = Select;
 const { Title, Text } = Typography;
@@ -85,7 +86,7 @@ const getActionColor = (action: string | undefined): string => {
     if (action.toLowerCase().includes("softdeleted")) return "gray";
     return "blue";
   }
-    
+
   return "blue";
 };
 
@@ -93,50 +94,55 @@ const getActionIcon = () => {
   return <HistoryOutlined />;
 };
 
-const parseChangesFromJSON = (changeDetails: string | undefined): React.ReactNode => {
+const parseChangesFromJSON = (
+  changeDetails: string | undefined
+): React.ReactNode => {
   if (!changeDetails) return null;
-  
+
   try {
     // Try to parse as JSON
-    if (changeDetails.startsWith('{') && changeDetails.endsWith('}')) {
+    if (changeDetails.startsWith("{") && changeDetails.endsWith("}")) {
       const changes = JSON.parse(changeDetails);
-      
+
       // Filter real changes (when oldValue is different from newValue)
-      const changesArray = Object.entries(changes)
-        .filter(([field, value]: [string, any]) => {
-          let oldValue = value.Item1 !== undefined ? value.Item1 : 'N/A';
-          let newValue = value.Item2 !== undefined ? value.Item2 : 'N/A';
+      const changesArray = Object.entries(changes).filter(
+        ([field, value]: [string, any]) => {
+          let oldValue = value.Item1 !== undefined ? value.Item1 : "N/A";
+          let newValue = value.Item2 !== undefined ? value.Item2 : "N/A";
           return oldValue !== newValue;
-        });
-      
+        }
+      );
+
       if (changesArray.length === 0) {
         return <Text>No changes detected</Text>;
       }
-      
+
       return (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+        <div
+          style={{ display: "grid", gridTemplateColumns: "1fr", gap: "8px" }}
+        >
           {changesArray.map(([field, value]: [string, any]) => {
             // Handle different types of value formats
-            let oldValue = 'N/A';
-            let newValue = 'N/A';
-            
+            let oldValue = "N/A";
+            let newValue = "N/A";
+
             if (value.Item1 !== undefined && value.Item2 !== undefined) {
               oldValue = value.Item1;
               newValue = value.Item2;
-            } else if (typeof value === 'string') {
+            } else if (typeof value === "string") {
               newValue = value;
             }
-            
+
             // Format the field name for better display
-            const formattedField = field.replace(/([A-Z])/g, ' $1').trim();
-            
+            const formattedField = field.replace(/([A-Z])/g, " $1").trim();
+
             return (
-              <div key={field} style={{ display: 'flex' }}>
-                <div style={{ width: '180px', color: '#8c8c8c' }}>
+              <div key={field} style={{ display: "flex" }}>
+                <div style={{ width: "180px", color: "#8c8c8c" }}>
                   {formattedField}:
                 </div>
                 <div style={{ flex: 1 }}>
-                  {field === 'ImageUrl' ? (
+                  {field === "ImageUrl" ? (
                     <Tag color="default">Changed</Tag>
                   ) : (
                     <>
@@ -158,7 +164,7 @@ const parseChangesFromJSON = (changeDetails: string | undefined): React.ReactNod
     // If not valid JSON, return as plain text
     console.error("Error parsing change details:", error);
   }
-  
+
   // Return as plain text if not JSON or parsing failed
   return <Text>{changeDetails}</Text>;
 };
@@ -166,7 +172,7 @@ const parseChangesFromJSON = (changeDetails: string | undefined): React.ReactNod
 // Helper function to properly format status for display
 const formatStatusForDisplay = (status: string | undefined): string => {
   if (!status) return "";
-  
+
   // Convert to title case (first letter uppercase, rest lowercase)
   return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
 };
@@ -191,20 +197,21 @@ export function InsuranceHistory() {
 
   // Filter states
   const [performedBySearch, setPerformedBySearch] = useState<string>("");
-  const [healthInsuranceNumber, setHealthInsuranceNumber] = useState<string>("");
+  const [healthInsuranceNumber, setHealthInsuranceNumber] =
+    useState<string>("");
   const [ownerSearch, setOwnerSearch] = useState<string>("");
   const [updateDateRange, setUpdateDateRange] = useState<
     [dayjs.Dayjs | null, dayjs.Dayjs | null]
   >([null, null]);
   const [ascending, setAscending] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState("UpdatedAt");
-  const [searchText, setSearchText] = useState("");
 
   // UI states
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Dropdown options
   const [uniqueInsuranceNumbers, setUniqueInsuranceNumbers] = useState<
@@ -225,7 +232,6 @@ export function InsuranceHistory() {
     updateDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
     ascending: false,
     sortBy: "UpdatedAt",
-    searchText: "",
   });
 
   // API calls
@@ -233,52 +239,49 @@ export function InsuranceHistory() {
     // Ghi lại currentPage để đảm bảo sử dụng giá trị mới nhất
     const currentPageSnapshot = currentPage;
     const pageSizeSnapshot = pageSize;
-    
-    console.log("Fetching grouped insurance histories with params:", {
+
+    console.log("Fetching insurance histories with filters:", {
       page: currentPageSnapshot,
       pageSize: pageSizeSnapshot,
-      healthInsuranceNumber,
-      ownerSearch,
-      updateDateRange,
-      performedBySearch,
+      healthInsuranceNumber: `"${healthInsuranceNumber}"`,
+      ownerSearch: `"${ownerSearch}"`,
+      performedBySearch: `"${performedBySearch}"`,
+      dateRange: updateDateRange
+        ? [
+            updateDateRange[0]?.format("YYYY-MM-DD"),
+            updateDateRange[1]?.format("YYYY-MM-DD"),
+          ]
+        : "none",
       ascending,
       sortBy,
-      searchText,
     });
 
     setLoading(true);
     try {
-      const updateStartDate =
+      const startUpdateDate =
         updateDateRange && updateDateRange[0]
           ? updateDateRange[0].format("YYYY-MM-DD")
           : undefined;
 
-      const updateEndDate =
+      const endUpdateDate =
         updateDateRange && updateDateRange[1]
           ? updateDateRange[1].format("YYYY-MM-DD")
           : undefined;
 
-      // Get grouped data in one API call - dùng snapshot value
+      // Gọi API với đầy đủ các tham số lọc
       const response = await getGroupedInsuranceHistories(
         currentPageSnapshot,
         pageSizeSnapshot,
-        updateStartDate,
-        updateEndDate,
+        startUpdateDate,
+        endUpdateDate,
         performedBySearch,
         undefined, // previousStatus
         undefined, // newStatus
         sortBy,
         ascending,
-        healthInsuranceNumber,
-        searchText // Add search text parameter
+        healthInsuranceNumber, // sử dụng tham số lọc theo insurance number qua API
+        ownerSearch // sử dụng tham số lọc theo owner qua API
       );
-
-      console.log("API response:", {
-        success: response.success,
-        totalInsurances: response.data?.totalInsurances,
-        itemsCount: response.data?.items?.length,
-        currentPage: currentPageSnapshot
-      });
 
       if (response.success) {
         const groupedData = response.data as GroupedInsuranceHistoriesDTO;
@@ -287,19 +290,16 @@ export function InsuranceHistory() {
         let groups: InsuranceGroup[] = groupedData.items.map((group) => ({
           code: group.insurance.healthInsuranceNumber || "No Number",
           insuranceId: group.insurance.id,
-          ownerName: group.insurance.user?.fullName || group.insurance.fullName || "No Owner Name",
+          ownerName:
+            group.insurance.user?.fullName ||
+            group.insurance.fullName ||
+            "No Owner Name",
           ownerEmail: group.insurance.user?.email || "",
           histories: group.histories,
           loading: false,
         }));
 
-        // Filter by owner if specified
-        if (ownerSearch) {
-          groups = groups.filter(group => 
-            (group.ownerEmail && group.ownerEmail.toLowerCase().includes(ownerSearch.toLowerCase())) || 
-            (group.ownerName && group.ownerName.toLowerCase().includes(ownerSearch.toLowerCase()))
-          );
-        }
+        console.log(`Received ${groups.length} groups from API`);
 
         // Additional sort to ensure groups with most recent action are at top
         groups = groups.sort((a, b) => {
@@ -327,8 +327,7 @@ export function InsuranceHistory() {
         setTotal(groupedData.totalInsurances);
       } else {
         messageApi.error({
-          content:
-            response.message || "Could not load insurance histories",
+          content: response.message || "Could not load insurance histories",
           duration: 5,
         });
       }
@@ -350,16 +349,16 @@ export function InsuranceHistory() {
     performedBySearch,
     updateDateRange,
     sortBy,
-    searchText,
     messageApi,
   ]);
 
   // Fetch dropdown values for filters
   const fetchUniqueValues = useCallback(async () => {
     try {
+      // Lấy dữ liệu cho Insurance Numbers và Performers
       const response = await getAllHealthInsuranceHistories(
         1, // page
-        1000, // pageSize - get a large batch to find unique values
+        10000, // pageSize - lấy số lượng lớn hơn để có đủ dữ liệu cho filtering
         undefined, // search
         "UpdatedAt", // sortBy
         false // ascending
@@ -396,7 +395,7 @@ export function InsuranceHistory() {
         // For owners, we need to extract from grouped data
         const groupedResponse = await getGroupedInsuranceHistories(
           1,
-          1000,
+          10000, // Lấy nhiều dữ liệu hơn
           undefined,
           undefined,
           undefined,
@@ -404,12 +403,14 @@ export function InsuranceHistory() {
           undefined,
           "UpdatedAt",
           false,
-          undefined
+          undefined,
+          undefined // Không dùng tham số searchText
         );
 
         if (groupedResponse.success) {
-          const groupedData = groupedResponse.data as GroupedInsuranceHistoriesDTO;
-          groupedData.items.forEach(group => {
+          const groupedData =
+            groupedResponse.data as GroupedInsuranceHistoriesDTO;
+          groupedData.items.forEach((group) => {
             if (group.insurance.user) {
               ownersMap.set(group.insurance.user.id, {
                 id: group.insurance.user.id,
@@ -445,13 +446,18 @@ export function InsuranceHistory() {
   };
 
   const handleReset = () => {
+    console.log("Resetting all filters");
+
+    // Reset tất cả các filters
     setPerformedBySearch("");
     setHealthInsuranceNumber("");
     setOwnerSearch("");
     setUpdateDateRange([null, null]);
     setCurrentPage(1);
     setAscending(false);
+    setSortBy("UpdatedAt");
 
+    // Đảm bảo cũng reset giá trị trong modal Advanced Filters
     setFilterState({
       healthInsuranceNumber: "",
       ownerSearch: "",
@@ -459,10 +465,10 @@ export function InsuranceHistory() {
       updateDateRange: [null, null],
       ascending: false,
       sortBy: "UpdatedAt",
-      searchText: "",
     });
 
-    setLoading(true);
+    // Fetch dữ liệu mới ngay lập tức
+    console.log("Fetching after reset with empty values");
     fetchGroupedInsuranceHistories();
   };
 
@@ -485,14 +491,14 @@ export function InsuranceHistory() {
 
   // Filter modal handlers
   const openFilterModal = () => {
+    // Đảm bảo giá trị trong modal đồng bộ với state hiện tại
     setFilterState({
-      healthInsuranceNumber: healthInsuranceNumber || "",
-      ownerSearch: ownerSearch || "",
-      performedBySearch: performedBySearch || "",
-      updateDateRange: updateDateRange || [null, null],
+      healthInsuranceNumber: healthInsuranceNumber,
+      ownerSearch: ownerSearch,
+      performedBySearch: performedBySearch,
+      updateDateRange: updateDateRange,
       ascending: ascending,
       sortBy: sortBy,
-      searchText: searchText,
     });
     setShowFilterModal(true);
   };
@@ -502,13 +508,12 @@ export function InsuranceHistory() {
   };
 
   const applyFilters = () => {
-    setHealthInsuranceNumber(filterState.healthInsuranceNumber);
-    setOwnerSearch(filterState.ownerSearch);
+    // Không đặt lại giá trị healthInsuranceNumber và ownerSearch từ modal
+    // Chỉ đặt lại các giá trị Advanced Filters
     setPerformedBySearch(filterState.performedBySearch);
     setUpdateDateRange(filterState.updateDateRange);
     setAscending(filterState.ascending);
     setSortBy(filterState.sortBy);
-    setSearchText(filterState.searchText);
     setCurrentPage(1);
 
     closeFilterModal();
@@ -516,6 +521,7 @@ export function InsuranceHistory() {
   };
 
   const resetFilters = () => {
+    // Reset toàn bộ giá trị trong modal, bao gồm cả những giá trị từ bên ngoài
     setFilterState({
       healthInsuranceNumber: "",
       ownerSearch: "",
@@ -523,25 +529,23 @@ export function InsuranceHistory() {
       updateDateRange: [null, null],
       ascending: false,
       sortBy: "UpdatedAt",
-      searchText: "",
     });
 
-    setHealthInsuranceNumber("");
-    setOwnerSearch("");
+    // Đặt lại các giá trị trong state chính
     setPerformedBySearch("");
     setUpdateDateRange([null, null]);
     setAscending(false);
     setSortBy("UpdatedAt");
-    setSearchText("");
     setCurrentPage(1);
 
+    // Đóng modal sau khi reset
     closeFilterModal();
     fetchGroupedInsuranceHistories();
   };
 
-  const disabledDate: RangePickerProps['disabledDate'] = (current) => {
+  const disabledDate: RangePickerProps["disabledDate"] = (current) => {
     // Can't select days after today
-    return current && current > dayjs().endOf('day');
+    return current && current > dayjs().endOf("day");
   };
 
   useEffect(() => {
@@ -550,17 +554,16 @@ export function InsuranceHistory() {
 
   // Theo dõi sự thay đổi của currentPage và pageSize
   useEffect(() => {
-    console.log("Page or size changed, fetching new data:", { currentPage, pageSize });
-    // Luôn hiển thị loading và thực hiện fetch với delay nhỏ để đảm bảo UI có thời gian cập nhật
+    console.log("Page or size changed:", {
+      currentPage,
+      pageSize,
+    });
+    // Hiển thị loading và fetch dữ liệu ngay lập tức
     setLoading(true);
-    const timer = setTimeout(() => {
-      fetchGroupedInsuranceHistories();
-    }, 50);
-    
-    return () => clearTimeout(timer);
-  }, [currentPage, pageSize]);
+    fetchGroupedInsuranceHistories();
+  }, [currentPage, pageSize, fetchGroupedInsuranceHistories]);
 
-  // Ban đầu load data một lần
+  // Ban đầu load data một lần khi component mount
   useEffect(() => {
     fetchGroupedInsuranceHistories();
   }, []);
@@ -568,14 +571,14 @@ export function InsuranceHistory() {
   useEffect(() => {
     // When data loads, expand all groups by default
     if (resultGroups.length > 0 && !loading) {
-      setExpandedGroups(resultGroups.map(group => group.insuranceId));
+      setExpandedGroups(resultGroups.map((group) => group.insuranceId));
     }
   }, [resultGroups, loading]);
 
   return (
     <div className="history-container" style={{ padding: "20px" }}>
       {contextHolder}
-      
+
       {/* Filter Modal Component */}
       <InsuranceHistoryFilterModal
         visible={showFilterModal}
@@ -589,6 +592,13 @@ export function InsuranceHistory() {
         onReset={resetFilters}
       />
 
+      {/* Export Modal Component */}
+      <InsuranceHistoryExportConfig
+        visible={showExportModal}
+        onCancel={() => setShowExportModal(false)}
+        currentGroups={resultGroups}
+      />
+
       {/* Header with Back Button */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -600,7 +610,7 @@ export function InsuranceHistory() {
             Back
           </Button>
           <HistoryOutlined style={{ fontSize: "24px" }} />
-          <h3 className="text-xl font-bold">Insurance History</h3>
+          <h3 className="text-xl font-bold">Health Insurance History</h3>
         </div>
       </div>
 
@@ -625,17 +635,64 @@ export function InsuranceHistory() {
 
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Input.Search
-              placeholder="Search by owner, insurance number..."
-              onSearch={(value) => {
-                setSearchText(value);
+            <Select
+              showSearch
+              placeholder="Search Insurance Number"
+              value={healthInsuranceNumber || undefined}
+              onChange={(value) => {
+                console.log("Selected Insurance Number:", value);
+                setHealthInsuranceNumber(value || "");
                 setCurrentPage(1);
                 fetchGroupedInsuranceHistories();
               }}
-              style={{ width: "320px" }}
+              onClear={() => {
+                setHealthInsuranceNumber("");
+                setCurrentPage(1);
+                fetchGroupedInsuranceHistories();
+              }}
+              style={{ width: "240px" }}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               allowClear
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              filterOption={(input, option) =>
+                (option?.value?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={uniqueInsuranceNumbers.map((code) => ({
+                value: code,
+                label: code,
+              }))}
+              dropdownStyle={{ minWidth: "240px" }}
+            />
+
+            <Select
+              showSearch
+              placeholder="Search Health Insurance Owner"
+              value={ownerSearch || undefined}
+              onChange={(value) => {
+                console.log("Selected Owner:", value);
+                setOwnerSearch(value || "");
+                setCurrentPage(1);
+                fetchGroupedInsuranceHistories();
+              }}
+              onClear={() => {
+                setOwnerSearch("");
+                setCurrentPage(1);
+                fetchGroupedInsuranceHistories();
+              }}
+              style={{ width: "240px" }}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.label?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={uniqueOwners.map((owner) => ({
+                value: owner.email, // Đảm bảo chúng ta đang dùng email làm value
+                label: `${owner.fullName || "Unknown"} (${owner.email})`,
+              }))}
+              dropdownStyle={{ minWidth: "240px" }}
             />
 
             <Tooltip title="Advanced Filters">
@@ -644,11 +701,8 @@ export function InsuranceHistory() {
                   <FilterOutlined
                     style={{
                       color:
-                        healthInsuranceNumber ||
-                        performedBySearch ||
-                        ownerSearch ||
-                        (updateDateRange &&
-                          (updateDateRange[0] || updateDateRange[1]))
+                        updateDateRange &&
+                        (updateDateRange[0] || updateDateRange[1])
                           ? "#1890ff"
                           : undefined,
                     }}
@@ -669,7 +723,6 @@ export function InsuranceHistory() {
                     healthInsuranceNumber ||
                     performedBySearch ||
                     ownerSearch ||
-                    searchText ||
                     updateDateRange[0] ||
                     updateDateRange[1]
                   )
@@ -677,61 +730,17 @@ export function InsuranceHistory() {
               />
             </Tooltip>
           </div>
-        </div>
-        
-        {/* Search Criteria Tags */}
-        {(performedBySearch || healthInsuranceNumber || ownerSearch || updateDateRange[0] || searchText) && (
-          <div className="mt-3">
-            <Text type="secondary" className="mr-2">Search criteria:</Text>
-            <Space wrap>
-              {searchText && (
-                <Tag closable onClose={() => {
-                  setSearchText("");
-                  fetchGroupedInsuranceHistories();
-                }}>
-                  Text: {searchText}
-                </Tag>
-              )}
-              {ownerSearch && (
-                <Tag closable onClose={() => {
-                  setOwnerSearch("");
-                  fetchGroupedInsuranceHistories();
-                }}>
-                  Owner: {ownerSearch}
-                </Tag>
-              )}
-              {healthInsuranceNumber && (
-                <Tag closable onClose={() => {
-                  setHealthInsuranceNumber("");
-                  fetchGroupedInsuranceHistories();
-                }}>
-                  Insurance #: {healthInsuranceNumber}
-                </Tag>
-              )}
-              {performedBySearch && (
-                <Tag closable onClose={() => {
-                  setPerformedBySearch("");
-                  fetchGroupedInsuranceHistories();
-                }}>
-                  Performed by: {performedBySearch}
-                </Tag>
-              )}
-              {updateDateRange[0] && updateDateRange[1] && (
-                <Tag closable onClose={() => {
-                  setUpdateDateRange([null, null]);
-                  fetchGroupedInsuranceHistories();
-                }}>
-                  Date: {updateDateRange[0].format('DD/MM/YYYY')} - {updateDateRange[1].format('DD/MM/YYYY')}
-                </Tag>
-              )}
-              {(searchText || ownerSearch || healthInsuranceNumber || performedBySearch || (updateDateRange[0] && updateDateRange[1])) && (
-                <Button type="link" onClick={handleReset} size="small">
-                  Clear All
-                </Button>
-              )}
-            </Space>
+
+          <div>
+            <Button
+              type="primary"
+              icon={<FileExcelOutlined />}
+              onClick={() => setShowExportModal(true)}
+            >
+              Export to Excel
+            </Button>
           </div>
-        )}
+        </div>
       </Card>
 
       {/* Groups per page selector */}
@@ -787,7 +796,7 @@ export function InsuranceHistory() {
                 >
                   <Space size="large">
                     <span>
-                      <Text type="secondary">Owner:</Text>{" "}
+                      <Text type="secondary">Health insurance owner:</Text>{" "}
                       <Text strong>
                         {group.ownerName}
                         {group.ownerEmail && ` (${group.ownerEmail})`}
@@ -886,13 +895,14 @@ export function InsuranceHistory() {
                                       Performed by:
                                     </div>
                                     <div>
-                                      {history.updatedBy 
+                                      {history.updatedBy
                                         ? `${history.updatedBy.userName} (${history.updatedBy.email})`
                                         : "System"}
                                     </div>
                                   </div>
 
-                                  {history.previousStatus !== history.newStatus && (
+                                  {history.previousStatus !==
+                                    history.newStatus && (
                                     <div style={{ display: "flex" }}>
                                       <div
                                         style={{
@@ -903,14 +913,31 @@ export function InsuranceHistory() {
                                         Status:
                                       </div>
                                       <div style={{ flex: 1 }}>
-                                        {history.previousStatus ? getStatusTag(formatStatusForDisplay(history.previousStatus)) : <Tag>None</Tag>}
+                                        {history.previousStatus ? (
+                                          getStatusTag(
+                                            formatStatusForDisplay(
+                                              history.previousStatus
+                                            )
+                                          )
+                                        ) : (
+                                          <Tag>None</Tag>
+                                        )}
                                         <Text type="secondary"> → </Text>
-                                        {history.newStatus ? getStatusTag(formatStatusForDisplay(history.newStatus)) : <Tag>None</Tag>}
+                                        {history.newStatus ? (
+                                          getStatusTag(
+                                            formatStatusForDisplay(
+                                              history.newStatus
+                                            )
+                                          )
+                                        ) : (
+                                          <Tag>None</Tag>
+                                        )}
                                       </div>
                                     </div>
                                   )}
 
-                                  {history.previousVerificationStatus !== history.newVerificationStatus && (
+                                  {history.previousVerificationStatus !==
+                                    history.newVerificationStatus && (
                                     <div style={{ display: "flex" }}>
                                       <div
                                         style={{
@@ -921,13 +948,25 @@ export function InsuranceHistory() {
                                         Verification:
                                       </div>
                                       <div style={{ flex: 1 }}>
-                                        {history.previousVerificationStatus ? 
-                                          getVerificationTag(formatStatusForDisplay(history.previousVerificationStatus)) : 
-                                          <Tag>None</Tag>}
+                                        {history.previousVerificationStatus ? (
+                                          getVerificationTag(
+                                            formatStatusForDisplay(
+                                              history.previousVerificationStatus
+                                            )
+                                          )
+                                        ) : (
+                                          <Tag>None</Tag>
+                                        )}
                                         <Text type="secondary"> → </Text>
-                                        {history.newVerificationStatus ? 
-                                          getVerificationTag(formatStatusForDisplay(history.newVerificationStatus)) : 
-                                          <Tag>None</Tag>}
+                                        {history.newVerificationStatus ? (
+                                          getVerificationTag(
+                                            formatStatusForDisplay(
+                                              history.newVerificationStatus
+                                            )
+                                          )
+                                        ) : (
+                                          <Tag>None</Tag>
+                                        )}
                                       </div>
                                     </div>
                                   )}
@@ -948,7 +987,9 @@ export function InsuranceHistory() {
                                           whiteSpace: "pre-wrap",
                                         }}
                                       >
-                                        {parseChangesFromJSON(history.changeDetails)}
+                                        {parseChangesFromJSON(
+                                          history.changeDetails
+                                        )}
                                       </div>
                                     </div>
                                   )}

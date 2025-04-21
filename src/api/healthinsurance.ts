@@ -577,13 +577,40 @@ export const getAllHealthInsuranceHistories = async (
   sortBy: string = "UpdatedAt",
   ascending: boolean = false
 ) => {
-  const response = await api.get(
-    "/health-insurance-management/insurances/all-histories",
-    {
-      params: { page, pageSize, search, sortBy, ascending },
+  try {
+    console.log("Calling getAllHealthInsuranceHistories API with params:", {
+      page, pageSize, search, sortBy, ascending
+    });
+    
+    const response = await api.get(
+      "/health-insurance-management/insurances/all-histories",
+      {
+        params: { page, pageSize, search, sortBy, ascending },
+      }
+    );
+    
+    console.log("getAllHealthInsuranceHistories API response:", response);
+    
+    // Kiểm tra và chuẩn hóa cấu trúc dữ liệu
+    const data = response.data;
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
     }
-  );
-  return response.data;
+    
+    // Đảm bảo data.data.items tồn tại
+    if (data.data && !data.items) {
+      data.items = data.data;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error in getAllHealthInsuranceHistories:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+      data: { items: [] }
+    };
+  }
 };
 
 export const getGroupedInsuranceHistories = async (

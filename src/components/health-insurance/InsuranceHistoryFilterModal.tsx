@@ -31,7 +31,6 @@ interface FilterModalProps {
     updateDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
     ascending: boolean;
     sortBy: string;
-    searchText: string;
   };
   setFilterState: React.Dispatch<
     React.SetStateAction<{
@@ -41,7 +40,6 @@ interface FilterModalProps {
       updateDateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
       ascending: boolean;
       sortBy: string;
-      searchText: string;
     }>
   >;
   uniqueInsuranceNumbers: string[];
@@ -89,129 +87,6 @@ const InsuranceHistoryFilterModal: React.FC<FilterModalProps> = ({
       ]}
     >
       <Space direction="vertical" style={{ width: "100%" }}>
-        {/* Search Criteria */}
-        <Divider orientation="left">Search Criteria</Divider>
-        <div>
-          <div className="filter-item" style={{ marginBottom: "16px" }}>
-            <div
-              className="filter-label"
-              style={{ marginBottom: "8px", color: "#666666" }}
-            >
-              Insurance Number
-            </div>
-            <Select
-              showSearch
-              placeholder="Select Insurance Number"
-              value={filterState.healthInsuranceNumber || undefined}
-              onChange={(value) =>
-                setFilterState((prev) => ({
-                  ...prev,
-                  healthInsuranceNumber: value || "",
-                }))
-              }
-              style={{ width: "100%" }}
-              allowClear
-              filterOption={(input, option) =>
-                (option?.label?.toString().toLowerCase() || "").includes(
-                  input.toLowerCase()
-                )
-              }
-              options={uniqueInsuranceNumbers.map((code) => ({
-                value: code,
-                label: code,
-              }))}
-            />
-          </div>
-
-          <div className="filter-item" style={{ marginBottom: "16px" }}>
-            <div
-              className="filter-label"
-              style={{ marginBottom: "8px", color: "#666666" }}
-            >
-              Owner
-            </div>
-            <Select
-              showSearch
-              placeholder="Select Owner"
-              value={filterState.ownerSearch || undefined}
-              onChange={(value) =>
-                setFilterState((prev) => ({
-                  ...prev,
-                  ownerSearch: value || "",
-                }))
-              }
-              style={{ width: "100%" }}
-              allowClear
-              filterOption={(input, option) =>
-                (option?.label?.toString().toLowerCase() || "").includes(
-                  input.toLowerCase()
-                )
-              }
-              optionLabelProp="label"
-              options={uniqueOwners.map((owner) => ({
-                value: owner.email,
-                label: `${owner.fullName || 'Unknown'} (${owner.email})`,
-                email: owner.email,
-              }))}
-            />
-          </div>
-
-          <div className="filter-item" style={{ marginBottom: "16px" }}>
-            <div
-              className="filter-label"
-              style={{ marginBottom: "8px", color: "#666666" }}
-            >
-              Performed by
-            </div>
-            <Select
-              showSearch
-              placeholder="Select Performed By"
-              value={filterState.performedBySearch || undefined}
-              onChange={(value) =>
-                setFilterState((prev) => ({
-                  ...prev,
-                  performedBySearch: value || "",
-                }))
-              }
-              style={{ width: "100%" }}
-              allowClear
-              filterOption={(input, option) =>
-                (option?.label?.toString().toLowerCase() || "").includes(
-                  input.toLowerCase()
-                )
-              }
-              optionLabelProp="label"
-              options={uniquePerformers.map((performer) => ({
-                value: performer.email,
-                label: `${performer.fullName} (${performer.email})`,
-                email: performer.email,
-              }))}
-            />
-          </div>
-
-          <div className="filter-item" style={{ marginBottom: "16px" }}>
-            <div
-              className="filter-label"
-              style={{ marginBottom: "8px", color: "#666666" }}
-            >
-              Text Search
-            </div>
-            <Input
-              placeholder="Search in details"
-              prefix={<SearchOutlined />}
-              value={filterState.searchText}
-              onChange={(e) =>
-                setFilterState((prev) => ({
-                  ...prev,
-                  searchText: e.target.value,
-                }))
-              }
-              style={{ width: "100%" }}
-              allowClear
-            />
-          </div>
-        </div>
-
         {/* Date & Sorting */}
         <Divider orientation="left">Date & Sorting</Divider>
         <div>
@@ -252,31 +127,7 @@ const InsuranceHistoryFilterModal: React.FC<FilterModalProps> = ({
             />
           </div>
 
-          <div className="filter-item" style={{ marginBottom: "16px" }}>
-            <div
-              className="filter-label"
-              style={{ marginBottom: "8px", color: "#666666" }}
-            >
-              Sort by
-            </div>
-            <Select
-              placeholder="Select Sort Field"
-              value={filterState.sortBy}
-              onChange={(value) =>
-                setFilterState((prev) => ({
-                  ...prev,
-                  sortBy: value,
-                }))
-              }
-              style={{ width: "100%" }}
-              options={[
-                { value: "UpdatedAt", label: "Update Date" },
-                { value: "OwnerName", label: "Owner Name" },
-                { value: "InsuranceNumber", label: "Insurance Number" },
-              ]}
-            />
-          </div>
-
+          {/* Sort Direction */}
           <div className="filter-item">
             <div
               className="filter-label"
