@@ -50,10 +50,11 @@ const VerificationList: React.FC<VerificationListProps> = ({
   };
 
   const onVerificationSuccess = () => {
-    setModalVisible(false);
-    setSelectedRequest(null);
-    refreshData();
-    messageApi.success("Verification completed successfully");
+    setTimeout(() => {
+      setModalVisible(false);
+      setSelectedRequest(null);
+      refreshData();
+    }, 1000);
   };
 
   if (updateRequests.length === 0 && !loading) {

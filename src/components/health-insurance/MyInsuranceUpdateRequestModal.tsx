@@ -91,7 +91,7 @@ export default function MyInsuranceUpdateRequestModal({
 
       // Reset image file
       setImageFile(undefined);
-      
+
       if (insurance.imageUrl) {
         setFileList([
           {
@@ -111,10 +111,10 @@ export default function MyInsuranceUpdateRequestModal({
     try {
       const values = await form.validateFields();
       console.log("Form values:", values);
-      
+
       // Prepare file to send
       let fileToSend: File | undefined = imageFile;
-      
+
       // If we have a file in fileList but not in imageFile, use that
       if (!fileToSend && values.hasInsurance && fileList.length > 0) {
         if (fileList[0].originFileObj) {
@@ -125,14 +125,18 @@ export default function MyInsuranceUpdateRequestModal({
           // We don't set fileToSend here as we'll use existing image on server
         }
       }
-      
+
       // Only validate if user doesn't have insurance but wants to add it
-      if (values.hasInsurance && !insurance?.healthInsuranceNumber 
-          && !fileToSend && (!fileList.length || !fileList[0].url)) {
+      if (
+        values.hasInsurance &&
+        !insurance?.healthInsuranceNumber &&
+        !fileToSend &&
+        (!fileList.length || !fileList[0].url)
+      ) {
         messageApi.error("Please upload an insurance card image");
         return;
       }
-      
+
       setLoading(true);
 
       const formattedValues = {
@@ -169,10 +173,9 @@ export default function MyInsuranceUpdateRequestModal({
       };
 
       console.log("Passing data to parent:", { formattedValues, fileToSend });
-      
+
       // Just pass data to parent component
       onSuccess(formattedValues, fileToSend);
-      
     } catch (error) {
       messageApi.error("Failed to validate form");
       console.error("Error validating form:", error);
@@ -205,7 +208,7 @@ export default function MyInsuranceUpdateRequestModal({
     const checked = e.target.checked;
     setHasInsurance(checked);
     setImageRequired(checked);
-    
+
     if (!checked) {
       // Clear image if not having insurance
       setImageFile(undefined);
@@ -220,9 +223,8 @@ export default function MyInsuranceUpdateRequestModal({
       title={
         <Typography.Title level={4} style={{ margin: 0 }}>
           <Space>
-            <FormOutlined /> 
-            {insurance.verificationStatus === "Rejected" 
-              ? "Update Rejected Insurance" 
+            {insurance.verificationStatus === "Rejected"
+              ? "Update Rejected Insurance"
               : "Request Health Insurance Update"}
           </Space>
         </Typography.Title>
@@ -241,8 +243,8 @@ export default function MyInsuranceUpdateRequestModal({
           onClick={handleSubmit}
           danger={insurance.verificationStatus === "Rejected"}
         >
-          {insurance.verificationStatus === "Rejected" 
-            ? "Submit Update" 
+          {insurance.verificationStatus === "Rejected"
+            ? "Submit Update"
             : "Submit Request"}
         </Button>,
       ]}
@@ -252,10 +254,11 @@ export default function MyInsuranceUpdateRequestModal({
       {contextHolder}
       <Card className="shadow-sm mb-4">
         <Typography.Paragraph className="bg-blue-50 p-4 mb-4 rounded-lg">
-          Your request will be sent to administrators for review. You will be notified once it has been processed.
-          You cannot make another request while this one is pending.
+          Your request will be sent to administrators for review. You will be
+          notified once it has been processed. You cannot make another request
+          while this one is pending.
         </Typography.Paragraph>
-        
+
         <Row align="middle" gutter={16}>
           <Col flex="1">
             <Space align="start">
@@ -306,7 +309,7 @@ export default function MyInsuranceUpdateRequestModal({
           )}
         </Row>
       </Card>
-      
+
       {hasInsurance && !insurance?.imageUrl && (
         <Alert
           message="Insurance Card Image Required"
@@ -561,9 +564,13 @@ export default function MyInsuranceUpdateRequestModal({
                     <p className="ant-upload-drag-icon">
                       <InboxOutlined />
                     </p>
-                    <p className="ant-upload-text">Click or drag to upload insurance card image</p>
+                    <p className="ant-upload-text">
+                      Click or drag to upload insurance card image
+                    </p>
                     <p className="ant-upload-hint">
-                      {imageRequired ? "This field is required when you have insurance" : ""}
+                      {imageRequired
+                        ? "This field is required when you have insurance"
+                        : ""}
                     </p>
                   </Upload.Dragger>
                 </Form.Item>
@@ -574,4 +581,4 @@ export default function MyInsuranceUpdateRequestModal({
       </Form>
     </Modal>
   );
-} 
+}

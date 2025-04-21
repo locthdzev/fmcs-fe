@@ -40,7 +40,7 @@ import {
   getCurrentUserPendingUpdateRequests,
   UpdateRequestDTO,
   updateHealthInsurance,
-  requestHealthInsuranceUpdate
+  requestHealthInsuranceUpdate,
 } from "@/api/healthinsurance";
 import MyInsuranceUpdateModal from "./MyInsuranceUpdateModal";
 import MyInsuranceUpdateRequestModal from "./MyInsuranceUpdateRequestModal";
@@ -61,32 +61,80 @@ const formatDateTime = (dateStr: string | undefined) => {
 
 const getStatusTag = (status: string | undefined) => {
   if (!status) return <Tag>Unknown</Tag>;
-  
+
   switch (status) {
     case "Pending":
-      return <Tag icon={<ClockCircleOutlined />} color="processing">Pending</Tag>;
+      return (
+        <Tag icon={<ClockCircleOutlined />} color="processing">
+          Pending
+        </Tag>
+      );
     case "Submitted":
-      return <Tag icon={<SendOutlined />} color="blue">Submitted</Tag>;
+      return (
+        <Tag icon={<SendOutlined />} color="blue">
+          Submitted
+        </Tag>
+      );
     case "Completed":
-      return <Tag icon={<CheckCircleOutlined />} color="success">Completed</Tag>;
+      return (
+        <Tag icon={<CheckCircleOutlined />} color="success">
+          Completed
+        </Tag>
+      );
     case "Expired":
-      return <Tag icon={<WarningOutlined />} color="error">Expired</Tag>;
+      return (
+        <Tag icon={<WarningOutlined />} color="error">
+          Expired
+        </Tag>
+      );
     case "DeadlineExpired":
-      return <Tag icon={<FileExclamationOutlined />} color="volcano">Deadline Expired</Tag>;
+      return (
+        <Tag icon={<FileExclamationOutlined />} color="volcano">
+          Deadline Expired
+        </Tag>
+      );
     case "SoftDeleted":
-      return <Tag icon={<StopOutlined />} color="default">Soft Deleted</Tag>;
+      return (
+        <Tag icon={<StopOutlined />} color="default">
+          Soft Deleted
+        </Tag>
+      );
     case "NotApplicable":
-      return <Tag icon={<QuestionCircleOutlined />} color="default">N/A</Tag>;
+      return (
+        <Tag icon={<QuestionCircleOutlined />} color="default">
+          N/A
+        </Tag>
+      );
     case "Initial":
-      return <Tag icon={<ClockCircleOutlined />} color="processing">Initial</Tag>;
+      return (
+        <Tag icon={<ClockCircleOutlined />} color="processing">
+          Initial
+        </Tag>
+      );
     case "AboutToExpire":
-      return <Tag icon={<WarningOutlined />} color="orange">About To Expire</Tag>;
+      return (
+        <Tag icon={<WarningOutlined />} color="orange">
+          About To Expire
+        </Tag>
+      );
     case "ExpiredUpdate":
-      return <Tag icon={<FileExclamationOutlined />} color="magenta">Expired Update</Tag>;
+      return (
+        <Tag icon={<FileExclamationOutlined />} color="magenta">
+          Expired Update
+        </Tag>
+      );
     case "NoInsurance":
-      return <Tag icon={<QuestionCircleOutlined />} color="purple">No Insurance</Tag>;
+      return (
+        <Tag icon={<QuestionCircleOutlined />} color="purple">
+          No Insurance
+        </Tag>
+      );
     case "Active":
-      return <Tag icon={<CheckCircleOutlined />} color="success">Active</Tag>;
+      return (
+        <Tag icon={<CheckCircleOutlined />} color="success">
+          Active
+        </Tag>
+      );
     default:
       return <Tag>{status}</Tag>;
   }
@@ -94,16 +142,32 @@ const getStatusTag = (status: string | undefined) => {
 
 const getVerificationTag = (status: string | undefined) => {
   if (!status) return <Tag>Not Verified</Tag>;
-  
+
   switch (status) {
     case "Unverified":
-      return <Tag icon={<ClockCircleOutlined />} color="warning">Unverified</Tag>;
+      return (
+        <Tag icon={<ClockCircleOutlined />} color="warning">
+          Unverified
+        </Tag>
+      );
     case "Verified":
-      return <Tag icon={<CheckCircleOutlined />} color="success">Verified</Tag>;
+      return (
+        <Tag icon={<CheckCircleOutlined />} color="success">
+          Verified
+        </Tag>
+      );
     case "Rejected":
-      return <Tag icon={<CloseCircleOutlined />} color="error">Rejected</Tag>;
+      return (
+        <Tag icon={<CloseCircleOutlined />} color="error">
+          Rejected
+        </Tag>
+      );
     case "Pending":
-      return <Tag icon={<ClockCircleOutlined />} color="warning">Pending</Tag>;
+      return (
+        <Tag icon={<ClockCircleOutlined />} color="warning">
+          Pending
+        </Tag>
+      );
     default:
       return <Tag>{status}</Tag>;
   }
@@ -111,16 +175,25 @@ const getVerificationTag = (status: string | undefined) => {
 
 export const UserHealthInsurance: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
-  const [insurance, setInsurance] = useState<HealthInsuranceResponseDTO | null>(null);
-  const [pendingRequests, setPendingRequests] = useState<UpdateRequestDTO[]>([]);
+  const [insurance, setInsurance] = useState<HealthInsuranceResponseDTO | null>(
+    null
+  );
+  const [pendingRequests, setPendingRequests] = useState<UpdateRequestDTO[]>(
+    []
+  );
   const [updateModalVisible, setUpdateModalVisible] = useState<boolean>(false);
-  const [updateRequestModalVisible, setUpdateRequestModalVisible] = useState<boolean>(false);
-  const [confirmationModalVisible, setConfirmationModalVisible] = useState<boolean>(false);
+  const [updateRequestModalVisible, setUpdateRequestModalVisible] =
+    useState<boolean>(false);
+  const [confirmationModalVisible, setConfirmationModalVisible] =
+    useState<boolean>(false);
   const [confirmationData, setConfirmationData] = useState<any>(null);
-  const [confirmationMode, setConfirmationMode] = useState<'update' | 'request'>('update');
+  const [confirmationMode, setConfirmationMode] = useState<
+    "update" | "request"
+  >("update");
   const [messageApi, contextHolder] = message.useMessage();
   const router = useRouter();
-  const [successModalVisible, setSuccessModalVisible] = useState<boolean>(false);
+  const [successModalVisible, setSuccessModalVisible] =
+    useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [successIcon, setSuccessIcon] = useState<React.ReactNode | null>(null);
 
@@ -135,7 +208,9 @@ export const UserHealthInsurance: React.FC = () => {
           setInsurance(null);
         }
       } else {
-        messageApi.error(response.message || "Failed to load insurance information");
+        messageApi.error(
+          response.message || "Failed to load insurance information"
+        );
       }
     } catch (error) {
       console.error("Error fetching insurance:", error);
@@ -162,12 +237,12 @@ export const UserHealthInsurance: React.FC = () => {
   }, []);
 
   const handleUpdate = () => {
-    setConfirmationMode('update');
+    setConfirmationMode("update");
     setUpdateModalVisible(true);
   };
 
   const handleUpdateRequest = () => {
-    setConfirmationMode('request');
+    setConfirmationMode("request");
     setUpdateRequestModalVisible(true);
   };
 
@@ -177,7 +252,7 @@ export const UserHealthInsurance: React.FC = () => {
     setConfirmationData({
       formData,
       imageFile,
-      currentImage: insurance?.imageUrl
+      currentImage: insurance?.imageUrl,
     });
     setUpdateModalVisible(false);
     setConfirmationModalVisible(true);
@@ -189,7 +264,7 @@ export const UserHealthInsurance: React.FC = () => {
     setConfirmationData({
       formData,
       imageFile,
-      currentImage: insurance?.imageUrl
+      currentImage: insurance?.imageUrl,
     });
     setUpdateRequestModalVisible(false);
     setConfirmationModalVisible(true);
@@ -201,18 +276,18 @@ export const UserHealthInsurance: React.FC = () => {
         messageApi.error("No data to submit");
         return;
       }
-      
+
       setLoading(true);
       console.log("Submitting data:", confirmationData);
-      
+
       // Đảm bảo cờ imageChanged được thiết lập
       const formData = {
         ...confirmationData.formData,
-        imageChanged: confirmationData.imageFile ? true : false
+        imageChanged: confirmationData.imageFile ? true : false,
       };
-      
+
       let response;
-      if (confirmationMode === 'update') {
+      if (confirmationMode === "update") {
         // Logic for update
         response = await updateHealthInsurance(
           insurance!.id,
@@ -234,48 +309,60 @@ export const UserHealthInsurance: React.FC = () => {
         // Hiển thị thông báo thành công nổi bật hơn
         setTimeout(() => {
           messageApi.success({
-            content: confirmationMode === 'update'
-              ? "Your insurance has been updated and is waiting for verification"
-              : "Your update request has been submitted for review",
+            content:
+              confirmationMode === "update"
+                ? "Your insurance has been updated and is waiting for verification"
+                : "Your update request has been submitted for review",
             duration: 5,
-            icon: confirmationMode === 'update' 
-              ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> 
-              : <SendOutlined style={{ color: '#1677ff' }} />,
+            icon:
+              confirmationMode === "update" ? (
+                <CheckCircleOutlined style={{ color: "#52c41a" }} />
+              ) : (
+                <SendOutlined style={{ color: "#1677ff" }} />
+              ),
             style: {
-              marginTop: '20vh',
-              fontWeight: 'bold'
-            }
+              marginTop: "20vh",
+              fontWeight: "bold",
+            },
           });
         }, 300);
-        
+
         // Thêm modal thông báo thành công
-        setSuccessMessage(confirmationMode === 'update'
-          ? "Your insurance has been updated and is waiting for verification"
-          : "Your update request has been submitted for review");
-          
-        setSuccessIcon(confirmationMode === 'update' 
-          ? <CheckCircleOutlined style={{ fontSize: 72, color: '#52c41a' }} /> 
-          : <SendOutlined style={{ fontSize: 72, color: '#1677ff' }} />);
-        
+        setSuccessMessage(
+          confirmationMode === "update"
+            ? "Your insurance has been updated and is waiting for verification"
+            : "Your update request has been submitted for review"
+        );
+
+        setSuccessIcon(
+          confirmationMode === "update" ? (
+            <CheckCircleOutlined style={{ fontSize: 72, color: "#52c41a" }} />
+          ) : (
+            <SendOutlined style={{ fontSize: 72, color: "#1677ff" }} />
+          )
+        );
+
         fetchInsurance();
         fetchPendingRequests();
-        
+
         // Close all modals
         setUpdateModalVisible(false);
         setUpdateRequestModalVisible(false);
         setConfirmationModalVisible(false);
         setConfirmationData(null);
-        
+
         // Show success modal
         setSuccessModalVisible(true);
       } else {
         setTimeout(() => {
           messageApi.error({
-            content: response.message || `Failed to ${confirmationMode} health insurance`,
+            content:
+              response.message ||
+              `Failed to ${confirmationMode} health insurance`,
             duration: 5,
             style: {
-              marginTop: '20vh'
-            }
+              marginTop: "20vh",
+            },
           });
         }, 300);
       }
@@ -286,8 +373,8 @@ export const UserHealthInsurance: React.FC = () => {
           content: `Failed to ${confirmationMode} health insurance`,
           duration: 5,
           style: {
-            marginTop: '20vh'
-          }
+            marginTop: "20vh",
+          },
         });
       }, 300);
     } finally {
@@ -297,7 +384,7 @@ export const UserHealthInsurance: React.FC = () => {
 
   const handleCancelConfirmation = () => {
     setConfirmationModalVisible(false);
-    if (confirmationMode === 'update') {
+    if (confirmationMode === "update") {
       setUpdateModalVisible(true);
     } else {
       setUpdateRequestModalVisible(true);
@@ -317,7 +404,10 @@ export const UserHealthInsurance: React.FC = () => {
       >
         <Card className="mt-4 shadow">
           <div className="flex justify-center items-center py-8">
-            <Spin size="large" tip="Loading your health insurance information..." />
+            <Spin
+              size="large"
+              tip="Loading your health insurance information..."
+            />
           </div>
         </Card>
       </PageContainer>
@@ -341,14 +431,14 @@ export const UserHealthInsurance: React.FC = () => {
     );
   }
 
-  const canUpdateDirectly = 
-    insurance.status === "Pending" && 
+  const canUpdateDirectly =
+    insurance.status === "Pending" &&
     insurance.verificationStatus === "Unverified";
-    
-  const canRequestUpdate = 
-    insurance.verificationStatus === "Verified" || 
+
+  const canRequestUpdate =
+    insurance.verificationStatus === "Verified" ||
     insurance.verificationStatus === "Rejected";
-    
+
   const hasPendingRequests = pendingRequests.length > 0;
 
   return (
@@ -362,23 +452,23 @@ export const UserHealthInsurance: React.FC = () => {
         <div className="flex justify-end items-center mb-4">
           <Space>
             {canUpdateDirectly && !hasPendingRequests && (
-              <Button 
-                type="primary" 
-                icon={<EditOutlined />} 
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
                 onClick={handleUpdate}
               >
                 Update Health Insurance
               </Button>
             )}
             {canRequestUpdate && !hasPendingRequests && (
-              <Button 
-                type="primary" 
-                icon={<FormOutlined />} 
+              <Button
+                type="primary"
+                icon={<FormOutlined />}
                 onClick={handleUpdateRequest}
                 danger={insurance.verificationStatus === "Rejected"}
               >
-                {insurance.verificationStatus === "Rejected" 
-                  ? "Update Rejected Insurance" 
+                {insurance.verificationStatus === "Rejected"
+                  ? "Update Rejected Insurance"
                   : "Request Health Insurance Update"}
               </Button>
             )}
@@ -401,8 +491,15 @@ export const UserHealthInsurance: React.FC = () => {
             message="Health Insurance Rejected"
             description={
               <>
-                Your health insurance information has been rejected. 
-                {!hasPendingRequests && <span> Please click the <strong>"Update Rejected Insurance"</strong> button to submit new information.</span>}
+                Your health insurance information has been rejected.
+                {!hasPendingRequests && (
+                  <span>
+                    {" "}
+                    Please click the{" "}
+                    <strong>"Update Rejected Insurance"</strong> button to
+                    submit new information.
+                  </span>
+                )}
               </>
             }
             type="error"
@@ -416,8 +513,7 @@ export const UserHealthInsurance: React.FC = () => {
             <Card title="Insurance Information" className="mb-4">
               <Descriptions column={2} bordered>
                 <Descriptions.Item label="Status" span={2}>
-                  {getStatusTag(insurance.status)}
-                  {" "}
+                  {getStatusTag(insurance.status)}{" "}
                   {getVerificationTag(insurance.verificationStatus)}
                 </Descriptions.Item>
                 <Descriptions.Item label="Insurance Number" span={2}>
@@ -436,7 +532,10 @@ export const UserHealthInsurance: React.FC = () => {
                   {insurance.address || "-"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Healthcare Provider" span={2}>
-                  {insurance.healthcareProviderName} {insurance.healthcareProviderCode ? `(${insurance.healthcareProviderCode})` : ""}
+                  {insurance.healthcareProviderName}{" "}
+                  {insurance.healthcareProviderCode
+                    ? `(${insurance.healthcareProviderCode})`
+                    : ""}
                 </Descriptions.Item>
                 <Descriptions.Item label="Valid From">
                   {formatDate(insurance.validFrom)}
@@ -447,16 +546,24 @@ export const UserHealthInsurance: React.FC = () => {
                 <Descriptions.Item label="Issue Date">
                   {formatDate(insurance.issueDate)}
                 </Descriptions.Item>
-                <Descriptions.Item label="Deadline" span={insurance.deadline ? 1 : 2}>
-                  {insurance.deadline ? formatDateTime(insurance.deadline) : "-"}
+                <Descriptions.Item
+                  label="Deadline"
+                  span={insurance.deadline ? 1 : 2}
+                >
+                  {insurance.deadline
+                    ? formatDateTime(insurance.deadline)
+                    : "-"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Last Updated" span={2}>
-                  {insurance.updatedBy 
-                    ? `${insurance.updatedBy.userName || ""} (${insurance.updatedBy.email || ""}) - ${formatDateTime(insurance.updatedAt)}`
-                    : (insurance.createdBy 
-                      ? `${insurance.createdBy.userName || ""} (${insurance.createdBy.email || ""}) - ${formatDateTime(insurance.createdAt)}`
-                      : formatDateTime(insurance.createdAt))
-                  }
+                  {insurance.updatedBy
+                    ? `${insurance.updatedBy.userName || ""} (${
+                        insurance.updatedBy.email || ""
+                      }) - ${formatDateTime(insurance.updatedAt)}`
+                    : insurance.createdBy
+                    ? `${insurance.createdBy.userName || ""} (${
+                        insurance.createdBy.email || ""
+                      }) - ${formatDateTime(insurance.createdAt)}`
+                    : formatDateTime(insurance.createdAt)}
                 </Descriptions.Item>
               </Descriptions>
             </Card>
@@ -474,7 +581,7 @@ export const UserHealthInsurance: React.FC = () => {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <FileImageOutlined style={{ fontSize: 48, color: '#ccc' }} />
+                  <FileImageOutlined style={{ fontSize: 48, color: "#ccc" }} />
                   <div className="mt-2">No image available</div>
                 </div>
               )}
@@ -518,8 +625,8 @@ export const UserHealthInsurance: React.FC = () => {
           <div className="flex items-center">
             <ExclamationCircleOutlined className="text-warning mr-2" />
             <span>
-              {confirmationMode === 'update' 
-                ? "Confirm Insurance Update" 
+              {confirmationMode === "update"
+                ? "Confirm Insurance Update"
                 : "Confirm Update Request"}
             </span>
           </div>
@@ -543,12 +650,14 @@ export const UserHealthInsurance: React.FC = () => {
         {confirmationData && (
           <Row gutter={[24, 24]} align="top">
             <Col xs={24} md={14}>
-              <Text strong className="block mb-2">Updated Information</Text>
+              <Text strong className="block mb-2">
+                Updated Information
+              </Text>
               <Descriptions bordered column={2}>
                 <Descriptions.Item label="Has Insurance" span={2}>
                   {confirmationData.formData.hasInsurance ? "Yes" : "No"}
                 </Descriptions.Item>
-                
+
                 {confirmationData.formData.hasInsurance && (
                   <>
                     <Descriptions.Item label="Insurance Number" span={2}>
@@ -558,8 +667,10 @@ export const UserHealthInsurance: React.FC = () => {
                       {confirmationData.formData.fullName || "-"}
                     </Descriptions.Item>
                     <Descriptions.Item label="Date of Birth">
-                      {confirmationData.formData.dateOfBirth 
-                        ? dayjs(confirmationData.formData.dateOfBirth).format("DD/MM/YYYY") 
+                      {confirmationData.formData.dateOfBirth
+                        ? dayjs(confirmationData.formData.dateOfBirth).format(
+                            "DD/MM/YYYY"
+                          )
                         : "-"}
                     </Descriptions.Item>
                     <Descriptions.Item label="Gender">
@@ -569,34 +680,42 @@ export const UserHealthInsurance: React.FC = () => {
                       {confirmationData.formData.address || "-"}
                     </Descriptions.Item>
                     <Descriptions.Item label="Healthcare Provider" span={2}>
-                      {confirmationData.formData.healthcareProviderName} 
-                      {confirmationData.formData.healthcareProviderCode 
-                        ? ` (${confirmationData.formData.healthcareProviderCode})` 
+                      {confirmationData.formData.healthcareProviderName}
+                      {confirmationData.formData.healthcareProviderCode
+                        ? ` (${confirmationData.formData.healthcareProviderCode})`
                         : ""}
                     </Descriptions.Item>
                     <Descriptions.Item label="Valid From">
-                      {confirmationData.formData.validFrom 
-                        ? dayjs(confirmationData.formData.validFrom).format("DD/MM/YYYY") 
+                      {confirmationData.formData.validFrom
+                        ? dayjs(confirmationData.formData.validFrom).format(
+                            "DD/MM/YYYY"
+                          )
                         : "-"}
                     </Descriptions.Item>
                     <Descriptions.Item label="Valid To">
-                      {confirmationData.formData.validTo 
-                        ? dayjs(confirmationData.formData.validTo).format("DD/MM/YYYY") 
+                      {confirmationData.formData.validTo
+                        ? dayjs(confirmationData.formData.validTo).format(
+                            "DD/MM/YYYY"
+                          )
                         : "-"}
                     </Descriptions.Item>
                     <Descriptions.Item label="Issue Date" span={2}>
-                      {confirmationData.formData.issueDate 
-                        ? dayjs(confirmationData.formData.issueDate).format("DD/MM/YYYY") 
+                      {confirmationData.formData.issueDate
+                        ? dayjs(confirmationData.formData.issueDate).format(
+                            "DD/MM/YYYY"
+                          )
                         : "-"}
                     </Descriptions.Item>
                   </>
                 )}
               </Descriptions>
             </Col>
-            
+
             <Col xs={24} md={10}>
               <>
-                <Text strong className="block mb-2">Insurance Card Image</Text>
+                <Text strong className="block mb-2">
+                  Insurance Card Image
+                </Text>
                 <div className="border rounded-md p-3">
                   {confirmationData.imageFile ? (
                     <div className="flex justify-center">
@@ -619,7 +738,9 @@ export const UserHealthInsurance: React.FC = () => {
                     </div>
                   ) : (
                     <div className="text-center py-4">
-                      <FileImageOutlined style={{ fontSize: 48, color: '#ccc' }} />
+                      <FileImageOutlined
+                        style={{ fontSize: 48, color: "#ccc" }}
+                      />
                       <div className="mt-2">No image provided</div>
                     </div>
                   )}
@@ -635,20 +756,19 @@ export const UserHealthInsurance: React.FC = () => {
         open={successModalVisible}
         onCancel={() => setSuccessModalVisible(false)}
         footer={[
-          <Button key="ok" type="primary" onClick={() => setSuccessModalVisible(false)}>
+          <Button
+            key="ok"
+            type="primary"
+            onClick={() => setSuccessModalVisible(false)}
+          >
             OK
-          </Button>
+          </Button>,
         ]}
         width={500}
         centered
       >
-        <Result
-          icon={successIcon}
-          title="Success!"
-          subTitle={successMessage}
-        />
+        <Result icon={successIcon} title="Success!" subTitle={successMessage} />
       </Modal>
     </PageContainer>
   );
 };
-
