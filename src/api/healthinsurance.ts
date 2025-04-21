@@ -123,6 +123,22 @@ export interface UpdateRequestParams {
   requestedAtTo?: string;
 }
 
+export interface HealthInsuranceStatisticsParams {
+  createdAtStart?: string;
+  createdAtEnd?: string;
+  updatedAtStart?: string;
+  updatedAtEnd?: string;
+  validToStart?: string;
+  validToEnd?: string;
+  statusFilter?: string[];
+  timeRangeInDays?: number;
+  includeChartData?: boolean;
+  includeUserStatistics?: boolean;
+  includeUpdateRequestStatistics?: boolean;
+  includeComplianceReport?: boolean;
+  expiringThresholdDays?: number;
+}
+
 export const getAllHealthInsurances = async (
   page: number = 1,
   pageSize: number = 10,
@@ -1117,6 +1133,102 @@ export const getRejectedInsurances = async (
       totalItems: 0,
       page: 1,
       pageSize: pageSize,
+    };
+  }
+};
+
+export const getHealthInsuranceStatistics = async (params: HealthInsuranceStatisticsParams = {}) => {
+  try {
+    const response = await api.get("/health-insurance-management/insurances/statistics", {
+      params: {
+        createdAtStart: params.createdAtStart,
+        createdAtEnd: params.createdAtEnd,
+        updatedAtStart: params.updatedAtStart,
+        updatedAtEnd: params.updatedAtEnd,
+        validToStart: params.validToStart,
+        validToEnd: params.validToEnd,
+        statusFilter: params.statusFilter,
+        timeRangeInDays: params.timeRangeInDays || 30,
+        includeChartData: params.includeChartData !== undefined ? params.includeChartData : true,
+        includeUserStatistics: params.includeUserStatistics !== undefined ? params.includeUserStatistics : true,
+        includeUpdateRequestStatistics: params.includeUpdateRequestStatistics !== undefined ? params.includeUpdateRequestStatistics : true,
+        includeComplianceReport: params.includeComplianceReport !== undefined ? params.includeComplianceReport : true,
+        expiringThresholdDays: params.expiringThresholdDays || 30
+      }
+    });
+
+    return {
+      isSuccess: response.data.isSuccess,
+      code: response.data.code,
+      message: response.data.message,
+      responseFailed: response.data.responseFailed,
+      data: response.data.data
+    };
+  } catch (error: any) {
+    console.error("Error fetching health insurance statistics:", error);
+    return {
+      isSuccess: false,
+      code: error.response?.status || 500,
+      message: error.response?.data?.message || "Failed to fetch health insurance statistics",
+      responseFailed: error.message,
+      data: null
+    };
+  }
+};
+
+export const exportHealthInsuranceStatistics = async (params: HealthInsuranceStatisticsParams = {}) => {
+  try {
+    const response = await api.get("/health-insurance-management/insurances/statistics/export", {
+      params: {
+        createdAtStart: params.createdAtStart,
+        createdAtEnd: params.createdAtEnd,
+        updatedAtStart: params.updatedAtStart,
+        updatedAtEnd: params.updatedAtEnd,
+        validToStart: params.validToStart,
+        validToEnd: params.validToEnd,
+        statusFilter: params.statusFilter,
+        timeRangeInDays: params.timeRangeInDays || 30,
+        includeChartData: params.includeChartData !== undefined ? params.includeChartData : true,
+        includeUserStatistics: params.includeUserStatistics !== undefined ? params.includeUserStatistics : true,
+        includeUpdateRequestStatistics: params.includeUpdateRequestStatistics !== undefined ? params.includeUpdateRequestStatistics : true,
+        includeComplianceReport: params.includeComplianceReport !== undefined ? params.includeComplianceReport : true,
+        expiringThresholdDays: params.expiringThresholdDays || 30
+      },
+      responseType: 'blob'
+    });
+
+    // Create a blob URL and trigger download
+    const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Generate filename with current date
+    const now = new Date();
+    const date = now.toISOString().split('T')[0];
+    link.download = `Health_Insurance_Statistics_${date}.xlsx`;
+    
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    return {
+      isSuccess: true,
+      code: 200,
+      message: "Statistics exported successfully",
+      data: null
+    };
+  } catch (error: any) {
+    console.error("Error exporting health insurance statistics:", error);
+    return {
+      isSuccess: false,
+      code: error.response?.status || 500,
+      message: error.response?.data?.message || "Failed to export health insurance statistics",
+      responseFailed: error.message,
+      data: null
     };
   }
 };
