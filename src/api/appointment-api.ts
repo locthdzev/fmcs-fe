@@ -24,6 +24,51 @@ import { Typography } from "antd";
     appointmentsScheduledToday: number;
   }
 
+  export interface DetailedAppointmentStatisticsDTO {
+    totalHealthcareOfficers: number;
+    studentsCurrentlyReceivingCare: number;
+    appointmentsScheduledToday: number;
+    totalAppointments: number;
+    appointmentsByStatus: Record<string, number>;
+    statusPercentages: Record<string, number>;
+    dailyStatistics: {
+      date: string;
+      totalAppointments: number;
+      completed: number;
+      cancelled: number;
+      missed: number;
+      scheduled: number;
+    }[];
+    staffPerformance: {
+      staffId: string;
+      staffName: string;
+      totalAppointments: number;
+      completedAppointments: number;
+      missedAppointments: number;
+      cancelledAppointments: number;
+      completionRate: number;
+    }[];
+    reasonCategories: Record<string, number>;
+    missedAppointments: number;
+    completedAppointments: number;
+    completionRate: number;
+    averageAppointmentsPerDay: number;
+    mostPopularDay: number;
+    peakAppointmentTime: string;
+  }
+
+  export interface AppointmentStatisticsRequestDTO {
+    startDate?: string;
+    endDate?: string;
+    staffId?: string;
+    statusFilter?: string[];
+    groupBy?: string;
+    includeDailyStats?: boolean;
+    includeStaffPerformance?: boolean;
+    includeReasonCategories?: boolean;
+    trendDays?: number;
+  }
+
   export interface PagedResultDTO<T> {
     isSuccess: boolean;
     code: number;
@@ -432,6 +477,105 @@ import { Typography } from "antd";
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || `Failed to fetch appointment statistics: ${error.message}`);
+    }
+  };
+
+  // New function to get filtered appointment statistics
+  export const getFilteredAppointmentStatistics = async (
+    params: AppointmentStatisticsRequestDTO,
+    token?: string
+  ): Promise<ResultDTO<DetailedAppointmentStatisticsDTO>> => {
+    try {
+      const authToken = token || Cookies.get("token");
+      if (!authToken) {
+        throw new Error("Authentication token is missing.");
+      }
+
+      const response = await axios.get(`${API_BASE_URL}/statistics/filtered`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: false, // Disable certificate verification (only for dev)
+        }),
+        params: {
+          startDate: params.startDate,
+          endDate: params.endDate,
+          staffId: params.staffId,
+          statusFilter: params.statusFilter,
+          groupBy: params.groupBy,
+          includeDailyStats: params.includeDailyStats,
+          includeStaffPerformance: params.includeStaffPerformance,
+          includeReasonCategories: params.includeReasonCategories,
+          trendDays: params.trendDays,
+        },
+      });
+
+      if (!response.data.isSuccess) {
+        throw new Error(response.data.message || `Failed to fetch filtered statistics (Code: ${response.data.code})`);
+      }
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Failed to fetch filtered appointment statistics:", error.response?.data || error.message);
+      if (error.response) {
+        const errorData = error.response.data;
+        return {
+          isSuccess: false,
+          code: error.response.status,
+          data: null,
+          message: errorData.message || "Failed to fetch filtered appointment statistics",
+          responseFailed: errorData.responseFailed || undefined,
+        };
+      }
+      throw new Error(
+        error.response?.data?.message || `Failed to fetch filtered appointment statistics: ${error.message}`
+      );
+    }
+  };
+
+  // New function to export appointment statistics
+  export const exportAppointmentStatistics = async (
+    params: AppointmentStatisticsRequestDTO,
+    token?: string
+  ): Promise<Blob> => {
+    try {
+      const authToken = token || Cookies.get("token");
+      if (!authToken) {
+        throw new Error("Authentication token is missing.");
+      }
+
+      const response = await axios.get(`${API_BASE_URL}/statistics/export`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        responseType: "blob",
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: false, // Disable certificate verification (only for dev)
+        }),
+        params: {
+          startDate: params.startDate,
+          endDate: params.endDate,
+          staffId: params.staffId,
+          statusFilter: params.statusFilter,
+        },
+      });
+
+      // Create a download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "appointment_statistics.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Failed to export appointment statistics:", error.response?.data || error.message);
+      throw new Error(
+        error.response?.data?.message || `Failed to export appointment statistics: ${error.message}`
+      );
     }
   };
 

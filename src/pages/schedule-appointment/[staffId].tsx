@@ -1125,7 +1125,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
   useEffect(() => {
     if (shouldRedirect) {
       const timer = setTimeout(() => {
-        window.location.href = "/appointment/management";
+        window.location.href = "/my-appointment";
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -1474,7 +1474,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
         <div className="mt-8 w-full lg:mt-0 lg:w-4/12 lg:pl-4">
           <div className="rounded-3xl bg-white px-6 pt-6 shadow-lg">
             <div className="flex pb-6 text-2xl font-bold text-gray-800">
-              <p>Health Notifications</p>
+              {/* <p>Health Notifications</p> */}
             </div>
             {/* Add your notifications here */}
           </div>

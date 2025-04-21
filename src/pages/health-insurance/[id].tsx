@@ -1,6 +1,30 @@
-import React from "react";
-import { HealthInsuranceDetails } from "@/components/health-insurance/health-insurance-detail";
+import React, { useState, useEffect } from "react";
+import { GetServerSideProps } from "next";
+import { InsuranceDetail } from "@/components/health-insurance/InsuranceDetail";
+import { Spin } from "antd";
 
-export default function HealthInsuranceDetailsPage() {
-  return <HealthInsuranceDetails />;
-} 
+interface InsuranceDetailPageProps {
+  id: string;
+}
+
+const InsuranceDetailPage: React.FC<InsuranceDetailPageProps> = ({ id }) => {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(false);
+  }, []);
+
+  return <>{loading ? <Spin size="large" /> : <InsuranceDetail id={id} />}</>;
+};
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const id = context.query.id as string;
+
+  return {
+    props: {
+      id,
+    },
+  };
+};
+
+export default InsuranceDetailPage;

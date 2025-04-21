@@ -1316,241 +1316,8 @@ export function HealthCheckResultManagement() {
   const columns = ALL_COLUMNS.filter((col) => col.visible);
 
   const statisticsCards = (
-    <Row gutter={[16, 16]} className="mb-4">
-      <Col xs={24} sm={12} md={6}>
-        <Card className="h-full">
-          <Statistic
-            title="Total Health Check Results"
-            value={statistics?.totalResults || 0}
-            prefix={<LineChartOutlined />}
-          />
-        </Card>
-      </Col>
-
-      {/* Pie Chart for status distribution */}
-      <Col xs={24} sm={12} md={9}>
-        <Card title="Status Distribution" className="h-full">
-          {statsLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <Spin />
-            </div>
-          ) : (
-            <div style={{ height: 300 }}>
-              <Pie
-                data={{
-                  labels: [
-                    "Waiting for Approval",
-                    "Follow-up Required",
-                    "No Follow-up Required",
-                    "Completed",
-                    "Cancelled",
-                    "Cancelled for Adjustment",
-                    "Soft Deleted",
-                  ],
-                  datasets: [
-                    {
-                      data: [
-                        statistics?.statusDistribution?.waitingForApproval || 0,
-                        statistics?.statusDistribution?.followUpRequired || 0,
-                        statistics?.statusDistribution?.noFollowUpRequired || 0,
-                        statistics?.statusDistribution?.completed || 0,
-                        statistics?.statusDistribution?.cancelledCompletely ||
-                          0,
-                        statistics?.statusDistribution
-                          ?.cancelledForAdjustment || 0,
-                        statistics?.statusDistribution?.softDeleted || 0,
-                      ],
-                      backgroundColor: [
-                        "#faad14", // Yellow - Waiting for Approval
-                        "#1890ff", // Blue - Follow-up Required
-                        "#52c41a", // Green - No Follow-up Required
-                        "#13c2c2", // Cyan - Completed
-                        "#ff4d4f", // Red - Cancelled
-                        "#fa8c16", // Orange - Cancelled for Adjustment
-                        "#d9d9d9", // Gray - Soft Deleted
-                      ],
-                      borderColor: [
-                        "#fff",
-                        "#fff",
-                        "#fff",
-                        "#fff",
-                        "#fff",
-                        "#fff",
-                        "#fff",
-                      ],
-                      borderWidth: 1,
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: "right",
-                      labels: {
-                        boxWidth: 10,
-                        font: {
-                          size: 10,
-                        },
-                      },
-                    },
-                    tooltip: {
-                      callbacks: {
-                        label: function (context) {
-                          let label = context.label || "";
-                          if (label) {
-                            label += ": ";
-                          }
-                          if (context.parsed !== undefined) {
-                            label += context.parsed;
-                          }
-                          return label;
-                        },
-                      },
-                    },
-                  },
-                }}
-              />
-            </div>
-          )}
-        </Card>
-      </Col>
-
-      {/* Bar Chart for follow-ups */}
-      <Col xs={24} sm={12} md={9}>
-        <Card title="Follow-up Statistics" className="h-full">
-          {statsLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <Spin />
-            </div>
-          ) : (
-            <div style={{ height: 300 }}>
-              <Bar
-                data={{
-                  labels: ["Total", "Upcoming", "Overdue", "Today"],
-                  datasets: [
-                    {
-                      label: "Follow-ups",
-                      data: [
-                        statistics?.followUpStatistics?.totalFollowUps || 0,
-                        statistics?.followUpStatistics?.upcomingFollowUps || 0,
-                        statistics?.followUpStatistics?.overdueFollowUps || 0,
-                        statistics?.followUpStatistics?.followUpsToday || 0,
-                      ],
-                      backgroundColor: [
-                        "#8884d8",
-                        "#1890ff",
-                        "#ff4d4f",
-                        "#52c41a",
-                      ],
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      display: false,
-                    },
-                    tooltip: {
-                      callbacks: {
-                        label: function (context) {
-                          let label = context.dataset.label || "";
-                          if (label) {
-                            label += ": ";
-                          }
-                          if (context.parsed.y !== undefined) {
-                            label += context.parsed.y;
-                          }
-                          return label;
-                        },
-                      },
-                    },
-                  },
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      ticks: {
-                        precision: 0,
-                      },
-                    },
-                  },
-                }}
-              />
-            </div>
-          )}
-        </Card>
-      </Col>
-
-      {/* Line Chart for monthly distribution */}
-      <Col xs={24}>
-        <Card title="Monthly Distribution" className="h-full">
-          {statsLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <Spin />
-            </div>
-          ) : !statistics?.monthlyDistribution ||
-            statistics.monthlyDistribution.length === 0 ? (
-            <Empty description="No monthly distribution data available" />
-          ) : (
-            <div style={{ height: 300 }}>
-              <Line
-                data={{
-                  labels: statistics?.monthlyDistribution.map(
-                    (item) => `${item.month}/${item.year}`
-                  ),
-                  datasets: [
-                    {
-                      label: "Count",
-                      data: statistics?.monthlyDistribution.map(
-                        (item) => item.count
-                      ),
-                      fill: false,
-                      backgroundColor: "#1890ff",
-                      borderColor: "#1890ff",
-                      tension: 0.1,
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: "top",
-                    },
-                    tooltip: {
-                      callbacks: {
-                        label: function (context) {
-                          let label = context.dataset.label || "";
-                          if (label) {
-                            label += ": ";
-                          }
-                          if (context.parsed.y !== undefined) {
-                            label += context.parsed.y;
-                          }
-                          return label;
-                        },
-                      },
-                    },
-                  },
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      ticks: {
-                        precision: 0,
-                      },
-                    },
-                  },
-                }}
-              />
-            </div>
-          )}
-        </Card>
-      </Col>
-    </Row>
+    // Commented out statistics cards with charts as they are no longer needed
+    <></>
   );
 
   const topContent = (
@@ -1786,7 +1553,9 @@ export function HealthCheckResultManagement() {
   return (
     <Fragment>
       <div className="p-6">
+        {/* Commented out statistics cards with charts as they are no longer needed
         {statisticsCards}
+        */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Button
@@ -1826,7 +1595,7 @@ export function HealthCheckResultManagement() {
                 placeholder="Search by result code"
                 value={codeSearch}
                 onChange={(e) => setCodeSearch(e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 style={{ width: 200 }}
                 allowClear
               />
@@ -1881,7 +1650,6 @@ export function HealthCheckResultManagement() {
                     )
                   }
                 >
-                  Reset
                 </Button>
               </Tooltip>
 
@@ -2089,6 +1857,8 @@ export function HealthCheckResultManagement() {
                 <Option value={10}>10</Option>
                 <Option value={15}>15</Option>
                 <Option value={20}>20</Option>
+                <Option value={50}>50</Option>
+                <Option value={100}>100</Option>
               </Select>
             </Typography.Text>
           </div>
@@ -2216,6 +1986,7 @@ export function HealthCheckResultManagement() {
                     placeholder="Search by result code"
                     allowClear
                     showSearch
+                    prefix={<SearchOutlined style={{ color: "blue" }} />}
                     defaultValue={codeSearch || undefined}
                     style={{ width: "100%" }}
                     filterOption={(input, option) =>
@@ -2244,6 +2015,7 @@ export function HealthCheckResultManagement() {
                     showSearch
                     defaultValue={userSearch || undefined}
                     style={{ width: "100%" }}
+                    prefix={<SearchOutlined style={{ color: "blue" }} />}
                     filterOption={(input, option) =>
                       (option?.children as unknown as string)
                         ?.toLowerCase()
@@ -2274,6 +2046,7 @@ export function HealthCheckResultManagement() {
                     showSearch
                     defaultValue={staffSearch || undefined}
                     style={{ width: "100%" }}
+                    prefix={<SearchOutlined style={{ color: "blue" }} />}
                     filterOption={(input, option) =>
                       (option?.children as unknown as string)
                         ?.toLowerCase()

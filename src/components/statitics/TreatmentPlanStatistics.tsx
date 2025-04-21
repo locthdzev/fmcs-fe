@@ -20,6 +20,9 @@ import {
   Progress,
   Alert,
   theme,
+  Modal,
+  message,
+  Tag,
 } from "antd";
 import {
   BarChart,
@@ -66,6 +69,8 @@ import {
   ArrowLeftOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 // Type definitions
 interface StatisticsData {
@@ -136,6 +141,11 @@ export function TreatmentPlanStatistics() {
     null,
   ]);
   const [activeDateFilter, setActiveDateFilter] = useState<string>("all");
+  const [messageApi, contextHolder] = message.useMessage();
+
+  // Add export modal state
+  const [exportModalVisible, setExportModalVisible] = useState<boolean>(false);
+  const [exportDateRange, setExportDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
 
   // Chart type states
   const [statusChartType, setStatusChartType] = useState<string>("pie");
@@ -250,12 +260,438 @@ export function TreatmentPlanStatistics() {
     fetchStatistics(startDate || undefined, endDate);
   };
 
-  // Function to export chart as image
-  const exportChart = (chartId: string) => {
-    // Implementation would require a library like html2canvas or using recharts exportChart functionality
-    console.log(`Export chart with id: ${chartId}`);
-    alert(
-      "Export functionality would be implemented here with a proper export library"
+  // Add Excel export function
+  const exportToExcel = async (startDate?: Date, endDate?: Date) => {
+    try {
+      if (!statistics) {
+        messageApi.error("No data available for export");
+        return;
+      }
+      
+      setLoading(true);
+      
+      // If startDate and endDate are provided, fetch data for that period
+      let dataToExport = statistics;
+      if (startDate && endDate) {
+        try {
+          const response = await getTreatmentPlanStatistics(startDate, endDate);
+          if (response && response.isSuccess && response.data) {
+            // Map the response to match the expected format
+            dataToExport = {
+              totalTreatmentPlans: response.data.totalCount || 0,
+              totalActiveTreatmentPlans:
+                response.data.statusDistribution?.InProgress || 0,
+              totalCompletedTreatmentPlans:
+                response.data.statusDistribution?.Completed || 0,
+              totalCancelledTreatmentPlans:
+                response.data.statusDistribution?.Cancelled || 0,
+              treatmentPlansByStatus: response.data.statusDistribution || {},
+              treatmentPlansByMonth: response.data.monthlyDistribution || {},
+              treatmentPlansByDrug: response.data.top5Drugs || {},
+              treatmentPlansByUser: response.data.top5Staff || {},
+              averageDuration: response.data.averageDuration || 0,
+              completionRate: response.data.completionRate || 0,
+              cancellationRate: response.data.cancellationRate || 0,
+              averageTreatmentPlansPerPatient:
+                response.data.averageTreatmentPlansPerPatient || 0,
+              patientDistribution: response.data.patientDistribution || {},
+              dateRange: response.data.dateRange || {},
+            };
+          }
+        } catch (error) {
+          console.error("Error fetching export data:", error);
+          messageApi.error("Error fetching data for export");
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // Create workbook and worksheet
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "FMCS";
+      workbook.created = new Date();
+      
+      // Add timestamp info
+      const infoSheet = workbook.addWorksheet('Export Information');
+      infoSheet.columns = [
+        { header: 'Information', key: 'info', width: 30 },
+        { header: 'Value', key: 'value', width: 50 }
+      ];
+      
+      // Format header for info sheet
+      const formatSheetHeader = (sheet: ExcelJS.Worksheet) => {
+        const headerRow = sheet.getRow(1);
+        headerRow.height = 25; // Set header height
+        
+        // Format individual header cells instead of entire row
+        headerRow.eachCell((cell, colNumber) => {
+          // Apply orange background only to cells with actual headers
+          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFF8C00' } // Dark Orange
+          };
+          
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        });
+        
+        // Auto-fit columns
+        sheet.columns.forEach(column => {
+          column.width = column.width || 15;
+        });
+      };
+      
+      // Apply header formatting
+      formatSheetHeader(infoSheet);
+      
+      // Add export info
+      const now = new Date();
+      const exportInfo = [
+        { info: 'Export Date', value: now.toLocaleDateString() },
+        { info: 'Export Time', value: now.toLocaleTimeString() },
+        { info: 'Date Range', value: startDate && endDate ? 
+            `${formatDate(startDate)} to ${formatDate(endDate)}` : 'All Time' },
+        { info: 'Total Treatment Plans', value: dataToExport.totalTreatmentPlans || 0 },
+        { info: 'Generated By', value: 'FMCS System' }
+      ];
+      
+      // Add fixed row height for all sheets
+      const ROW_HEIGHT = 22;
+      
+      exportInfo.forEach(item => {
+        const row = infoSheet.addRow(item);
+        // Style info rows
+        row.height = ROW_HEIGHT;
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        });
+      });
+      
+      // Create summary sheet
+      const summarySheet = workbook.addWorksheet('Summary');
+      summarySheet.columns = [
+        { header: 'Metric', key: 'metric', width: 25 },
+        { header: 'Value', key: 'value', width: 15 }
+      ];
+      
+      // Format header
+      formatSheetHeader(summarySheet);
+      
+      // Add summary data
+      const summaryData = [
+        { metric: 'Total Treatment Plans', value: dataToExport.totalTreatmentPlans || 0 },
+        { metric: 'Active Treatment Plans', value: dataToExport.totalActiveTreatmentPlans || 0 },
+        { metric: 'Completed Treatment Plans', value: dataToExport.totalCompletedTreatmentPlans || 0 },
+        { metric: 'Cancelled Treatment Plans', value: dataToExport.totalCancelledTreatmentPlans || 0 },
+        { metric: 'Average Duration (days)', value: dataToExport.averageDuration?.toFixed(2) || 0 },
+        { metric: 'Completion Rate (%)', value: dataToExport.completionRate?.toFixed(2) || 0 },
+        { metric: 'Cancellation Rate (%)', value: dataToExport.cancellationRate?.toFixed(2) || 0 },
+        { metric: 'Avg Plans Per Patient', value: dataToExport.averageTreatmentPlansPerPatient?.toFixed(2) || 0 },
+      ];
+      
+      summaryData.forEach(item => {
+        const row = summarySheet.addRow(item);
+        row.height = ROW_HEIGHT;
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        });
+      });
+      
+      // Create status distribution sheet
+      const statusSheet = workbook.addWorksheet('Status Distribution');
+      statusSheet.columns = [
+        { header: 'Status', key: 'status', width: 20 },
+        { header: 'Count', key: 'count', width: 15 },
+        { header: 'Percentage', key: 'percentage', width: 15 }
+      ];
+      
+      // Format header
+      formatSheetHeader(statusSheet);
+      
+      // Calculate total for percentages
+      const totalPlans = dataToExport.totalTreatmentPlans || 1; // Prevent division by zero
+      
+      // Add status data
+      Object.entries(dataToExport.treatmentPlansByStatus || {}).forEach(([status, count]) => {
+        const percentage = ((count as number) / totalPlans * 100).toFixed(2) + '%';
+        const row = statusSheet.addRow({ status, count, percentage });
+        row.height = ROW_HEIGHT;
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        });
+      });
+      
+      // Create monthly distribution sheet
+      const monthlySheet = workbook.addWorksheet('Monthly Distribution');
+      monthlySheet.columns = [
+        { header: 'Month', key: 'month', width: 20 },
+        { header: 'Count', key: 'count', width: 15 },
+        { header: 'Percentage', key: 'percentage', width: 15 }
+      ];
+      
+      // Format header
+      formatSheetHeader(monthlySheet);
+      
+      // Add monthly data
+      Object.entries(dataToExport.treatmentPlansByMonth || {}).forEach(([month, count]) => {
+        const percentage = ((count as number) / totalPlans * 100).toFixed(2) + '%';
+        const row = monthlySheet.addRow({ month, count, percentage });
+        row.height = ROW_HEIGHT;
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        });
+      });
+      
+      // Create drugs distribution sheet
+      const drugsSheet = workbook.addWorksheet('Top Drugs');
+      drugsSheet.columns = [
+        { header: 'Drug', key: 'drug', width: 30 },
+        { header: 'Count', key: 'count', width: 15 },
+        { header: 'Percentage', key: 'percentage', width: 15 }
+      ];
+      
+      // Format header
+      formatSheetHeader(drugsSheet);
+      
+      // Add drugs data
+      Object.entries(dataToExport.treatmentPlansByDrug || {}).forEach(([drug, count]) => {
+        const percentage = ((count as number) / totalPlans * 100).toFixed(2) + '%';
+        const row = drugsSheet.addRow({ drug, count, percentage });
+        row.height = ROW_HEIGHT;
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        });
+      });
+      
+      // Create staff distribution sheet
+      const staffSheet = workbook.addWorksheet('Top Staff');
+      staffSheet.columns = [
+        { header: 'Staff', key: 'staff', width: 30 },
+        { header: 'Count', key: 'count', width: 15 },
+        { header: 'Percentage', key: 'percentage', width: 15 }
+      ];
+      
+      // Format header
+      formatSheetHeader(staffSheet);
+      
+      // Add staff data
+      Object.entries(dataToExport.treatmentPlansByUser || {}).forEach(([staff, count]) => {
+        const percentage = ((count as number) / totalPlans * 100).toFixed(2) + '%';
+        const row = staffSheet.addRow({ staff, count, percentage });
+        row.height = ROW_HEIGHT;
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        });
+      });
+      
+      // Create patient distribution sheet
+      const patientSheet = workbook.addWorksheet('Patient Distribution');
+      patientSheet.columns = [
+        { header: 'Treatment Plans', key: 'planCount', width: 20 },
+        { header: 'Patient Count', key: 'patientCount', width: 15 },
+        { header: 'Percentage', key: 'percentage', width: 15 }
+      ];
+      
+      // Format header
+      formatSheetHeader(patientSheet);
+      
+      // Calculate total patients
+      const totalPatients = Object.values(dataToExport.patientDistribution || {}).reduce((sum, count) => sum + (count as number), 0) || 1;
+      
+      // Add patient distribution data
+      Object.entries(dataToExport.patientDistribution || {}).forEach(([planCount, patientCount]) => {
+        const percentage = ((patientCount as number) / totalPatients * 100).toFixed(2) + '%';
+        const row = patientSheet.addRow({ 
+          planCount: `${planCount} plan(s)`,
+          patientCount,
+          percentage
+        });
+        row.height = ROW_HEIGHT;
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        });
+      });
+      
+      // Add export title with timestamp to each sheet
+      const addExportHeader = (sheet: ExcelJS.Worksheet) => {
+        sheet.insertRow(1, []);
+        sheet.insertRow(1, [`Treatment Plan Statistics Report - Exported on ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`]);
+        sheet.getRow(1).font = { bold: true, size: 14 };
+        sheet.getRow(1).height = 30;
+        sheet.mergeCells(`A1:${String.fromCharCode(64 + sheet.columns.length)}1`);
+        sheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+      };
+      
+      // Add export headers to all sheets
+      workbook.eachSheet((sheet) => {
+        addExportHeader(sheet);
+      });
+      
+      // Generate filename with date
+      const dateStr = startDate && endDate 
+        ? `_${formatDate(startDate)}_to_${formatDate(endDate)}`.replace(/\//g, '-')
+        : '_all_time';
+      const fileName = `treatment_plan_statistics${dateStr}.xlsx`;
+      
+      // Export to file
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, fileName);
+      
+      messageApi.success("Excel file has been downloaded successfully");
+      setExportModalVisible(false);
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      messageApi.error("Failed to export Excel file");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Export modal handler
+  const showExportModal = () => {
+    setExportDateRange([null, null]);
+    setExportModalVisible(true);
+  };
+
+  // Export date range change handler
+  const handleExportDateRangeChange = (dates: any) => {
+    setExportDateRange(dates);
+  };
+
+  // Add export modal renderer
+  const renderExportModal = () => {
+    return (
+      <Modal
+        title={
+          <Space>
+            <FileExcelOutlined style={{ color: '#52c41a' }} />
+            <span>Export Treatment Plan Statistics Report</span>
+          </Space>
+        }
+        open={exportModalVisible}
+        onCancel={() => setExportModalVisible(false)}
+        width={600}
+        footer={[
+          <Button key="cancel" onClick={() => setExportModalVisible(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="exportAll"
+            type="primary"
+            icon={<FileExcelOutlined />}
+            onClick={() => exportToExcel()}
+          >
+            Export All Data
+          </Button>,
+          <Button
+            key="exportRange"
+            type="primary"
+            icon={<FileExcelOutlined />}
+            disabled={!exportDateRange[0] || !exportDateRange[1]}
+            onClick={() => {
+              if (exportDateRange[0] && exportDateRange[1]) {
+                exportToExcel(
+                  exportDateRange[0].toDate(),
+                  exportDateRange[1].toDate()
+                );
+              }
+            }}
+          >
+            Export Data by Date
+          </Button>,
+        ]}
+      >
+        <div style={{ marginBottom: "20px" }}>
+          <Title level={5}>Select Date Range</Title>
+          <RangePicker
+            style={{ width: "100%", marginTop: "8px" }}
+            value={exportDateRange}
+            onChange={(dates) => setExportDateRange(dates as [dayjs.Dayjs | null, dayjs.Dayjs | null])}
+          />
+        </div>
+        
+        <Divider orientation="left">Report Format Information</Divider>
+        
+        <div style={{ marginBottom: "16px" }}>
+          <Space direction="vertical" style={{ width: '100%' }}>            
+            <Alert
+              message="Report Contents"
+              description={
+                <div>
+                  The export includes detailed statistics about treatment plans
+                  across multiple sheets including summary data, status distribution, 
+                  monthly trends, top drugs, and staff performance metrics.
+                </div>
+              }
+              type="info"
+              showIcon
+              style={{ marginTop: '12px' }}
+            />
+          </Space>
+        </div>
+        
+        <div style={{ marginTop: "16px" }}>
+          <Title level={5}>Export Preview</Title>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: "8px" }}>
+            <Tag color="orange">Summary Statistics</Tag>
+            <Tag color="green">Status Distribution</Tag>
+            <Tag color="blue">Monthly Distribution</Tag>
+            <Tag color="purple">Top Drugs</Tag>
+            <Tag color="cyan">Top Staff</Tag>
+            <Tag color="magenta">Patient Distribution</Tag>
+          </div>
+        </div>
+      </Modal>
     );
   };
 
@@ -716,7 +1152,11 @@ export function TreatmentPlanStatistics() {
               >
                 Refresh
               </Button>
-              <Button icon={<FileExcelOutlined />} type="primary">
+              <Button 
+                icon={<FileExcelOutlined />} 
+                type="primary"
+                onClick={showExportModal}
+              >
                 Export to Excel
               </Button>
             </Space>
@@ -1169,9 +1609,11 @@ export function TreatmentPlanStatistics() {
   // Main component return
   return (
     <div className="history-container" style={{ padding: "20px" }}>
+      {contextHolder}
       {renderFilterSection()}
       {renderStatisticsCards()}
       {renderChartTabs()}
+      {renderExportModal()}
     </div>
   );
 }

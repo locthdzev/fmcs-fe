@@ -28,6 +28,12 @@ const roleRoutes = {
     "/statistics/treatment-plan",
     "/statistics/drug",
     "/statistics/survey",
+    "/statistics/prescription",
+    "/statistics/canteenorder",
+    "/statistics/inventoryrecord",
+    "/statistics/health-check-result",
+    "/statistics/healthinsurance",
+    "/statistics/appointment",
     "/user",
     "/drug",
     "/drug-group",
@@ -77,6 +83,12 @@ const roleRoutes = {
     "/statistics/treatment-plan",
     "/statistics/drug",
     "/statistics/survey",
+    "/statistics/prescription",
+    "/statistics/canteenorder",
+    "/statistics/inventoryrecord",
+    "/statistics/health-check-result",
+    "/statistics/healthinsurance",
+    "/statistics/appointment",
     "/user",
     "/drug",
     "/drug-group",
@@ -124,6 +136,11 @@ const roleRoutes = {
     "/home",
     "/statistics/treatment-plan",
     "/statistics/drug",
+    "/statistics/prescription",
+    "/statistics/inventoryrecord",
+    "/statistics/health-check-result",
+    "/statistics/healthinsurance",
+    "/statistics/appointment",
     "/drug",
     "/drug-group",
     "/drug-order",
@@ -170,6 +187,7 @@ const roleRoutes = {
     "/home",
     "/canteen-item",
     "/canteen-order",
+    "/statistics/canteenorder",
     "/delivery-truck",
     "/settings",
     "/documentation",
@@ -223,19 +241,24 @@ export function SidebarItems() {
     function handleClickOutside(event: MouseEvent) {
       // Kiểm tra xem click có nằm ngoài tất cả các submenus đang mở không
       let clickedOutside = true;
-      
+
       for (const title of Array.from(openSubmenus)) {
-        if (submenuRefs.current[title] && submenuRefs.current[title]?.contains(event.target as Node)) {
+        if (
+          submenuRefs.current[title] &&
+          submenuRefs.current[title]?.contains(event.target as Node)
+        ) {
           clickedOutside = false;
           break;
         }
       }
-      
+
       // Nếu click nằm ngoài tất cả các submenus
       if (clickedOutside && (openSubmenus.size > 0 || hoveredSubmenu)) {
         // Kiểm tra xem click đó có nằm trên một menu item không (để không đóng khi click vào menu item khác)
-        const isClickOnMenuItem = (event.target as Element).closest('[data-menu-item]');
-        
+        const isClickOnMenuItem = (event.target as Element).closest(
+          "[data-menu-item]"
+        );
+
         if (!isClickOnMenuItem) {
           setOpenSubmenus(new Set());
           setHoveredSubmenu(null);
@@ -244,11 +267,11 @@ export function SidebarItems() {
     }
 
     // Add event listener
-    document.addEventListener('mousedown', handleClickOutside);
-    
+    document.addEventListener("mousedown", handleClickOutside);
+
     // Clean up
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [openSubmenus, hoveredSubmenu]);
 
@@ -271,7 +294,7 @@ export function SidebarItems() {
   const handleMenuClick = (title: string, event: React.MouseEvent) => {
     if (sidebarOpen) {
       // When sidebar is expanded, toggle this submenu in the Set
-      setOpenSubmenus(prev => {
+      setOpenSubmenus((prev) => {
         const newSet = new Set(prev);
         if (newSet.has(title)) {
           newSet.delete(title);
@@ -284,7 +307,7 @@ export function SidebarItems() {
       // When sidebar is collapsed
       const rect = event.currentTarget.getBoundingClientRect();
       setSubmenuPosition({ top: rect.top, left: rect.right });
-      setHoveredSubmenu(prev => prev === title ? null : title);
+      setHoveredSubmenu((prev) => (prev === title ? null : title));
     }
     // Ngăn chặn sự kiện lan truyền để không kích hoạt handleClickOutside
     event.stopPropagation();
@@ -356,8 +379,8 @@ export function SidebarItems() {
                 onMouseLeave={handleMouseLeave}
               >
                 {item.submenu ? (
-                  <div 
-                    className={style.link} 
+                  <div
+                    className={style.link}
                     style={{ cursor: "pointer" }}
                     onClick={(e) => handleMenuClick(item.title, e)}
                     data-menu-item={item.title}

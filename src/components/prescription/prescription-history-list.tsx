@@ -57,6 +57,7 @@ const DEFAULT_EXPORT_CONFIG = {
   exportAllPages: true,
   includePrescriptionCode: true,
   includeHealthCheckCode: true,
+  includeAction: true,
   includeActionDate: true,
   includePerformedBy: true,
   includePreviousStatus: true,
@@ -197,6 +198,7 @@ export function PrescriptionHistoryList() {
         exportAllPages: values.exportAllPages,
         includePrescriptionCode: values.includePrescriptionCode,
         includeHealthCheckCode: values.includeHealthCheckCode,
+        includeAction: values.includeAction,
         includeActionDate: values.includeActionDate,
         includePerformedBy: values.includePerformedBy,
         includePreviousStatus: values.includePreviousStatus,
@@ -430,6 +432,10 @@ export function PrescriptionHistoryList() {
           <Checkbox>Health Check Code</Checkbox>
         </Form.Item>
 
+        <Form.Item name="includeAction" valuePropName="checked">
+          <Checkbox>Action</Checkbox>
+        </Form.Item>
+
         <Form.Item name="includeActionDate" valuePropName="checked">
           <Checkbox>Action Date</Checkbox>
         </Form.Item>
@@ -476,7 +482,7 @@ export function PrescriptionHistoryList() {
               placeholder="Search by Prescription Code"
               value={prescriptionCode}
               onChange={(e) => setPrescriptionCode(e.target.value)}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               allowClear
             />
           </Col>
@@ -486,7 +492,7 @@ export function PrescriptionHistoryList() {
               placeholder="Search by Health Check Code"
               value={healthCheckResultCode}
               onChange={(e) => setHealthCheckResultCode(e.target.value)}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               allowClear
             />
           </Col>
@@ -513,7 +519,7 @@ export function PrescriptionHistoryList() {
               placeholder="Search by Performed By"
               value={performedBySearch}
               onChange={(e) => setPerformedBySearch(e.target.value)}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               allowClear
             />
           </Col>

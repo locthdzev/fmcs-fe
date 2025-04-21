@@ -1,6 +1,6 @@
 import React from "react";
-import { HistoryList } from "@/components/health-insurance/HistoryList";
+import InsuranceHistory from "@/components/health-insurance/InsuranceHistory";
 
 export default function HealthInsuranceHistoryPage() {
-  return <HistoryList />;
-} 
+  return <InsuranceHistory />;
+}
