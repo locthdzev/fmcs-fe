@@ -85,6 +85,7 @@ export interface UpdateRequestDTO {
 export interface HistoryDTO {
   id: string;
   healthInsuranceId: string;
+  healthInsuranceNumber?: string;
   updatedBy: { id: string; userName: string; email: string };
   updatedAt: string;
   previousStatus: string;
@@ -92,6 +93,23 @@ export interface HistoryDTO {
   previousVerificationStatus: string;
   newVerificationStatus: string;
   changeDetails: string;
+}
+
+export interface GroupedInsuranceHistoriesDTO {
+  totalInsurances: number;
+  items: InsuranceHistoryGroup[];
+}
+
+export interface InsuranceHistoryGroup {
+  insurance: InsuranceInfo;
+  histories: HistoryDTO[];
+}
+
+export interface InsuranceInfo {
+  id: string;
+  healthInsuranceNumber?: string;
+  fullName?: string;
+  user?: { id: string; fullName: string; userName: string; email: string };
 }
 
 export interface UpdateRequestParams {
@@ -566,6 +584,46 @@ export const getAllHealthInsuranceHistories = async (
     }
   );
   return response.data;
+};
+
+export const getGroupedInsuranceHistories = async (
+  page: number = 1,
+  pageSize: number = 10,
+  startUpdateDate?: string,
+  endUpdateDate?: string,
+  performedBySearch?: string,
+  previousStatus?: string,
+  newStatus?: string,
+  sortBy: string = "UpdatedAt",
+  ascending: boolean = false,
+  healthInsuranceNumber?: string,
+  searchText?: string
+) => {
+  try {
+    const response = await api.get("/health-insurance-management/insurances/histories/grouped", {
+      params: {
+        page,
+        pageSize,
+        startUpdateDate,
+        endUpdateDate,
+        performedBySearch,
+        previousStatus,
+        newStatus,
+        sortBy,
+        ascending,
+        healthInsuranceNumber,
+        searchText,
+      },
+    });
+    const data = response.data;
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching grouped insurance histories:", error);
+    throw error;
+  }
 };
 
 export const setHealthInsuranceConfig = async (
