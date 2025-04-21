@@ -508,8 +508,9 @@ export function InsuranceHistory() {
   };
 
   const applyFilters = () => {
-    // Không đặt lại giá trị healthInsuranceNumber và ownerSearch từ modal
-    // Chỉ đặt lại các giá trị Advanced Filters
+    // Áp dụng cả giá trị healthInsuranceNumber từ modal
+    setHealthInsuranceNumber(filterState.healthInsuranceNumber);
+    setOwnerSearch(filterState.ownerSearch);
     setPerformedBySearch(filterState.performedBySearch);
     setUpdateDateRange(filterState.updateDateRange);
     setAscending(filterState.ascending);
@@ -521,17 +522,21 @@ export function InsuranceHistory() {
   };
 
   const resetFilters = () => {
-    // Reset toàn bộ giá trị trong modal, bao gồm cả những giá trị từ bên ngoài
+    // Lưu lại giá trị ownerSearch hiện tại
+    const currentOwnerSearch = ownerSearch;
+    
+    // Reset giá trị trong modal, nhưng giữ nguyên ownerSearch
     setFilterState({
       healthInsuranceNumber: "",
-      ownerSearch: "",
+      ownerSearch: currentOwnerSearch, // Giữ nguyên giá trị ownerSearch
       performedBySearch: "",
       updateDateRange: [null, null],
       ascending: false,
       sortBy: "UpdatedAt",
     });
 
-    // Đặt lại các giá trị trong state chính
+    // Đặt lại các giá trị trong state chính, nhưng giữ nguyên ownerSearch
+    setHealthInsuranceNumber("");
     setPerformedBySearch("");
     setUpdateDateRange([null, null]);
     setAscending(false);
@@ -635,36 +640,6 @@ export function InsuranceHistory() {
 
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Select
-              showSearch
-              placeholder="Search Insurance Number"
-              value={healthInsuranceNumber || undefined}
-              onChange={(value) => {
-                console.log("Selected Insurance Number:", value);
-                setHealthInsuranceNumber(value || "");
-                setCurrentPage(1);
-                fetchGroupedInsuranceHistories();
-              }}
-              onClear={() => {
-                setHealthInsuranceNumber("");
-                setCurrentPage(1);
-                fetchGroupedInsuranceHistories();
-              }}
-              style={{ width: "240px" }}
-              prefix={<SearchOutlined style={{ color: "blue" }} />}
-              allowClear
-              filterOption={(input, option) =>
-                (option?.value?.toString().toLowerCase() || "").includes(
-                  input.toLowerCase()
-                )
-              }
-              options={uniqueInsuranceNumbers.map((code) => ({
-                value: code,
-                label: code,
-              }))}
-              dropdownStyle={{ minWidth: "240px" }}
-            />
-
             <Select
               showSearch
               placeholder="Search Health Insurance Owner"

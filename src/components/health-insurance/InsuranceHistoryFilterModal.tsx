@@ -87,6 +87,41 @@ const InsuranceHistoryFilterModal: React.FC<FilterModalProps> = ({
       ]}
     >
       <Space direction="vertical" style={{ width: "100%" }}>
+        {/* Insurance Number Search */}
+        <Divider orientation="left">Insurance Number</Divider>
+        <div className="filter-item" style={{ marginBottom: "16px" }}>
+          <div
+            className="filter-label"
+            style={{ marginBottom: "8px", color: "#666666" }}
+          >
+            Search Insurance Number
+          </div>
+          <Select
+            showSearch
+            placeholder="Search Insurance Number"
+            value={filterState.healthInsuranceNumber || undefined}
+            onChange={(value) => 
+              setFilterState((prev) => ({
+                ...prev,
+                healthInsuranceNumber: value || "",
+              }))
+            }
+            style={{ width: "100%" }}
+            prefix={<SearchOutlined style={{ color: "blue" }} />}
+            allowClear
+            filterOption={(input, option) =>
+              (option?.value?.toString().toLowerCase() || "").includes(
+                input.toLowerCase()
+              )
+            }
+            options={uniqueInsuranceNumbers.map((code) => ({
+              value: code,
+              label: code,
+            }))}
+            dropdownStyle={{ minWidth: "240px" }}
+          />
+        </div>
+
         {/* Date & Sorting */}
         <Divider orientation="left">Date & Sorting</Divider>
         <div>
