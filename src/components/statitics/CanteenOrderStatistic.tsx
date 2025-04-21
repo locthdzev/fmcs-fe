@@ -689,199 +689,213 @@ export function CanteenOrderStatistic() {
       switch (chartType) {
         case "pie":
           return (
-            <ResponsiveContainer width="100%" height={400}>
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  outerRadius={120}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) =>
-                    `${name}: ${(percent * 100).toFixed(1)}%`
-                  }
-                >
-                  {data.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <RechartsTooltip formatter={(value) => [`${value} orders`]} />
-                <Legend
-                  layout="vertical"
-                  verticalAlign="middle"
-                  align="right"
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <div style={{ width: "100%", height: 400, overflow: "hidden" }}>
+              <ResponsiveContainer width="100%" height={400}>
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={true}
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) =>
+                      `${name}: ${(percent * 100).toFixed(1)}%`
+                    }
+                  >
+                    {data.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip formatter={(value) => [`${value} orders`]} />
+                  <Legend
+                    layout="vertical"
+                    verticalAlign="middle"
+                    align="right"
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           );
         case "bar":
           return (
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart
-                data={data}
-                margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="name"
-                  angle={-45}
-                  textAnchor="end"
-                  height={70}
-                />
-                <YAxis />
-                <RechartsTooltip formatter={(value) => [`${value} orders`]} />
-                <Legend />
-                <Bar dataKey="value" name="Number of Orders">
-                  {data.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ width: "100%", height: 400, overflow: "hidden" }}>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart
+                  data={data}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="name"
+                    angle={-45}
+                    textAnchor="end"
+                    height={70}
+                  />
+                  <YAxis />
+                  <RechartsTooltip formatter={(value) => [`${value} orders`]} />
+                  <Legend />
+                  <Bar dataKey="value" name="Number of Orders">
+                    {data.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           );
         case "line":
           return (
-            <ResponsiveContainer width="100%" height={400}>
-              <LineChart
-                data={data}
-                margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="name"
-                  angle={-45}
-                  textAnchor="end"
-                  height={70}
-                />
-                <YAxis />
-                <RechartsTooltip formatter={(value) => [`${value} orders`]} />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke={token.colorPrimary}
-                  name="Number of Orders"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div style={{ width: "100%", height: 400, overflow: "hidden" }}>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart
+                  data={data}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="name"
+                    angle={-45}
+                    textAnchor="end"
+                    height={70}
+                  />
+                  <YAxis />
+                  <RechartsTooltip formatter={(value) => [`${value} orders`]} />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke={token.colorPrimary}
+                    name="Number of Orders"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           );
         case "area":
           return (
-            <ResponsiveContainer width="100%" height={400}>
-              <AreaChart
-                data={data}
-                margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="name"
-                  angle={-45}
-                  textAnchor="end"
-                  height={70}
-                />
-                <YAxis />
-                <RechartsTooltip formatter={(value) => [`${value} orders`]} />
-                <Legend />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke={token.colorPrimary}
-                  fill={token.colorPrimaryBg}
-                  name="Number of Orders"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div style={{ width: "100%", height: 400, overflow: "hidden" }}>
+              <ResponsiveContainer width="100%" height={400}>
+                <AreaChart
+                  data={data}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="name"
+                    angle={-45}
+                    textAnchor="end"
+                    height={70}
+                  />
+                  <YAxis />
+                  <RechartsTooltip formatter={(value) => [`${value} orders`]} />
+                  <Legend />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke={token.colorPrimary}
+                    fill={token.colorPrimaryBg}
+                    name="Number of Orders"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           );
         case "radar":
           return (
-            <ResponsiveContainer width="100%" height={400}>
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="name" />
-                <PolarRadiusAxis />
-                <Radar
-                  name="Number of Orders"
-                  dataKey="value"
-                  stroke={token.colorPrimary}
-                  fill={token.colorPrimaryBg}
-                  fillOpacity={0.6}
-                />
-                <Legend />
-                <RechartsTooltip formatter={(value) => [`${value} orders`]} />
-              </RadarChart>
-            </ResponsiveContainer>
+            <div style={{ width: "100%", height: 400, overflow: "hidden" }}>
+              <ResponsiveContainer width="100%" height={400}>
+                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="name" />
+                  <PolarRadiusAxis />
+                  <Radar
+                    name="Number of Orders"
+                    dataKey="value"
+                    stroke={token.colorPrimary}
+                    fill={token.colorPrimaryBg}
+                    fillOpacity={0.6}
+                  />
+                  <Legend />
+                  <RechartsTooltip formatter={(value) => [`${value} orders`]} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
           );
         case "scatter":
           return (
-            <ResponsiveContainer width="100%" height={400}>
-              <ScatterChart
-                margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  type="category"
-                  dataKey="name"
-                  name="Name"
-                  angle={-45}
-                  textAnchor="end"
-                  height={70}
-                />
-                <YAxis type="number" dataKey="value" name="Value" />
-                <RechartsTooltip
-                  cursor={{ strokeDasharray: "3 3" }}
-                  formatter={(value) => [`${value} orders`]}
-                />
-                <Legend />
-                <Scatter
-                  name="Number of Orders"
-                  data={data}
-                  fill={token.colorPrimary}
-                />
-              </ScatterChart>
-            </ResponsiveContainer>
+            <div style={{ width: "100%", height: 400, overflow: "hidden" }}>
+              <ResponsiveContainer width="100%" height={400}>
+                <ScatterChart
+                  margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    type="category"
+                    dataKey="name"
+                    name="Name"
+                    angle={-45}
+                    textAnchor="end"
+                    height={70}
+                  />
+                  <YAxis type="number" dataKey="value" name="Value" />
+                  <RechartsTooltip
+                    cursor={{ strokeDasharray: "3 3" }}
+                    formatter={(value) => [`${value} orders`]}
+                  />
+                  <Legend />
+                  <Scatter
+                    name="Number of Orders"
+                    data={data}
+                    fill={token.colorPrimary}
+                  />
+                </ScatterChart>
+              </ResponsiveContainer>
+            </div>
           );
         default:
           return (
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart
-                data={data}
-                margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="name"
-                  angle={-45}
-                  textAnchor="end"
-                  height={70}
-                />
-                <YAxis />
-                <RechartsTooltip formatter={(value) => [`${value} orders`]} />
-                <Legend />
-                <Bar dataKey="value" name="Number of Orders">
-                  {data.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ width: "100%", height: 400, overflow: "hidden" }}>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart
+                  data={data}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="name"
+                    angle={-45}
+                    textAnchor="end"
+                    height={70}
+                  />
+                  <YAxis />
+                  <RechartsTooltip formatter={(value) => [`${value} orders`]} />
+                  <Legend />
+                  <Bar dataKey="value" name="Number of Orders">
+                    {data.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           );
       }
     };
 
     // Return chart with controls
     return (
-      <div style={{ width: "100%" }}>
+      <div style={{ width: "100%", maxWidth: "100%", overflow: "hidden" }}>
         {chartConfigMenu}
         {renderChartComponent()}
       </div>
@@ -1087,237 +1101,232 @@ export function CanteenOrderStatistic() {
     </>
   );
 
-  const renderStatisticsCards = () => {
-    return (
-      <div className="statistics-cards-container" style={{ 
-        display: "flex", 
-        flexWrap: "wrap", 
-        gap: "16px", 
-        marginBottom: "24px" 
-      }}>
-        <Card
-          hoverable
-          className="statistics-card"
-          style={{
-            flex: "1 1 260px",
-            minWidth: "260px",
-            maxWidth: "100%",
-            borderRadius: "8px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-          }}
-        >
-          <Statistic
-            title={
-              <Space align="center">
-                <Title level={5} style={{ margin: 0 }}>
-                  Total Orders
-                </Title>
-                <AntTooltip title="Total number of canteen orders in the selected time period">
-                  <QuestionCircleOutlined
-                    style={{
-                      fontSize: "14px",
-                      color: token.colorTextSecondary,
-                    }}
-                  />
-                </AntTooltip>
-              </Space>
-            }
-            value={statistics.totalOrders}
-            prefix={<Badge status="default" />}
-            valueStyle={{ color: token.colorTextHeading }}
-          />
-          <div style={{ marginTop: "10px" }}>
-            <Progress
-              percent={100}
-              showInfo={false}
-              strokeColor={token.colorTextHeading}
-            />
-          </div>
-        </Card>
-        
-        <Card
-          hoverable
-          className="statistics-card"
-          style={{
-            flex: "1 1 260px",
-            minWidth: "260px",
-            maxWidth: "100%",
-            borderRadius: "8px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-          }}
-        >
-          <Statistic
-            title={
-              <Space align="center">
-                <Title level={5} style={{ margin: 0 }}>
-                  Pending Orders
-                </Title>
-                <AntTooltip title="Number of orders currently in pending status">
-                  <QuestionCircleOutlined
-                    style={{
-                      fontSize: "14px",
-                      color: token.colorTextSecondary,
-                    }}
-                  />
-                </AntTooltip>
-              </Space>
-            }
-            value={statistics.pendingOrders}
-            prefix={<Badge status="warning" />}
-            valueStyle={{ color: "#faad14" }}
-          />
-          <div style={{ marginTop: "10px" }}>
-            <Progress
-              percent={
-                (statistics.pendingOrders /
-                  (statistics.totalOrders || 1)) *
-                100
+  const renderStatisticsCards = () => (
+    <>
+      <Row gutter={16} className="mb-6">
+        <Col xs={24} sm={12} md={6}>
+          <Card
+            hoverable
+            className="statistic-card"
+            style={{
+              borderRadius: "8px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            }}
+          >
+            <Statistic
+              title={
+                <Space align="center">
+                  <Title level={5} style={{ margin: 0 }}>
+                    Total Orders
+                  </Title>
+                  <AntTooltip title="Total number of canteen orders in the selected time period">
+                    <QuestionCircleOutlined
+                      style={{
+                        fontSize: "14px",
+                        color: token.colorTextSecondary,
+                      }}
+                    />
+                  </AntTooltip>
+                </Space>
               }
-              showInfo={false}
-              strokeColor="#faad14"
+              value={statistics.totalOrders}
+              prefix={<Badge status="default" />}
+              valueStyle={{ color: token.colorTextHeading }}
             />
-          </div>
-        </Card>
+            <div style={{ marginTop: "10px" }}>
+              <Progress
+                percent={100}
+                showInfo={false}
+                strokeColor={token.colorTextHeading}
+              />
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card
+            hoverable
+            className="statistic-card"
+            style={{
+              borderRadius: "8px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            }}
+          >
+            <Statistic
+              title={
+                <Space align="center">
+                  <Title level={5} style={{ margin: 0 }}>
+                    Pending Orders
+                  </Title>
+                  <AntTooltip title="Number of orders currently in pending status">
+                    <QuestionCircleOutlined
+                      style={{
+                        fontSize: "14px",
+                        color: token.colorTextSecondary,
+                      }}
+                    />
+                  </AntTooltip>
+                </Space>
+              }
+              value={statistics.pendingOrders}
+              prefix={<Badge status="warning" />}
+              valueStyle={{ color: "#faad14" }}
+            />
+            <div style={{ marginTop: "10px" }}>
+              <Progress
+                percent={
+                  (statistics.pendingOrders /
+                    statistics.totalOrders) *
+                  100
+                }
+                showInfo={false}
+                strokeColor="#faad14"
+              />
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card
+            hoverable
+            className="statistic-card"
+            style={{
+              borderRadius: "8px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            }}
+          >
+            <Statistic
+              title={
+                <Space align="center">
+                  <Title level={5} style={{ margin: 0 }}>
+                    Approved Orders
+                  </Title>
+                  <AntTooltip title="Number of orders that have been approved">
+                    <QuestionCircleOutlined
+                      style={{
+                        fontSize: "14px",
+                        color: token.colorTextSecondary,
+                      }}
+                    />
+                  </AntTooltip>
+                </Space>
+              }
+              value={statistics.approvedOrders}
+              prefix={<Badge status="processing" />}
+              valueStyle={{ color: "#1677ff" }}
+            />
+            <div style={{ marginTop: "10px" }}>
+              <Progress
+                percent={
+                  (statistics.approvedOrders /
+                    statistics.totalOrders) *
+                  100
+                }
+                showInfo={false}
+                strokeColor="#1677ff"
+              />
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card
+            hoverable
+            className="statistic-card"
+            style={{
+              borderRadius: "8px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            }}
+          >
+            <Statistic
+              title={
+                <Space align="center">
+                  <Title level={5} style={{ margin: 0 }}>
+                    Completed Orders
+                  </Title>
+                  <AntTooltip title="Number of orders that have been successfully completed">
+                    <QuestionCircleOutlined
+                      style={{
+                        fontSize: "14px",
+                        color: token.colorTextSecondary,
+                      }}
+                    />
+                  </AntTooltip>
+                </Space>
+              }
+              value={statistics.completedOrders}
+              prefix={<Badge status="success" />}
+              valueStyle={{ color: "#52c41a" }}
+            />
+            <div style={{ marginTop: "10px" }}>
+              <Progress
+                percent={
+                  (statistics.completedOrders /
+                    statistics.totalOrders) *
+                  100
+                }
+                showInfo={false}
+                strokeColor="#52c41a"
+              />
+            </div>
+          </Card>
+        </Col>
+      </Row>
 
-        <Card
-          hoverable
-          className="statistics-card"
-          style={{
-            flex: "1 1 260px",
-            minWidth: "260px",
-            maxWidth: "100%",
-            borderRadius: "8px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-          }}
-        >
-          <Statistic
-            title={
-              <Space align="center">
-                <Title level={5} style={{ margin: 0 }}>
-                  Approved Orders
-                </Title>
-                <AntTooltip title="Number of orders that have been approved">
-                  <QuestionCircleOutlined
-                    style={{
-                      fontSize: "14px",
-                      color: token.colorTextSecondary,
-                    }}
-                  />
-                </AntTooltip>
-              </Space>
-            }
-            value={statistics.approvedOrders}
-            prefix={<Badge status="processing" />}
-            valueStyle={{ color: "#1677ff" }}
-          />
-          <div style={{ marginTop: "10px" }}>
-            <Progress
-              percent={
-                (statistics.approvedOrders /
-                  (statistics.totalOrders || 1)) *
-                100
+      <Row gutter={16} className="mb-6">
+        <Col xs={24} sm={12} md={24}>
+          <Card
+            hoverable
+            className="statistic-card"
+            style={{
+              borderRadius: "8px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            }}
+          >
+            <Statistic
+              title={
+                <Space align="center">
+                  <Title level={5} style={{ margin: 0 }}>
+                    Rejected Orders
+                  </Title>
+                  <AntTooltip title="Number of orders that were rejected">
+                    <QuestionCircleOutlined
+                      style={{
+                        fontSize: "14px",
+                        color: token.colorTextSecondary,
+                      }}
+                    />
+                  </AntTooltip>
+                </Space>
               }
-              showInfo={false}
-              strokeColor="#1677ff"
+              value={statistics.rejectedOrders}
+              prefix={<Badge status="error" />}
+              valueStyle={{ color: "#cf1322" }}
             />
-          </div>
-        </Card>
-
-        <Card
-          hoverable
-          className="statistics-card"
-          style={{
-            flex: "1 1 260px",
-            minWidth: "260px",
-            maxWidth: "100%",
-            borderRadius: "8px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-          }}
-        >
-          <Statistic
-            title={
-              <Space align="center">
-                <Title level={5} style={{ margin: 0 }}>
-                  Completed Orders
-                </Title>
-                <AntTooltip title="Number of orders that have been successfully completed">
-                  <QuestionCircleOutlined
-                    style={{
-                      fontSize: "14px",
-                      color: token.colorTextSecondary,
-                    }}
-                  />
-                </AntTooltip>
-              </Space>
-            }
-            value={statistics.completedOrders}
-            prefix={<Badge status="success" />}
-            valueStyle={{ color: "#52c41a" }}
-          />
-          <div style={{ marginTop: "10px" }}>
-            <Progress
-              percent={
-                (statistics.completedOrders /
-                  (statistics.totalOrders || 1)) *
-                100
-              }
-              showInfo={false}
-              strokeColor="#52c41a"
-            />
-          </div>
-        </Card>
-
-        <Card
-          hoverable
-          className="statistics-card"
-          style={{
-            flex: "1 1 260px",
-            minWidth: "260px",
-            maxWidth: "100%",
-            borderRadius: "8px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-          }}
-        >
-          <Statistic
-            title={
-              <Space align="center">
-                <Title level={5} style={{ margin: 0 }}>
-                  Rejected Orders
-                </Title>
-                <AntTooltip title="Number of orders that were rejected">
-                  <QuestionCircleOutlined
-                    style={{
-                      fontSize: "14px",
-                      color: token.colorTextSecondary,
-                    }}
-                  />
-                </AntTooltip>
-              </Space>
-            }
-            value={statistics.rejectedOrders}
-            prefix={<Badge status="error" />}
-            valueStyle={{ color: "#cf1322" }}
-          />
-          <div style={{ marginTop: "10px" }}>
-            <Progress
-              percent={
-                (statistics.rejectedOrders /
-                  (statistics.totalOrders || 1)) *
-                100
-              }
-              showInfo={false}
-              strokeColor="#cf1322"
-            />
-          </div>
-        </Card>
-      </div>
-    );
-  };
+            <div style={{ marginTop: "10px" }}>
+              <Progress
+                percent={
+                  (statistics.rejectedOrders /
+                    statistics.totalOrders) *
+                  100
+                }
+                showInfo={false}
+                strokeColor="#cf1322"
+              />
+            </div>
+          </Card>
+        </Col>
+      </Row>
+    </>
+  );
 
   const renderChartTabs = () => (
     <Card
       className="mb-6 chart-card"
-      style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+      style={{ 
+        borderRadius: "8px", 
+        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+        width: "100%",
+        maxWidth: "100%",
+        overflow: "hidden"
+      }}
     >
       <Tabs
         defaultActiveKey="1"
@@ -1333,16 +1342,12 @@ export function CanteenOrderStatistic() {
 
   // Main component return
   return (
-    <div className="canteen-statistics-container">
+    <div className="history-container" style={{ padding: "20px", width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
       {contextHolder}
-      <div className="container px-4 sm:px-6 mx-auto" style={{ maxWidth: "1600px" }}>
-        {renderFilterSection()}
-        {renderStatisticsCards()}
-        <div className="chart-container" style={{ maxWidth: "100%", overflowX: "auto" }}>
-          {renderChartTabs()}
-        </div>
-        {renderExportModal()}
-      </div>
+      {renderFilterSection()}
+      {renderStatisticsCards()}
+      {renderChartTabs()}
+      {renderExportModal()}
     </div>
   );
 }

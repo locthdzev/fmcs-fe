@@ -33,6 +33,8 @@ import { SurveyForStaffIcon } from "./icons/SurveyForStaffIcon";
 import { PrescriptionStatisticsIcon } from "./icons/PrescriptionStatisticsIcon";
 import CanteenOrderStatisticsIcon from "./icons/CanteenOrderStatisticsIcon";
 import InventoryRecordStatictisIcon from "./icons/InventoryRecordStatictisIcon";
+import HealthInsuranceStatictisIcon from "./icons/HealthInsuranceStatictisIcon";
+import AppointmentStatisticsIcon from "./icons/AppointmentStatisticsIcon";
 
 export const data = [
   {
@@ -83,6 +85,16 @@ export const data = [
             title: "Health Check Result Statistics",
             icon: <StatusIcon />,
             link: "/statistics/health-check-result",
+          },
+          {
+            title: "Health Insurance Statistics",
+            icon: <HealthInsuranceStatictisIcon />,
+            link: "/statistics/healthinsurance",
+          },
+          {
+            title: "Appointment Statistics",
+            icon: <AppointmentStatisticsIcon />,
+            link: "/statistics/appointment",
           },
         ],
       },
