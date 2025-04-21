@@ -55,6 +55,11 @@ interface TableControlsProps {
    * Array of rows per page options (default: [5, 10, 15, 20, 50, 100])
    */
   pageSizeOptions?: number[];
+
+  /**
+   * Use "Items per page" instead of "Rows per page" (for lists instead of tables)
+   */
+  useItemsLabel?: boolean;
   
   /**
    * Function that renders column settings UI
@@ -74,6 +79,7 @@ const TableControls: React.FC<TableControlsProps> = ({
   className = "",
   maxRowsPerPage = 100,
   pageSizeOptions = [5, 10, 15, 20, 50, 100],
+  useItemsLabel = false,
   columnSettings,
 }) => {
   // Filter page size options to respect the maximum
@@ -146,6 +152,7 @@ const TableControls: React.FC<TableControlsProps> = ({
           alignItems: "center",
         }}
       >
+        <Text type="secondary">{useItemsLabel ? "Items per page:" : "Rows per page:"}</Text>
         {columnSettings && columnSettings()}
         
         <Text type="secondary">Rows per page:</Text>

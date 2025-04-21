@@ -60,6 +60,12 @@ export const getStatusTag = (status: string) => {
           NotApplicable
         </Tag>
       );
+    case "Rejected":
+      return (
+        <Tag icon={<CloseCircleOutlined />} color="error">
+          Rejected
+        </Tag>
+      );
     default:
       return <Tag>{status}</Tag>;
   }
@@ -93,4 +99,16 @@ export const getVerificationTag = (status: string) => {
     default:
       return <Tag>{status}</Tag>;
   }
-}; 
+};
+
+/**
+ * Returns the formatted text for a status.
+ * @param status Status string value 
+ * @returns Formatted status text
+ */
+export const formatStatusText = (status: string | undefined): string => {
+  if (!status) return 'N/A';
+  
+  // Convert to title case (first letter uppercase, rest lowercase)
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+};

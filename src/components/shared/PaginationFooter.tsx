@@ -43,6 +43,11 @@ interface PaginationFooterProps {
    * Additional CSS class
    */
   className?: string;
+
+  /**
+   * Use "Items" instead of "items" (for lists instead of tables)
+   */
+  useItemsLabel?: boolean;
 }
 
 /**
@@ -58,6 +63,7 @@ const PaginationFooter: React.FC<PaginationFooterProps> = ({
   showGoToPage = true,
   showTotal = true,
   className,
+  useItemsLabel = false,
 }) => {
   // Calculate max page number
   const maxPage = Math.ceil(total / pageSize) || 1;
@@ -73,7 +79,7 @@ const PaginationFooter: React.FC<PaginationFooterProps> = ({
     <Card className={`mt-4 shadow-sm ${className || ''}`}>
       <Row justify="center" align="middle">
         <Space size="large" align="center">
-          {showTotal && <Text type="secondary">Total {total} items</Text>}
+          {showTotal && <Text type="secondary">Total {total} {useItemsLabel ? "Items" : "items"}</Text>}
           
           <Space align="center" size="large">
             <Pagination
