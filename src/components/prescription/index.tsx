@@ -74,6 +74,7 @@ import {
   TagOutlined,
   AppstoreOutlined,
   FileExcelOutlined,
+  ArrowLeftOutlined,
 } from "@ant-design/icons";
 import { ColumnType } from "antd/es/table";
 import PrescriptionFilterModal from "./PrescriptionFilterModal";
@@ -503,9 +504,23 @@ export function PrescriptionManagement() {
   };
 
   const handleColumnVisibilityChange = (key: string) => {
+    // Không cho phép ẩn cả hai cột prescriptionCode và actions
+    if (key === "prescriptionCode" && visibleColumns.length === 2 && visibleColumns.includes("actions")) {
+      return; // Không cho phép ẩn cột prescriptionCode khi chỉ còn 2 cột
+    }
+    if (key === "actions" && visibleColumns.length === 2 && visibleColumns.includes("prescriptionCode")) {
+      return; // Không cho phép ẩn cột actions khi chỉ còn 2 cột
+    }
+    
     const newVisibleColumns = visibleColumns.includes(key)
       ? visibleColumns.filter((k) => k !== key)
       : [...visibleColumns, key];
+    
+    // Đảm bảo ít nhất một cột luôn hiển thị
+    if (newVisibleColumns.length === 0) {
+      return;
+    }
+    
     setVisibleColumns(newVisibleColumns);
   };
 
@@ -1042,10 +1057,41 @@ export function PrescriptionManagement() {
     ascending,
   ]);
 
+  // Define available columns for customization
+  const availableColumns = [
+    { key: "prescriptionCode", label: "Prescription Code" },
+    { key: "healthCheckResultCode", label: "Health Check Code" },
+    { key: "user", label: "Medicine User" },
+    { key: "prescriptionDate", label: "Prescription Date" },
+    { key: "staff", label: "Healthcare Staff" },
+    { key: "createdAt", label: "Created At" },
+    { key: "updatedAt", label: "Updated At" },
+    { key: "updatedBy", label: "Updated By" },
+    { key: "status", label: "Status" },
+    { key: "actions", label: "Actions" }
+  ];
+
+  // Column Settings menu
+  const renderColumnSettingsMenu = () => (
+    <Menu>
+      {availableColumns.map(column => (
+        <Menu.Item key={column.key}>
+          <Checkbox
+            checked={visibleColumns.includes(column.key)}
+            onChange={() => handleColumnVisibilityChange(column.key)}
+          >
+            {column.label}
+          </Checkbox>
+        </Menu.Item>
+      ))}
+    </Menu>
+  );
+
   // Main render
   return (
     <PageContainer
       title="Prescription Management"
+      onBack={() => router.back()}
       icon={
         <MedicineBoxOutlined style={{ fontSize: "24px", marginRight: "8px" }} />
       }
@@ -1188,7 +1234,7 @@ export function PrescriptionManagement() {
                     updatedDateRange[1]
                   )
                 }
-              >Reset</Button>
+              ></Button>
             </Tooltip>
             <Button
               type="primary"
@@ -1197,6 +1243,15 @@ export function PrescriptionManagement() {
             >
               Create
             </Button>
+            <Dropdown
+              overlay={renderColumnSettingsMenu()}
+              trigger={["click"]}
+              placement="bottomRight"
+            >
+              <Button icon={<SettingOutlined />}>
+                Columns <DownOutlined />
+              </Button>
+            </Dropdown>
           </>
         }
         rightContent={

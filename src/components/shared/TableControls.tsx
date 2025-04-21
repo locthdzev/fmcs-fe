@@ -55,6 +55,11 @@ interface TableControlsProps {
    * Array of rows per page options (default: [5, 10, 15, 20, 50, 100])
    */
   pageSizeOptions?: number[];
+  
+  /**
+   * Function that renders column settings UI
+   */
+  columnSettings?: () => React.ReactNode;
 }
 
 /**
@@ -69,6 +74,7 @@ const TableControls: React.FC<TableControlsProps> = ({
   className = "",
   maxRowsPerPage = 100,
   pageSizeOptions = [5, 10, 15, 20, 50, 100],
+  columnSettings,
 }) => {
   // Filter page size options to respect the maximum
   const filteredPageSizeOptions = pageSizeOptions.filter(
@@ -131,15 +137,17 @@ const TableControls: React.FC<TableControlsProps> = ({
         )}
       </div>
 
-      {/* Rows per page - right side */}
+      {/* Rows per page and column settings - right side */}
       <div
         className="flex gap-2 items-center"
         style={{
           display: "flex",
-          gap: "8px",
+          gap: "12px",
           alignItems: "center",
         }}
       >
+        {columnSettings && columnSettings()}
+        
         <Text type="secondary">Rows per page:</Text>
         <Select
           value={pageSize}
