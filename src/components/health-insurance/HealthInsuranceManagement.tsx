@@ -296,7 +296,7 @@ const HealthInsuranceManagement: React.FC = () => {
             currentPage,
             pageSize,
             searchText,
-            "CreatedAt",
+            "UpdatedAt",
             false
           );
 
@@ -310,7 +310,7 @@ const HealthInsuranceManagement: React.FC = () => {
                 id: insurance.id,
                 healthInsuranceId: insurance.id,
                 requestedBy: insurance.user,
-                requestedAt: insurance.createdAt,
+                requestedAt: insurance.updatedAt,
                 status: insurance.status || "Submitted",
                 reviewedBy: insurance.updatedBy,
                 reviewedAt: insurance.updatedAt,
@@ -575,7 +575,8 @@ const HealthInsuranceManagement: React.FC = () => {
       setLoading(true);
       const result = await createInitialHealthInsurances();
       if (result.isSuccess) {
-        messageApi.success("Initial health insurances created successfully");
+        const count = result.data || 0;
+        messageApi.success(`${count} initial health insurance records created successfully`);
         fetchData();
       } else {
         messageApi.error(

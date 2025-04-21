@@ -1050,7 +1050,7 @@ export const getVerificationRequests = async (
   page = 1,
   pageSize = 10,
   search?: string,
-  sortBy = "CreatedAt",
+  sortBy = "UpdatedAt",
   ascending = false
 ) => {
   try {

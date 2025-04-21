@@ -66,6 +66,7 @@ const InsuranceUpdateRequestList: React.FC<InsuranceUpdateRequestListProps> = ({
               actions={[
                 <RightOutlined key="arrow" style={{ fontSize: '16px', color: '#1890ff' }} />,
               ]}
+              extra={<Tag color="processing">Pending Review</Tag>}
             >
               <Skeleton loading={loading} active avatar>
                 <Row gutter={[16, 16]}>
@@ -98,9 +99,6 @@ const InsuranceUpdateRequestList: React.FC<InsuranceUpdateRequestListProps> = ({
                             </Text>
                           </>
                         )}
-                        <Text>
-                          Status: <Tag color="processing">Pending Review</Tag>
-                        </Text>
                         <Text>
                           Requested At: <Text strong>{formatDateTime(request.requestedAt)}</Text>
                         </Text>
