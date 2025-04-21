@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { List, Card, Button, Avatar, Tag, Skeleton, Typography, Space, Row, Col } from "antd";
-import { UserOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined } from "@ant-design/icons";
+import React, { useState, useEffect } from "react";
+import { List, Card, Button, Avatar, Tag, Skeleton, Typography, Space, Row, Col, Empty, message } from "antd";
+import { UserOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import VerificationModal from "./VerificationModal";
@@ -21,6 +21,12 @@ const VerificationList: React.FC<VerificationListProps> = ({
 }) => {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [selectedRequest, setSelectedRequest] = useState<UpdateRequestDTO | null>(null);
+  const [messageApi, contextHolder] = message.useMessage();
+  
+  // Debug log
+  useEffect(() => {
+    console.log("VerificationList received updateRequests:", updateRequests);
+  }, [updateRequests]);
 
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return "-";
@@ -33,6 +39,7 @@ const VerificationList: React.FC<VerificationListProps> = ({
   };
 
   const handleViewDetails = (request: UpdateRequestDTO) => {
+    console.log("Selected request for verification:", request);
     setSelectedRequest(request);
     setModalVisible(true);
   };
@@ -43,31 +50,38 @@ const VerificationList: React.FC<VerificationListProps> = ({
   };
 
   const onVerificationSuccess = () => {
-    setModalVisible(false);
-    setSelectedRequest(null);
-    refreshData();
+    setTimeout(() => {
+      setModalVisible(false);
+      setSelectedRequest(null);
+      refreshData();
+    }, 1000);
   };
+
+  if (updateRequests.length === 0 && !loading) {
+    return (
+      <Empty 
+        description="No verification requests found" 
+        image={Empty.PRESENTED_IMAGE_SIMPLE} 
+      />
+    );
+  }
 
   return (
     <>
+      {contextHolder}
       <List
         grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 2, xl: 3, xxl: 4 }}
         dataSource={updateRequests}
         loading={loading}
+        locale={{ emptyText: "No verification requests found" }}
         renderItem={(request) => (
           <List.Item>
             <Card
               hoverable
               className="verification-card"
+              onClick={() => handleViewDetails(request)}
               actions={[
-                <Button 
-                  key="view" 
-                  type="primary" 
-                  icon={<EyeOutlined />} 
-                  onClick={() => handleViewDetails(request)}
-                >
-                  View Details
-                </Button>,
+                <RightOutlined key="arrow" style={{ fontSize: '16px', color: '#1890ff' }} />,
               ]}
             >
               <Skeleton loading={loading} active avatar>
@@ -95,7 +109,7 @@ const VerificationList: React.FC<VerificationListProps> = ({
                           Full Name: <Text strong>{request.fullName || "N/A"}</Text>
                         </Text>
                         <Text>
-                          Status: <Tag color="processing">Verification</Tag>
+                          Status: <Tag color="processing">Verification Needed</Tag>
                         </Text>
                         <Text>
                           Requested At: <Text strong>{formatDateTime(request.requestedAt)}</Text>
