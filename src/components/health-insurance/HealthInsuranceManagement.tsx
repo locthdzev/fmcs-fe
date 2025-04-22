@@ -319,7 +319,7 @@ const HealthInsuranceManagement: React.FC = () => {
           if (result.isSuccess) {
             // Transform HealthInsuranceResponseDTO to UpdateRequestDTO format
             // for compatibility with the VerificationList component
-            const verificationRequests = result.data.map(
+            let verificationRequests = result.data.map(
               (insurance: HealthInsuranceResponseDTO) => ({
                 id: insurance.id,
                 healthInsuranceId: insurance.id,
@@ -343,6 +343,13 @@ const HealthInsuranceManagement: React.FC = () => {
                 imageUrl: insurance.imageUrl,
               })
             );
+
+            // Filter by owner if selected
+            if (selectedOwner) {
+              verificationRequests = verificationRequests.filter(
+                (req: UpdateRequestDTO) => req.requestedBy && req.requestedBy.id === selectedOwner
+              );
+            }
 
             console.log(
               "Transformed verification requests:",
@@ -371,7 +378,16 @@ const HealthInsuranceManagement: React.FC = () => {
             console.log("Update Request tab API response:", result);
 
             if (result.isSuccess) {
-              setUpdateRequests(result.data);
+              let updRequests = result.data;
+              
+              // Filter by owner if selected
+              if (selectedOwner) {
+                updRequests = updRequests.filter(
+                  (req: UpdateRequestDTO) => req.requestedBy && req.requestedBy.id === selectedOwner
+                );
+              }
+              
+              setUpdateRequests(updRequests);
               setTotal(result.totalItems);
             } else {
               messageApi.error(
@@ -510,6 +526,11 @@ const HealthInsuranceManagement: React.FC = () => {
   const handleOwnerChange = (value: string) => {
     setSelectedOwner(value);
     setCurrentPage(1);
+    
+    // For verification and update request tabs, we need to refetch data with the selected owner
+    if (["verification", "updateRequest"].includes(activeTab)) {
+      fetchData();
+    }
   };
 
   const handleResetFilters = () => {
@@ -737,12 +758,6 @@ const HealthInsuranceManagement: React.FC = () => {
     try {
       let result;
 
-      // Skip fetching for tabs that don't support owner filtering
-      if (["verification", "updateRequest"].indexOf(activeTab) !== -1) {
-        setOwners([]);
-        return;
-      }
-
       switch (activeTab) {
         case "verified":
           result = await getVerifiedInsurances(1, 1000, "", "CreatedAt", false);
@@ -750,17 +765,60 @@ const HealthInsuranceManagement: React.FC = () => {
         case "initial":
           result = await getInitialInsurances(1, 1000, "", "CreatedAt", false);
           break;
-        case "rejected":
-          result = await getRejectedInsurances(1, 1000, "", "CreatedAt", false);
+        case "verification":
+          result = await getVerificationRequests(1, 1000, "", "CreatedAt", false);
+          if (result.isSuccess) {
+            // Extract unique owners from verification requests
+            const uniqueOwners = Array.from(
+              new Map(
+                result.data
+                  .filter((insurance: HealthInsuranceResponseDTO) => insurance.user)
+                  .map((insurance: HealthInsuranceResponseDTO) => [
+                    insurance.user.id,
+                    {
+                      id: insurance.user.id,
+                      fullName: insurance.user.fullName,
+                      email: insurance.user.email,
+                    },
+                  ])
+              ).values()
+            ) as { id: string; fullName: string; email: string }[];
+            setOwners(uniqueOwners);
+            setOwnersLoading(false);
+            return;
+          }
+          break;
+        case "updateRequest":
+          const updateResult = await getUpdateRequests({
+            page: 1,
+            pageSize: 1000,
+            search: "",
+            sortBy: "CreatedAt",
+            ascending: false,
+          });
+          if (updateResult.isSuccess) {
+            // Extract unique owners from update requests
+            const uniqueOwners = Array.from(
+              new Map(
+                updateResult.data
+                  .filter((req: UpdateRequestDTO) => req.requestedBy)
+                  .map((req: UpdateRequestDTO) => [
+                    req.requestedBy.id,
+                    {
+                      id: req.requestedBy.id,
+                      fullName: req.requestedBy.userName,
+                      email: req.requestedBy.email,
+                    },
+                  ])
+              ).values()
+            ) as { id: string; fullName: string; email: string }[];
+            setOwners(uniqueOwners);
+            setOwnersLoading(false);
+            return;
+          }
           break;
         case "expiredUpdate":
-          result = await getExpiredUpdateInsurances(
-            1,
-            1000,
-            "",
-            "CreatedAt",
-            false
-          );
+          result = await getExpiredUpdateInsurances(1, 1000, "", "CreatedAt", false);
           break;
         case "expired":
           result = await getExpiredInsurances(1, 1000, "", "CreatedAt", false);
@@ -769,13 +827,10 @@ const HealthInsuranceManagement: React.FC = () => {
           result = await getUninsuredRecords(1, 1000, "", "CreatedAt", false);
           break;
         case "softDelete":
-          result = await getSoftDeletedInsurances(
-            1,
-            1000,
-            "",
-            "CreatedAt",
-            false
-          );
+          result = await getSoftDeletedInsurances(1, 1000, "", "CreatedAt", false);
+          break;
+        case "rejected":
+          result = await getRejectedInsurances(1, 1000, "", "CreatedAt", false);
           break;
         default:
           result = { isSuccess: true, data: [] };
@@ -928,27 +983,25 @@ const HealthInsuranceManagement: React.FC = () => {
         leftContent={
           <>
             {/* Owner Filter Dropdown */}
-            {["verification", "updateRequest"].indexOf(activeTab) === -1 && (
-              <Select
-                showSearch
-                placeholder="Search by Owner"
-                value={selectedOwner}
-                onChange={handleOwnerChange}
-                style={{ width: 320 }}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
-                loading={ownersLoading}
-                allowClear
-                filterOption={(input, option) =>
-                  (option?.label?.toString().toLowerCase() || "").includes(
-                    input.toLowerCase()
-                  )
-                }
-                options={owners.map((owner) => ({
-                  value: owner.id,
-                  label: `${owner.fullName} (${owner.email})`,
-                }))}
-              />
-            )}
+            <Select
+              showSearch
+              placeholder="Search by Owner"
+              value={selectedOwner}
+              onChange={handleOwnerChange}
+              style={{ width: 320 }}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
+              loading={ownersLoading}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.label?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={owners.map((owner) => ({
+                value: owner.id,
+                label: `${owner.fullName} (${owner.email})`,
+              }))}
+            />
 
             {/* Reset Button */}
             <Tooltip title="Reset all filters">
