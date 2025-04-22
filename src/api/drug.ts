@@ -100,6 +100,17 @@ export interface DrugExportConfigDTO {
   fileName?: string;
 }
 
+export interface DrugWithInventoryInfoDTO {
+  id: string;
+  drugCode: string;
+  name: string;
+  unit: string;
+  batchCode: string;
+  batchId: string;
+  batchStatus: string;
+  quantityInStock: number;
+}
+
 export const getDrugs = async (filterParams?: DrugFilterParams) => {
   try {
     console.log("Original filter params:", filterParams);
@@ -427,5 +438,15 @@ export const exportDrugsToExcel = async (
       console.error("Export failed with direct axios:", directError);
       throw directError;
     }
+  }
+};
+
+export const getAvailableDrugsForPrescription = async () => {
+  try {
+    const response = await api.get("/drug-management/drugs/available-for-prescription");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching available drugs for prescription:", error);
+    throw error;
   }
 };
