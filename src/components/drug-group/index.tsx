@@ -1255,7 +1255,7 @@ export function DrugGroups() {
                       allowClear
                       placeholder={
                         <div style={{ display: "flex", alignItems: "center" }}>
-                          <SearchOutlined style={{ marginRight: 8 }} />
+                          
                           <span>Search by group name...</span>
                         </div>
                       }

@@ -1415,7 +1415,7 @@ export function DrugOrders() {
                       allowClear
                       placeholder={
                         <div style={{ display: "flex", alignItems: "center" }}>
-                          <SearchOutlined style={{ marginRight: 8 }} />
+                          
                           <span>Search by order code...</span>
                         </div>
                       }
