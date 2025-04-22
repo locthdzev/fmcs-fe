@@ -504,217 +504,562 @@ const CheckupDetailStaff: React.FC<CheckupDetailStaffProps> = ({ id }) => {
           form={form}
           layout="vertical"
         >
-          <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">
-            <TabPane 
-              tab={<span><InfoCircleOutlined /> Basic Info</span>}
-              key="1"
-            >
-              <Card className="mb-4">
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} md={12}>
-                    <Form.Item
-                      name="status"
-                      label="Status"
-                      rules={[validationRules.required]}
-                    >
-                      <Select>
-                        <Select.Option value="Active">Active</Select.Option>
-                        <Select.Option value="Inactive">Inactive</Select.Option>
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <Form.Item
-                      name="hospitalName"
-                      label="Hospital Name"
-                      rules={[validationRules.required]}
-                    >
-                      <Input placeholder="Enter hospital name" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <Form.Item
-                      name="reportIssuanceDate"
-                      label="Report Issuance Date"
-                      rules={[validationRules.required]}
-                    >
-                      <DatePicker 
-                        style={{ width: '100%' }} 
-                        format="DD/MM/YYYY"
-                        disabledDate={(current) => current && current > dayjs().endOf("day")}
-                        suffixIcon={<CalendarOutlined />}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <Form.Item
-                      name="hospitalReportUrl"
-                      label="Hospital Report URL"
-                      rules={[validationRules.url]}
-                    >
-                      <Input placeholder="https://example.com/report.pdf" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </Card>
-            </TabPane>
-            
-            <TabPane 
-              tab={<span><HeartOutlined /> Blood Tests</span>}
-              key="2"
-            >
-              <Card className="mb-4">
-                <Title level={5}>General Blood Tests</Title>
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name="completeBloodCount" label="Complete Blood Count">
-                      <Input placeholder="e.g., Normal" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name="completeUrinalysis" label="Complete Urinalysis">
-                      <Input placeholder="e.g., Normal" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      name="bloodGlucose"
-                      label={<Tooltip title="Normal: 3.9-5.6 mmol/L"><span>Blood Glucose (mmol/L) <InfoCircleOutlined /></span></Tooltip>}
-                      rules={[validationRules.numberPositive]}
-                    >
-                      <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 5.2" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      name="hbA1c"
-                      label={<Tooltip title="Normal: 4-5.6%"><span>HbA1c (%) <InfoCircleOutlined /></span></Tooltip>}
-                      rules={[validationRules.numberPositive]}
-                    >
-                      <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 5.0" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                
-                <Title level={5}>Lipid Profile</Title>
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      name="triglycerides"
-                      label={<Tooltip title="Normal: < 150 mg/dL"><span>Triglycerides (mg/dL) <InfoCircleOutlined /></span></Tooltip>}
-                      rules={[validationRules.numberPositive]}
-                    >
-                      <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 120" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      name="cholesterol"
-                      label={<Tooltip title="Normal: < 200 mg/dL"><span>Cholesterol (mg/dL) <InfoCircleOutlined /></span></Tooltip>}
-                      rules={[validationRules.numberPositive]}
-                    >
-                      <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 180" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      name="hdl"
-                      label={<Tooltip title="Normal: > 40 mg/dL"><span>HDL (mg/dL) <InfoCircleOutlined /></span></Tooltip>}
-                      rules={[validationRules.numberPositive]}
-                    >
-                      <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 50" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      name="ldl"
-                      label={<Tooltip title="Normal: < 100 mg/dL"><span>LDL (mg/dL) <InfoCircleOutlined /></span></Tooltip>}
-                      rules={[validationRules.numberPositive]}
-                    >
-                      <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 90" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                
-                <Title level={5}>Liver & Kidney Function</Title>
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      name="sgot"
-                      label={<Tooltip title="Normal: 10-40 U/L"><span>SGOT (U/L) <InfoCircleOutlined /></span></Tooltip>}
-                      rules={[validationRules.numberPositive]}
-                    >
-                      <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 25" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      name="sgpt"
-                      label={<Tooltip title="Normal: 7-56 U/L"><span>SGPT (U/L) <InfoCircleOutlined /></span></Tooltip>}
-                      rules={[validationRules.numberPositive]}
-                    >
-                      <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 30" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                
-                {/* Thêm các phần còn lại của Blood Tests ở đây */}
-              </Card>
-            </TabPane>
-            
-            <TabPane 
-              tab={<span><EyeOutlined /> Imaging & Exams</span>}
-              key="3"
-            >
-              <Card className="mb-4">
-                <Title level={5}>Physical Examinations</Title>
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name="generalExam" label="General Exam">
-                      <Input placeholder="e.g., Normal" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name="eyeExam" label="Eye Exam">
-                      <Input placeholder="e.g., 20/20 vision" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name="dentalExam" label="Dental Exam">
-                      <Input placeholder="e.g., No cavities" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name="entexam" label="ENT Exam">
-                      <Input placeholder="e.g., Normal" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                
-                {/* Thêm các phần còn lại của Imaging & Exams ở đây */}
-              </Card>
-            </TabPane>
-            
-            <TabPane 
-              tab={<span><SkinOutlined /> Summary</span>}
-              key="4"
-            >
-              <Card className="mb-4">
+          {/* Basic Info Section */}
+          <Divider orientation="left"><InfoCircleOutlined /> Basic Info</Divider>
+          <Card className="mb-4">
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={12}>
                 <Form.Item
-                  name="conclusion"
-                  label="Medical Conclusion"
+                  name="status"
+                  label="Status"
+                  rules={[validationRules.required]}
                 >
-                  <TextArea rows={4} placeholder="Enter medical conclusions" />
+                  <Select>
+                    <Select.Option value="Active">Active</Select.Option>
+                    <Select.Option value="Inactive">Inactive</Select.Option>
+                  </Select>
                 </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
                 <Form.Item
-                  name="recommendations"
-                  label="Recommendations"
+                  name="hospitalName"
+                  label="Hospital Name"
+                  rules={[validationRules.required]}
                 >
-                  <TextArea rows={4} placeholder="Enter recommendations" />
+                  <Input placeholder="Enter hospital name" />
                 </Form.Item>
-              </Card>
-            </TabPane>
-          </Tabs>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="reportIssuanceDate"
+                  label="Report Issuance Date"
+                  rules={[validationRules.required]}
+                >
+                  <DatePicker 
+                    style={{ width: '100%' }} 
+                    format="DD/MM/YYYY"
+                    disabledDate={(current) => current && current > dayjs().endOf("day")}
+                    suffixIcon={<CalendarOutlined />}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="hospitalReportUrl"
+                  label="Hospital Report URL"
+                  rules={[validationRules.url]}
+                >
+                  <Input placeholder="https://example.com/report.pdf" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Card>
+          
+          {/* Blood Tests Section */}
+          <Divider orientation="left"><HeartOutlined /> Blood Tests</Divider>
+          <Card className="mb-4">
+            <Title level={5}>General Blood Tests</Title>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item name="completeBloodCount" label="Complete Blood Count">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="completeUrinalysis" label="Complete Urinalysis">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="bloodGlucose"
+                  label={<Tooltip title="Normal: 3.9-5.6 mmol/L"><span>Blood Glucose (mmol/L) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 5.2" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="hbA1c"
+                  label={<Tooltip title="Normal: 4-5.6%"><span>HbA1c (%) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 5.0" />
+                </Form.Item>
+              </Col>
+            </Row>
+            
+            <Title level={5}>Lipid Profile</Title>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="triglycerides"
+                  label={<Tooltip title="Normal: < 150 mg/dL"><span>Triglycerides (mg/dL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 120" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="cholesterol"
+                  label={<Tooltip title="Normal: < 200 mg/dL"><span>Cholesterol (mg/dL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 180" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="hdl"
+                  label={<Tooltip title="Normal: > 40 mg/dL"><span>HDL (mg/dL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 50" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="ldl"
+                  label={<Tooltip title="Normal: < 100 mg/dL"><span>LDL (mg/dL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 90" />
+                </Form.Item>
+              </Col>
+            </Row>
+            
+            <Title level={5}>Liver & Kidney Function</Title>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="sgot"
+                  label={<Tooltip title="Normal: 10-40 U/L"><span>SGOT (U/L) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 25" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="sgpt"
+                  label={<Tooltip title="Normal: 7-56 U/L"><span>SGPT (U/L) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 30" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="ggt"
+                  label={<Tooltip title="Normal: 9-48 U/L"><span>GGT (U/L) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 20" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="urea"
+                  label={<Tooltip title="Normal: 10-50 mg/dL"><span>Urea (mg/dL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 30" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="creatinine"
+                  label={<Tooltip title="Normal: 0.6-1.2 mg/dL"><span>Creatinine (mg/dL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 0.9" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Title level={5}>Infectious Diseases</Title>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item name="hbsAg" label="HBsAg" valuePropName="checked">
+                  <Switch checkedChildren="Positive" unCheckedChildren="Negative" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="hbsAb" label="HBsAb" valuePropName="checked">
+                  <Switch checkedChildren="Positive" unCheckedChildren="Negative" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="hcvab" label="HCVAb" valuePropName="checked">
+                  <Switch checkedChildren="Positive" unCheckedChildren="Negative" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="antiHavigM" label="Anti-HAV IgM" valuePropName="checked">
+                  <Switch checkedChildren="Positive" unCheckedChildren="Negative" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="hiv" label="HIV" valuePropName="checked">
+                  <Switch checkedChildren="Positive" unCheckedChildren="Negative" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="toxocaraCanis" label="Toxocara Canis" valuePropName="checked">
+                  <Switch checkedChildren="Positive" unCheckedChildren="Negative" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="echinococcus" label="Echinococcus" valuePropName="checked">
+                  <Switch checkedChildren="Positive" unCheckedChildren="Negative" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Title level={5}>Blood Type & Thyroid Tests</Title>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item name="bloodType" label="Blood Type">
+                  <Select placeholder="Select blood type">
+                    <Select.Option value="A">A</Select.Option>
+                    <Select.Option value="B">B</Select.Option>
+                    <Select.Option value="AB">AB</Select.Option>
+                    <Select.Option value="O">O</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item 
+                  name="rhType" 
+                  label={
+                    <Tooltip title="Common types: Positive (+), Negative (-), or specific variants">
+                      <span>Rh Type <InfoCircleOutlined /></span>
+                    </Tooltip>
+                  }
+                >
+                  <Input placeholder="e.g., Positive, Negative, Weak D" maxLength={50} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="thyroidT3"
+                  label={<Tooltip title="Normal: 0.8-2.0 ng/mL"><span>Thyroid T3 (ng/mL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 1.5" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="thyroidFt4"
+                  label={<Tooltip title="Normal: 0.9-1.7 ng/dL"><span>Thyroid FT4 (ng/dL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 1.2" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="thyroidTsh"
+                  label={<Tooltip title="Normal: 0.4-4.0 µIU/mL"><span>Thyroid TSH (µIU/mL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 2.5" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Title level={5}>Electrolytes & Other Tests</Title>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="electrolytesNa"
+                  label={<Tooltip title="Normal: 135-145 mmol/L"><span>Sodium (Na) (mmol/L) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 140" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="electrolytesK"
+                  label={<Tooltip title="Normal: 3.5-5.0 mmol/L"><span>Potassium (K) (mmol/L) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 4.0" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="electrolytesCl"
+                  label={<Tooltip title="Normal: 98-106 mmol/L"><span>Chloride (Cl) (mmol/L) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 100" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="totalCalcium"
+                  label={<Tooltip title="Normal: 8.5-10.2 mmol/L"><span>Total Calcium (mmol/L) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 9.5" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="serumIron"
+                  label={<Tooltip title="Normal: 60-170 µg/dL"><span>Serum Iron (µg/dL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 100" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="uricAcid"
+                  label={<Tooltip title="Normal: 3.4-7.0 mg/dL"><span>Uric Acid (mg/dL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 5.0" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="ferritin"
+                  label={<Tooltip title="Normal: 20-250 ng/mL"><span>Ferritin (ng/mL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 100" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="rf"
+                  label={<Tooltip title="Normal: < 14 IU/mL"><span>Rheumatoid Factor (IU/mL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 10" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Title level={5}>Tumor Markers</Title>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="liverAfp"
+                  label={<Tooltip title="Normal: < 10 ng/mL"><span>Liver AFP (ng/mL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 5" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="prostatePsa"
+                  label={<Tooltip title="Normal: < 4 ng/mL"><span>Prostate PSA (ng/mL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 2" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="colonCea"
+                  label={<Tooltip title="Normal: < 5 ng/mL"><span>Colon CEA (ng/mL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 3" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="stomachCa724"
+                  label={<Tooltip title="Normal: < 6.9 U/mL"><span>Stomach CA 72-4 (U/mL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 4" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="pancreasCa199"
+                  label={<Tooltip title="Normal: < 37 U/mL"><span>Pancreas CA 19-9 (U/mL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 20" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="breastCa153"
+                  label={<Tooltip title="Normal: < 25 U/mL"><span>Breast CA 15-3 (U/mL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 15" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="ovariesCa125"
+                  label={<Tooltip title="Normal: < 35 U/mL"><span>Ovaries CA 125 (U/mL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 20" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="lungCyfra211"
+                  label={<Tooltip title="Normal: < 3.3 ng/mL"><span>Lung CYFRA 21-1 (ng/mL) <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[validationRules.numberPositive]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., 2" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Card>
+          
+          {/* Imaging & Exams Section */}
+          <Divider orientation="left"><EyeOutlined /> Imaging & Exams</Divider>
+          <Card className="mb-4">
+            <Title level={5}>Physical Examinations</Title>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item name="generalExam" label="General Exam">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="eyeExam" label="Eye Exam">
+                  <Input placeholder="e.g., 20/20 vision" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="dentalExam" label="Dental Exam">
+                  <Input placeholder="e.g., No cavities" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="entexam" label="ENT Exam">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="gynecologicalExam" label="Gynecological Exam">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="dermatologyExam" label="Dermatology Exam">
+                  <Input placeholder="e.g., Clear skin" />
+                </Form.Item>
+              </Col>
+            </Row>
+            
+            <Title level={5}>Imaging</Title>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item name="abdominalUltrasound" label="Abdominal Ultrasound">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="thyroidUltrasound" label="Thyroid Ultrasound">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="breastUltrasound" label="Breast Ultrasound">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="ecg" label="ECG">
+                  <Input placeholder="e.g., Normal sinus rhythm" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="chestXray" label="Chest X-ray">
+                  <Input placeholder="e.g., Clear lungs" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="lumbarSpineXray" label="Lumbar Spine X-ray">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="cervicalSpineXray" label="Cervical Spine X-ray">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="dopplerHeart" label="Doppler Heart">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="carotidDoppler" label="Carotid Doppler">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="transvaginalUltrasound" label="Transvaginal Ultrasound">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+            </Row>
+            
+            <Title level={5}>Specialized Tests</Title>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item name="vaginalWetMount" label="Vaginal Wet Mount">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="cervicalCancerPap" label="Cervical Cancer Pap">
+                  <Input placeholder="e.g., Negative" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="refractiveError" label="Refractive Error">
+                  <Input placeholder="e.g., None" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="boneDensityTscore"
+                  label={<Tooltip title="Normal: > -1"><span>Bone Density T-Score <InfoCircleOutlined /></span></Tooltip>}
+                  rules={[{ type: "number" }]}
+                >
+                  <InputNumber step="0.01" style={{ width: '100%' }} placeholder="e.g., -0.5" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Card>
+          
+          {/* Summary Section */}
+          <Divider orientation="left"><SkinOutlined /> Summary</Divider>
+          <Card className="mb-4">
+            <Form.Item
+              name="conclusion"
+              label="Medical Conclusion"
+            >
+              <TextArea rows={4} placeholder="Enter medical conclusions" />
+            </Form.Item>
+            <Form.Item
+              name="recommendations"
+              label="Recommendations"
+            >
+              <TextArea rows={4} placeholder="Enter recommendations" />
+            </Form.Item>
+          </Card>
         </Form>
       ) : (
         <>

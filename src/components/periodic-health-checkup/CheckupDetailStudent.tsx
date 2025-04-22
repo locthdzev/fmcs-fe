@@ -199,6 +199,15 @@ const CheckupDetailStudent: React.FC<CheckupDetailStudentProps> = ({ id }) => {
       const response = await getHealthCheckupById(id);
       if (response.isSuccess && response.data) {
         setCheckup(response.data);
+        console.log("API Response Data:", response.data);
+        console.log("Eye Right Score:", response.data.eyeRightScore);
+        console.log("Eye Left Score:", response.data.eyeLeftScore);
+        console.log("Internal Medicine:", response.data.internalMedicineStatus);
+        console.log("Surgery:", response.data.surgeryStatus);
+        console.log("Dermatology:", response.data.dermatologyStatus);
+        console.log("ENT:", response.data.entstatus);
+        console.log("Dental:", response.data.dentalOralStatus);
+        console.log("Conclusion:", response.data.conclusion);
       } else {
         messageApi.error({
           content: response.message || "Failed to fetch checkup details",
@@ -426,188 +435,73 @@ const CheckupDetailStudent: React.FC<CheckupDetailStudentProps> = ({ id }) => {
             </Card>
           </div>
           
-          {isEditing ? (
-            <Card title={<span style={{ fontWeight: "bold" }}>Specialist Examinations</span>} style={{ marginBottom: '16px' }}>
-              <Row gutter={[16, 16]}>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="eyeRightScore"
-                    label="Right Eye Score"
-                    rules={[{ type: "number", min: 0, max: 10, message: "Score must be between 0 and 10" }]}
-                  >
-                    <InputNumber min={0} max={10} style={{ width: "100%" }} placeholder="e.g., 10" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="eyeLeftScore"
-                    label="Left Eye Score"
-                    rules={[{ type: "number", min: 0, max: 10, message: "Score must be between 0 and 10" }]}
-                  >
-                    <InputNumber min={0} max={10} style={{ width: "100%" }} placeholder="e.g., 10" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24}>
-                  <Form.Item name="eyePathology" label="Eye Pathology">
-                    <Input placeholder="e.g., None" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item name="internalMedicineStatus" label="Internal Medicine">
-                    <Input placeholder="e.g., Normal" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item name="surgeryStatus" label="Surgery">
-                    <Input placeholder="e.g., No issues" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item name="dermatologyStatus" label="Dermatology">
-                    <Input placeholder="e.g., Clear skin" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item name="entStatus" label="ENT">
-                    <Input placeholder="e.g., Normal hearing" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item name="dentalOralStatus" label="Dental/Oral Status">
-                    <Input placeholder="e.g., Healthy teeth" />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </Card>
-          ) : (
-            <Card title={<span style={{ fontWeight: "bold" }}>Specialist Examinations</span>}>
-              <Row gutter={[16, 16]} className="exam-sections">
-                <Col xs={24} md={12}>
-                  <div className="exam-section">
-                    <Text strong><EyeOutlined /> Eye Examination</Text>
-                    <Tag
-                      color={
-                        checkup.eyePathology || eyeRightStatus.status === "exception" || eyeLeftStatus.status === "exception"
-                          ? "red"
-                          : "green"
-                      }
-                      style={{ marginLeft: 8 }}
-                    >
-                      {checkup.eyePathology || eyeRightStatus.status === "exception" || eyeLeftStatus.status === "exception" ? (
-                        <><AlertOutlined /> Abnormal</>
-                      ) : (
-                        "Normal"
-                      )}
-                    </Tag>
-                    <Row gutter={[8, 8]} style={{ marginTop: 8 }}>
-                      <Col xs={12}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                          <Text>Right Eye:</Text>
-                          {checkup.eyeRightScore !== undefined ? (
-                            <Flex style={{ marginTop: '8px' }}>
-                              <Progress 
-                                type="circle" 
-                                percent={eyeRightStatus.percent}
-                                status={eyeRightStatus.status}
-                                format={() => `${checkup.eyeRightScore}/10`}
-                                size={60}
-                              />
-                            </Flex>
-                          ) : (
-                            "N/A"
-                          )}
-                        </div>
-                      </Col>
-                      <Col xs={12}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                          <Text>Left Eye:</Text>
-                          {checkup.eyeLeftScore !== undefined ? (
-                            <Flex style={{ marginTop: '8px' }}>
-                              <Progress 
-                                type="circle" 
-                                percent={eyeLeftStatus.percent}
-                                status={eyeLeftStatus.status}
-                                format={() => `${checkup.eyeLeftScore}/10`}
-                                size={60}
-                              />
-                            </Flex>
-                          ) : (
-                            "N/A"
-                          )}
-                        </div>
-                      </Col>
-                      <Col xs={24}>
-                        <Text strong>Pathology:</Text>{" "}
-                        <Tag color={checkup.eyePathology ? "red" : "green"}>
-                          {checkup.eyePathology || "Normal"}
-                        </Tag>
-                      </Col>
-                    </Row>
-                  </div>
-                </Col>
+          <Card title={<span style={{ fontWeight: "bold" }}>Specialist Examinations</span>} style={{ marginBottom: '16px' }}>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="eyeRightScore"
+                  label="Right Eye Score"
+                  rules={[{ type: "number", min: 0, max: 10, message: "Score must be between 0 and 10" }]}
+                >
+                  <InputNumber min={0} max={10} style={{ width: "100%" }} placeholder="e.g., 10" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="eyeLeftScore"
+                  label="Left Eye Score"
+                  rules={[{ type: "number", min: 0, max: 10, message: "Score must be between 0 and 10" }]}
+                >
+                  <InputNumber min={0} max={10} style={{ width: "100%" }} placeholder="e.g., 10" />
+                </Form.Item>
+              </Col>
+              <Col xs={24}>
+                <Form.Item name="eyePathology" label="Eye Pathology">
+                  <Input placeholder="e.g., None" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item name="internalMedicineStatus" label="Internal Medicine">
+                  <Input placeholder="e.g., Normal" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item name="surgeryStatus" label="Surgery">
+                  <Input placeholder="e.g., No issues" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item name="dermatologyStatus" label="Dermatology">
+                  <Input placeholder="e.g., Clear skin" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item name="entStatus" label="ENT">
+                  <Input placeholder="e.g., Normal hearing" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item name="dentalOralStatus" label="Dental/Oral Status">
+                  <Input placeholder="e.g., Healthy teeth" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Card>
 
-                <Col xs={24} md={12}>
-                  <div className="exam-section">
-                    <Text strong><HeartOutlined /> Internal Medicine</Text>
-                    <Tag color={examStatuses.internalMedicine.color} style={{ marginLeft: 8 }}>
-                      {examStatuses.internalMedicine.label}
-                    </Tag>
-                    <div style={{ marginTop: 8 }}>
-                      <Text>{checkup.internalMedicineStatus || "No findings"}</Text>
-                    </div>
-                  </div>
-                </Col>
-
-                <Col xs={24} md={12}>
-                  <div className="exam-section">
-                    <Text strong><SkinOutlined /> Dermatology</Text>
-                    <Tag color={examStatuses.dermatology.color} style={{ marginLeft: 8 }}>
-                      {examStatuses.dermatology.label}
-                    </Tag>
-                    <div style={{ marginTop: 8 }}>
-                      <Text>{checkup.dermatologyStatus || "No findings"}</Text>
-                    </div>
-                  </div>
-                </Col>
-
-                <Col xs={24} md={12}>
-                  <div className="exam-section">
-                    <Text strong>ENT</Text>
-                    <Tag color={examStatuses.ent.color} style={{ marginLeft: 8 }}>
-                      {examStatuses.ent.label}
-                    </Tag>
-                    <div style={{ marginTop: 8 }}>
-                      <Text>{checkup.entstatus || "No findings"}</Text>
-                    </div>
-                  </div>
-                </Col>
-
-                <Col xs={24} md={12}>
-                  <div className="exam-section">
-                    <Text strong><SmileOutlined /> Dental/Oral</Text>
-                    <Tag color={examStatuses.dentalOral.color} style={{ marginLeft: 8 }}>
-                      {examStatuses.dentalOral.label}
-                    </Tag>
-                    <div style={{ marginTop: 8 }}>
-                      <Text>{checkup.dentalOralStatus || "No findings"}</Text>
-                    </div>
-                  </div>
-                </Col>
-
-                <Col xs={24} md={12}>
-                  <div className="exam-section">
-                    <Text strong>Surgery</Text>
-                    <Tag color={examStatuses.surgery.color} style={{ marginLeft: 8 }}>
-                      {examStatuses.surgery.label}
-                    </Tag>
-                    <div style={{ marginTop: 8 }}>
-                      <Text>{checkup.surgeryStatus || "No findings"}</Text>
-                    </div>
-                  </div>
-                </Col>
-              </Row>
-            </Card>
-          )}
+          <Card title={<span style={{ fontWeight: "bold" }}>Summary</span>} style={{ marginTop: "16px" }}>
+            <Row gutter={[16, 16]}>
+              <Col span={24}>
+                <Form.Item name="conclusion" label="Conclusion">
+                  <Input.TextArea rows={4} placeholder="Overall health assessment" />
+                </Form.Item>
+              </Col>
+              <Col span={24}>
+                <Form.Item name="recommendations" label="Recommendations">
+                  <Input.TextArea rows={4} placeholder="e.g., Annual checkup recommended" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Card>
         </Form>
       ) : (
         <>
@@ -685,54 +579,169 @@ const CheckupDetailStudent: React.FC<CheckupDetailStudentProps> = ({ id }) => {
             </Card>
           </div>
           
-          {isEditing ? (
-            <Card title={<span style={{ fontWeight: "bold" }}>Summary</span>} style={{ marginTop: "16px" }}>
-              <Row gutter={[16, 16]}>
-                <Col span={24}>
-                  <Form.Item name="conclusion" label="Conclusion">
-                    <Input.TextArea rows={4} placeholder="Overall health assessment" />
-                  </Form.Item>
-                </Col>
-                <Col span={24}>
-                  <Form.Item name="recommendations" label="Recommendations">
-                    <Input.TextArea rows={4} placeholder="e.g., Annual checkup recommended" />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </Card>
-          ) : (
-            <Card 
-              title={<span style={{ fontWeight: "bold" }}>Summary</span>} 
-              style={{ marginTop: "16px" }}
-            >
-              <Row gutter={[16, 16]}>
-                <Col span={24}>
-                  <Text strong>Conclusion:</Text>
-                  <div style={{ marginTop: 8, background: "#fafafa", padding: 8, borderRadius: 4 }}>
-                    {checkup.conclusion ? (
-                      checkup.conclusion.split("\n").map((line, i) => (
-                        <Text key={i} style={{ display: "block" }}>{line || "N/A"}</Text>
-                      ))
+          <Card 
+            title={<span style={{ fontWeight: "bold" }}>Specialist Examinations</span>} 
+            className="specialist-exam-card"
+            style={{ marginBottom: "16px", position: "relative", zIndex: 1 }}
+          >
+            <Row gutter={[16, 16]} className="exam-sections">
+              <Col xs={24} md={12}>
+                <div className="exam-section">
+                  <Text strong><EyeOutlined /> Eye Examination</Text>
+                  <Tag
+                    color={
+                      checkup.eyePathology || eyeRightStatus.status === "exception" || eyeLeftStatus.status === "exception"
+                        ? "red"
+                        : "green"
+                    }
+                    style={{ marginLeft: 8 }}
+                  >
+                    {checkup.eyePathology || eyeRightStatus.status === "exception" || eyeLeftStatus.status === "exception" ? (
+                      <><AlertOutlined /> Abnormal</>
                     ) : (
-                      "N/A"
+                      "Normal"
                     )}
+                  </Tag>
+                  <Row gutter={[8, 8]} style={{ marginTop: 8 }}>
+                    <Col xs={12}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                        <Text>Right Eye:</Text>
+                        {checkup.eyeRightScore !== undefined ? (
+                          <Flex style={{ marginTop: '8px' }}>
+                            <Progress 
+                              type="circle" 
+                              percent={eyeRightStatus.percent}
+                              status={eyeRightStatus.status}
+                              format={() => `${checkup.eyeRightScore}/10`}
+                              size={60}
+                            />
+                          </Flex>
+                        ) : (
+                          "N/A"
+                        )}
+                      </div>
+                    </Col>
+                    <Col xs={12}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                        <Text>Left Eye:</Text>
+                        {checkup.eyeLeftScore !== undefined ? (
+                          <Flex style={{ marginTop: '8px' }}>
+                            <Progress 
+                              type="circle" 
+                              percent={eyeLeftStatus.percent}
+                              status={eyeLeftStatus.status}
+                              format={() => `${checkup.eyeLeftScore}/10`}
+                              size={60}
+                            />
+                          </Flex>
+                        ) : (
+                          "N/A"
+                        )}
+                      </div>
+                    </Col>
+                    <Col xs={24}>
+                      <Text strong>Pathology:</Text>{" "}
+                      <Tag color={checkup.eyePathology ? "red" : "green"}>
+                        {checkup.eyePathology || "Normal"}
+                      </Tag>
+                    </Col>
+                  </Row>
+                </div>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <div className="exam-section">
+                  <Text strong><HeartOutlined /> Internal Medicine</Text>
+                  <Tag color={examStatuses.internalMedicine.color} style={{ marginLeft: 8 }}>
+                    {examStatuses.internalMedicine.label}
+                  </Tag>
+                  <div style={{ marginTop: 8 }}>
+                    <Text>{checkup.internalMedicineStatus || "No findings"}</Text>
                   </div>
-                </Col>
-                <Col span={24}>
-                  <Text strong>Recommendations:</Text>
-                  <div style={{ marginTop: 8, background: "#fafafa", padding: 8, borderRadius: 4 }}>
-                    {checkup.recommendations ? (
-                      checkup.recommendations.split("\n").map((line, i) => (
-                        <Text key={i} style={{ display: "block" }}>{line || "N/A"}</Text>
-                      ))
-                    ) : (
-                      "N/A"
-                    )}
+                </div>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <div className="exam-section">
+                  <Text strong><SkinOutlined /> Dermatology</Text>
+                  <Tag color={examStatuses.dermatology.color} style={{ marginLeft: 8 }}>
+                    {examStatuses.dermatology.label}
+                  </Tag>
+                  <div style={{ marginTop: 8 }}>
+                    <Text>{checkup.dermatologyStatus || "No findings"}</Text>
                   </div>
-                </Col>
-              </Row>
-            </Card>
-          )}
+                </div>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <div className="exam-section">
+                  <Text strong>ENT</Text>
+                  <Tag color={examStatuses.ent.color} style={{ marginLeft: 8 }}>
+                    {examStatuses.ent.label}
+                  </Tag>
+                  <div style={{ marginTop: 8 }}>
+                    <Text>{checkup.entstatus || "No findings"}</Text>
+                  </div>
+                </div>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <div className="exam-section">
+                  <Text strong><SmileOutlined /> Dental/Oral</Text>
+                  <Tag color={examStatuses.dentalOral.color} style={{ marginLeft: 8 }}>
+                    {examStatuses.dentalOral.label}
+                  </Tag>
+                  <div style={{ marginTop: 8 }}>
+                    <Text>{checkup.dentalOralStatus || "No findings"}</Text>
+                  </div>
+                </div>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <div className="exam-section">
+                  <Text strong>Surgery</Text>
+                  <Tag color={examStatuses.surgery.color} style={{ marginLeft: 8 }}>
+                    {examStatuses.surgery.label}
+                  </Tag>
+                  <div style={{ marginTop: 8 }}>
+                    <Text>{checkup.surgeryStatus || "No findings"}</Text>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </Card>
+          
+          <Card 
+            title={<span style={{ fontWeight: "bold" }}>Summary</span>} 
+            style={{ marginTop: "16px" }}
+          >
+            <Row gutter={[16, 16]}>
+              <Col span={24}>
+                <Text strong>Conclusion:</Text>
+                <div style={{ marginTop: 8, background: "#fafafa", padding: 8, borderRadius: 4 }}>
+                  {checkup.conclusion ? (
+                    checkup.conclusion.split("\n").map((line, i) => (
+                      <Text key={i} style={{ display: "block" }}>{line}</Text>
+                    ))
+                  ) : (
+                    <Text>N/A</Text>
+                  )}
+                </div>
+              </Col>
+              <Col span={24}>
+                <Text strong>Recommendations:</Text>
+                <div style={{ marginTop: 8, background: "#fafafa", padding: 8, borderRadius: 4 }}>
+                  {checkup.recommendations ? (
+                    checkup.recommendations.split("\n").map((line, i) => (
+                      <Text key={i} style={{ display: "block" }}>{line}</Text>
+                    ))
+                  ) : (
+                    <Text>N/A</Text>
+                  )}
+                </div>
+              </Col>
+            </Row>
+          </Card>
         </>
       )}
 
@@ -744,6 +753,9 @@ const CheckupDetailStudent: React.FC<CheckupDetailStudentProps> = ({ id }) => {
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
           margin-bottom: 16px;
           height: 100%;
+          width: 100%;
+          position: relative;
+          z-index: 5;
         }
         .exam-sections :global(.ant-col) {
           display: flex;
@@ -754,6 +766,12 @@ const CheckupDetailStudent: React.FC<CheckupDetailStudentProps> = ({ id }) => {
         }
         .exam-section :global(.ant-tag) {
           margin-left: 8px;
+        }
+        .specialist-exam-card {
+          margin-bottom: 16px;
+          display: block;
+          width: 100%;
+          clear: both;
         }
       `}</style>
     </div>
