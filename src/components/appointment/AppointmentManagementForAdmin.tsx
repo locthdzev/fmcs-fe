@@ -392,7 +392,11 @@ const UpdateAppointmentModal: React.FC<{
 
   return (
     <Modal
-      title={<Title level={4}>Update Appointment</Title>}
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Update Appointment
+        </Title>
+      }
       open={visible}
       onCancel={handleClose}
       footer={null}

@@ -169,7 +169,6 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
     <Modal
       title={
         <Space>
-          <PlusOutlined />
           <Title level={4} style={{ margin: 0 }}>
             {isManual
               ? "Create Health Insurance"

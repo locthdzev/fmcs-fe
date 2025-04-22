@@ -52,6 +52,7 @@ dayjs.extend(isBetween);
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
+const { Title, Text } = Typography;
 
 const formatDateTime = (datetime: string | undefined) => {
   if (!datetime) return "";
@@ -954,7 +955,11 @@ export function AppointmentManagementForStudent() {
       </Card>
 
       <Modal
-        title="Appointment Details"
+        title={
+          <Title level={4} style={{ margin: 0 }}>
+            Appointment Details
+          </Title>
+        }
         open={isDetailsModalVisible}
         onCancel={() => {
           setIsDetailsModalVisible(false);

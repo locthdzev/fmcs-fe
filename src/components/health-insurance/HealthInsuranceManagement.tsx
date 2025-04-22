@@ -54,6 +54,8 @@ import NoInsuranceTable from "./NoInsuranceTable";
 import SoftDeleteTable from "./SoftDeleteTable";
 import InsuranceConfigModal from "./InsuranceConfigModal";
 import InsuranceCreateModal from "./InsuranceCreateModal";
+import AdvancedFilterModal from "./AdvancedFilterModal";
+import { filterDataByTab } from "./clientSideFilter";
 
 import {
   HealthInsuranceResponseDTO,
@@ -110,6 +112,13 @@ const HealthInsuranceManagement: React.FC = () => {
   const [ascending, setAscending] = useState<boolean>(false);
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState<boolean>(false);
+
+  // Advanced filter state
+  const [advancedFilterModalVisible, setAdvancedFilterModalVisible] =
+    useState<boolean>(false);
+  const [advancedFilterParams, setAdvancedFilterParams] = useState<any>({});
+  const [filteredData, setFilteredData] = useState<any[]>([]);
+  const [isFiltered, setIsFiltered] = useState<boolean>(false);
 
   // Data for tables
   const [verifiedInsurances, setVerifiedInsurances] = useState<
@@ -256,6 +265,10 @@ const HealthInsuranceManagement: React.FC = () => {
     fetchOwners();
     // Reset selected owner when tab changes
     setSelectedOwner(undefined);
+    // Reset advanced filter when tab changes
+    setAdvancedFilterParams({});
+    setFilteredData([]);
+    setIsFiltered(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
@@ -347,7 +360,8 @@ const HealthInsuranceManagement: React.FC = () => {
             // Filter by owner if selected
             if (selectedOwner) {
               verificationRequests = verificationRequests.filter(
-                (req: UpdateRequestDTO) => req.requestedBy && req.requestedBy.id === selectedOwner
+                (req: UpdateRequestDTO) =>
+                  req.requestedBy && req.requestedBy.id === selectedOwner
               );
             }
 
@@ -379,14 +393,15 @@ const HealthInsuranceManagement: React.FC = () => {
 
             if (result.isSuccess) {
               let updRequests = result.data;
-              
+
               // Filter by owner if selected
               if (selectedOwner) {
                 updRequests = updRequests.filter(
-                  (req: UpdateRequestDTO) => req.requestedBy && req.requestedBy.id === selectedOwner
+                  (req: UpdateRequestDTO) =>
+                    req.requestedBy && req.requestedBy.id === selectedOwner
                 );
               }
-              
+
               setUpdateRequests(updRequests);
               setTotal(result.totalItems);
             } else {
@@ -526,7 +541,7 @@ const HealthInsuranceManagement: React.FC = () => {
   const handleOwnerChange = (value: string) => {
     setSelectedOwner(value);
     setCurrentPage(1);
-    
+
     // For verification and update request tabs, we need to refetch data with the selected owner
     if (["verification", "updateRequest"].includes(activeTab)) {
       fetchData();
@@ -537,6 +552,10 @@ const HealthInsuranceManagement: React.FC = () => {
     setSearchText("");
     setSelectedOwner(undefined);
     setFilterParams({});
+    // Reset advanced filter
+    setAdvancedFilterParams({});
+    setFilteredData([]);
+    setIsFiltered(false);
     setCurrentPage(1);
   };
 
@@ -766,13 +785,21 @@ const HealthInsuranceManagement: React.FC = () => {
           result = await getInitialInsurances(1, 1000, "", "CreatedAt", false);
           break;
         case "verification":
-          result = await getVerificationRequests(1, 1000, "", "CreatedAt", false);
+          result = await getVerificationRequests(
+            1,
+            1000,
+            "",
+            "CreatedAt",
+            false
+          );
           if (result.isSuccess) {
             // Extract unique owners from verification requests
             const uniqueOwners = Array.from(
               new Map(
                 result.data
-                  .filter((insurance: HealthInsuranceResponseDTO) => insurance.user)
+                  .filter(
+                    (insurance: HealthInsuranceResponseDTO) => insurance.user
+                  )
                   .map((insurance: HealthInsuranceResponseDTO) => [
                     insurance.user.id,
                     {
@@ -818,7 +845,13 @@ const HealthInsuranceManagement: React.FC = () => {
           }
           break;
         case "expiredUpdate":
-          result = await getExpiredUpdateInsurances(1, 1000, "", "CreatedAt", false);
+          result = await getExpiredUpdateInsurances(
+            1,
+            1000,
+            "",
+            "CreatedAt",
+            false
+          );
           break;
         case "expired":
           result = await getExpiredInsurances(1, 1000, "", "CreatedAt", false);
@@ -827,7 +860,13 @@ const HealthInsuranceManagement: React.FC = () => {
           result = await getUninsuredRecords(1, 1000, "", "CreatedAt", false);
           break;
         case "softDelete":
-          result = await getSoftDeletedInsurances(1, 1000, "", "CreatedAt", false);
+          result = await getSoftDeletedInsurances(
+            1,
+            1000,
+            "",
+            "CreatedAt",
+            false
+          );
           break;
         case "rejected":
           result = await getRejectedInsurances(1, 1000, "", "CreatedAt", false);
@@ -860,6 +899,90 @@ const HealthInsuranceManagement: React.FC = () => {
     } finally {
       setOwnersLoading(false);
     }
+  };
+
+  // Handle advanced filter
+  const handleAdvancedFilterApply = (filters: any) => {
+    setAdvancedFilterParams(filters);
+    let dataToFilter: any[] = [];
+
+    // Select data based on active tab
+    switch (activeTab) {
+      case "verified":
+        dataToFilter = verifiedInsurances;
+        break;
+      case "initial":
+        dataToFilter = initialInsurances;
+        break;
+      case "verification":
+        dataToFilter = updateRequests;
+        break;
+      case "updateRequest":
+        dataToFilter = updateRequests;
+        break;
+      case "expiredUpdate":
+        dataToFilter = expiredUpdates;
+        break;
+      case "expired":
+        dataToFilter = expiredInsurances;
+        break;
+      case "uninsured":
+        dataToFilter = noInsurances;
+        break;
+      case "softDelete":
+        dataToFilter = softDeletedInsurances;
+        break;
+      case "rejected":
+        dataToFilter = rejectedInsurances;
+        break;
+      default:
+        dataToFilter = [];
+    }
+
+    // Apply filters
+    const filtered = filterDataByTab(activeTab, dataToFilter, filters);
+    setFilteredData(filtered);
+    setIsFiltered(true);
+    setAdvancedFilterModalVisible(false);
+  };
+
+  const handleAdvancedFilterReset = () => {
+    setAdvancedFilterParams({});
+    setFilteredData([]);
+    setIsFiltered(false);
+    setAdvancedFilterModalVisible(false);
+  };
+
+  const showAdvancedFilterModal = () => {
+    setAdvancedFilterModalVisible(true);
+  };
+
+  const getDataForActiveTab = () => {
+    if (!isFiltered) {
+      switch (activeTab) {
+        case "verified":
+          return verifiedInsurances;
+        case "initial":
+          return initialInsurances;
+        case "verification":
+          return updateRequests;
+        case "updateRequest":
+          return updateRequests;
+        case "expiredUpdate":
+          return expiredUpdates;
+        case "expired":
+          return expiredInsurances;
+        case "uninsured":
+          return noInsurances;
+        case "softDelete":
+          return softDeletedInsurances;
+        case "rejected":
+          return rejectedInsurances;
+        default:
+          return [];
+      }
+    }
+    return filteredData;
   };
 
   return (
@@ -1011,10 +1134,20 @@ const HealthInsuranceManagement: React.FC = () => {
                 disabled={
                   !searchText &&
                   !selectedOwner &&
-                  Object.keys(filterParams).length === 0
+                  Object.keys(filterParams).length === 0 &&
+                  !isFiltered
                 }
               />
             </Tooltip>
+
+            {/* Advanced Filter Button */}
+            <Button
+              icon={<FilterOutlined />}
+              type={isFiltered ? "primary" : "default"}
+              onClick={showAdvancedFilterModal}
+            >
+              Filter {isFiltered ? `(${filteredData.length})` : ""}
+            </Button>
 
             {/* Visible Columns - only for table views */}
             {["verification", "updateRequest"].indexOf(activeTab) === -1 && (
@@ -1159,7 +1292,7 @@ const HealthInsuranceManagement: React.FC = () => {
       {activeTab === "verified" && (
         <VerifiedTable
           loading={loading}
-          insurances={verifiedInsurances}
+          insurances={isFiltered ? filteredData : verifiedInsurances}
           selectedRowKeys={selectedRowKeys}
           setSelectedRowKeys={setSelectedRowKeys}
           columnVisibility={verifiedColumnVisibility}
@@ -1170,7 +1303,7 @@ const HealthInsuranceManagement: React.FC = () => {
       {activeTab === "initial" && (
         <InitialTable
           loading={loading}
-          insurances={initialInsurances}
+          insurances={isFiltered ? filteredData : initialInsurances}
           selectedRowKeys={selectedRowKeys}
           setSelectedRowKeys={setSelectedRowKeys}
           columnVisibility={initialColumnVisibility}
@@ -1181,7 +1314,7 @@ const HealthInsuranceManagement: React.FC = () => {
       {activeTab === "verification" && (
         <VerificationList
           loading={loading}
-          updateRequests={updateRequests}
+          updateRequests={isFiltered ? filteredData : updateRequests}
           refreshData={fetchData}
         />
       )}
@@ -1189,7 +1322,7 @@ const HealthInsuranceManagement: React.FC = () => {
       {activeTab === "updateRequest" && (
         <InsuranceUpdateRequestList
           loading={loading}
-          updateRequests={updateRequests}
+          updateRequests={isFiltered ? filteredData : updateRequests}
           refreshData={fetchData}
         />
       )}
@@ -1197,7 +1330,7 @@ const HealthInsuranceManagement: React.FC = () => {
       {activeTab === "expiredUpdate" && (
         <ExpiredUpdateTable
           loading={loading}
-          insurances={expiredUpdates}
+          insurances={isFiltered ? filteredData : expiredUpdates}
           selectedRowKeys={selectedRowKeys}
           setSelectedRowKeys={setSelectedRowKeys}
           columnVisibility={expiredUpdateColumnVisibility}
@@ -1208,7 +1341,7 @@ const HealthInsuranceManagement: React.FC = () => {
       {activeTab === "expired" && (
         <ExpiredTable
           loading={loading}
-          insurances={expiredInsurances}
+          insurances={isFiltered ? filteredData : expiredInsurances}
           selectedRowKeys={selectedRowKeys}
           setSelectedRowKeys={setSelectedRowKeys}
           columnVisibility={expiredColumnVisibility}
@@ -1219,7 +1352,7 @@ const HealthInsuranceManagement: React.FC = () => {
       {activeTab === "uninsured" && (
         <NoInsuranceTable
           loading={loading}
-          insurances={noInsurances}
+          insurances={isFiltered ? filteredData : noInsurances}
           selectedRowKeys={selectedRowKeys}
           setSelectedRowKeys={setSelectedRowKeys}
           columnVisibility={noInsuranceColumnVisibility}
@@ -1230,7 +1363,7 @@ const HealthInsuranceManagement: React.FC = () => {
       {activeTab === "softDelete" && (
         <SoftDeleteTable
           loading={loading}
-          insurances={softDeletedInsurances}
+          insurances={isFiltered ? filteredData : softDeletedInsurances}
           selectedRowKeys={[]}
           setSelectedRowKeys={() => {}}
           columnVisibility={softDeleteColumnVisibility}
@@ -1241,7 +1374,7 @@ const HealthInsuranceManagement: React.FC = () => {
       {activeTab === "rejected" && (
         <VerifiedTable
           loading={loading}
-          insurances={rejectedInsurances}
+          insurances={isFiltered ? filteredData : rejectedInsurances}
           selectedRowKeys={selectedRowKeys}
           setSelectedRowKeys={setSelectedRowKeys}
           columnVisibility={rejectedColumnVisibility}
@@ -1253,7 +1386,7 @@ const HealthInsuranceManagement: React.FC = () => {
       <PaginationFooter
         current={currentPage}
         pageSize={pageSize}
-        total={total}
+        total={isFiltered ? filteredData.length : total}
         onChange={handlePageChange}
         useItemsLabel={
           activeTab === "verification" || activeTab === "updateRequest"
@@ -1293,6 +1426,16 @@ const HealthInsuranceManagement: React.FC = () => {
         onClose={() => setExportModalVisible(false)}
         filters={filterParams}
         tabKey={activeTab}
+      />
+
+      <AdvancedFilterModal
+        visible={advancedFilterModalVisible}
+        onClose={() => setAdvancedFilterModalVisible(false)}
+        onApply={handleAdvancedFilterApply}
+        onReset={handleAdvancedFilterReset}
+        initialFilters={advancedFilterParams}
+        tabKey={activeTab}
+        data={getDataForActiveTab()}
       />
     </PageContainer>
   );

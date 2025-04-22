@@ -284,7 +284,11 @@ const CreateModal: React.FC<CreateModalProps> = ({
 
   return (
     <Modal
-      title="Create New Treatment Plan"
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Create New Treatment Plan
+        </Title>
+      }
       open={visible}
       onCancel={handleCancel}
       width={800}
