@@ -326,7 +326,7 @@ export default function MyInsuranceUpdateModal({
           initialValue={true}
         >
           <Checkbox onChange={handleHasInsuranceChange}>
-            <Typography.Text strong>Has Health Insurance</Typography.Text>
+            <Typography.Text strong>Do you have health insurance? Check this box if yes, uncheck if no.</Typography.Text>
           </Checkbox>
         </Form.Item>
 

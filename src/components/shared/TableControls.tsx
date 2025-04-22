@@ -155,7 +155,6 @@ const TableControls: React.FC<TableControlsProps> = ({
         <Text type="secondary">{useItemsLabel ? "Items per page:" : "Rows per page:"}</Text>
         {columnSettings && columnSettings()}
         
-        <Text type="secondary">Rows per page:</Text>
         <Select
           value={pageSize}
           onChange={(value) => onPageSizeChange(value)}
