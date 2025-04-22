@@ -10,6 +10,9 @@ import {
   message,
   Tooltip,
   Card,
+  AutoComplete,
+  Dropdown,
+  Checkbox,
 } from "antd";
 import { Chip } from "@heroui/react";
 import {
@@ -29,16 +32,20 @@ import {
   BatchNumberResponseDTO,
   setupBatchNumberRealTime,
   getMergeableBatchGroups,
+  getAllBatchNumbersWithoutPagination,
 } from "@/api/batchnumber";
 import { exportToExcel } from "@/api/export";
 import EditBatchNumberModal from "./EditBatchNumberModal";
 import MergeBatchNumbersModal from "./MergeBatchNumbersModal";
 import { BatchNumberIcon } from "./Icons";
+import BatchNumberFilterModal from "./BatchNumberFilterModal";
 import debounce from "lodash/debounce";
 import TableControls from "../shared/TableControls";
 import PaginationFooter from "../shared/PaginationFooter";
 import ToolbarCard from "../shared/ToolbarCard";
 import PageContainer from "../shared/PageContainer";
+import { useRouter } from "next/router";
+import dayjs from "dayjs";
 
 const { Column } = Table;
 const { Option } = Select;
@@ -75,6 +82,34 @@ export function BatchNumberManagement() {
 
   // Selected row keys for batch actions
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [drugOptions, setDrugOptions] = useState<any[]>([]);
+  const [supplierOptions, setSupplierOptions] = useState<any[]>([]);
+
+  const [batchCodes, setBatchCodes] = useState<string[]>([]);
+
+  const router = useRouter();
+
+  // Column visibility state
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+    batchCode: true,
+    drugName: true,
+    supplier: true,
+    manufacturingDate: true,
+    expiryDate: true,
+    quantityReceived: true,
+    status: true,
+    createdAt: true,
+    createdBy: true,
+    updatedAt: false,
+    updatedBy: false,
+    toggle: true,
+    actions: true,
+  });
+  
+  // Dropdown open state
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const fetchBatchNumbers = useCallback(async () => {
     try {
@@ -129,21 +164,88 @@ export function BatchNumberManagement() {
     }
   }, [messageApi]);
 
+  // Function to fetch all drugs and suppliers for filter options
+  const fetchAllFilterOptions = useCallback(async () => {
+    try {
+      const result = await getAllBatchNumbersWithoutPagination();
+      if (result && result.data && result.data.length > 0) {
+        // Extract unique drugs
+        const drugsMap = new Map();
+        result.data.forEach((batch: BatchNumberResponseDTO) => {
+          if (batch.drug && !drugsMap.has(batch.drug.id)) {
+            drugsMap.set(batch.drug.id, {
+              id: batch.drug.id,
+              name: batch.drug.name,
+              drugCode: batch.drug.drugCode
+            });
+          }
+        });
+        
+        // Extract unique suppliers
+        const suppliersMap = new Map();
+        result.data.forEach((batch: BatchNumberResponseDTO) => {
+          if (batch.supplier && !suppliersMap.has(batch.supplier.id)) {
+            suppliersMap.set(batch.supplier.id, {
+              id: batch.supplier.id,
+              supplierName: batch.supplier.supplierName
+            });
+          }
+        });
+        
+        setDrugOptions(Array.from(drugsMap.values()));
+        setSupplierOptions(Array.from(suppliersMap.values()));
+      }
+    } catch (error) {
+      messageApi.error({
+        content: "Unable to load filter options.",
+        duration: 5,
+      });
+    }
+  }, [messageApi]);
+
+  // Function to fetch all batch codes for autocomplete
+  const fetchAllBatchCodes = useCallback(async () => {
+    try {
+      const result = await getAllBatchNumbersWithoutPagination();
+      if (result && result.data && result.data.length > 0) {
+        // Extract unique batch codes
+        const uniqueBatchCodes = Array.from(
+          new Set(result.data.map((batch: BatchNumberResponseDTO) => batch.batchCode))
+        ) as string[];
+        setBatchCodes(uniqueBatchCodes);
+      }
+    } catch (error) {
+      messageApi.error({
+        content: "Unable to load batch codes for autocomplete.",
+        duration: 5,
+      });
+    }
+  }, [messageApi]);
+
+  // Replace the existing extractUniqueOptions with fetchAllFilterOptions
   useEffect(() => {
+    // Fetch batch numbers for current page
     fetchBatchNumbers();
+    // Fetch mergeable groups
     fetchMergeableGroups();
+    // Fetch all batch numbers for filter options
+    fetchAllFilterOptions();
+    // Fetch all batch codes for autocomplete
+    fetchAllBatchCodes();
 
     const connection = setupBatchNumberRealTime(
       (updatedBatch: BatchNumberResponseDTO) => {
         fetchBatchNumbers();
         fetchMergeableGroups();
+        fetchAllFilterOptions(); 
+        fetchAllBatchCodes(); // Refresh batch codes when data changes
       }
     );
 
     return () => {
       connection.stop();
     };
-  }, [fetchBatchNumbers, fetchMergeableGroups]);
+  }, [fetchBatchNumbers, fetchMergeableGroups, fetchAllFilterOptions, fetchAllBatchCodes]);
 
   const handleToggleStatus = async (id: string, isActive: boolean) => {
     const batch = batchNumbers.find((b) => b.id === id);
@@ -250,40 +352,114 @@ export function BatchNumberManagement() {
     });
   };
 
+  const handleFilterOpen = () => {
+    setIsFilterModalVisible(true);
+  };
+
+  const handleFilterClose = () => {
+    setIsFilterModalVisible(false);
+  };
+
+  const handleFilterApply = (filters: any) => {
+    setDrugNameFilter(filters.drugNameFilter || "");
+    setSupplierFilter(filters.supplierFilter || "");
+    setStatusFilter(filters.statusFilter || "");
+    setManufacturingDateRange(
+      filters.manufacturingDateRange && filters.manufacturingDateRange[0] && filters.manufacturingDateRange[1]
+        ? [
+            filters.manufacturingDateRange[0].format("YYYY-MM-DD"),
+            filters.manufacturingDateRange[1].format("YYYY-MM-DD"),
+          ]
+        : null
+    );
+    setExpiryDateRange(
+      filters.expiryDateRange && filters.expiryDateRange[0] && filters.expiryDateRange[1]
+        ? [
+            filters.expiryDateRange[0].format("YYYY-MM-DD"),
+            filters.expiryDateRange[1].format("YYYY-MM-DD"),
+          ]
+        : null
+    );
+    setAscending(filters.ascending);
+    setCurrentPage(1);
+    setIsFilterModalVisible(false);
+  };
+
+  // Handle column visibility
+  const handleColumnVisibilityChange = (key: string) => {
+    setColumnVisibility((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  // Toggle all columns visibility
+  const toggleAllColumns = (checked: boolean) => {
+    const newVisibility = { ...columnVisibility };
+    Object.keys(newVisibility).forEach((key) => {
+      newVisibility[key] = checked;
+    });
+    setColumnVisibility(newVisibility);
+  };
+
+  // Check if all columns are visible
+  const areAllColumnsVisible = () => {
+    return Object.values(columnVisibility).every((value) => value === true);
+  };
+
+  // Handle dropdown visibility
+  const handleDropdownVisibleChange = (visible: boolean) => {
+    setDropdownOpen(visible);
+  };
+
+  // Prevent dropdown from closing when clicking checkboxes
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <>
       {contextHolder}
       <PageContainer
         title="Batch Number Management"
         icon={<BatchNumberIcon />}
+        onBack={() => router.back()}
       >
         {/* Search and Filters Toolbar */}
         <ToolbarCard
           leftContent={
             <>
               {/* Batch Code Search */}
-              <Input
+              <AutoComplete
                 placeholder="Search by Batch Code"
-                onChange={(e) => handleSearchChange(e.target.value)}
-                style={{ width: 200 }}
+                onChange={handleSearchChange}
+                style={{ width: 240 }}
+                options={batchCodes.map(code => ({ value: code }))}
+                filterOption={(inputValue, option) =>
+                  option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                }
                 allowClear
+                notFoundContent="No batch codes found"
+                dropdownMatchSelectWidth={false}
+                dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
+                dropdownRender={(menu) => (
+                  <>
+                    {menu}
+                  </>
+                )}
               />
 
-              {/* Drug Name Filter */}
-              <Input
-                placeholder="Filter by Drug Name"
-                onChange={(e) => setDrugNameFilter(e.target.value)}
-                style={{ width: 200 }}
-                allowClear
-              />
-
-              {/* Supplier Filter */}
-              <Input
-                placeholder="Filter by Supplier"
-                onChange={(e) => setSupplierFilter(e.target.value)}
-                style={{ width: 200 }}
-                allowClear
-              />
+              
+              {/* Advanced Filters */}
+              <Tooltip title="Filters">
+                <Button
+                  icon={<FilterOutlined />}
+                  onClick={handleFilterOpen}
+                  disabled={loading}
+                >
+                  Filters
+                </Button>
+              </Tooltip>
 
               {/* Status */}
               <div>
@@ -326,19 +502,214 @@ export function BatchNumberManagement() {
                 />
               </Tooltip>
 
-              {/* Advanced Filters */}
-              <Tooltip title="Date Filters">
-                <Button
-                  icon={<FilterOutlined />}
-                  onClick={() => {
-                    // Could open a modal with date filters
-                    messageApi.info("Date filters would go here in a modal");
-                  }}
-                  disabled={loading}
-                >
-                  Dates
-                </Button>
-              </Tooltip>
+              {/* Column Settings */}
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: "selectAll",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={areAllColumnsVisible()}
+                            onChange={(e) => toggleAllColumns(e.target.checked)}
+                          >
+                            Toggle All
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "divider",
+                      type: "divider",
+                    },
+                    {
+                      key: "batchCode",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.batchCode}
+                            onChange={() => handleColumnVisibilityChange("batchCode")}
+                          >
+                            Batch Code
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "drugName",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.drugName}
+                            onChange={() => handleColumnVisibilityChange("drugName")}
+                          >
+                            Drug Name
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "supplier",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.supplier}
+                            onChange={() => handleColumnVisibilityChange("supplier")}
+                          >
+                            Supplier
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "manufacturingDate",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.manufacturingDate}
+                            onChange={() => handleColumnVisibilityChange("manufacturingDate")}
+                          >
+                            Manufacturing Date
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "expiryDate",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.expiryDate}
+                            onChange={() => handleColumnVisibilityChange("expiryDate")}
+                          >
+                            Expiry Date
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "quantityReceived",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.quantityReceived}
+                            onChange={() => handleColumnVisibilityChange("quantityReceived")}
+                          >
+                            Quantity Received
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "status",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.status}
+                            onChange={() => handleColumnVisibilityChange("status")}
+                          >
+                            Status
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "createdAt",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.createdAt}
+                            onChange={() => handleColumnVisibilityChange("createdAt")}
+                          >
+                            Created At
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "createdBy",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.createdBy}
+                            onChange={() => handleColumnVisibilityChange("createdBy")}
+                          >
+                            Created By
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "updatedAt",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.updatedAt}
+                            onChange={() => handleColumnVisibilityChange("updatedAt")}
+                          >
+                            Updated At
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "updatedBy",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.updatedBy}
+                            onChange={() => handleColumnVisibilityChange("updatedBy")}
+                          >
+                            Updated By
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "toggle",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.toggle}
+                            onChange={() => handleColumnVisibilityChange("toggle")}
+                          >
+                            Toggle
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "actions",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.actions}
+                            onChange={() => handleColumnVisibilityChange("actions")}
+                          >
+                            Actions
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                  ],
+                  onClick: (e) => {
+                    // Prevent dropdown from closing
+                    e.domEvent.stopPropagation();
+                  },
+                }}
+                trigger={["hover", "click"]}
+                placement="bottomRight"
+                arrow
+                open={dropdownOpen}
+                onOpenChange={handleDropdownVisibleChange}
+                mouseEnterDelay={0.1}
+                mouseLeaveDelay={0.3}
+              >
+                <Tooltip title="Column Settings">
+                  <Button icon={<SettingOutlined />}>Columns</Button>
+                </Tooltip>
+              </Dropdown>
 
               {/* Merge Button */}
               <Button
@@ -387,12 +758,14 @@ export function BatchNumberManagement() {
               dataIndex="batchCode"
               key="batchCode"
               sorter={(a, b) => a.batchCode.localeCompare(b.batchCode)}
+              hidden={!columnVisibility.batchCode}
             />
             <Column
               title="DRUG NAME"
               dataIndex={["drug", "name"]}
               key="drug.name"
               sorter={(a, b) => a.drug.name.localeCompare(b.drug.name)}
+              hidden={!columnVisibility.drugName}
             />
             <Column
               title="SUPPLIER"
@@ -401,6 +774,7 @@ export function BatchNumberManagement() {
               sorter={(a, b) =>
                 a.supplier.supplierName.localeCompare(b.supplier.supplierName)
               }
+              hidden={!columnVisibility.supplier}
             />
             <Column
               title="MANUFACTURING DATE"
@@ -414,6 +788,7 @@ export function BatchNumberManagement() {
                   b.manufacturingDate || ""
                 )
               }
+              hidden={!columnVisibility.manufacturingDate}
             />
             <Column
               title="EXPIRY DATE"
@@ -425,12 +800,14 @@ export function BatchNumberManagement() {
               sorter={(a, b) =>
                 (a.expiryDate || "").localeCompare(b.expiryDate || "")
               }
+              hidden={!columnVisibility.expiryDate}
             />
             <Column
               title="QUANTITY RECEIVED"
               dataIndex="quantityReceived"
               key="quantityReceived"
               sorter={(a, b) => a.quantityReceived - b.quantityReceived}
+              hidden={!columnVisibility.quantityReceived}
             />
             <Column
               title="STATUS"
@@ -457,6 +834,7 @@ export function BatchNumberManagement() {
                 </Chip>
               )}
               sorter={(a, b) => a.status.localeCompare(b.status)}
+              hidden={!columnVisibility.status}
             />
             <Column
               title="CREATED AT"
@@ -467,6 +845,7 @@ export function BatchNumberManagement() {
                 new Date(b.createdAt).getTime() -
                 new Date(a.createdAt).getTime()
               }
+              hidden={!columnVisibility.createdAt}
             />
             <Column
               title="CREATED BY"
@@ -478,6 +857,7 @@ export function BatchNumberManagement() {
                   b.createdBy?.userName || ""
                 )
               }
+              hidden={!columnVisibility.createdBy}
             />
             <Column
               title="UPDATED AT"
@@ -487,6 +867,7 @@ export function BatchNumberManagement() {
               sorter={(a, b) =>
                 (a.updatedAt || "").localeCompare(b.updatedAt || "")
               }
+              hidden={!columnVisibility.updatedAt}
             />
             <Column
               title="UPDATED BY"
@@ -498,6 +879,7 @@ export function BatchNumberManagement() {
                   b.updatedBy?.userName || ""
                 )
               }
+              hidden={!columnVisibility.updatedBy}
             />
             <Column
               title=""
@@ -519,6 +901,7 @@ export function BatchNumberManagement() {
                   onChange={(checked) => handleToggleStatus(record.id, checked)}
                 />
               )}
+              hidden={!columnVisibility.toggle}
             />
             <Column
               title="ACTIONS"
@@ -543,6 +926,7 @@ export function BatchNumberManagement() {
                   }
                 />
               )}
+              hidden={!columnVisibility.actions}
             />
           </Table>
 
@@ -574,6 +958,33 @@ export function BatchNumberManagement() {
           fetchBatchNumbers();
           fetchMergeableGroups();
         }}
+      />
+
+      <BatchNumberFilterModal
+        visible={isFilterModalVisible}
+        onCancel={handleFilterClose}
+        onApply={handleFilterApply}
+        onReset={handleReset}
+        filters={{
+          drugNameFilter,
+          supplierFilter,
+          statusFilter,
+          manufacturingDateRange: manufacturingDateRange 
+            ? [
+                manufacturingDateRange[0] ? dayjs(manufacturingDateRange[0]) : null,
+                manufacturingDateRange[1] ? dayjs(manufacturingDateRange[1]) : null
+              ] as [dayjs.Dayjs | null, dayjs.Dayjs | null]
+            : [null, null],
+          expiryDateRange: expiryDateRange
+            ? [
+                expiryDateRange[0] ? dayjs(expiryDateRange[0]) : null,
+                expiryDateRange[1] ? dayjs(expiryDateRange[1]) : null
+              ] as [dayjs.Dayjs | null, dayjs.Dayjs | null]
+            : [null, null],
+          ascending
+        }}
+        drugOptions={drugOptions}
+        supplierOptions={supplierOptions}
       />
     </>
   );
