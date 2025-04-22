@@ -432,12 +432,12 @@ export const UserHealthInsurance: React.FC = () => {
   }
 
   const canUpdateDirectly =
-    insurance.status === "Pending" &&
-    insurance.verificationStatus === "Unverified";
+    (insurance.status === "Pending" && insurance.verificationStatus === "Unverified") ||
+    (insurance.status === "Rejected" && insurance.verificationStatus === "Rejected");
 
   const canRequestUpdate =
     insurance.verificationStatus === "Verified" ||
-    insurance.verificationStatus === "Rejected";
+    (insurance.verificationStatus === "Rejected" && insurance.status !== "Rejected");
 
   const hasPendingRequests = pendingRequests.length > 0;
 
@@ -496,8 +496,8 @@ export const UserHealthInsurance: React.FC = () => {
                   <span>
                     {" "}
                     Please click the{" "}
-                    <strong>"Update Rejected Insurance"</strong> button to
-                    submit new information.
+                    <strong>"Update Health Insurance"</strong> button to
+                    submit new information. Make sure to enter the correct information exactly as it appears on your health insurance card.
                   </span>
                 )}
               </>
@@ -513,8 +513,13 @@ export const UserHealthInsurance: React.FC = () => {
             <Card title="Insurance Information" className="mb-4">
               <Descriptions column={2} bordered>
                 <Descriptions.Item label="Status" span={2}>
-                  {getStatusTag(insurance.status)}{" "}
-                  {getVerificationTag(insurance.verificationStatus)}
+                  {insurance.status === "Rejected" && insurance.verificationStatus === "Rejected" 
+                    ? getVerificationTag(insurance.verificationStatus)
+                    : <>
+                        {getStatusTag(insurance.status)}{" "}
+                        {getVerificationTag(insurance.verificationStatus)}
+                      </>
+                  }
                 </Descriptions.Item>
                 <Descriptions.Item label="Insurance Number" span={2}>
                   {insurance.healthInsuranceNumber || "-"}

@@ -83,17 +83,20 @@ const VerificationList: React.FC<VerificationListProps> = ({
               actions={[
                 <RightOutlined key="arrow" style={{ fontSize: '16px', color: '#1890ff' }} />,
               ]}
+              extra={<Tag color="processing">Verification Needed</Tag>}
             >
               <Skeleton loading={loading} active avatar>
                 <Row gutter={[16, 16]}>
                   <Col span={24}>
-                    <div className="flex items-center">
-                      <Avatar size="large" icon={<UserOutlined />} />
-                      <div className="ml-2">
-                        <Title level={5} className="mb-0">
-                          {request.requestedBy?.userName || "Unknown User"}
-                        </Title>
-                        <Text type="secondary">{request.requestedBy?.email || ""}</Text>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Avatar size="large" icon={<UserOutlined />} />
+                        <div className="ml-2">
+                          <Title level={5} className="mb-0">
+                            {request.requestedBy?.userName || "Unknown User"}
+                          </Title>
+                          <Text type="secondary">{request.requestedBy?.email || ""}</Text>
+                        </div>
                       </div>
                     </div>
                   </Col>
@@ -107,9 +110,6 @@ const VerificationList: React.FC<VerificationListProps> = ({
                         </Text>
                         <Text>
                           Full Name: <Text strong>{request.fullName || "N/A"}</Text>
-                        </Text>
-                        <Text>
-                          Status: <Tag color="processing">Verification Needed</Tag>
                         </Text>
                         <Text>
                           Requested At: <Text strong>{formatDateTime(request.requestedAt)}</Text>
