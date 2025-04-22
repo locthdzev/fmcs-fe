@@ -188,6 +188,13 @@ export interface HealthCheckResultExportConfigDTO {
   includeDetails: boolean;
 }
 
+export interface HealthCheckResultInfo {
+  id: string;
+  healthCheckResultCode: string;
+  checkupDate: string;
+  status?: string;
+}
+
 // API Functions
 export const getAllHealthCheckResults = async (
   page: number = 1,
