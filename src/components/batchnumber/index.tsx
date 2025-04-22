@@ -101,7 +101,7 @@ export function BatchNumberManagement() {
     quantityReceived: true,
     status: true,
     createdAt: true,
-    createdBy: true,
+    createdBy: false,
     updatedAt: false,
     updatedBy: false,
     toggle: true,
@@ -882,7 +882,7 @@ export function BatchNumberManagement() {
               hidden={!columnVisibility.updatedBy}
             />
             <Column
-              title=""
+              title="TOGGLE"
               key="toggle"
               align="center"
               render={(_, record: BatchNumberResponseDTO) => (

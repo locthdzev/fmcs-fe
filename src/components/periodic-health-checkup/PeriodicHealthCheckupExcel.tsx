@@ -92,11 +92,6 @@ export async function exportPeriodicHealthCheckupToExcel(
         const row = studentSheet.addRow(rowData);
         styleDataRow(row);
       });
-      
-      // Auto-size columns
-      studentSheet.columns.forEach(column => {
-        column.width = Math.max(15, column.width || 15);
-      });
     }
 
     // Export staff checkups if included
@@ -112,11 +107,6 @@ export async function exportPeriodicHealthCheckupToExcel(
         const rowData = staffColumns.map(column => getCheckupValue(checkup, column.key));
         const row = staffSheet.addRow(rowData);
         styleDataRow(row);
-      });
-      
-      // Auto-size columns
-      staffSheet.columns.forEach(column => {
-        column.width = Math.max(15, column.width || 15);
       });
     }
 
@@ -157,6 +147,12 @@ export async function exportPeriodicHealthCheckupToExcel(
 function setupSheetHeaders(sheet: ExcelJS.Worksheet, headers: string[]) {
   // Add headers
   const headerRow = sheet.addRow(headers);
+  
+  // Set column widths based on headers
+  headers.forEach((header, index) => {
+    const col = sheet.getColumn(index + 1);
+    col.width = getColumnWidth(header);
+  });
   
   // Style header row
   headerRow.height = 25;
@@ -222,6 +218,42 @@ function getCheckupValue(checkup: any, key: string): any {
   }
   
   return value === null || value === undefined ? '' : value;
+}
+
+// Function to determine column width based on content type
+function getColumnWidth(header: string): number {
+  // Wider columns for text-heavy fields
+  const wideColumns = [
+    'Conclusion', 'Recommendations', 'Description', 'Internal Medicine Status',
+    'Surgery Status', 'Dermatology Status', 'General Exam', 'Eye Exam',
+    'Dental Exam', 'ENT Exam', 'Eye Pathology', 'Abdominal Ultrasound', 
+    'Dermatology Examination', 'Gynecological Examination'
+  ];
+  
+  // Extra wide columns
+  const extraWideColumns = [
+    'Recommendations', 'Conclusion', 'Description'
+  ];
+  
+  // Medium width columns
+  const mediumColumns = [
+    'Full Name', 'Hospital Name', 'Periodic Health Checkup ID',
+    'Email', 'Blood Pressure', 'Created By', 'Updated By'
+  ];
+  
+  if (extraWideColumns.some(col => header.includes(col))) {
+    return 35; // Extra wide
+  }
+  
+  if (wideColumns.some(col => header.includes(col))) {
+    return 25; // Wide
+  }
+  
+  if (mediumColumns.some(col => header.includes(col))) {
+    return 22; // Medium
+  }
+  
+  return 20; // Default width
 }
 
 // Student columns definition based on config

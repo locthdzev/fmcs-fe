@@ -358,7 +358,7 @@ const styles = `
   }
 `;
 
-interface EnhancedStudentCheckup {
+export interface EnhancedStudentCheckup {
   id: string;
   periodicHealthCheckUpId: string;
   mssv: string;
@@ -385,7 +385,7 @@ interface EnhancedStudentCheckup {
   dentalOralStatus?: string;
 }
 
-interface EnhancedStaffCheckup {
+export interface EnhancedStaffCheckup {
   id: string;
   periodicHealthCheckUpId: string;
   fullName?: string;
@@ -1915,96 +1915,103 @@ const CheckupList: React.FC<CheckupListProps> = React.memo(
               
               return (
                 <List.Item>
-        <Card
+                  <Card
                     hoverable
                     className="verification-card"
                     onClick={() => onViewDetails(checkup)}
+                    style={{ height: '280px', display: 'flex', flexDirection: 'column' }}
+                    bodyStyle={{ flex: 1, overflow: 'hidden', padding: '16px' }}
                     actions={[
-              <Button
+                      <Button
                         key="view"
-                type="text"
-                        icon={<EyeOutlined style={{ fontSize: '12px' }} />}
+                        type="text"
+                        icon={<EyeOutlined />}
                         onClick={(e) => {
                           e.stopPropagation();
                           onViewDetails(checkup);
                         }}
-                        style={{ fontSize: '12px', padding: '0 8px' }}
                       >
-                        
+                        View
                       </Button>,
-                <Button
+                      <Button
                         key="edit"
-                  type="text"
-                        icon={<FormOutlined style={{ fontSize: '12px' }} />}
+                        type="text"
+                        icon={<FormOutlined />}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleUpdateClick(checkup, e);
                         }}
-                        style={{ fontSize: '12px', padding: '0 8px' }}
                       >
-                        
+                        Edit
                       </Button>,
                       checkup.status === "Active" && (
                         <Button
                           key="delete"
                           type="text"
                           danger
-                          icon={<DeleteOutlined style={{ fontSize: '12px' }} />}
+                          icon={<DeleteOutlined />}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteClick(checkup, e);
                           }}
-                  loading={actionLoading === checkup.id}
-                  disabled={!!actionLoading}
-                          style={{ fontSize: '12px', padding: '0 8px' }}
+                          loading={actionLoading === checkup.id}
+                          disabled={!!actionLoading}
                         >
                           Delete
                         </Button>
                       )
                     ].filter(Boolean)}
                   >
-                    <Skeleton loading={false} active avatar>
-                      <Row gutter={[16, 16]}>
-                        <Col span={24}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Avatar size="small" icon={<UserOutlined />} />
-                              <div className="ml-2">
-                                <Title level={5} style={{ fontSize: '14px', margin: 0 }}>
-                                  {checkup.fullName || ("mssv" in checkup ? checkup.mssv : 'Unknown')}
-                                </Title>
-                                <Text type="secondary" style={{ fontSize: '12px' }}>
-                                  {"mssv" in checkup ? `Student ID: ${checkup.mssv}` : "Staff"}
-                  </Text>
+                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      {/* Header with name and status */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <Avatar size="small" icon={<UserOutlined />} />
+                          <div style={{ marginLeft: '6px', width: 'calc(100% - 32px)', overflow: 'hidden' }}>
+                            <Tooltip title={checkup.fullName || ("mssv" in checkup ? checkup.mssv : 'Unknown')}>
+                              <div style={{ fontSize: '15px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {checkup.fullName || ("mssv" in checkup ? checkup.mssv : 'Unknown')}
                               </div>
+                            </Tooltip>
+                            <div style={{ fontSize: '13px', color: '#888', marginTop: '1px' }}>
+                              {"mssv" in checkup ? `Student ID: ${checkup.mssv}` : "Staff"}
                             </div>
-                            <Tag color={getStatusColor(checkup.status)} icon={getStatusIcon(checkup.status)} style={{ fontSize: '12px' }}>
-                    {checkup.status}
-                  </Tag>
                           </div>
-            </Col>
-
-                        <Col span={24}>
-                          <Text strong style={{ fontSize: '13px' }}>Health Information:</Text>
-                          <div className="mt-1">
-                            <Space direction="vertical" size="small">
-                              {checkup.conclusion && (
-                                <Text style={{ fontSize: '12px' }}>
-                                  Conclusion: <Text strong style={{ fontSize: '12px' }}>{checkup.conclusion}</Text>
-                </Text>
-                              )}
-                              <Text style={{ fontSize: '12px' }}>
-                                Created At: <Text strong style={{ fontSize: '12px' }}>{dayjs(checkup.createdAt).format("DD/MM/YYYY")}</Text>
-                              </Text>
-                              <Text style={{ fontSize: '12px' }}>
-                                Created By: <Text strong style={{ fontSize: '12px' }}>{formatCreatedByName(checkup.createdBy)}</Text>
-                              </Text>
-                            </Space>
+                        </div>
+                        <Tag color={getStatusColor(checkup.status)} icon={getStatusIcon(checkup.status)} style={{ padding: '2px 6px', height: '22px', lineHeight: '18px', fontSize: '13px' }}>
+                          {checkup.status}
+                        </Tag>
+                      </div>
+                      
+                      {/* Content */}
+                      <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '3px' }}>
+                          Health Information:
+                        </div>
+                        
+                        {checkup.conclusion && (
+                          <Tooltip title={`Conclusion: ${checkup.conclusion}`}>
+                            <div style={{ fontSize: '13px', marginBottom: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              <span>Conclusion: </span>
+                              <span style={{ fontWeight: 'bold' }}>{checkup.conclusion}</span>
+                            </div>
+                          </Tooltip>
+                        )}
+                        
+                        <div style={{ fontSize: '13px', marginBottom: '3px' }}>
+                          <span>Created At: </span>
+                          <span style={{ fontWeight: 'bold' }}>{dayjs(checkup.createdAt).format("DD/MM/YYYY")}</span>
+                        </div>
+                        
+                        <Tooltip title={`Created By: ${formatCreatedByName(checkup.createdBy)}`}>
+                          <div style={{ fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <span>Created By: </span>
+                            <span style={{ fontWeight: 'bold' }}>{formatCreatedByName(checkup.createdBy)}</span>
                           </div>
-            </Col>
-          </Row>
-                    </Skeleton>
-        </Card>
+                        </Tooltip>
+                      </div>
+                    </div>
+                  </Card>
                 </List.Item>
               );
             }}
