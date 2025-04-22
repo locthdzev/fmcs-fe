@@ -215,7 +215,7 @@ export const DrugSupplierDetail: React.FC<DrugSupplierDetailProps> = ({
         <div className="flex items-center gap-2 mb-4">
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/drug-supplier")}
+            onClick={() => router.back()}
             style={{ marginRight: "8px" }}
           >
             Back
@@ -238,7 +238,7 @@ export const DrugSupplierDetail: React.FC<DrugSupplierDetailProps> = ({
         <div className="flex items-center gap-2">
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/drug-supplier")}
+            onClick={() => router.back()}
             style={{ marginRight: "8px" }}
           >
             Back

@@ -100,7 +100,7 @@ export function BatchNumberManagement() {
     expiryDate: true,
     quantityReceived: true,
     status: true,
-    createdAt: true,
+    createdAt: false,
     createdBy: false,
     updatedAt: false,
     updatedBy: false,
@@ -780,6 +780,15 @@ export function BatchNumberManagement() {
               key="drug.name"
               sorter={(a, b) => a.drug.name.localeCompare(b.drug.name)}
               hidden={!columnVisibility.drugName}
+              render={(name, record) => (
+                <Button 
+                  type="link" 
+                  onClick={() => router.push(`/drug/${record.drug.id}`)}
+                  style={{ padding: 0, margin: 0, height: 'auto' }}
+                >
+                  {name}
+                </Button>
+              )}
             />
             <Column
               title="SUPPLIER"
@@ -789,6 +798,15 @@ export function BatchNumberManagement() {
                 a.supplier.supplierName.localeCompare(b.supplier.supplierName)
               }
               hidden={!columnVisibility.supplier}
+              render={(supplierName, record) => (
+                <Button 
+                  type="link" 
+                  onClick={() => router.push(`/drug-supplier/${record.supplier.id}`)}
+                  style={{ padding: 0, margin: 0, height: 'auto' }}
+                >
+                  {supplierName}
+                </Button>
+              )}
             />
             <Column
               title="MANUFACTURING DATE"
