@@ -1036,7 +1036,7 @@ export function DrugSuppliers() {
                       allowClear
                       placeholder={
                         <div style={{ display: "flex", alignItems: "center" }}>
-                          <SearchOutlined style={{ marginRight: 8 }} />
+                          
                           <span>Search by supplier name...</span>
                         </div>
                       }

@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect, useCallback, useMemo } from "react";
+import React, { useReducer, useEffect, useCallback, useMemo, useState } from "react";
 import {
   Button,
   Input,
@@ -17,6 +17,13 @@ import {
   Statistic,
   Modal,
   Pagination,
+  Dropdown,
+  Checkbox,
+  Select,
+  message,
+  List,
+  Avatar,
+  Skeleton,
 } from "antd";
 import { toast } from "react-toastify";
 import dayjs, { Dayjs } from "dayjs";
@@ -39,6 +46,7 @@ import {
   getHealthCheckupByCheckupId,
   deleteHealthCheckup as deleteParentHealthCheckup,
 } from "@/api/periodic-health-checkup-api";
+import { getUserById } from "@/api/user";
 import {
   SearchOutlined,
   CheckCircleOutlined,
@@ -52,6 +60,12 @@ import {
   TeamOutlined,
   StopOutlined,
   DatabaseOutlined,
+  SettingOutlined,
+  FilterOutlined,
+  FileExcelOutlined,
+  MedicineBoxOutlined,
+  EyeOutlined,
+  UndoOutlined,
 } from "@ant-design/icons";
 import debounce from "lodash/debounce";
 import { FixedSizeList } from "react-window";
@@ -62,11 +76,19 @@ import UpdateStudentHealthCheckup from "./UpdateStudentHealthCheckup";
 import UpdateStaffHealthCheckupModal from "./UpdateStaffHealthCheckupModal";
 import CheckupDetailStudentModal from "./CheckupDetailStudentModal";
 import CheckupDetailStaffModal from "./CheckupDetailStaffModal";
+import PageContainer from "../shared/PageContainer";
+import ToolbarCard from "../shared/ToolbarCard";
+import TableControls from "../shared/TableControls";
+import PaginationFooter from "../shared/PaginationFooter";
+import PeriodicHealthCheckupFilterModal from "./PeriodicHealthCheckupFilterModal";
+import { exportPeriodicHealthCheckupToExcel } from "./PeriodicHealthCheckupExcel";
+import PeriodicHealthCheckupExcelModal, { ExportConfig } from "./PeriodicHealthCheckupExcelModal";
 
 dayjs.extend(isBetween);
 
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
+const { TabPane } = Tabs;
 
 const styles = `
   .dashboard-container {
@@ -458,6 +480,8 @@ interface State {
   activeTab: "all" | "student" | "staff" | "student-inactive" | "staff-inactive";
   currentPage: number;
   pageSize: number;
+  excelModalVisible: boolean;
+  exportLoading: boolean;
 }
 
 type Action =
@@ -475,7 +499,7 @@ type Action =
   | {
       type: "TOGGLE_MODAL";
       payload: {
-        modal: "student" | "staff" | "detail" | "updateStudent" | "updateStaff";
+        modal: "student" | "staff" | "detail" | "updateStudent" | "updateStaff" | "excel";
         visible: boolean;
       };
     }
@@ -491,7 +515,9 @@ type Action =
       type: "SET_ACTIVE_TAB";
       payload: "all" | "student" | "staff" | "student-inactive" | "staff-inactive";
     }
-  | { type: "SET_CURRENT_PAGE"; payload: number };
+  | { type: "SET_CURRENT_PAGE"; payload: number }
+  | { type: "SET_PAGE_SIZE"; payload: number }
+  | { type: "SET_EXPORT_LOADING"; payload: boolean };
 
 const initialState: State = {
   studentCheckups: [],
@@ -510,6 +536,8 @@ const initialState: State = {
   activeTab: "all",
   currentPage: 1,
   pageSize: 10,
+  excelModalVisible: false,
+  exportLoading: false,
 };
 
 const reducer = (state: State, action: Action): State => {
@@ -547,6 +575,9 @@ const reducer = (state: State, action: Action): State => {
         ...(action.payload.modal === "updateStaff" && {
           updateStaffModalVisible: action.payload.visible,
         }),
+        ...(action.payload.modal === "excel" && {
+          excelModalVisible: action.payload.visible,
+        }),
       };
     case "SET_SELECTED_CHECKUP":
       return { ...state, selectedCheckup: action.payload };
@@ -556,6 +587,10 @@ const reducer = (state: State, action: Action): State => {
       return { ...state, activeTab: action.payload, currentPage: 1 };
     case "SET_CURRENT_PAGE":
       return { ...state, currentPage: action.payload };
+    case "SET_PAGE_SIZE":
+      return { ...state, pageSize: action.payload };
+    case "SET_EXPORT_LOADING":
+      return { ...state, exportLoading: action.payload };
     default:
       return state;
   }
@@ -620,10 +655,77 @@ const getStatusTooltip = (status: string | undefined) => {
   }
 };
 
+// Hàm định dạng mặc định nếu không có getFormattedCreatedBy trong props
+const defaultFormatCreatedBy = (createdBy: string | undefined): string => {
+  if (!createdBy) return "Unknown";
+  
+  // Nếu createdBy chứa @ (email), lấy phần trước @
+  if (createdBy.includes('@')) {
+    return createdBy.split('@')[0];
+  }
+  
+  // Nếu createdBy chứa | (format ID|name), lấy phần sau |
+  if (createdBy.includes('|')) {
+    const parts = createdBy.split('|');
+    return parts[parts.length - 1];
+  }
+  
+  // Nếu là UUID, hiển thị rút gọn
+  if (createdBy.length > 20) {
+    return `User ${createdBy.substring(0, 6)}...`;
+  }
+  
+  // Nếu không thì trả về chính createdBy
+  return createdBy;
+};
+
 export function PeriodicHealthCheckupManagement() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const router = useRouter();
   const confirm = useConfirm();
+  const [messageApi, contextHolder] = message.useMessage();
+  const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [usernames, setUsernames] = useState<Record<string, string>>({});
+  const [filterModalVisible, setFilterModalVisible] = useState<boolean>(false);
+  const [selectedStatus, setSelectedStatus] = useState<string | undefined>(undefined);
+  const [filterParams, setFilterParams] = useState<{
+    studentSearch: string;
+    staffSearch: string;
+    dateRange: [Dayjs | null, Dayjs | null] | null;
+    ascending: boolean;
+  }>({
+    studentSearch: "",
+    staffSearch: "",
+    dateRange: null,
+    ascending: false, // Default to newest first
+  });
+
+  // Kiểm tra tham số tab từ URL để đặt active tab khi trang được tải
+  useEffect(() => {
+    const { tab } = router.query;
+    if (tab && typeof tab === 'string') {
+      const validTabs = ["all", "student", "staff", "student-inactive", "staff-inactive"];
+      if (validTabs.includes(tab)) {
+        dispatch({
+          type: "SET_ACTIVE_TAB",
+          payload: tab as "all" | "student" | "staff" | "student-inactive" | "staff-inactive",
+        });
+      }
+    }
+  }, [router.query]);
+
+  const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
+    { label: "Today", value: [dayjs(), dayjs()] },
+    {
+      label: "This Week",
+      value: [dayjs().startOf("week"), dayjs().endOf("week")],
+    },
+    {
+      label: "This Month",
+      value: [dayjs().startOf("month"), dayjs().endOf("month")],
+    },
+  ];
 
   const fetchDetailedCheckup = useCallback(
     async (
@@ -640,8 +742,24 @@ export function PeriodicHealthCheckupManagement() {
       createdBy: string;
     }> => {
       const result = await getHealthCheckupByCheckupId(checkupId, token);
+      console.log('API Response for checkup details:', result); // Log toàn bộ response
+      
       if (result.isSuccess && result.data) {
         const data = result.data;
+        console.log('Raw createdBy from API:', data.createdBy); // Log giá trị createdBy từ API
+        console.log('User info:', data.user); // Log thông tin user nếu có
+        
+        // Thử lấy thông tin người tạo từ user nếu có thể
+        let createdByInfo = data.createdBy || "Unknown";
+        // Nếu người tạo là chính người dùng hiện tại, thì sử dụng tên của họ
+        if (data.user && data.user.id === data.createdBy) {
+          createdByInfo = data.user.fullName || data.user.userName || createdByInfo;
+        }
+        // Nếu người tạo là nhân viên, thì sử dụng tên của họ
+        else if (data.staff && data.staff.id === data.createdBy) {
+          createdByInfo = data.staff.fullName || createdByInfo;
+        }
+        
         return {
           id: data.id,
           periodicHealthCheckUpId: data.id,
@@ -651,7 +769,7 @@ export function PeriodicHealthCheckupManagement() {
           status: data.status,
           conclusion: data.classification || "",
           createdAt: data.createdAt || dayjs().toISOString(),
-          createdBy: data.createdBy || "Unknown",
+          createdBy: createdByInfo,
         };
       }
       return {
@@ -878,26 +996,14 @@ export function PeriodicHealthCheckupManagement() {
     ) => {
       e.stopPropagation();
       if ("mssv" in checkup) {
-        dispatch({
-          type: "SET_SELECTED_STUDENT_CHECKUP",
-          payload: checkup as EnhancedStudentCheckup,
-        });
-        dispatch({
-          type: "TOGGLE_MODAL",
-          payload: { modal: "updateStudent", visible: true },
-        });
+        // For student checkups, redirect to detail page with edit mode
+        router.push(`/periodic-health-checkup/${checkup.id}?edit=true`);
       } else {
-        dispatch({
-          type: "SET_SELECTED_CHECKUP",
-          payload: checkup as EnhancedStaffCheckup,
-        });
-        dispatch({
-          type: "TOGGLE_MODAL",
-          payload: { modal: "updateStaff", visible: true },
-        });
+        // For staff checkups, also redirect to detail page with edit mode
+        router.push(`/periodic-health-checkup/staff/${checkup.id}?edit=true`);
       }
     },
-    []
+    [router]
   );
 
   const debouncedSetSearchText = useMemo(
@@ -910,63 +1016,17 @@ export function PeriodicHealthCheckupManagement() {
     []
   );
 
-  const filteredCheckups = useMemo(() => {
-    const checkups =
-      state.activeTab === "all"
-        ? [...state.studentCheckups, ...state.staffCheckups]
-        : state.activeTab.includes("student")
-        ? state.studentCheckups
-        : state.staffCheckups;
-    const filtered = checkups.filter((checkup) => {
-      const matchesSearch = state.searchText
-        ? checkup.id.toLowerCase().includes(state.searchText.toLowerCase()) ||
-          ("mssv" in checkup &&
-            checkup.mssv &&
-            checkup.mssv
-              .toLowerCase()
-              .includes(state.searchText.toLowerCase())) ||
-          (checkup.fullName &&
-            checkup.fullName
-              .toLowerCase()
-              .includes(state.searchText.toLowerCase())) ||
-          (checkup.conclusion &&
-            checkup.conclusion
-              .toLowerCase()
-              .includes(state.searchText.toLowerCase()))
-        : true;
-      const matchesDate =
-        state.dateRange && checkup.createdAt
-          ? dayjs(checkup.createdAt).isBetween(
-              state.dateRange[0],
-              state.dateRange[1],
-              "day",
-              "[]"
-            )
-          : true;
-      return matchesSearch && matchesDate;
-    });
-    return filtered.sort((a, b) =>
-      dayjs(b.createdAt).diff(dayjs(a.createdAt))
-    );
-  }, [
-    state.studentCheckups,
-    state.staffCheckups,
-    state.activeTab,
-    state.searchText,
-    state.dateRange,
-  ]);
-
-  const paginatedCheckups = useMemo(() => {
-    if (state.activeTab !== "all") return filteredCheckups;
-    const startIndex = (state.currentPage - 1) * state.pageSize;
-    const endIndex = startIndex + state.pageSize;
-    return filteredCheckups.slice(startIndex, endIndex);
-  }, [filteredCheckups, state.activeTab, state.currentPage, state.pageSize]);
-
   const resetFilters = () => {
     dispatch({ type: "SET_SEARCH_TEXT", payload: "" });
     dispatch({ type: "SET_DATE_RANGE", payload: null });
     dispatch({ type: "SET_CURRENT_PAGE", payload: 1 });
+    setSelectedStatus(undefined);
+    setFilterParams({
+      studentSearch: "",
+      staffSearch: "",
+      dateRange: null,
+      ascending: false,
+    });
   };
 
   const handleDateRangeChange = (
@@ -1036,214 +1096,13 @@ export function PeriodicHealthCheckupManagement() {
     };
   }, [state.studentCheckups, state.staffCheckups]);
 
-  const tabItems = useMemo(
-    () => [
-      {
-        key: "all",
-        label: (
-          <span className="status-tab all">
-            <DatabaseOutlined />
-            All Checkups
-            <Badge
-              count={state.studentCheckups.length + state.staffCheckups.length}
-              className="status-badge"
-              style={{ backgroundColor: "#595959" }}
-            />
-          </span>
-        ),
-        children: (
-          <CheckupList
-            checkups={paginatedCheckups as (EnhancedStudentCheckup | EnhancedStaffCheckup)[]}
-            type="all"
-            actionLoading={state.actionLoading}
-            onViewDetails={(checkup) => {
-              dispatch({ type: "SET_SELECTED_CHECKUP", payload: checkup });
-              dispatch({
-                type: "TOGGLE_MODAL",
-                payload: { modal: "detail", visible: true },
-              });
-            }}
-            handleDeleteClick={handleDeleteClick}
-            handleUpdateClick={handleUpdateClick}
-            isPaginated
-            pagination={
-              <div className="pagination-container">
-                <Pagination
-                  current={state.currentPage}
-                  pageSize={state.pageSize}
-                  total={filteredCheckups.length}
-                  onChange={handlePageChange}
-                  showSizeChanger={false}
-                  showQuickJumper
-                />
-              </div>
-            }
-          />
-        ),
-      },
-      {
-        key: "student",
-        label: (
-          <span className="status-tab student">
-            <UserOutlined />
-            Student Checkups
-            <Badge
-              count={
-                state.studentCheckups.filter((c) => c.status === "Active").length
-              }
-              className="status-badge"
-              style={{ backgroundColor: "#1890ff" }}
-            />
-          </span>
-        ),
-        children: (
-          <CheckupList
-            checkups={
-              filteredCheckups.filter((c) => c.status === "Active") as EnhancedStudentCheckup[]
-            }
-            type="student"
-            actionLoading={state.actionLoading}
-            onViewDetails={(checkup) => {
-              dispatch({ type: "SET_SELECTED_CHECKUP", payload: checkup });
-              dispatch({
-                type: "TOGGLE_MODAL",
-                payload: { modal: "detail", visible: true },
-              });
-            }}
-            handleDeleteClick={handleDeleteClick}
-            handleUpdateClick={handleUpdateClick}
-          />
-        ),
-      },
-      {
-        key: "staff",
-        label: (
-          <span className="status-tab staff">
-            <TeamOutlined />
-            Staff Checkups
-            <Badge
-              count={
-                state.staffCheckups.filter((c) => c.status === "Active").length
-              }
-              className="status-badge"
-              style={{ backgroundColor: "#722ed1" }}
-            />
-          </span>
-        ),
-        children: (
-          <CheckupList
-            checkups={
-              filteredCheckups.filter((c) => c.status === "Active") as EnhancedStaffCheckup[]
-            }
-            type="staff"
-            actionLoading={state.actionLoading}
-            onViewDetails={(checkup) => {
-              dispatch({ type: "SET_SELECTED_CHECKUP", payload: checkup });
-              dispatch({
-                type: "TOGGLE_MODAL",
-                payload: { modal: "detail", visible: true },
-              });
-            }}
-            handleDeleteClick={handleDeleteClick}
-            handleUpdateClick={handleUpdateClick}
-          />
-        ),
-      },
-      {
-        key: "student-inactive",
-        label: (
-          <span className="status-tab student-inactive">
-            <StopOutlined />
-            Inactive Student Checkups
-            <Badge
-              count={
-                state.studentCheckups.filter((c) => c.status === "Inactive")
-                  .length
-              }
-              className="status-badge"
-              style={{ backgroundColor: "#ff4d4f" }}
-            />
-          </span>
-        ),
-        children: (
-          <CheckupList
-            checkups={
-              filteredCheckups.filter((c) => c.status === "Inactive") as EnhancedStudentCheckup[]
-            }
-            type="student"
-            actionLoading={state.actionLoading}
-            onViewDetails={(checkup) => {
-              dispatch({ type: "SET_SELECTED_CHECKUP", payload: checkup });
-              dispatch({
-                type: "TOGGLE_MODAL",
-                payload: { modal: "detail", visible: true },
-              });
-            }}
-            handleDeleteClick={handleDeleteClick}
-            handleUpdateClick={handleUpdateClick}
-          />
-        ),
-      },
-      {
-        key: "staff-inactive",
-        label: (
-          <span className="status-tab staff-inactive">
-            <StopOutlined />
-            Inactive Staff Checkups
-            <Badge
-              count={
-                state.staffCheckups.filter((c) => c.status === "Inactive")
-                  .length
-              }
-              className="status-badge"
-              style={{ backgroundColor: "#fa541c" }}
-            />
-          </span>
-        ),
-        children: (
-          <CheckupList
-            checkups={
-              filteredCheckups.filter((c) => c.status === "Inactive") as EnhancedStaffCheckup[]
-            }
-            type="staff"
-            actionLoading={state.actionLoading}
-            onViewDetails={(checkup) => {
-              dispatch({ type: "SET_SELECTED_CHECKUP", payload: checkup });
-              dispatch({
-                type: "TOGGLE_MODAL",
-                payload: { modal: "detail", visible: true },
-              });
-            }}
-            handleDeleteClick={handleDeleteClick}
-            handleUpdateClick={handleUpdateClick}
-          />
-        ),
-      },
-    ],
-    [
-      filteredCheckups,
-      paginatedCheckups,
-      state.actionLoading,
-      state.studentCheckups,
-      state.staffCheckups,
-      state.currentPage,
-      state.pageSize,
-      handleDeleteClick,
-      handleUpdateClick,
-    ]
-  );
+  const handleDropdownVisibleChange = (open: boolean) => {
+    setDropdownOpen(open);
+  };
 
-  const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
-    { label: "Today", value: [dayjs(), dayjs()] },
-    {
-      label: "This Week",
-      value: [dayjs().startOf("week"), dayjs().endOf("week")],
-    },
-    {
-      label: "This Month",
-      value: [dayjs().startOf("month"), dayjs().endOf("month")],
-    },
-  ];
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
 
   const isEnhancedStaffCheckup = (
     checkup: EnhancedStudentCheckup | EnhancedStaffCheckup | null
@@ -1255,6 +1114,298 @@ export function PeriodicHealthCheckupManagement() {
     );
   };
 
+  const handleBack = () => {
+    router.back();
+  };
+
+  const handleBulkDelete = async () => {
+    confirm(
+      "Confirm Bulk Deletion",
+      <div>
+        <p>Are you sure you want to delete {selectedRowKeys.length} selected checkups?</p>
+        <p style={{ color: "#ff4d4f", marginTop: "8px" }}>
+          This action cannot be undone.
+        </p>
+      </div>,
+      async () => {
+        try {
+          for (const key of selectedRowKeys) {
+            const checkupId = key.toString();
+            const checkup = [...state.studentCheckups, ...state.staffCheckups].find(c => c.id === checkupId);
+            if (checkup) {
+              await handleDelete(
+                checkup, 
+                "mssv" in checkup ? "student" : "staff"
+              );
+            }
+          }
+          setSelectedRowKeys([]);
+          toast.success("Selected checkups deleted successfully!");
+        } catch (error) {
+          toast.error("Failed to delete some checkups");
+        }
+      }
+    );
+  };
+
+  // Hook để lấy và lưu trữ usernames
+  const fetchAndCacheUsernames = useCallback(async (userIds: string[]) => {
+    const newUsernames: Record<string, string> = { ...usernames };
+    let hasNewUsernames = false;
+
+    for (const userId of userIds) {
+      // Bỏ qua ID đã có trong cache
+      if (usernames[userId]) continue;
+
+      try {
+        const user = await getUserById(userId);
+        if (user && (user.userName || user.fullName)) {
+          newUsernames[userId] = user.userName || user.fullName;
+          hasNewUsernames = true;
+          console.log(`Cached username for ${userId}: ${newUsernames[userId]}`);
+        }
+      } catch (error) {
+        console.error(`Error fetching user ${userId}:`, error);
+      }
+    }
+
+    // Cập nhật state nếu có usernames mới
+    if (hasNewUsernames) {
+      setUsernames(newUsernames);
+    }
+  }, [usernames]);
+
+  // Hàm định dạng createdBy với usernames đã cache
+  const getFormattedCreatedBy = useCallback((createdBy: string | undefined): string => {
+    if (!createdBy) return "Unknown";
+    
+    // Nếu đã có trong cache usernames
+    if (usernames[createdBy]) {
+      return usernames[createdBy];
+    }
+    
+    // Sử dụng hàm định dạng mặc định
+    return defaultFormatCreatedBy(createdBy);
+  }, [usernames]);
+
+  // Lấy tất cả các ID người tạo khi dữ liệu thay đổi
+  useEffect(() => {
+    const creatorIds = [
+      ...state.studentCheckups.map(c => c.createdBy).filter(Boolean) as string[],
+      ...state.staffCheckups.map(c => c.createdBy).filter(Boolean) as string[]
+    ];
+    
+    // Lọc các ID có dạng UUID (dài hơn 20 ký tự)
+    const uuidCreatorIds = creatorIds.filter(id => id.length > 20);
+    
+    if (uuidCreatorIds.length > 0) {
+      fetchAndCacheUsernames(uuidCreatorIds);
+    }
+  }, [state.studentCheckups, state.staffCheckups, fetchAndCacheUsernames]);
+
+  // Generate student and staff options for filter
+  const studentOptions = useMemo(() => {
+    const uniqueStudents = new Map();
+    state.studentCheckups.forEach(checkup => {
+      if (checkup.fullName) {
+        uniqueStudents.set(checkup.id, {
+          id: checkup.id,
+          name: checkup.fullName
+        });
+      }
+    });
+    return Array.from(uniqueStudents.values());
+  }, [state.studentCheckups]);
+
+  const staffOptions = useMemo(() => {
+    const uniqueStaff = new Map();
+    state.staffCheckups.forEach(checkup => {
+      if (checkup.fullName) {
+        uniqueStaff.set(checkup.id, {
+          id: checkup.id,
+          name: checkup.fullName
+        });
+      }
+    });
+    return Array.from(uniqueStaff.values());
+  }, [state.staffCheckups]);
+
+  // Apply filters to checkups
+  const filteredCheckups = useMemo(() => {
+    const checkups =
+      state.activeTab === "all"
+        ? [...state.studentCheckups, ...state.staffCheckups]
+        : state.activeTab.includes("student")
+        ? state.studentCheckups
+        : state.staffCheckups;
+
+    return checkups.filter((checkup) => {
+      // Apply search text filter
+      const matchesSearch = state.searchText
+        ? checkup.id.toLowerCase().includes(state.searchText.toLowerCase()) ||
+          ("mssv" in checkup &&
+            checkup.mssv &&
+            checkup.mssv
+              .toLowerCase()
+              .includes(state.searchText.toLowerCase())) ||
+          (checkup.fullName &&
+            checkup.fullName
+              .toLowerCase()
+              .includes(state.searchText.toLowerCase())) ||
+          (checkup.conclusion &&
+            checkup.conclusion
+              .toLowerCase()
+              .includes(state.searchText.toLowerCase()))
+        : true;
+
+      // Apply status filter
+      const matchesStatus = selectedStatus
+        ? checkup.status === selectedStatus
+        : true;
+
+      // Apply date range filter from state.dateRange
+      const matchesStateDate =
+        state.dateRange && checkup.createdAt
+          ? dayjs(checkup.createdAt).isBetween(
+              state.dateRange[0],
+              state.dateRange[1],
+              "day",
+              "[]"
+            )
+          : true;
+
+      // Apply date range filter from filterParams
+      const matchesFilterDate =
+        filterParams.dateRange && filterParams.dateRange[0] && filterParams.dateRange[1] && checkup.createdAt
+          ? dayjs(checkup.createdAt).isBetween(
+              filterParams.dateRange[0],
+              filterParams.dateRange[1],
+              "day",
+              "[]"
+            )
+          : true;
+
+      // Apply student name filter
+      const matchesStudentName = 
+        filterParams.studentSearch && "mssv" in checkup
+          ? checkup.fullName?.toLowerCase().includes(filterParams.studentSearch.toLowerCase())
+          : !filterParams.studentSearch || !("mssv" in checkup);
+
+      // Apply staff name filter
+      const matchesStaffName = 
+        filterParams.staffSearch && !("mssv" in checkup)
+          ? checkup.fullName?.toLowerCase().includes(filterParams.staffSearch.toLowerCase())
+          : !filterParams.staffSearch || ("mssv" in checkup);
+
+      return matchesSearch && matchesStatus && matchesStateDate && matchesFilterDate && matchesStudentName && matchesStaffName;
+    }).sort((a, b) => {
+      const dateA = dayjs(a.createdAt);
+      const dateB = dayjs(b.createdAt);
+      return filterParams.ascending 
+        ? dateA.diff(dateB) // Oldest first
+        : dateB.diff(dateA); // Newest first
+    });
+  }, [
+    state.studentCheckups,
+    state.staffCheckups,
+    state.activeTab,
+    state.searchText,
+    state.dateRange,
+    selectedStatus,
+    filterParams,
+  ]);
+
+  // Apply pagination for "all" tab
+  const paginatedCheckups = useMemo(() => {
+    if (state.activeTab !== "all") return filteredCheckups;
+    const startIndex = (state.currentPage - 1) * state.pageSize;
+    const endIndex = startIndex + state.pageSize;
+    return filteredCheckups.slice(startIndex, endIndex);
+  }, [filteredCheckups, state.activeTab, state.currentPage, state.pageSize]);
+
+  // Handle filter modal actions
+  const handleFilterApply = (filters: any) => {
+    setFilterParams(filters);
+    setFilterModalVisible(false);
+    dispatch({ type: "SET_CURRENT_PAGE", payload: 1 });
+  };
+
+  const handleFilterReset = () => {
+    setFilterParams({
+      studentSearch: "",
+      staffSearch: "",
+      dateRange: null,
+      ascending: false,
+    });
+  };
+
+  // Handle export to excel
+  const handleExportToExcel = async (
+    config: ExportConfig,
+    dateRange?: [dayjs.Dayjs | null, dayjs.Dayjs | null]
+  ) => {
+    try {
+      dispatch({ type: "SET_EXPORT_LOADING", payload: true });
+      
+      // Filter checkups by date range if provided
+      let filteredStudentCheckups = [...state.studentCheckups];
+      let filteredStaffCheckups = [...state.staffCheckups];
+      
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        const startDate = dateRange[0].startOf('day');
+        const endDate = dateRange[1].endOf('day');
+        
+        filteredStudentCheckups = filteredStudentCheckups.filter(checkup => {
+          const createdDate = dayjs(checkup.createdAt);
+          return createdDate.isAfter(startDate) && createdDate.isBefore(endDate);
+        });
+        
+        filteredStaffCheckups = filteredStaffCheckups.filter(checkup => {
+          const createdDate = dayjs(checkup.createdAt);
+          return createdDate.isAfter(startDate) && createdDate.isBefore(endDate);
+        });
+      }
+      
+      // Filter by currently active tab
+      if (state.activeTab === "student") {
+        filteredStaffCheckups = [];
+        filteredStudentCheckups = filteredStudentCheckups.filter(c => c.status === "Active");
+      } else if (state.activeTab === "staff") {
+        filteredStudentCheckups = [];
+        filteredStaffCheckups = filteredStaffCheckups.filter(c => c.status === "Active");
+      } else if (state.activeTab === "student-inactive") {
+        filteredStaffCheckups = [];
+        filteredStudentCheckups = filteredStudentCheckups.filter(c => c.status === "Inactive");
+      } else if (state.activeTab === "staff-inactive") {
+        filteredStudentCheckups = [];
+        filteredStaffCheckups = filteredStaffCheckups.filter(c => c.status === "Inactive");
+      }
+      
+      // If "Export current page only" is selected
+      if (!config.exportAllPages) {
+        const startIndex = (state.currentPage - 1) * state.pageSize;
+        const endIndex = state.currentPage * state.pageSize;
+        
+        filteredStudentCheckups = filteredStudentCheckups.slice(startIndex, endIndex);
+        filteredStaffCheckups = filteredStaffCheckups.slice(startIndex, endIndex);
+      }
+      
+      await exportPeriodicHealthCheckupToExcel(
+        filteredStudentCheckups,
+        filteredStaffCheckups,
+        config,
+        dateRange
+      );
+      
+      dispatch({ type: "TOGGLE_MODAL", payload: { modal: "excel", visible: false } });
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      message.error("Failed to export data to Excel");
+    } finally {
+      dispatch({ type: "SET_EXPORT_LOADING", payload: false });
+    }
+  };
+
   if (state.loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50">
@@ -1264,139 +1415,353 @@ export function PeriodicHealthCheckupManagement() {
   }
 
   return (
-    <div className="dashboard-container">
-      <style>{styles}</style>
-      <Card className="header-card">
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24}>
-            <Title level={3} style={{ margin: 0, color: "#1d39c4" }}>
-              Health Checkup Dashboard
-            </Title>
-          </Col>
-          <Col xs={24}>
-            <div className="toolbar">
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() =>
-                  dispatch({
-                    type: "TOGGLE_MODAL",
-                    payload: { modal: "student", visible: true },
-                  })
-                }
-                className="action-button"
-              >
-                Add Student Checkup
-              </Button>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() =>
-                  dispatch({
-                    type: "TOGGLE_MODAL",
-                    payload: { modal: "staff", visible: true },
-                  })
-                }
-                className="action-button"
-              >
-                Add Staff Checkup
-              </Button>
-              <Button
-                icon={<DownloadOutlined />}
-                onClick={() =>
-                  state.activeTab.includes("student")
-                    ? exportStudentHealthCheckupsToExcel()
-                    : exportStaffHealthCheckupsToExcel()
-                }
-                className="action-button"
-              >
-                Export
-              </Button>
-              <Button
-                onClick={handleRefresh}
-                icon={<ReloadOutlined />}
-                className="action-button"
-              >
-                Refresh
-              </Button>
-            </div>
-          </Col>
-        </Row>
-        <div className="stats-grid">
-          <Card className="stats-card">
-            <Statistic
-              title="Total Checkups"
-              value={summaryStats.total}
-              prefix={<UserOutlined />}
-            />
-          </Card>
-          <Card className="stats-card">
-            <Statistic
-              title="Active"
-              value={summaryStats.active}
-              valueStyle={{ color: "#52c41a" }}
-            />
-          </Card>
-          <Card className="stats-card">
-            <Statistic
-              title="Inactive Students"
-              value={summaryStats.inactiveStudents}
-              valueStyle={{ color: "#ff4d4f" }}
-            />
-          </Card>
-          <Card className="stats-card">
-            <Statistic
-              title="Inactive Staff"
-              value={summaryStats.inactiveStaff}
-              valueStyle={{ color: "#ff4d4f" }}
-            />
-          </Card>
-        </div>
-        <Card className="filter-card">
-          <Input.Search
-            placeholder="Search by ID, MSSV, Name, or Conclusion"
-            value={state.searchText}
-            onChange={(e) => debouncedSetSearchText(e.target.value)}
-            allowClear
-            prefix={<SearchOutlined />}
-            className="search-input"
-          />
-          <RangePicker
-            value={state.dateRange}
-            onChange={handleDateRangeChange}
-            format="DD/MM/YYYY"
-            presets={rangePresets}
-            style={{ width: "100%", maxWidth: 300 }}
-          />
-          <Button
-            onClick={resetFilters}
-            type="default"
-            className="action-button"
-          >
-            Clear Filters
-          </Button>
-        </Card>
-      </Card>
+    <PageContainer
+      title="Periodic Health Checkup Management"
+      icon={<MedicineBoxOutlined style={{ fontSize: "24px" }} />}
+      onBack={handleBack}
+    >
+      {contextHolder}
 
-      <Card className="tab-container">
-        <Tabs
-          activeKey={state.activeTab}
-          onChange={(key) =>
-            dispatch({
-              type: "SET_ACTIVE_TAB",
-              payload: key as
-                | "all"
-                | "student"
-                | "staff"
-                | "student-inactive"
-                | "staff-inactive",
-            })
+      {/* Tabs for different checkup statuses */}
+      <Tabs
+        activeKey={state.activeTab}
+        onChange={(key) =>
+          dispatch({
+            type: "SET_ACTIVE_TAB",
+            payload: key as
+              | "all"
+              | "student"
+              | "staff"
+              | "student-inactive"
+              | "staff-inactive",
+          })
+        }
+        className="bg-white rounded shadow-sm"
+        type="card"
+      >
+        <TabPane
+          tab={
+            <span>
+              <DatabaseOutlined
+                className="mr-2"
+                style={{ color: "#595959" }}
+              />
+            All Checkups
+            <Badge
+                className="ml-2"
+              style={{ backgroundColor: "#595959" }}
+            />
+          </span>
           }
-          items={tabItems}
-          tabBarStyle={{ marginBottom: 16, fontWeight: 500, textAlign: "center" }}
+          key="all"
         />
-      </Card>
+        <TabPane
+          tab={
+            <span>
+              <UserOutlined
+                className="mr-2"
+                style={{ color: "#1890ff" }}
+              />
+              Student Checkups
+              <Badge
+                className="ml-2"
+                style={{ backgroundColor: "#1890ff" }}
+              />
+            </span>
+          }
+          key="student"
+        />
+        <TabPane
+          tab={
+            <span>
+              <TeamOutlined
+                className="mr-2"
+                style={{ color: "#722ed1" }}
+              />
+              Staff Checkups
+              <Badge
+                className="ml-2"
+                style={{ backgroundColor: "#722ed1" }}
+              />
+            </span>
+          }
+          key="staff"
+        />
+        <TabPane
+          tab={
+            <span>
+              <StopOutlined
+                className="mr-2"
+                style={{ color: "#ff4d4f" }}
+              />
+              Inactive Student Checkups
+              <Badge
+                className="ml-2"
+                style={{ backgroundColor: "#ff4d4f" }}
+              />
+            </span>
+          }
+          key="student-inactive"
+        />
+        <TabPane
+          tab={
+            <span>
+              <StopOutlined
+                className="mr-2"
+                style={{ color: "#fa541c" }}
+              />
+              Inactive Staff Checkups
+              <Badge
+                className="ml-2"
+                style={{ backgroundColor: "#fa541c" }}
+              />
+            </span>
+          }
+          key="staff-inactive"
+        />
+      </Tabs>
 
+      {/* Toolbar */}
+      <ToolbarCard
+        leftContent={
+          <>
+            {/* Search Input */}
+            <Input
+              placeholder="Search by name"
+              value={state.searchText}
+              onChange={(e) => debouncedSetSearchText(e.target.value)}
+              prefix={<SearchOutlined />}
+              style={{ width: 250 }}
+              allowClear
+            />
+
+            {/* Status Filter */}
+            <Select
+              placeholder="Status"
+              value={selectedStatus}
+              onChange={(value) => setSelectedStatus(value)}
+              style={{ width: 110 }}
+              allowClear
+              options={[
+                { value: "Active", label: "Active" },
+                { value: "Inactive", label: "Inactive" }
+              ]}
+            />
+            
+            {/* Advanced Filter Button */}
+            <Button icon={<FilterOutlined />} onClick={() => setFilterModalVisible(true)}>
+              Filters
+            </Button>
+            
+            {/* Reset Button */}
+            <Button icon={<UndoOutlined />} onClick={resetFilters}>
+            </Button>
+
+            {/* Create Buttons */}
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: "student",
+                    label: "Add Student Checkup",
+                    onClick: () => dispatch({
+                      type: "TOGGLE_MODAL",
+                      payload: { modal: "student", visible: true },
+                    }),
+                  },
+                  {
+                    key: "staff",
+                    label: "Add Staff Checkup",
+                    onClick: () => dispatch({
+                      type: "TOGGLE_MODAL",
+                      payload: { modal: "staff", visible: true },
+                    }),
+                  },
+                ],
+              }}
+              placement="bottomLeft"
+            >
+              <Button type="primary" icon={<PlusOutlined />}>
+                Create
+              </Button>
+            </Dropdown>
+          </>
+        }
+        rightContent={
+          <>
+            {/* Export Button */}
+            <Button
+              type="primary"
+              icon={<FileExcelOutlined />}
+              onClick={() => dispatch({ 
+                type: "TOGGLE_MODAL", 
+                payload: { modal: "excel", visible: true } 
+              })}
+            >
+              Export to Excel
+            </Button>
+          </>
+        }
+      />
+
+      {/* Table Controls */}
+      <TableControls
+        selectedRowKeys={selectedRowKeys}
+        pageSize={state.pageSize}
+        onPageSizeChange={(size) => dispatch({ type: "SET_PAGE_SIZE", payload: size })}
+        bulkActions={[
+          {
+            key: "delete",
+            title: "Delete selected checkups",
+            description: `Are you sure you want to delete ${selectedRowKeys.length} selected checkup(s)?`,
+            icon: <DeleteOutlined />,
+            buttonText: "Delete",
+            buttonType: "primary",
+            isDanger: true,
+            tooltip: "Delete selected checkups",
+            isVisible: selectedRowKeys.length > 0,
+            isLoading: !!state.actionLoading,
+            onConfirm: handleBulkDelete,
+          },
+        ]}
+      />
+
+      {/* Content area - based on active tab */}
+      <div className="bg-white rounded shadow-sm p-4 mb-4">
+        {state.loading ? (
+          <div className="p-12 flex justify-center">
+            <Spin size="large" />
+          </div>
+        ) : (
+          <>
+            {state.activeTab === "all" && (
+          <CheckupList
+            checkups={paginatedCheckups as (EnhancedStudentCheckup | EnhancedStaffCheckup)[]}
+            type="all"
+            actionLoading={state.actionLoading}
+            onViewDetails={(checkup) => {
+              if ("mssv" in checkup) {
+                // For student checkups, navigate to the detail page
+                router.push(`/periodic-health-checkup/${checkup.id}`);
+              } else {
+                // For staff checkups, navigate to staff detail page
+                router.push(`/periodic-health-checkup/staff/${checkup.id}`);
+              }
+            }}
+            handleDeleteClick={handleDeleteClick}
+            handleUpdateClick={handleUpdateClick}
+                isPaginated={false}
+                pagination={null}
+                selectedRowKeys={selectedRowKeys}
+                setSelectedRowKeys={setSelectedRowKeys}
+                usernames={usernames}
+                getFormattedCreatedBy={getFormattedCreatedBy}
+              />
+            )}
+
+            {state.activeTab === "student" && (
+          <CheckupList
+            checkups={
+              filteredCheckups.filter((c) => c.status === "Active") as EnhancedStudentCheckup[]
+            }
+            type="student"
+            actionLoading={state.actionLoading}
+            onViewDetails={(checkup) => {
+              // For student checkups, navigate to the detail page
+              router.push(`/periodic-health-checkup/${checkup.id}`);
+            }}
+            handleDeleteClick={handleDeleteClick}
+            handleUpdateClick={handleUpdateClick}
+                selectedRowKeys={selectedRowKeys}
+                setSelectedRowKeys={setSelectedRowKeys}
+                usernames={usernames}
+                getFormattedCreatedBy={getFormattedCreatedBy}
+              />
+            )}
+
+            {state.activeTab === "staff" && (
+          <CheckupList
+            checkups={
+              filteredCheckups.filter((c) => c.status === "Active") as EnhancedStaffCheckup[]
+            }
+            type="staff"
+            actionLoading={state.actionLoading}
+            onViewDetails={(checkup) => {
+              // For staff checkups, navigate to staff detail page
+              router.push(`/periodic-health-checkup/staff/${checkup.id}`);
+            }}
+            handleDeleteClick={handleDeleteClick}
+            handleUpdateClick={handleUpdateClick}
+                selectedRowKeys={selectedRowKeys}
+                setSelectedRowKeys={setSelectedRowKeys}
+                usernames={usernames}
+                getFormattedCreatedBy={getFormattedCreatedBy}
+              />
+            )}
+
+            {state.activeTab === "student-inactive" && (
+          <CheckupList
+            checkups={
+              filteredCheckups.filter((c) => c.status === "Inactive") as EnhancedStudentCheckup[]
+            }
+            type="student"
+            actionLoading={state.actionLoading}
+            onViewDetails={(checkup) => {
+              // For student checkups, navigate to the detail page
+              router.push(`/periodic-health-checkup/${checkup.id}`);
+            }}
+            handleDeleteClick={handleDeleteClick}
+            handleUpdateClick={handleUpdateClick}
+                selectedRowKeys={selectedRowKeys}
+                setSelectedRowKeys={setSelectedRowKeys}
+                usernames={usernames}
+                getFormattedCreatedBy={getFormattedCreatedBy}
+              />
+            )}
+
+            {state.activeTab === "staff-inactive" && (
+          <CheckupList
+            checkups={
+              filteredCheckups.filter((c) => c.status === "Inactive") as EnhancedStaffCheckup[]
+            }
+            type="staff"
+            actionLoading={state.actionLoading}
+            onViewDetails={(checkup) => {
+              // For staff checkups, navigate to staff detail page
+              router.push(`/periodic-health-checkup/staff/${checkup.id}`);
+            }}
+            handleDeleteClick={handleDeleteClick}
+            handleUpdateClick={handleUpdateClick}
+                selectedRowKeys={selectedRowKeys}
+                setSelectedRowKeys={setSelectedRowKeys}
+                usernames={usernames}
+                getFormattedCreatedBy={getFormattedCreatedBy}
+              />
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Pagination Footer */}
+      <PaginationFooter
+        current={state.currentPage}
+        pageSize={state.pageSize}
+        total={
+          state.activeTab === "all"
+            ? filteredCheckups.length
+            : state.activeTab === "student"
+            ? filteredCheckups.filter(c => c.status === "Active").length
+            : state.activeTab === "staff"
+            ? filteredCheckups.filter(c => c.status === "Active").length
+            : state.activeTab === "student-inactive"
+            ? filteredCheckups.filter(c => c.status === "Inactive").length
+            : filteredCheckups.filter(c => c.status === "Inactive").length
+        }
+        onChange={handlePageChange}
+        useItemsLabel={false}
+      />
+
+      {/* Modals */}
       <AddStudentHealthCheckupModal
         visible={state.studentModalVisible}
         onClose={() =>
@@ -1470,7 +1835,29 @@ export function PeriodicHealthCheckupManagement() {
         }
         onSuccess={handleUpdateSuccess}
       />
-    </div>
+
+      {/* Filter Modal */}
+      <PeriodicHealthCheckupFilterModal
+        visible={filterModalVisible}
+        onCancel={() => setFilterModalVisible(false)}
+        onApply={handleFilterApply}
+        onReset={handleFilterReset}
+        filters={filterParams}
+        studentOptions={studentOptions}
+        staffOptions={staffOptions}
+      />
+
+      {/* Excel Export Modal */}
+      <PeriodicHealthCheckupExcelModal
+        visible={state.excelModalVisible}
+        onCancel={() => dispatch({ 
+          type: "TOGGLE_MODAL", 
+          payload: { modal: "excel", visible: false } 
+        })}
+        onExport={handleExportToExcel}
+        loading={state.exportLoading}
+      />
+    </PageContainer>
   );
 }
 
@@ -1491,6 +1878,10 @@ interface CheckupListProps {
   ) => void;
   isPaginated?: boolean;
   pagination?: React.ReactNode;
+  selectedRowKeys: React.Key[];
+  setSelectedRowKeys: (keys: React.Key[]) => void;
+  usernames?: Record<string, string>;
+  getFormattedCreatedBy?: (createdBy: string | undefined) => string;
 }
 
 const CheckupList: React.FC<CheckupListProps> = React.memo(
@@ -1503,108 +1894,121 @@ const CheckupList: React.FC<CheckupListProps> = React.memo(
     handleUpdateClick,
     isPaginated = false,
     pagination,
+    selectedRowKeys,
+    setSelectedRowKeys,
+    usernames = {},
+    getFormattedCreatedBy,
   }) => {
-    const renderItem = (checkup: EnhancedStudentCheckup | EnhancedStaffCheckup, index: number) => (
-      <div style={{ padding: "8px 0" }} key={checkup.id}>
-        <Card
-          className="checkup-card"
-          onClick={() => onViewDetails(checkup)}
-          extra={
-            <Space>
-              <Button
-                type="text"
-                icon={<FormOutlined style={{ color: "#1890ff" }} />}
-                onClick={(e) => handleUpdateClick(checkup, e)}
-                className="action-button"
-              />
-              {checkup.status === "Active" && (
-                <Button
-                  type="text"
-                  icon={<DeleteOutlined style={{ color: "#ff4d4f" }} />}
-                  loading={actionLoading === checkup.id}
-                  disabled={!!actionLoading}
-                  className="action-button"
-                  onClick={(e) => handleDeleteClick(checkup, e)}
-                />
-              )}
-            </Space>
-          }
-        >
-          <Row gutter={[8, 8]}>
-            <Col xs={24}>
-              <Space
-                direction={window.innerWidth < 576 ? "vertical" : "horizontal"}
-                size="small"
-              >
-                <UserOutlined style={{ fontSize: 20, color: "#1890ff" }} />
-                {"mssv" in checkup && checkup.mssv && (
-                  <Text strong type="secondary">
-                    {checkup.mssv}
-                  </Text>
-                )}
-                <Text strong>{checkup.fullName}</Text>
-                <Text type="secondary">{checkup.gender}</Text>
-              </Space>
-            </Col>
-            <Col xs={24} className="status-section">
-              <Space>
-                <Text strong>Status:</Text>
-                <Tooltip title={getStatusTooltip(checkup.status)}>
-                  <Tag
-                    color={getStatusColor(checkup.status)}
-                    icon={getStatusIcon(checkup.status)}
-                    className="status-tag"
-                    aria-label={`Status: ${checkup.status}`}
-                  >
-                    {checkup.status}
-                  </Tag>
-                </Tooltip>
-              </Space>
-            </Col>
-            <Col xs={24}>
-              <Tooltip title={checkup.conclusion}>
-                <Text ellipsis style={{ maxWidth: "100%" }}>
-                  {checkup.conclusion || "No conclusion"}
-                </Text>
-              </Tooltip>
-            </Col>
-          </Row>
-        </Card>
-      </div>
-    );
+    // Sử dụng hàm định dạng từ props hoặc dùng hàm định dạng mặc định
+    const formatCreatedByName = getFormattedCreatedBy || defaultFormatCreatedBy;
 
     return (
-      <div className="tab-content">
+      <div className="bg-white">
         {checkups.length === 0 ? (
           <Empty description={`No ${type === "all" ? "health" : type} checkups found.`} />
-        ) : isPaginated ? (
-          <div className="paginated-list">
-            {checkups.map((checkup, index) => renderItem(checkup, index))}
-            {pagination}
-          </div>
         ) : (
-          <div className="virtual-list">
-            <AutoSizer>
-              {({ height, width }) => (
-                <FixedSizeList
-                  height={height}
-                  width={width}
-                  itemCount={checkups.length}
-                  itemSize={window.innerWidth < 576 ? 180 : 170}
-                  overscanCount={5}
-                >
-                  {({ index, style }) => {
-                    const checkup = checkups[index];
-                    return (
-                      <div style={{ ...style, padding: "8px 0" }} key={checkup.id}>
-                        {renderItem(checkup, index)}
-                      </div>
-                    );
-                  }}
-                </FixedSizeList>
-              )}
-            </AutoSizer>
-          </div>
+          <List
+            grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 4 }}
+            dataSource={checkups}
+            renderItem={(checkup) => {
+              const isSelected = selectedRowKeys.includes(checkup.id);
+              
+              return (
+                <List.Item>
+        <Card
+                    hoverable
+                    className="verification-card"
+                    onClick={() => onViewDetails(checkup)}
+                    actions={[
+              <Button
+                        key="view"
+                type="text"
+                        icon={<EyeOutlined style={{ fontSize: '12px' }} />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onViewDetails(checkup);
+                        }}
+                        style={{ fontSize: '12px', padding: '0 8px' }}
+                      >
+                        
+                      </Button>,
+                <Button
+                        key="edit"
+                  type="text"
+                        icon={<FormOutlined style={{ fontSize: '12px' }} />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUpdateClick(checkup, e);
+                        }}
+                        style={{ fontSize: '12px', padding: '0 8px' }}
+                      >
+                        
+                      </Button>,
+                      checkup.status === "Active" && (
+                        <Button
+                          key="delete"
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined style={{ fontSize: '12px' }} />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(checkup, e);
+                          }}
+                  loading={actionLoading === checkup.id}
+                  disabled={!!actionLoading}
+                          style={{ fontSize: '12px', padding: '0 8px' }}
+                        >
+                          Delete
+                        </Button>
+                      )
+                    ].filter(Boolean)}
+                  >
+                    <Skeleton loading={false} active avatar>
+                      <Row gutter={[16, 16]}>
+                        <Col span={24}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Avatar size="small" icon={<UserOutlined />} />
+                              <div className="ml-2">
+                                <Title level={5} style={{ fontSize: '14px', margin: 0 }}>
+                                  {checkup.fullName || ("mssv" in checkup ? checkup.mssv : 'Unknown')}
+                                </Title>
+                                <Text type="secondary" style={{ fontSize: '12px' }}>
+                                  {"mssv" in checkup ? `Student ID: ${checkup.mssv}` : "Staff"}
+                  </Text>
+                              </div>
+                            </div>
+                            <Tag color={getStatusColor(checkup.status)} icon={getStatusIcon(checkup.status)} style={{ fontSize: '12px' }}>
+                    {checkup.status}
+                  </Tag>
+                          </div>
+            </Col>
+
+                        <Col span={24}>
+                          <Text strong style={{ fontSize: '13px' }}>Health Information:</Text>
+                          <div className="mt-1">
+                            <Space direction="vertical" size="small">
+                              {checkup.conclusion && (
+                                <Text style={{ fontSize: '12px' }}>
+                                  Conclusion: <Text strong style={{ fontSize: '12px' }}>{checkup.conclusion}</Text>
+                </Text>
+                              )}
+                              <Text style={{ fontSize: '12px' }}>
+                                Created At: <Text strong style={{ fontSize: '12px' }}>{dayjs(checkup.createdAt).format("DD/MM/YYYY")}</Text>
+                              </Text>
+                              <Text style={{ fontSize: '12px' }}>
+                                Created By: <Text strong style={{ fontSize: '12px' }}>{formatCreatedByName(checkup.createdBy)}</Text>
+                              </Text>
+                            </Space>
+                          </div>
+            </Col>
+          </Row>
+                    </Skeleton>
+        </Card>
+                </List.Item>
+              );
+            }}
+          />
         )}
       </div>
     );
