@@ -746,7 +746,7 @@ export function AppointmentManagementForStaff() {
     const items: MenuProps["items"] = [];
 
     // Add Update Appointment option for editable statuses
-    // if (["Scheduled", "Happening", "Missed", "Finished"].includes(appointment.status)) {
+    if (["Scheduled"].includes(appointment.status)) {
     items.push({
       key: "update",
       icon: <FormOutlined style={{ color: "#1890ff" }} />,
@@ -762,7 +762,7 @@ export function AppointmentManagementForStaff() {
         </span>
       ),
     });
-    // }
+    }
 
     if (appointment.status === "Scheduled") {
       items.push(
@@ -1195,7 +1195,7 @@ export function AppointmentManagementForStaff() {
                           </Tooltip>
                           {(appointment.status === "Scheduled" ||
                             appointment.status === "Happening" ||
-                            appointment.status === "Finished" ||
+                            // appointment.status === "Finished" ||
                             appointment.status === "Missed") && (
                             <Dropdown
                               menu={{ items: getActionMenuItems(appointment) }}
