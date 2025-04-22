@@ -11,6 +11,7 @@ import {
   Modal,
   Space,
   Input,
+  Popconfirm,
 } from "antd";
 import {
   PlusOutlined,
@@ -557,16 +558,46 @@ const HealthInsuranceManagement: React.FC = () => {
 
   const handleSendUpdateRequest = async () => {
     try {
+      setLoading(true);
+      messageApi.loading({ content: 'Sending update requests...', key: 'updateRequest', duration: 0 });
+      
       const result = await sendHealthInsuranceUpdateRequest();
+      
       if (result.isSuccess) {
-        messageApi.success("Update requests sent successfully");
+        messageApi.success({ 
+          content: `Update requests for ${result.data?.userCount || 0} users have been queued to be sent.`, 
+          key: 'updateRequest', 
+          duration: 3 
+        });
         fetchData();
       } else {
-        messageApi.error(result.message || "Failed to send update requests");
+        // Xử lý lỗi cụ thể từ server
+        if (result.message === "Failed to send emails.") {
+          messageApi.error({ 
+            content: "Unable to send emails. The email service might be unavailable. Please contact IT support.", 
+            key: 'updateRequest', 
+            duration: 5
+          });
+        } else {
+          messageApi.error({ 
+            content: result.message || "Failed to send update requests", 
+            key: 'updateRequest', 
+            duration: 3 
+          });
+        }
+        
+        // Log lỗi để debug
+        console.error("Send update request API error:", result);
       }
     } catch (error) {
       console.error("Error sending update requests:", error);
-      messageApi.error("Failed to send update requests");
+      messageApi.error({ 
+        content: "Failed to send update requests. Please try again later or contact IT support.", 
+        key: 'updateRequest', 
+        duration: 3 
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -904,13 +935,21 @@ const HealthInsuranceManagement: React.FC = () => {
 
             {/* Tab-specific actions */}
             {activeTab === "initial" && (
-              <Button
-                type="primary"
-                icon={<SendOutlined />}
-                onClick={handleSendUpdateRequest}
+              <Popconfirm
+                title="Send Update Request"
+                description="Are you sure you want to send update requests to all users with pending initial insurance information?"
+                onConfirm={handleSendUpdateRequest}
+                okText="Yes"
+                cancelText="No"
+                icon={<ExclamationCircleOutlined style={{ color: '#1677ff' }} />}
               >
-                Send Update Request
-              </Button>
+                <Button
+                  type="primary"
+                  icon={<SendOutlined />}
+                >
+                  Send Update Request
+                </Button>
+              </Popconfirm>
             )}
           </>
         }
