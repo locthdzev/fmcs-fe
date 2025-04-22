@@ -683,11 +683,17 @@ export function CanteenItems() {
                   src={item.imageUrl || "/images/placeholder.jpg"}
                   alt={item.itemName}
                   className="w-8 h-8 mr-2 rounded cursor-pointer"
-                  onClick={() => router.push(`/canteen-item/${item.id}`)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/canteen-item/${item.id}`);
+                  }}
                 />
                 <p
                   className="text-bold text-small capitalize text-primary cursor-pointer hover:underline"
-                  onClick={() => router.push(`/canteen-item/${item.id}`)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/canteen-item/${item.id}`);
+                  }}
                 >
                   {cellValue as string}
                 </p>
@@ -1065,7 +1071,11 @@ export function CanteenItems() {
 
         {showActivateButton && (
           <Button
-            className="bg-success-100 text-success border-success"
+            style={{ 
+              backgroundColor: "#f6ffed", 
+              color: "#52c41a", 
+              borderColor: "#b7eb8f" 
+            }}
             onClick={() => showConfirm("activate", handleActivate)}
             disabled={loading}
           >
@@ -1075,7 +1085,11 @@ export function CanteenItems() {
 
         {showDeactivateButton && (
           <Button
-            className="bg-danger-100 text-danger border-danger"
+            style={{ 
+              backgroundColor: "#fff2f0", 
+              color: "#ff4d4f", 
+              borderColor: "#ffccc7" 
+            }}
             onClick={() => showConfirm("deactivate", handleDeactivate)}
             disabled={loading}
           >
@@ -1100,6 +1114,8 @@ export function CanteenItems() {
           <Option value={10}>10</Option>
           <Option value={15}>15</Option>
           <Option value={20}>20</Option>
+          <Option value={50}>50</Option>
+          <Option value={100}>100</Option>
         </Select>
       </div>
     );
@@ -1218,7 +1234,6 @@ export function CanteenItems() {
                 !filterValue && statusFilter.length === 0 && !hasAdvancedFilters
               }
             >
-              Reset
             </Button>
           </Tooltip>
 
@@ -1285,6 +1300,21 @@ export function CanteenItems() {
             onClick={() => setIsCreateModalOpen(true)}
           >
             Create
+          </Button>
+        </div>
+
+        <div>
+          <Button
+            type="primary"
+            icon={<FileExcelOutlined />}
+            onClick={handleOpenExportConfig}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+          >
+            Export to Excel
           </Button>
         </div>
       </div>
@@ -1548,11 +1578,17 @@ export function CanteenItems() {
                   src={record.imageUrl || "/images/placeholder.jpg"}
                   alt={record.itemName}
                   className="w-8 h-8 mr-2 rounded cursor-pointer"
-                  onClick={() => router.push(`/canteen-item/${record.id}`)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/canteen-item/${record.id}`);
+                  }}
                 />
                 <span
                   className="text-primary cursor-pointer hover:underline"
-                  onClick={() => router.push(`/canteen-item/${record.id}`)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/canteen-item/${record.id}`);
+                  }}
                 >
                   {text}
                 </span>
@@ -1727,10 +1763,6 @@ export function CanteenItems() {
                   onChange={handleTableChange}
                   scroll={{ x: "max-content" }}
                   bordered
-                  onRow={(record) => ({
-                    onClick: () => handleItemDetails(record.id),
-                    style: { cursor: "pointer" },
-                  })}
                 />
               </div>
               <Card className="mt-4 shadow-sm">

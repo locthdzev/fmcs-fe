@@ -10,12 +10,15 @@ import {
   Select,
   Divider,
   Card,
+  Alert,
+  Tooltip,
 } from "antd";
 import {
   SettingOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined,
   CalendarOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 
 import {
@@ -53,7 +56,7 @@ const InsuranceConfigModal: React.FC<InsuranceConfigModalProps> = ({
     try {
       const config = await getHealthInsuranceConfig();
       form.setFieldsValue({
-        reminderInterval: config.reminderIntervalDays,
+        reminderInterval: config.reminderInterval,
         deadlineDays: config.deadlineDays,
         warningThresholdDays: config.warningThresholdDays,
       });
@@ -71,18 +74,20 @@ const InsuranceConfigModal: React.FC<InsuranceConfigModalProps> = ({
       setLoading(true);
 
       const config = {
-        reminderIntervalDays: values.reminderInterval,
+        reminderInterval: values.reminderInterval,
         deadlineDays: values.deadlineDays,
         warningThresholdDays: values.warningThresholdDays,
       };
 
       const result = await setHealthInsuranceConfig(config);
-      
+
       if (result.isSuccess) {
         messageApi.success("Insurance configuration updated successfully");
         onSuccess();
       } else {
-        messageApi.error(result.message || "Failed to update insurance configuration");
+        messageApi.error(
+          result.message || "Failed to update insurance configuration"
+        );
       }
     } catch (error) {
       messageApi.error("Failed to update insurance configuration");
@@ -106,7 +111,6 @@ const InsuranceConfigModal: React.FC<InsuranceConfigModalProps> = ({
     <Modal
       title={
         <Space>
-          <SettingOutlined />
           <Title level={4} style={{ margin: 0 }}>
             Health Insurance Configuration
           </Title>
@@ -114,13 +118,22 @@ const InsuranceConfigModal: React.FC<InsuranceConfigModalProps> = ({
       }
       open={visible}
       onCancel={onClose}
-      width={600}
+      width={700}
       footer={null}
     >
       {contextHolder}
 
-      <Form 
-        form={form} 
+      <Alert
+        message="Health Insurance System Configuration"
+        description="These settings control how the health insurance system operates, including reminders, deadlines, and warning notifications."
+        type="info"
+        showIcon
+        icon={<InfoCircleOutlined />}
+        className="mb-4"
+      />
+
+      <Form
+        form={form}
         layout="vertical"
         initialValues={{
           reminderInterval: 3,
@@ -132,6 +145,9 @@ const InsuranceConfigModal: React.FC<InsuranceConfigModalProps> = ({
           <Space align="center" className="mb-2">
             <ClockCircleOutlined />
             <Text strong>Reminder Settings</Text>
+            <Tooltip title="These settings control how often reminders are sent and the grace period for users to complete their insurance information">
+              <InfoCircleOutlined style={{ color: "#1890ff" }} />
+            </Tooltip>
           </Space>
           <Divider style={{ margin: "8px 0" }} />
 
@@ -140,13 +156,18 @@ const InsuranceConfigModal: React.FC<InsuranceConfigModalProps> = ({
             label="Reminder Interval (days)"
             rules={[
               { required: true, message: "Please input reminder interval" },
-              { type: "number", min: 1, message: "Interval must be at least 1 day" }
+              {
+                type: "number",
+                min: 1,
+                message: "Interval must be at least 1 day",
+              },
             ]}
+            tooltip="How frequently reminders will be sent to users with incomplete or expiring insurance information"
           >
-            <InputNumber 
-              min={1} 
-              max={30} 
-              style={{ width: "100%" }} 
+            <InputNumber
+              min={1}
+              max={30}
+              style={{ width: "100%" }}
               placeholder="Enter interval in days"
             />
           </Form.Item>
@@ -156,14 +177,18 @@ const InsuranceConfigModal: React.FC<InsuranceConfigModalProps> = ({
             label="Deadline After Initial Creation (days)"
             rules={[
               { required: true, message: "Please input deadline days" },
-              { type: "number", min: 1, message: "Deadline must be at least 1 day" }
+              {
+                type: "number",
+                min: 1,
+                message: "Deadline must be at least 1 day",
+              },
             ]}
             tooltip="Number of days users have to complete their insurance information after initial creation"
           >
-            <InputNumber 
-              min={1} 
-              max={90} 
-              style={{ width: "100%" }} 
+            <InputNumber
+              min={1}
+              max={90}
+              style={{ width: "100%" }}
               placeholder="Enter deadline in days"
             />
           </Form.Item>
@@ -173,6 +198,9 @@ const InsuranceConfigModal: React.FC<InsuranceConfigModalProps> = ({
           <Space align="center" className="mb-2">
             <ExclamationCircleOutlined />
             <Text strong>Warning Thresholds</Text>
+            <Tooltip title="These settings determine when users receive warnings about their insurance expiration. Multiple thresholds can be set to provide early and final reminders">
+              <InfoCircleOutlined style={{ color: "#1890ff" }} />
+            </Tooltip>
           </Space>
           <Divider style={{ margin: "8px 0" }} />
 
@@ -180,7 +208,10 @@ const InsuranceConfigModal: React.FC<InsuranceConfigModalProps> = ({
             name="warningThresholdDays"
             label="Warning Threshold Days Before Expiry"
             rules={[
-              { required: true, message: "Please select at least one warning threshold" },
+              {
+                required: true,
+                message: "Please select at least one warning threshold",
+              },
             ]}
             tooltip="System will send warnings when insurance is about to expire at these thresholds"
           >
@@ -196,11 +227,7 @@ const InsuranceConfigModal: React.FC<InsuranceConfigModalProps> = ({
         <div className="flex justify-end">
           <Space>
             <Button onClick={onClose}>Cancel</Button>
-            <Button 
-              type="primary" 
-              onClick={handleSubmit}
-              loading={loading}
-            >
+            <Button type="primary" onClick={handleSubmit} loading={loading}>
               Save Configuration
             </Button>
           </Space>

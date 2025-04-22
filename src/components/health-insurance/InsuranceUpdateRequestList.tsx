@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { List, Card, Button, Avatar, Tag, Skeleton, Typography, Space, Row, Col } from "antd";
-import { UserOutlined, EyeOutlined } from "@ant-design/icons";
+import { List, Card, Button, Avatar, Tag, Skeleton, Typography, Space, Row, Col, message } from "antd";
+import { UserOutlined, EyeOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import ReviewModal from "./ReviewModal";
@@ -21,6 +21,7 @@ const InsuranceUpdateRequestList: React.FC<InsuranceUpdateRequestListProps> = ({
 }) => {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [selectedRequest, setSelectedRequest] = useState<UpdateRequestDTO | null>(null);
+  const [messageApi, contextHolder] = message.useMessage();
 
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return "-";
@@ -46,10 +47,12 @@ const InsuranceUpdateRequestList: React.FC<InsuranceUpdateRequestListProps> = ({
     setModalVisible(false);
     setSelectedRequest(null);
     refreshData();
+    messageApi.success("Review completed successfully");
   };
 
   return (
     <>
+      {contextHolder}
       <List
         grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 2, xl: 3, xxl: 4 }}
         dataSource={updateRequests}
@@ -59,16 +62,11 @@ const InsuranceUpdateRequestList: React.FC<InsuranceUpdateRequestListProps> = ({
             <Card
               hoverable
               className="update-request-card"
+              onClick={() => handleViewDetails(request)}
               actions={[
-                <Button 
-                  key="view" 
-                  type="primary" 
-                  icon={<EyeOutlined />} 
-                  onClick={() => handleViewDetails(request)}
-                >
-                  Review Request
-                </Button>,
+                <RightOutlined key="arrow" style={{ fontSize: '16px', color: '#1890ff' }} />,
               ]}
+              extra={<Tag color="processing">Pending Review</Tag>}
             >
               <Skeleton loading={loading} active avatar>
                 <Row gutter={[16, 16]}>
@@ -101,9 +99,6 @@ const InsuranceUpdateRequestList: React.FC<InsuranceUpdateRequestListProps> = ({
                             </Text>
                           </>
                         )}
-                        <Text>
-                          Status: <Tag color="processing">Pending Review</Tag>
-                        </Text>
                         <Text>
                           Requested At: <Text strong>{formatDateTime(request.requestedAt)}</Text>
                         </Text>

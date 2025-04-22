@@ -26,6 +26,7 @@ import {
   Menu,
   Dropdown,
   Alert,
+  Divider,
 } from "antd";
 import {
   SearchOutlined,
@@ -714,9 +715,11 @@ export const SurveyManagement: React.FC<SurveyManagementProps> = () => {
         <Card className="shadow-sm" bodyStyle={{ padding: "20px" }}>
           <div className="mb-4">
             <Typography.Title level={5} style={{ margin: 0, fontWeight: 600 }}>
-              <AppstoreOutlined className="mr-2" /> Toolbar
+              <AppstoreOutlined className="mr-2" style={{ fontSize: '20px' }} /> <span style={{ fontSize: '20px' }}>Toolbar</span>
             </Typography.Title>
           </div>
+
+          <Divider style={{ margin: '0 0 16px 0' }} />
 
           {/* Search and Filters Row */}
           <div className="flex flex-wrap items-center gap-3">
@@ -945,6 +948,7 @@ export const SurveyManagement: React.FC<SurveyManagementProps> = () => {
               <Option value={15}>15</Option>
               <Option value={20}>20</Option>
               <Option value={50}>50</Option>
+              <Option value={100}>100</Option>
             </Select>
           </div>
         </div>

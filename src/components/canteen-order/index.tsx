@@ -39,6 +39,7 @@ import {
   ArrowLeftOutlined,
   FileExcelOutlined,
   DeleteOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import type { CheckboxChangeEvent } from "antd/es/checkbox";
 import dayjs from "dayjs";
@@ -261,12 +262,9 @@ export function CanteenOrders() {
   });
 
   const fetchCanteenOrders = useCallback(async () => {
-    if (initialLoading) {
-      setLoadingMessage("Loading canteen orders...");
-    }
-    setLoading(true);
+   
     try {
-      // En un caso real, aquí pasaríamos los parámetros de paginación, filtros, etc.
+     
       // Pero el API actual solo devuelve todos los elementos
       const data = await getCanteenOrders();
       if (Array.isArray(data)) {
@@ -277,10 +275,10 @@ export function CanteenOrders() {
       messageApi.error("Failed to fetch canteen orders", 5);
       console.error("Fetch error:", error);
     } finally {
-      setLoading(false);
+      // Chỉ cập nhật initialLoading, không cập nhật loading
       setInitialLoading(false);
     }
-  }, [messageApi, initialLoading]);
+  }, [messageApi]);
 
   useEffect(() => {
     fetchCanteenOrders();
@@ -851,34 +849,45 @@ export function CanteenOrders() {
       key: "actions",
       align: "center" as const,
       render: (_: any, record: CanteenOrderResponse) => (
-        <Space
-          size="small"
-          style={{ display: "flex", justifyContent: "center" }}
-        >
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<FormOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenEditModal(record.id);
-              }}
-              disabled={record.status !== "Pending"}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenDeleteModal(record.id);
-              }}
-              disabled={record.status === "Completed"}
-            />
-          </Tooltip>
-        </Space>
+        <div style={{ textAlign: "center" }}>
+          <Dropdown
+            overlay={
+              <Menu>
+                <Menu.Item
+                  key="view"
+                  icon={<EyeOutlined />}
+                  onClick={() => handleOpenDetails(record.id)}
+                >
+                  View Details
+                </Menu.Item>
+                
+                {record.status === "Pending" && (
+                  <Menu.Item
+                    key="edit"
+                    icon={<FormOutlined />}
+                    onClick={() => handleOpenEditModal(record.id)}
+                  >
+                    Edit
+                  </Menu.Item>
+                )}
+                
+                {record.status !== "Completed" && (
+                  <Menu.Item 
+                    key="delete" 
+                    icon={<DeleteOutlined />} 
+                    danger
+                    onClick={() => handleOpenDeleteModal(record.id)}
+                  >
+                    Delete
+                  </Menu.Item>
+                )}
+              </Menu>
+            }
+            placement="bottomCenter"
+          >
+            <Button icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </div>
       ),
     };
 
@@ -1187,6 +1196,8 @@ export function CanteenOrders() {
           <Option value={10}>10</Option>
           <Option value={15}>15</Option>
           <Option value={20}>20</Option>
+          <Option value={50}>50</Option>
+          <Option value={100}>100</Option>
         </Select>
       </div>
     );
@@ -1445,7 +1456,6 @@ export function CanteenOrders() {
                           !advancedFilters.updatedDateRange[0]
                         }
                       >
-                        Reset
                       </Button>
                     </Tooltip>
 

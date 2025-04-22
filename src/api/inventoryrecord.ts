@@ -91,3 +91,70 @@ export const setupInventoryRecordRealTime = (
 ) => {
   return setupSignalRConnection("/inventoryRecordHub", callback);
 };
+
+export interface DrugStatisticsDTO {
+  drugId: string;
+  drugName: string;
+  drugCode: string;
+  totalQuantity: number;
+  status?: string;
+  reorderLevel?: number;
+}
+
+export interface InventoryStatisticsDTO {
+  totalInventoryRecords: number;
+  totalActiveInventoryRecords: number;
+  totalInactiveInventoryRecords: number;
+  totalExpiredInventoryRecords: number;
+  totalNearExpiryInventoryRecords: number;
+  totalPriorityInventoryRecords: number;
+  totalDrugsInStock: number;
+  totalQuantityInStock: number;
+  activeQuantityInStock: number;
+  nearExpiryQuantityInStock: number;
+  priorityQuantityInStock: number;
+  lowStockItems: number;
+  zeroStockItems: number;
+  periodStart?: string;
+  periodEnd?: string;
+  inventoryStatusDistribution: Record<string, number>;
+  topDrugsByQuantity: DrugStatisticsDTO[];
+  drugsLowOnStock: DrugStatisticsDTO[];
+}
+
+export const getInventoryStatistics = async (startDate?: Date, endDate?: Date) => {
+  try {
+    const params: any = {};
+    
+    if (startDate) {
+      params.startDate = startDate.toISOString();
+    }
+    
+    if (endDate) {
+      params.endDate = endDate.toISOString();
+    }
+    
+    const response = await api.get("/inventoryrecord-management/statistics", { params });
+    
+    if (response.data && (response.data.isSuccess || response.data.IsSuccess)) {
+      return {
+        success: true,
+        data: response.data.data || response.data.Data,
+        message: response.data.message || response.data.Message
+      };
+    } else {
+      return {
+        success: false,
+        message: response.data.message || response.data.Message || "Failed to fetch inventory statistics",
+        data: null
+      };
+    }
+  } catch (error: any) {
+    console.error("Error fetching inventory statistics:", error);
+    return {
+      success: false,
+      message: error.response?.data?.message || error.message || "An unexpected error occurred",
+      data: null
+    };
+  }
+};

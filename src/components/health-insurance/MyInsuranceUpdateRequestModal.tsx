@@ -45,7 +45,7 @@ interface MyInsuranceUpdateRequestModalProps {
   visible: boolean;
   insurance: HealthInsuranceResponseDTO | null;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (formData: any, imageFile?: File) => void;
 }
 
 export default function MyInsuranceUpdateRequestModal({
@@ -60,7 +60,7 @@ export default function MyInsuranceUpdateRequestModal({
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [messageApi, contextHolder] = message.useMessage();
   const [hasInsurance, setHasInsurance] = useState(true);
-  const [imageRequired, setImageRequired] = useState(true);
+  const [imageRequired, setImageRequired] = useState(false);
 
   React.useEffect(() => {
     if (visible && insurance) {
@@ -70,7 +70,7 @@ export default function MyInsuranceUpdateRequestModal({
           insurance.status !== "NoInsurance");
 
       setHasInsurance(hasInsuranceValue);
-      setImageRequired(hasInsuranceValue);
+      setImageRequired(false);
 
       form.setFieldsValue({
         hasInsurance: hasInsuranceValue,
@@ -91,7 +91,7 @@ export default function MyInsuranceUpdateRequestModal({
 
       // Reset image file
       setImageFile(undefined);
-      
+
       if (insurance.imageUrl) {
         setFileList([
           {
@@ -111,23 +111,32 @@ export default function MyInsuranceUpdateRequestModal({
     try {
       const values = await form.validateFields();
       console.log("Form values:", values);
-      console.log("Current image file:", imageFile);
-      console.log("File list:", fileList);
-      
-      // Validate image file
-      if (values.hasInsurance) {
-        if (!imageFile) {
-          if (fileList.length > 0 && fileList[0].originFileObj) {
-            // Try to get file from fileList if imageFile is undefined
-            console.log("Getting file from fileList", fileList[0].originFileObj);
-            setImageFile(fileList[0].originFileObj as File);
-          } else {
-            messageApi.error("Please upload a new insurance card image");
-            return;
-          }
+
+      // Prepare file to send
+      let fileToSend: File | undefined = imageFile;
+
+      // If we have a file in fileList but not in imageFile, use that
+      if (!fileToSend && values.hasInsurance && fileList.length > 0) {
+        if (fileList[0].originFileObj) {
+          fileToSend = fileList[0].originFileObj as File;
+          console.log("Using file from fileList:", fileToSend);
+        } else if (fileList[0].url && !values.imageChanged) {
+          console.log("Using existing image URL:", fileList[0].url);
+          // We don't set fileToSend here as we'll use existing image on server
         }
       }
-      
+
+      // Only validate if user doesn't have insurance but wants to add it
+      if (
+        values.hasInsurance &&
+        !insurance?.healthInsuranceNumber &&
+        !fileToSend &&
+        (!fileList.length || !fileList[0].url)
+      ) {
+        messageApi.error("Please upload an insurance card image");
+        return;
+      }
+
       setLoading(true);
 
       const formattedValues = {
@@ -160,35 +169,16 @@ export default function MyInsuranceUpdateRequestModal({
           values.hasInsurance && values.issueDate
             ? values.issueDate.format("YYYY-MM-DD")
             : null,
+        imageChanged: values.imageChanged || (fileToSend ? true : false),
       };
 
-      // Get file from fileList if imageFile is somehow still undefined
-      const fileToSend = values.hasInsurance 
-        ? (imageFile || (fileList.length > 0 && fileList[0].originFileObj ? fileList[0].originFileObj as File : undefined)) 
-        : undefined;
+      console.log("Passing data to parent:", { formattedValues, fileToSend });
 
-      console.log("Submitting update request with:", {
-        formattedValues,
-        hasImage: !!fileToSend,
-        fileToSend
-      });
-
-      const response = await requestHealthInsuranceUpdate(
-        insurance!.id,
-        formattedValues,
-        fileToSend
-      );
-
-      if (response.isSuccess) {
-        messageApi.success("Your update request has been submitted for review.");
-        onSuccess();
-        onClose();
-      } else {
-        messageApi.error(response.message || "Failed to submit update request");
-      }
+      // Just pass data to parent component
+      onSuccess(formattedValues, fileToSend);
     } catch (error) {
-      messageApi.error("Failed to submit update request");
-      console.error("Error submitting update request:", error);
+      messageApi.error("Failed to validate form");
+      console.error("Error validating form:", error);
     } finally {
       setLoading(false);
     }
@@ -218,7 +208,7 @@ export default function MyInsuranceUpdateRequestModal({
     const checked = e.target.checked;
     setHasInsurance(checked);
     setImageRequired(checked);
-    
+
     if (!checked) {
       // Clear image if not having insurance
       setImageFile(undefined);
@@ -233,7 +223,9 @@ export default function MyInsuranceUpdateRequestModal({
       title={
         <Typography.Title level={4} style={{ margin: 0 }}>
           <Space>
-            <FormOutlined /> Request Health Insurance Update
+            {insurance.verificationStatus === "Rejected"
+              ? "Update Rejected Insurance"
+              : "Request Health Insurance Update"}
           </Space>
         </Typography.Title>
       }
@@ -249,8 +241,11 @@ export default function MyInsuranceUpdateRequestModal({
           icon={<SendOutlined />}
           loading={loading}
           onClick={handleSubmit}
+          danger={insurance.verificationStatus === "Rejected"}
         >
-          Submit Request
+          {insurance.verificationStatus === "Rejected"
+            ? "Submit Update"
+            : "Submit Request"}
         </Button>,
       ]}
       width={1200}
@@ -259,10 +254,11 @@ export default function MyInsuranceUpdateRequestModal({
       {contextHolder}
       <Card className="shadow-sm mb-4">
         <Typography.Paragraph className="bg-blue-50 p-4 mb-4 rounded-lg">
-          Your request will be sent to administrators for review. You will be notified once it has been processed.
-          You cannot make another request while this one is pending.
+          Your request will be sent to administrators for review. You will be
+          notified once it has been processed. You cannot make another request
+          while this one is pending.
         </Typography.Paragraph>
-        
+
         <Row align="middle" gutter={16}>
           <Col flex="1">
             <Space align="start">
@@ -313,8 +309,8 @@ export default function MyInsuranceUpdateRequestModal({
           )}
         </Row>
       </Card>
-      
-      {hasInsurance && (
+
+      {hasInsurance && !insurance?.imageUrl && (
         <Alert
           message="Insurance Card Image Required"
           description="You must upload a new image of your insurance card to update your information."
@@ -336,7 +332,7 @@ export default function MyInsuranceUpdateRequestModal({
           initialValue={true}
         >
           <Checkbox onChange={handleHasInsuranceChange}>
-            <Typography.Text strong>Has Health Insurance</Typography.Text>
+            <Typography.Text strong>Do you have health insurance? Check this box if yes, uncheck if no.</Typography.Text>
           </Checkbox>
         </Form.Item>
 
@@ -568,9 +564,13 @@ export default function MyInsuranceUpdateRequestModal({
                     <p className="ant-upload-drag-icon">
                       <InboxOutlined />
                     </p>
-                    <p className="ant-upload-text">Click or drag to upload insurance card image</p>
+                    <p className="ant-upload-text">
+                      Click or drag to upload insurance card image
+                    </p>
                     <p className="ant-upload-hint">
-                      {imageRequired ? "This field is required when you have insurance" : ""}
+                      {imageRequired
+                        ? "This field is required when you have insurance"
+                        : ""}
                     </p>
                   </Upload.Dragger>
                 </Form.Item>
@@ -581,4 +581,4 @@ export default function MyInsuranceUpdateRequestModal({
       </Form>
     </Modal>
   );
-} 
+}

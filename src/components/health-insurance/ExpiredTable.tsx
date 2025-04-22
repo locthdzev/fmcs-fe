@@ -169,7 +169,7 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
       ),
       dataIndex: "healthInsuranceNumber",
       key: "insuranceNumber",
-      width: 160,
+      width: 220,
       render: (
         healthInsuranceNumber: string,
         record: HealthInsuranceResponseDTO
