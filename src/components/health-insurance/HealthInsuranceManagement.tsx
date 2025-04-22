@@ -12,6 +12,7 @@ import {
   Space,
   Input,
   Popconfirm,
+  Tooltip,
 } from "antd";
 import {
   PlusOutlined,
@@ -94,6 +95,10 @@ const HealthInsuranceManagement: React.FC = () => {
   const [selectedOwner, setSelectedOwner] = useState<string | undefined>(
     undefined
   );
+  const [owners, setOwners] = useState<
+    { id: string; fullName: string; email: string }[]
+  >([]);
+  const [ownersLoading, setOwnersLoading] = useState<boolean>(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [filterModalVisible, setFilterModalVisible] = useState<boolean>(false);
   const [configModalVisible, setConfigModalVisible] = useState<boolean>(false);
@@ -245,6 +250,14 @@ const HealthInsuranceManagement: React.FC = () => {
     selectedOwner,
     filterParams,
   ]);
+
+  // Add a new useEffect to fetch owners when active tab changes
+  useEffect(() => {
+    fetchOwners();
+    // Reset selected owner when tab changes
+    setSelectedOwner(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -559,42 +572,50 @@ const HealthInsuranceManagement: React.FC = () => {
   const handleSendUpdateRequest = async () => {
     try {
       setLoading(true);
-      messageApi.loading({ content: 'Sending update requests...', key: 'updateRequest', duration: 0 });
-      
+      messageApi.loading({
+        content: "Sending update requests...",
+        key: "updateRequest",
+        duration: 0,
+      });
+
       const result = await sendHealthInsuranceUpdateRequest();
-      
+
       if (result.isSuccess) {
-        messageApi.success({ 
-          content: `Update requests for ${result.data?.userCount || 0} users have been queued to be sent.`, 
-          key: 'updateRequest', 
-          duration: 3 
+        messageApi.success({
+          content: `Update requests for ${
+            result.data?.userCount || 0
+          } users have been queued to be sent.`,
+          key: "updateRequest",
+          duration: 3,
         });
         fetchData();
       } else {
         // Xử lý lỗi cụ thể từ server
         if (result.message === "Failed to send emails.") {
-          messageApi.error({ 
-            content: "Unable to send emails. The email service might be unavailable. Please contact IT support.", 
-            key: 'updateRequest', 
-            duration: 5
+          messageApi.error({
+            content:
+              "Unable to send emails. The email service might be unavailable. Please contact IT support.",
+            key: "updateRequest",
+            duration: 5,
           });
         } else {
-          messageApi.error({ 
-            content: result.message || "Failed to send update requests", 
-            key: 'updateRequest', 
-            duration: 3 
+          messageApi.error({
+            content: result.message || "Failed to send update requests",
+            key: "updateRequest",
+            duration: 3,
           });
         }
-        
+
         // Log lỗi để debug
         console.error("Send update request API error:", result);
       }
     } catch (error) {
       console.error("Error sending update requests:", error);
-      messageApi.error({ 
-        content: "Failed to send update requests. Please try again later or contact IT support.", 
-        key: 'updateRequest', 
-        duration: 3 
+      messageApi.error({
+        content:
+          "Failed to send update requests. Please try again later or contact IT support.",
+        key: "updateRequest",
+        duration: 3,
       });
     } finally {
       setLoading(false);
@@ -707,6 +728,82 @@ const HealthInsuranceManagement: React.FC = () => {
       messageApi.error("Failed to delete selected records");
     } finally {
       setBulkDeleteLoading(false);
+    }
+  };
+
+  // Function to fetch unique owners based on active tab
+  const fetchOwners = async () => {
+    setOwnersLoading(true);
+    try {
+      let result;
+
+      // Skip fetching for tabs that don't support owner filtering
+      if (["verification", "updateRequest"].indexOf(activeTab) !== -1) {
+        setOwners([]);
+        return;
+      }
+
+      switch (activeTab) {
+        case "verified":
+          result = await getVerifiedInsurances(1, 1000, "", "CreatedAt", false);
+          break;
+        case "initial":
+          result = await getInitialInsurances(1, 1000, "", "CreatedAt", false);
+          break;
+        case "rejected":
+          result = await getRejectedInsurances(1, 1000, "", "CreatedAt", false);
+          break;
+        case "expiredUpdate":
+          result = await getExpiredUpdateInsurances(
+            1,
+            1000,
+            "",
+            "CreatedAt",
+            false
+          );
+          break;
+        case "expired":
+          result = await getExpiredInsurances(1, 1000, "", "CreatedAt", false);
+          break;
+        case "uninsured":
+          result = await getUninsuredRecords(1, 1000, "", "CreatedAt", false);
+          break;
+        case "softDelete":
+          result = await getSoftDeletedInsurances(
+            1,
+            1000,
+            "",
+            "CreatedAt",
+            false
+          );
+          break;
+        default:
+          result = { isSuccess: true, data: [] };
+      }
+
+      if (result.isSuccess) {
+        // Extract unique owners from the data
+        const ownersMap = new Map<
+          string,
+          { id: string; fullName: string; email: string }
+        >();
+
+        result.data.forEach((item: any) => {
+          if (item.user && item.user.id) {
+            ownersMap.set(item.user.id, {
+              id: item.user.id,
+              fullName: item.user.fullName || item.user.userName || "Unknown",
+              email: item.user.email || "",
+            });
+          }
+        });
+
+        setOwners(Array.from(ownersMap.values()));
+      }
+    } catch (error) {
+      console.error("Error fetching owners:", error);
+    } finally {
+      setOwnersLoading(false);
     }
   };
 
@@ -830,32 +927,41 @@ const HealthInsuranceManagement: React.FC = () => {
       <ToolbarCard
         leftContent={
           <>
-            {/* Search Input */}
-            <Input
-              placeholder="Search..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              onPressEnter={() => handleSearch(searchText)}
-              prefix={<SearchOutlined />}
-              style={{ width: 250 }}
-            />
-
-            {/* Owner Select - only for table views */}
+            {/* Owner Filter Dropdown */}
             {["verification", "updateRequest"].indexOf(activeTab) === -1 && (
               <Select
                 showSearch
-                placeholder="Select Owner"
-                value={selectedOwner || undefined}
+                placeholder="Search by Owner"
+                value={selectedOwner}
                 onChange={handleOwnerChange}
-                style={{ width: "220px" }}
+                style={{ width: 320 }}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
+                loading={ownersLoading}
                 allowClear
+                filterOption={(input, option) =>
+                  (option?.label?.toString().toLowerCase() || "").includes(
+                    input.toLowerCase()
+                  )
+                }
+                options={owners.map((owner) => ({
+                  value: owner.id,
+                  label: `${owner.fullName} (${owner.email})`,
+                }))}
               />
             )}
 
             {/* Reset Button */}
-            <Button icon={<FilterOutlined />} onClick={handleResetFilters}>
-              Reset
-            </Button>
+            <Tooltip title="Reset all filters">
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={handleResetFilters}
+                disabled={
+                  !searchText &&
+                  !selectedOwner &&
+                  Object.keys(filterParams).length === 0
+                }
+              />
+            </Tooltip>
 
             {/* Visible Columns - only for table views */}
             {["verification", "updateRequest"].indexOf(activeTab) === -1 && (
@@ -941,12 +1047,11 @@ const HealthInsuranceManagement: React.FC = () => {
                 onConfirm={handleSendUpdateRequest}
                 okText="Yes"
                 cancelText="No"
-                icon={<ExclamationCircleOutlined style={{ color: '#1677ff' }} />}
+                icon={
+                  <ExclamationCircleOutlined style={{ color: "#1677ff" }} />
+                }
               >
-                <Button
-                  type="primary"
-                  icon={<SendOutlined />}
-                >
+                <Button type="primary" icon={<SendOutlined />}>
                   Send Update Request
                 </Button>
               </Popconfirm>

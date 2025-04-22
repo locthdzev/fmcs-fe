@@ -657,7 +657,9 @@ export function AppointmentManagementForAdmin() {
   const router = useRouter();
   const context = useContext(UserContext);
   const user = context?.user;
-  const [appointments, setAppointments] = useState<AppointmentResponseDTO[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentResponseDTO[]>(
+    []
+  );
   const [happeningAppointments, setHappeningAppointments] = useState<
     AppointmentResponseDTO[]
   >([]);
@@ -824,13 +826,10 @@ export function AppointmentManagementForAdmin() {
     [fetchAppointments, router, user?.userId]
   );
 
-  const handleEditClick = useCallback(
-    (appointment: AppointmentResponseDTO) => {
-      setSelectedAppointment(appointment);
-      setEditModalVisible(true);
-    },
-    []
-  );
+  const handleEditClick = useCallback((appointment: AppointmentResponseDTO) => {
+    setSelectedAppointment(appointment);
+    setEditModalVisible(true);
+  }, []);
 
   const debouncedSetSearchText = useMemo(
     () => debounce((value: string) => setSearchText(value), 300),
@@ -890,7 +889,10 @@ export function AppointmentManagementForAdmin() {
   }, []);
 
   const getActionMenuItems = useCallback(
-    (appointment: AppointmentResponseDTO, actionLoading: string | null): any[] => {
+    (
+      appointment: AppointmentResponseDTO,
+      actionLoading: string | null
+    ): any[] => {
       const isAnyActionLoading = !!actionLoading;
       const items: any[] = [];
 
@@ -921,7 +923,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Mark the appointment as fully completed">
                 <Popconfirm
-                  title={`Are you sure you want to mark "${appointment.studentName ?? "N/A"}"'s appointment as fully completed?`}
+                  title={`Are you sure you want to mark "${
+                    appointment.studentName ?? "N/A"
+                  }"'s appointment as fully completed?`}
                   description="This will indicate the appointment has concluded successfully."
                   onConfirm={() =>
                     handleAction(
@@ -958,7 +962,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Confirm the student attended the appointment">
                 <Popconfirm
-                  title={`Did "${appointment.studentName ?? "N/A"}" attend this appointment?`}
+                  title={`Did "${
+                    appointment.studentName ?? "N/A"
+                  }" attend this appointment?`}
                   description="This confirms the student was present but does not mark the appointment as finished."
                   onConfirm={() =>
                     handleAction(
@@ -995,7 +1001,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Report the student missed the appointment">
                 <Popconfirm
-                  title={`Did "${appointment.studentName ?? "N/A"}" miss this appointment?`}
+                  title={`Did "${
+                    appointment.studentName ?? "N/A"
+                  }" miss this appointment?`}
                   description="This will mark the appointment as missed and may update the user's status to Warning."
                   onConfirm={() =>
                     handleAction(
@@ -1033,7 +1041,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Cancel the appointment">
                 <Popconfirm
-                  title={`Are you sure you want to cancel "${appointment.studentName ?? "N/A"}"'s appointment?`}
+                  title={`Are you sure you want to cancel "${
+                    appointment.studentName ?? "N/A"
+                  }"'s appointment?`}
                   description="This action cannot be undone."
                   onConfirm={() =>
                     handleAction(
@@ -1076,7 +1086,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Mark the appointment as fully completed">
                 <Popconfirm
-                  title={`Are you sure you want to mark "${appointment.studentName ?? "N/A"}"'s appointment as fully completed?`}
+                  title={`Are you sure you want to mark "${
+                    appointment.studentName ?? "N/A"
+                  }"'s appointment as fully completed?`}
                   description="This will indicate the appointment has concluded successfully."
                   onConfirm={() =>
                     handleAction(
@@ -1113,7 +1125,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Report the student missed the appointment">
                 <Popconfirm
-                  title={`Did "${appointment.studentName ?? "N/A"}" miss this appointment?`}
+                  title={`Did "${
+                    appointment.studentName ?? "N/A"
+                  }" miss this appointment?`}
                   description="This will mark the appointment as missed and may update the user's status to Warning."
                   onConfirm={() =>
                     handleAction(
@@ -1155,7 +1169,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Mark the appointment as fully completed">
                 <Popconfirm
-                  title={`Are you sure you want to mark "${appointment.studentName ?? "N/A"}"'s appointment as fully completed?`}
+                  title={`Are you sure you want to mark "${
+                    appointment.studentName ?? "N/A"
+                  }"'s appointment as fully completed?`}
                   description="This will indicate the appointment has concluded successfully."
                   onConfirm={() =>
                     handleAction(
@@ -1192,7 +1208,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Confirm the student attended the appointment">
                 <Popconfirm
-                  title={`Did "${appointment.studentName ?? "N/A"}" attend this appointment?`}
+                  title={`Did "${
+                    appointment.studentName ?? "N/A"
+                  }" attend this appointment?`}
                   description="This confirms the student was present but does not mark the appointment as finished."
                   onConfirm={() =>
                     handleAction(
@@ -1230,7 +1248,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Reset this user's appointment status to Normal, allowing them to book appointments again">
                 <Popconfirm
-                  title={`Reset "${appointment.studentName ?? "N/A"}"'s appointment status to Normal?`}
+                  title={`Reset "${
+                    appointment.studentName ?? "N/A"
+                  }"'s appointment status to Normal?`}
                   description="This will allow the user to schedule appointments again."
                   onConfirm={() =>
                     handleAction(
@@ -1290,7 +1310,12 @@ export function AppointmentManagementForAdmin() {
       const appointment = data.appointments[index];
       if (!appointment) return null;
 
-      console.log("Rendering AppointmentRow:", appointment.id, "Status:", appointment.status);
+      console.log(
+        "Rendering AppointmentRow:",
+        appointment.id,
+        "Status:",
+        appointment.status
+      );
 
       return (
         <div className="appointment-card">
@@ -1319,13 +1344,15 @@ export function AppointmentManagementForAdmin() {
                         type="secondary"
                         ellipsis={{ tooltip: appointment.staffName }}
                       >
-                         {appointment.staffName ?? "N/A"}
+                        {appointment.staffName ?? "N/A"}
                       </Text>
                     </Col>
                     <Col xs={24} sm={5}>
                       <Text type="secondary" className="text-xs">
-                        {formatDate(appointment.appointmentDate)}<br />
-                        {formatTime(appointment.appointmentDate)} - {formatTime(appointment.endTime)}
+                        {formatDate(appointment.appointmentDate)}
+                        <br />
+                        {formatTime(appointment.appointmentDate)} -{" "}
+                        {formatTime(appointment.endTime)}
                       </Text>
                     </Col>
                     <Col xs={24} sm={4}>
@@ -1414,18 +1441,19 @@ export function AppointmentManagementForAdmin() {
                         </div>
                       </Col>
                       <Col xs={24} sm={12}>
-                        <div className="details-title">Healthcare Officer Information</div>
+                        <div className="details-title">
+                          Healthcare Officer Information
+                        </div>
                         <div className="details-item">
                           <UserOutlined />
                           <span>{appointment.staffName ?? "N/A"}</span>
                         </div>
                         <div className="details-item">
-                        <PhoneOutlined />
+                          <PhoneOutlined />
                           <span>{appointment.staffEmail ?? "N/A"}</span>
                         </div>
                         <div className="details-item">
-                        
-                        <MailOutlined />
+                          <MailOutlined />
                           <span>{appointment.staffPhone ?? "N/A"}</span>
                         </div>
                       </Col>
@@ -1559,7 +1587,8 @@ export function AppointmentManagementForAdmin() {
             ? filteredAppointments.length
             : filteredAppointments.filter((a) =>
                 status === "Cancelled"
-                  ? a.status === "Cancelled" || a.status === "CancelledAfterConfirm"
+                  ? a.status === "Cancelled" ||
+                    a.status === "CancelledAfterConfirm"
                   : a.status === status
               ).length}
         </span>
@@ -1676,9 +1705,7 @@ export function AppointmentManagementForAdmin() {
                           icon={<ReloadOutlined />}
                           className="rounded-lg action-button"
                           aria-label="Reset all filters"
-                        >
-                          Reset
-                        </Button>
+                        />
                       </Tooltip>
                       <Tooltip title="Refresh appointments">
                         <Button
@@ -1748,7 +1775,6 @@ export function AppointmentManagementForAdmin() {
       </Card>
 
       <>
-
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}

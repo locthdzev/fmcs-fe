@@ -1,5 +1,15 @@
 import React from "react";
-import { Table, Button, Space, Tooltip, Modal, message, Card, Dropdown, Popconfirm } from "antd";
+import {
+  Table,
+  Button,
+  Space,
+  Tooltip,
+  Modal,
+  message,
+  Card,
+  Dropdown,
+  Popconfirm,
+} from "antd";
 import {
   DeleteOutlined,
   SendOutlined,
@@ -93,7 +103,9 @@ const ExpiredUpdateTable: React.FC<ExpiredUpdateTableProps> = ({
     return (
       <div style={{ display: "flex", flexDirection: "column" }}>
         <span>{user.userName || ""}</span>
-        <span style={{ fontSize: "12px", color: "#888" }}>{user.email || ""}</span>
+        <span style={{ fontSize: "12px", color: "#888" }}>
+          {user.email || ""}
+        </span>
       </div>
     );
   };
@@ -230,7 +242,9 @@ const ExpiredUpdateTable: React.FC<ExpiredUpdateTableProps> = ({
                       onConfirm={() => handleResendUpdateRequest(record.id)}
                       okText="Yes"
                       cancelText="No"
-                      icon={<QuestionCircleOutlined style={{ color: "blue" }} />}
+                      icon={
+                        <QuestionCircleOutlined style={{ color: "blue" }} />
+                      }
                     >
                       <span>Resend Update Request</span>
                     </Popconfirm>
@@ -255,12 +269,12 @@ const ExpiredUpdateTable: React.FC<ExpiredUpdateTableProps> = ({
               ],
             }}
           >
-            <Button type="text" icon={<MoreOutlined />} />
+            <Button icon={<MoreOutlined />} size="small" />
           </Dropdown>
         </div>
       ),
     },
-  ].filter(column => column.key === "actions" || !column.hidden);
+  ].filter((column) => column.key === "actions" || !column.hidden);
 
   return (
     <>
