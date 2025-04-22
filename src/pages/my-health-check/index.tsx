@@ -19,12 +19,14 @@ import {
   Statistic,
   Avatar,
   Space,
+  Button,
 } from "antd";
 import {
   getCurrentUserHealthCheckResults,
   getHealthCheckResultById,
   HealthCheckResultsResponseDTO,
   HealthCheckResultsIdResponseDTO,
+  exportHealthCheckResultToPDF,
 } from "@/api/healthcheckresult";
 import dayjs from "dayjs";
 import {
@@ -37,14 +39,16 @@ import {
   CheckCircleOutlined,
   WarningOutlined,
   ClockCircleOutlined,
+  FilePdfOutlined,
 } from "@ant-design/icons";
 import PageContainer from "@/components/shared/PageContainer";
 import PaginationFooter from "@/components/shared/PaginationFooter";
 import { useRouter } from "next/router";
-import { getCurrentUserPrescriptions } from "@/api/prescription";
-import { getCurrentUserTreatmentPlans } from "@/api/treatment-plan";
+import { getCurrentUserPrescriptions, exportPrescriptionToPDF } from "@/api/prescription";
+import { getCurrentUserTreatmentPlans, exportTreatmentPlanToPDF } from "@/api/treatment-plan";
 import { PrescriptionResponseDTO } from "@/api/prescription";
 import { TreatmentPlanResponseDTO } from "@/api/treatment-plan";
+import { toast } from "react-toastify";
 
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -71,10 +75,14 @@ const formatStatus = (status: string) => {
 };
 
 const getStatusIcon = (status: string) => {
-  if (status === "FollowUpRequired") return <WarningOutlined style={{ color: "#f5222d" }} />;
-  if (status === "NoFollowUpRequired") return <CheckCircleOutlined style={{ color: "#52c41a" }} />;
-  if (status === "Completed") return <CheckCircleOutlined style={{ color: "#1890ff" }} />;
-  if (status === "CancelledCompletely" || status === "CancelledForAdjustment") return <ClockCircleOutlined style={{ color: "#faad14" }} />;
+  if (status === "FollowUpRequired")
+    return <WarningOutlined style={{ color: "#f5222d" }} />;
+  if (status === "NoFollowUpRequired")
+    return <CheckCircleOutlined style={{ color: "#52c41a" }} />;
+  if (status === "Completed")
+    return <CheckCircleOutlined style={{ color: "#1890ff" }} />;
+  if (status === "CancelledCompletely" || status === "CancelledForAdjustment")
+    return <ClockCircleOutlined style={{ color: "#faad14" }} />;
   return <FileTextOutlined />;
 };
 
@@ -110,6 +118,9 @@ const MyHealthCheckResults: React.FC = () => {
   const [treatmentPlanPageSize, setTreatmentPlanPageSize] = useState(10);
   const [treatmentPlanTotal, setTreatmentPlanTotal] = useState(0);
   const [activeTab, setActiveTab] = useState("health-check-results");
+  
+  // Add new export loading states
+  const [exportLoading, setExportLoading] = useState<Record<string, boolean>>({});
 
   const fetchData = async () => {
     setLoading(true);
@@ -258,7 +269,12 @@ const MyHealthCheckResults: React.FC = () => {
     if (activeTab === "treatment-plans") {
       fetchTreatmentPlans();
     }
-  }, [activeTab, treatmentPlanPage, treatmentPlanPageSize, fetchTreatmentPlans]);
+  }, [
+    activeTab,
+    treatmentPlanPage,
+    treatmentPlanPageSize,
+    fetchTreatmentPlans,
+  ]);
 
   const handleCollapseChange = async (keys: string | string[]) => {
     const keyArray = Array.isArray(keys) ? keys : [keys];
@@ -283,24 +299,89 @@ const MyHealthCheckResults: React.FC = () => {
     router.back();
   };
 
+  const handleExportHealthCheckPDF = async (resultId: string) => {
+    try {
+      setExportLoading((prev) => ({ ...prev, [resultId]: true }));
+      await exportHealthCheckResultToPDF(resultId);
+      toast.success("Health check result exported to PDF successfully");
+    } catch (error) {
+      console.error("Error exporting health check PDF:", error);
+      toast.error("Failed to export health check PDF");
+    } finally {
+      setExportLoading((prev) => ({ ...prev, [resultId]: false }));
+    }
+  };
+
+  const handleExportPrescriptionPDF = async (prescriptionId: string) => {
+    try {
+      setExportLoading((prev) => ({ ...prev, [prescriptionId]: true }));
+      await exportPrescriptionToPDF(prescriptionId);
+      toast.success("Prescription exported to PDF successfully");
+    } catch (error) {
+      console.error("Error exporting prescription PDF:", error);
+      toast.error("Failed to export prescription PDF");
+    } finally {
+      setExportLoading((prev) => ({ ...prev, [prescriptionId]: false }));
+    }
+  };
+
+  const handleExportTreatmentPlanPDF = async (treatmentPlanId: string) => {
+    try {
+      setExportLoading((prev) => ({ ...prev, [treatmentPlanId]: true }));
+      const response = await exportTreatmentPlanToPDF(treatmentPlanId);
+      
+      if (response.success && response.data && typeof response.data === "string" && response.data.startsWith("http")) {
+        window.open(response.data, "_blank");
+        toast.success("Treatment plan exported to PDF successfully");
+      } else if (response.success) {
+        console.warn("PDF export succeeded but no valid URL returned:", response);
+        toast.warning("PDF generated but download link is unavailable. Please try again.");
+      } else {
+        toast.error(response.message || "Failed to export PDF");
+      }
+    } catch (error) {
+      console.error("Error exporting treatment plan PDF:", error);
+      toast.error("Failed to export treatment plan PDF");
+    } finally {
+      setExportLoading((prev) => ({ ...prev, [treatmentPlanId]: false }));
+    }
+  };
+
   const renderHealthCheckResultDetails = (resultId: string) => {
     const details = detailsMap[resultId];
+    const loading = loadingDetails[resultId];
 
-    if (loadingDetails[resultId]) {
+    if (loading) {
       return (
-        <div className="text-center py-4">
-          <Spin size="default" />
-          <div className="mt-2">Loading details...</div>
+        <div className="py-4 text-center">
+          <Spin size="small" />
+          <Text type="secondary" className="ml-2">
+            Loading details...
+          </Text>
         </div>
       );
     }
 
     if (!details) {
-      return <Empty description="Details not available" />;
+      return (
+        <div className="py-4 text-center">
+          <Text type="secondary">Unable to load details</Text>
+        </div>
+      );
     }
 
     return (
       <div className="px-4 pb-4">
+        <div className="flex justify-end mb-3">
+          <Button 
+            type="primary" 
+            icon={<FilePdfOutlined />}
+            onClick={() => handleExportHealthCheckPDF(resultId)}
+            loading={exportLoading[resultId]}
+          >
+            Export to PDF
+          </Button>
+        </div>
         <Card
           className="mb-4 shadow-sm rounded-lg"
           title={
@@ -321,15 +402,15 @@ const MyHealthCheckResults: React.FC = () => {
               <Statistic
                 title="Checkup Date"
                 value={dayjs(details.checkupDate).format("DD/MM/YYYY")}
-                valueStyle={{ fontSize: '14px' }}
+                valueStyle={{ fontSize: "14px" }}
                 prefix={<CalendarOutlined className="text-blue-500 mr-2" />}
               />
             </Col>
             <Col span={24} md={12}>
               <Statistic
-                title="Healthcare Provider"
+                title="Healthcare Staff"
                 value={details.staff?.fullName || "Unknown"}
-                valueStyle={{ fontSize: '14px' }}
+                valueStyle={{ fontSize: "14px" }}
                 prefix={<UserOutlined className="text-blue-500 mr-2" />}
                 formatter={(value) => (
                   <span className="text-sm">
@@ -385,26 +466,44 @@ const MyHealthCheckResults: React.FC = () => {
                     >
                       <Descriptions
                         column={{ xxl: 1, xl: 1, lg: 1, md: 1, sm: 1, xs: 1 }}
-                        labelStyle={{ backgroundColor: "#e6f7ff", width: "33%" }}
+                        labelStyle={{
+                          backgroundColor: "#e6f7ff",
+                          width: "33%",
+                        }}
                         bordered
                         title={`Detail ${index + 1}`}
                         size="small"
                       >
                         <Descriptions.Item
                           label={<span className="font-semibold">Symptom</span>}
-                          labelStyle={{ backgroundColor: "#e6f7ff", width: "33%" }}
+                          labelStyle={{
+                            backgroundColor: "#e6f7ff",
+                            width: "33%",
+                          }}
                         >
                           <div className="p-2">{detail.resultSummary}</div>
                         </Descriptions.Item>
                         <Descriptions.Item
-                          label={<span className="font-semibold">Diagnosis</span>}
-                          labelStyle={{ backgroundColor: "#e6f7ff", width: "33%" }}
+                          label={
+                            <span className="font-semibold">Diagnosis</span>
+                          }
+                          labelStyle={{
+                            backgroundColor: "#e6f7ff",
+                            width: "33%",
+                          }}
                         >
                           <div className="p-2">{detail.diagnosis}</div>
                         </Descriptions.Item>
                         <Descriptions.Item
-                          label={<span className="font-semibold">Recommendations</span>}
-                          labelStyle={{ backgroundColor: "#e6f7ff", width: "33%" }}
+                          label={
+                            <span className="font-semibold">
+                              Recommendations
+                            </span>
+                          }
+                          labelStyle={{
+                            backgroundColor: "#e6f7ff",
+                            width: "33%",
+                          }}
                         >
                           <div className="p-2">{detail.recommendations}</div>
                         </Descriptions.Item>
@@ -425,7 +524,12 @@ const MyHealthCheckResults: React.FC = () => {
   return (
     <PageContainer
       title="My Health Records"
-      icon={<MedicineBoxOutlined className="text-blue-500" style={{ fontSize: "28px" }} />}
+      icon={
+        <MedicineBoxOutlined
+          className="text-blue-500"
+          style={{ fontSize: "28px" }}
+        />
+      }
       onBack={handleBack}
     >
       <div className="bg-gray-50">
@@ -470,7 +574,7 @@ const MyHealthCheckResults: React.FC = () => {
                 <>
                   <div className="mb-6 space-y-4">
                     {data.map((result) => (
-                      <Card 
+                      <Card
                         key={result.id}
                         className={`rounded-lg border-l-4 ${
                           expandedKeys.includes(result.id)
@@ -478,16 +582,20 @@ const MyHealthCheckResults: React.FC = () => {
                             : "border-l-gray-300 shadow-sm"
                         } hover:shadow-md transition-shadow duration-300`}
                       >
-                        <div 
+                        <div
                           className="cursor-pointer py-2"
                           onClick={() => {
                             const newKeys = expandedKeys.includes(result.id)
-                              ? expandedKeys.filter(k => k !== result.id)
+                              ? expandedKeys.filter((k) => k !== result.id)
                               : [...expandedKeys, result.id];
                             handleCollapseChange(newKeys);
                           }}
                         >
-                          <Row align="middle" justify="space-between" gutter={[16, 16]}>
+                          <Row
+                            align="middle"
+                            justify="space-between"
+                            gutter={[16, 16]}
+                          >
                             <Col xs={24} md={12}>
                               <Space>
                                 {getStatusIcon(result.status)}
@@ -508,24 +616,30 @@ const MyHealthCheckResults: React.FC = () => {
                             <Col xs={24} md={12} className="text-right">
                               <Space>
                                 <Tag
-                                  color={statusColors[result.status] || "default"}
+                                  color={
+                                    statusColors[result.status] || "default"
+                                  }
                                   className="rounded-full px-3"
                                 >
                                   {formatStatus(result.status)}
                                 </Tag>
                                 <Text type="secondary" className="text-sm">
                                   <CalendarOutlined className="mr-1" />
-                                  {dayjs(result.checkupDate).format("DD/MM/YYYY")}
+                                  {dayjs(result.checkupDate).format(
+                                    "DD/MM/YYYY"
+                                  )}
                                 </Text>
                                 <CaretRightOutlined
-                                  rotate={expandedKeys.includes(result.id) ? 90 : 0}
+                                  rotate={
+                                    expandedKeys.includes(result.id) ? 90 : 0
+                                  }
                                   className="text-blue-500"
                                 />
                               </Space>
                             </Col>
                           </Row>
                         </div>
-                        
+
                         {expandedKeys.includes(result.id) && (
                           <div className="mt-4">
                             {renderHealthCheckResultDetails(result.id)}
@@ -571,58 +685,90 @@ const MyHealthCheckResults: React.FC = () => {
                       dataSource={prescriptions}
                       renderItem={(item) => (
                         <List.Item>
-                          <Card 
-                            className="mb-4 shadow-sm rounded-lg border-l-4 border-l-green-500 hover:shadow-md transition-shadow duration-300"
-                          >
-                            <Row justify="space-between" align="middle" className="mb-4">
+                          <Card className="mb-4 shadow-sm rounded-lg border-l-4 border-l-green-500 hover:shadow-md transition-shadow duration-300">
+                            <Row
+                              justify="space-between"
+                              align="middle"
+                              className="mb-4"
+                            >
                               <Col>
                                 <Space align="center">
-                                  <Avatar icon={<MedicineBoxOutlined />} className="bg-green-500" />
+                                  <Avatar
+                                    icon={<MedicineBoxOutlined />}
+                                    className="bg-green-500"
+                                  />
                                   <Title level={5} className="m-0">
                                     {item.prescriptionCode}
                                   </Title>
                                 </Space>
                               </Col>
                               <Col>
-                                <Tag
-                                  color={
-                                    item.status === "Dispensed" ? "green" : "blue"
-                                  }
-                                  className="rounded-full px-3"
-                                >
-                                  {item.status}
-                                </Tag>
+                                <Space>
+                                  <Button
+                                    type="primary"
+                                    icon={<FilePdfOutlined />}
+                                    onClick={() => handleExportPrescriptionPDF(item.id)}
+                                    loading={exportLoading[item.id]}
+                                  >
+                                    Export to PDF
+                                  </Button>
+                                  <Tag
+                                    color={
+                                      item.status === "Dispensed"
+                                        ? "green"
+                                        : "blue"
+                                    }
+                                    className="rounded-full px-3"
+                                  >
+                                    {item.status}
+                                  </Tag>
+                                </Space>
                               </Col>
                             </Row>
-                            
+
                             <Row gutter={[16, 16]} className="mb-4">
                               <Col xs={24} md={8}>
                                 <Statistic
                                   title="Prescription Date"
-                                  value={dayjs(item.prescriptionDate).format("DD/MM/YYYY")}
-                                  valueStyle={{ fontSize: '14px' }}
-                                  prefix={<CalendarOutlined className="text-green-500 mr-2" />}
+                                  value={dayjs(item.prescriptionDate).format(
+                                    "DD/MM/YYYY"
+                                  )}
+                                  valueStyle={{ fontSize: "14px" }}
+                                  prefix={
+                                    <CalendarOutlined className="text-green-500 mr-2" />
+                                  }
                                 />
                               </Col>
                               <Col xs={24} md={8}>
                                 <Statistic
                                   title="Health Check"
-                                  value={item.healthCheckResult?.healthCheckResultCode || "N/A"}
-                                  valueStyle={{ fontSize: '14px' }}
-                                  prefix={<FileTextOutlined className="text-green-500 mr-2" />}
+                                  value={
+                                    item.healthCheckResult
+                                      ?.healthCheckResultCode || "N/A"
+                                  }
+                                  valueStyle={{ fontSize: "14px" }}
+                                  prefix={
+                                    <FileTextOutlined className="text-green-500 mr-2" />
+                                  }
                                 />
                               </Col>
                               <Col xs={24} md={8}>
                                 <Statistic
                                   title="Prescribed By"
                                   value={item.staff?.fullName || "Unknown"}
-                                  valueStyle={{ fontSize: '14px' }}
-                                  prefix={<UserOutlined className="text-green-500 mr-2" />}
+                                  valueStyle={{ fontSize: "14px" }}
+                                  prefix={
+                                    <UserOutlined className="text-green-500 mr-2" />
+                                  }
                                   formatter={(value) => (
                                     <span className="text-sm">
                                       {value}{" "}
-                                      <Text type="secondary" className="text-xs">
-                                        {item.staff?.email && `(${item.staff.email})`}
+                                      <Text
+                                        type="secondary"
+                                        className="text-xs"
+                                      >
+                                        {item.staff?.email &&
+                                          `(${item.staff.email})`}
                                       </Text>
                                     </span>
                                   )}
@@ -636,7 +782,7 @@ const MyHealthCheckResults: React.FC = () => {
                                 Medicines
                               </Space>
                             </Divider>
-                            
+
                             <Table
                               dataSource={item.prescriptionDetails || []}
                               rowKey="id"
@@ -716,44 +862,61 @@ const MyHealthCheckResults: React.FC = () => {
 
                         return (
                           <List.Item>
-                            <Card 
-                              className="mb-4 shadow-sm rounded-lg border-l-4 border-l-amber-500 hover:shadow-md transition-shadow duration-300"
-                            >
-                              <Row justify="space-between" align="middle" className="mb-4">
+                            <Card className="mb-4 shadow-sm rounded-lg border-l-4 border-l-amber-500 hover:shadow-md transition-shadow duration-300">
+                              <Row
+                                justify="space-between"
+                                align="middle"
+                                className="mb-4"
+                              >
                                 <Col>
                                   <Space align="center">
-                                    <Avatar icon={<AlertOutlined />} className="bg-amber-500" />
+                                    <Avatar
+                                      icon={<AlertOutlined />}
+                                      className="bg-amber-500"
+                                    />
                                     <Title level={5} className="m-0">
                                       {item.treatmentPlanCode}
                                     </Title>
                                   </Space>
                                 </Col>
                                 <Col>
-                                  <Tag
-                                    color={
-                                      item.status === "Completed"
-                                        ? "green"
-                                        : item.status === "InProgress"
-                                        ? "blue"
-                                        : item.status === "Cancelled"
-                                        ? "red"
-                                        : "default"
-                                    }
-                                    className="rounded-full px-3"
-                                  >
-                                    {item.status}
-                                  </Tag>
+                                  <Space>
+                                    <Button
+                                      type="primary"
+                                      icon={<FilePdfOutlined />}
+                                      onClick={() => handleExportTreatmentPlanPDF(item.id)}
+                                      loading={exportLoading[item.id]}
+                                    >
+                                      Export to PDF
+                                    </Button>
+                                    <Tag
+                                      color={
+                                        item.status === "Completed"
+                                          ? "green"
+                                          : item.status === "InProgress"
+                                          ? "blue"
+                                          : item.status === "Cancelled"
+                                          ? "red"
+                                          : "default"
+                                      }
+                                      className="rounded-full px-3"
+                                    >
+                                      {item.status}
+                                    </Tag>
+                                  </Space>
                                 </Col>
                               </Row>
-                              
+
                               <Row gutter={[24, 16]}>
                                 <Col xs={24} md={12} lg={6}>
                                   <Card className="bg-gray-50 h-full">
                                     <Statistic
                                       title="Medicine"
                                       value={item.drug?.name || "N/A"}
-                                      valueStyle={{ fontSize: '14px' }}
-                                      prefix={<MedicineBoxOutlined className="text-amber-500 mr-2" />}
+                                      valueStyle={{ fontSize: "14px" }}
+                                      prefix={
+                                        <MedicineBoxOutlined className="text-amber-500 mr-2" />
+                                      }
                                     />
                                   </Card>
                                 </Col>
@@ -761,9 +924,15 @@ const MyHealthCheckResults: React.FC = () => {
                                   <Card className="bg-gray-50 h-full">
                                     <Statistic
                                       title="Duration"
-                                      value={`${dayjs(item.startDate).format("DD/MM/YYYY")} - ${dayjs(item.endDate).format("DD/MM/YYYY")}`}
-                                      valueStyle={{ fontSize: '14px' }}
-                                      prefix={<CalendarOutlined className="text-amber-500 mr-2" />}
+                                      value={`${dayjs(item.startDate).format(
+                                        "DD/MM/YYYY"
+                                      )} - ${dayjs(item.endDate).format(
+                                        "DD/MM/YYYY"
+                                      )}`}
+                                      valueStyle={{ fontSize: "14px" }}
+                                      prefix={
+                                        <CalendarOutlined className="text-amber-500 mr-2" />
+                                      }
                                     />
                                   </Card>
                                 </Col>
@@ -771,12 +940,21 @@ const MyHealthCheckResults: React.FC = () => {
                                   <Card className="bg-gray-50 h-full">
                                     <Statistic
                                       title="Days Remaining"
-                                      value={daysRemaining >= 0 ? `${daysRemaining} days` : "Completed"}
-                                      valueStyle={{ 
-                                        color: daysRemaining >= 0 ? '#1890ff' : '#52c41a',
-                                        fontSize: '14px'
+                                      value={
+                                        daysRemaining >= 0
+                                          ? `${daysRemaining} days`
+                                          : "Completed"
+                                      }
+                                      valueStyle={{
+                                        color:
+                                          daysRemaining >= 0
+                                            ? "#1890ff"
+                                            : "#52c41a",
+                                        fontSize: "14px",
                                       }}
-                                      prefix={<ClockCircleOutlined className="text-amber-500 mr-2" />}
+                                      prefix={
+                                        <ClockCircleOutlined className="text-amber-500 mr-2" />
+                                      }
                                     />
                                   </Card>
                                 </Col>
@@ -784,14 +962,22 @@ const MyHealthCheckResults: React.FC = () => {
                                   <Card className="bg-gray-50 h-full">
                                     <Statistic
                                       title="Created By"
-                                      value={item.createdBy?.fullName || "Unknown"}
-                                      valueStyle={{ fontSize: '14px' }}
-                                      prefix={<UserOutlined className="text-amber-500 mr-2" />}
+                                      value={
+                                        item.createdBy?.fullName || "Unknown"
+                                      }
+                                      valueStyle={{ fontSize: "14px" }}
+                                      prefix={
+                                        <UserOutlined className="text-amber-500 mr-2" />
+                                      }
                                       formatter={(value) => (
                                         <span className="text-sm">
                                           {value}{" "}
-                                          <Text type="secondary" className="text-xs">
-                                            {item.createdBy?.email && `(${item.createdBy.email})`}
+                                          <Text
+                                            type="secondary"
+                                            className="text-xs"
+                                          >
+                                            {item.createdBy?.email &&
+                                              `(${item.createdBy.email})`}
                                           </Text>
                                         </span>
                                       )}
@@ -799,20 +985,28 @@ const MyHealthCheckResults: React.FC = () => {
                                   </Card>
                                 </Col>
                               </Row>
-                              
+
                               <Card className="mt-4 bg-amber-50 border-amber-200">
                                 <Row gutter={[16, 16]}>
                                   <Col xs={24} md={12}>
-                                    <Title level={5} className="flex items-center">
+                                    <Title
+                                      level={5}
+                                      className="flex items-center"
+                                    >
                                       <FileTextOutlined className="mr-2 text-amber-500" />
                                       Description
                                     </Title>
                                     <div className="bg-white p-3 rounded">
-                                      <Paragraph>{item.treatmentDescription}</Paragraph>
+                                      <Paragraph>
+                                        {item.treatmentDescription}
+                                      </Paragraph>
                                     </div>
                                   </Col>
                                   <Col xs={24} md={12}>
-                                    <Title level={5} className="flex items-center">
+                                    <Title
+                                      level={5}
+                                      className="flex items-center"
+                                    >
                                       <AlertOutlined className="mr-2 text-amber-500" />
                                       Instructions
                                     </Title>
@@ -851,21 +1045,21 @@ const MyHealthCheckResults: React.FC = () => {
             border-radius: 8px 8px 0 0;
             background: #f5f5f5;
           }
-          
+
           .custom-tabs .ant-tabs-tab-active {
             background: #ffffff;
           }
-          
+
           .custom-table .ant-table-thead > tr > th {
             background-color: #f0f7ff;
           }
-          
+
           .details-timeline-item {
             position: relative;
             padding-left: 40px;
             margin-bottom: 20px;
           }
-          
+
           .details-timeline-item-line {
             position: absolute;
             left: 20px;
@@ -874,7 +1068,7 @@ const MyHealthCheckResults: React.FC = () => {
             border-left: 2px solid #e6f7ff;
             z-index: 1;
           }
-          
+
           .details-timeline-item-dot {
             position: absolute;
             left: 12px;
@@ -888,7 +1082,7 @@ const MyHealthCheckResults: React.FC = () => {
             justify-content: center;
             z-index: 2;
           }
-          
+
           .ant-card-bordered {
             border-radius: 8px;
           }
