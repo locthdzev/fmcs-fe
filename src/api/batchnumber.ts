@@ -120,3 +120,14 @@ export const getMergeableBatchGroups = async () => {
   );
   return response.data.data;
 };
+
+export const getAllBatchNumbersWithoutPagination = async () => {
+  const response = await api.get("/batchnumber-management/batchnumbers", {
+    params: {
+      page: 1,
+      pageSize: 1000, // Using a large value to get all or most batch numbers
+      count: true
+    },
+  });
+  return response.data;
+};

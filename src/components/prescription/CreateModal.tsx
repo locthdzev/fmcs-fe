@@ -20,7 +20,11 @@ import {
   PrescriptionsCreateRequestDTO,
   PrescriptionDetailsCreateRequestDTO,
 } from "@/api/prescription";
-import { DrugResponse } from "@/api/drug";
+import { 
+  DrugResponse, 
+  getAvailableDrugsForPrescription,
+  DrugWithInventoryInfoDTO
+} from "@/api/drug";
 import {
   getAllHealthCheckResults,
   getHealthCheckResultById,
@@ -67,25 +71,14 @@ const CreateModal: React.FC<CreateModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [loadingHealthCheckResults, setLoadingHealthCheckResults] =
     useState(false);
+  const [loadingDrugs, setLoadingDrugs] = useState(false);
   const [selectedHealthCheckResultId, setSelectedHealthCheckResultId] =
     useState<string | null>(null);
   const [healthCheckResultOptions, setHealthCheckResultOptions] = useState<
     HealthCheckResultOption[]
   >([]);
+  const [availableDrugOptions, setAvailableDrugOptions] = useState<DrugWithInventoryInfoDTO[]>([]);
   const [messageApi, contextHolder] = message.useMessage();
-
-  useEffect(() => {
-    if (!visible) {
-      form.resetFields();
-      setSelectedHealthCheckResultId(null);
-    }
-  }, [visible, form]);
-
-  useEffect(() => {
-    if (visible) {
-      fetchHealthCheckResults();
-    }
-  }, [visible]);
 
   const fetchHealthCheckResults = async () => {
     setLoadingHealthCheckResults(true);
@@ -171,6 +164,47 @@ const CreateModal: React.FC<CreateModalProps> = ({
       setLoadingHealthCheckResults(false);
     }
   };
+
+  const fetchAvailableDrugs = async () => {
+    setLoadingDrugs(true);
+    try {
+      const response = await getAvailableDrugsForPrescription();
+      console.log("Available drugs response:", response);
+
+      if (response.success || response.isSuccess) {
+        setAvailableDrugOptions(response.data || []);
+      } else {
+        messageApi.error({
+          content: response.message || "Failed to fetch available drugs",
+          duration: 5,
+        });
+        setAvailableDrugOptions([]);
+      }
+    } catch (error) {
+      console.error("Error fetching available drugs:", error);
+      messageApi.error({
+        content: "Failed to fetch available drugs",
+        duration: 5,
+      });
+      setAvailableDrugOptions([]);
+    } finally {
+      setLoadingDrugs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!visible) {
+      form.resetFields();
+      setSelectedHealthCheckResultId(null);
+    }
+  }, [visible, form]);
+
+  useEffect(() => {
+    if (visible) {
+      fetchHealthCheckResults();
+      fetchAvailableDrugs();
+    }
+  }, [visible]);
 
   const handleSubmit = async () => {
     try {
@@ -352,15 +386,23 @@ const CreateModal: React.FC<CreateModalProps> = ({
                       showSearch
                       placeholder="Select medicine"
                       optionFilterProp="children"
+                      loading={loadingDrugs}
                       filterOption={(input, option) =>
                         (option?.label as string)
                           .toLowerCase()
                           .indexOf(input.toLowerCase()) >= 0
                       }
-                      options={drugOptions.map((drug) => ({
+                      options={availableDrugOptions.map((drug) => ({
                         value: drug.id,
-                        label: `${drug.name} (${drug.drugCode})`,
+                        label: `${drug.name} - ${drug.batchCode} - ${drug.quantityInStock} in stock`,
                       }))}
+                      notFoundContent={
+                        loadingDrugs ? (
+                          <Spin size="small" />
+                        ) : (
+                          "No available medicines found"
+                        )
+                      }
                     />
                   </Form.Item>
 
