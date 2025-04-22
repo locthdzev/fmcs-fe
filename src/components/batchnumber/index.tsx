@@ -100,7 +100,7 @@ export function BatchNumberManagement() {
     expiryDate: true,
     quantityReceived: true,
     status: true,
-    createdAt: true,
+    createdAt: false,
     createdBy: false,
     updatedAt: false,
     updatedBy: false,
@@ -415,6 +415,11 @@ export function BatchNumberManagement() {
   // Prevent dropdown from closing when clicking checkboxes
   const handleMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+  };
+
+  const navigateToBatchDetail = (id: string) => {
+    console.log("Navigating to batch detail with ID:", id);
+    router.push(`/batch-number/${id}`);
   };
 
   return (
@@ -759,6 +764,15 @@ export function BatchNumberManagement() {
               key="batchCode"
               sorter={(a, b) => a.batchCode.localeCompare(b.batchCode)}
               hidden={!columnVisibility.batchCode}
+              render={(batchCode, record) => (
+                <Button 
+                  type="link" 
+                  onClick={() => navigateToBatchDetail(record.id)}
+                  style={{ padding: 0, margin: 0, height: 'auto' }}
+                >
+                  {batchCode}
+                </Button>
+              )}
             />
             <Column
               title="DRUG NAME"
@@ -766,6 +780,15 @@ export function BatchNumberManagement() {
               key="drug.name"
               sorter={(a, b) => a.drug.name.localeCompare(b.drug.name)}
               hidden={!columnVisibility.drugName}
+              render={(name, record) => (
+                <Button 
+                  type="link" 
+                  onClick={() => router.push(`/drug/${record.drug.id}`)}
+                  style={{ padding: 0, margin: 0, height: 'auto' }}
+                >
+                  {name}
+                </Button>
+              )}
             />
             <Column
               title="SUPPLIER"
@@ -775,6 +798,15 @@ export function BatchNumberManagement() {
                 a.supplier.supplierName.localeCompare(b.supplier.supplierName)
               }
               hidden={!columnVisibility.supplier}
+              render={(supplierName, record) => (
+                <Button 
+                  type="link" 
+                  onClick={() => router.push(`/drug-supplier/${record.supplier.id}`)}
+                  style={{ padding: 0, margin: 0, height: 'auto' }}
+                >
+                  {supplierName}
+                </Button>
+              )}
             />
             <Column
               title="MANUFACTURING DATE"

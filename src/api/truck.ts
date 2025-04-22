@@ -53,9 +53,11 @@ export interface TruckExportConfigDTO {
   fileName?: string;
 }
 
-export const getTrucks = async () => {
+export const getTrucks = async (status?: string) => {
   try {
-    const response = await api.get("/truck-management/trucks");
+    // Add status as a query parameter if provided
+    const url = status ? `/truck-management/trucks?status=${status}` : "/truck-management/trucks";
+    const response = await api.get(url);
     return response.data.data;
   } catch (error) {
     throw error;

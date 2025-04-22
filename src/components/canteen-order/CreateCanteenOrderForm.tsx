@@ -85,7 +85,7 @@ export const CreateCanteenOrderForm: React.FC<CreateCanteenOrderFormProps> = ({
 
   const fetchTrucks = async () => {
     try {
-      const trucksData = await getTrucks();
+      const trucksData = await getTrucks("Active");
       setTrucks(trucksData);
     } catch (error) {
       messageApi.error("Failed to fetch trucks", 5);
@@ -213,6 +213,24 @@ export const CreateCanteenOrderForm: React.FC<CreateCanteenOrderFormProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleReset = () => {
+    setFormData({
+      licensePlate: "",
+      orderDate: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      status: "Pending",
+      canteenOrderDetails: [
+        {
+          itemId: "",
+          quantity: 1,
+          unitPrice: 0,
+          canteenItem: undefined,
+        },
+      ],
+    });
+    messageApi.success("Form has been reset", 2);
   };
 
   return (
@@ -398,6 +416,12 @@ export const CreateCanteenOrderForm: React.FC<CreateCanteenOrderFormProps> = ({
           <div className="flex gap-3">
             <Button onClick={onClose}>
               Cancel
+            </Button>
+            <Button
+              onClick={handleReset}
+              icon={<DeleteOutlined />}
+            >
+              Reset
             </Button>
             <Button
               type="primary"
