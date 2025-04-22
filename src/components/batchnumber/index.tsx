@@ -29,16 +29,20 @@ import {
   BatchNumberResponseDTO,
   setupBatchNumberRealTime,
   getMergeableBatchGroups,
+  getAllBatchNumbersWithoutPagination,
 } from "@/api/batchnumber";
 import { exportToExcel } from "@/api/export";
 import EditBatchNumberModal from "./EditBatchNumberModal";
 import MergeBatchNumbersModal from "./MergeBatchNumbersModal";
 import { BatchNumberIcon } from "./Icons";
+import BatchNumberFilterModal from "./BatchNumberFilterModal";
 import debounce from "lodash/debounce";
 import TableControls from "../shared/TableControls";
 import PaginationFooter from "../shared/PaginationFooter";
 import ToolbarCard from "../shared/ToolbarCard";
 import PageContainer from "../shared/PageContainer";
+import { useRouter } from "next/router";
+import dayjs from "dayjs";
 
 const { Column } = Table;
 const { Option } = Select;
@@ -75,6 +79,12 @@ export function BatchNumberManagement() {
 
   // Selected row keys for batch actions
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [drugOptions, setDrugOptions] = useState<any[]>([]);
+  const [supplierOptions, setSupplierOptions] = useState<any[]>([]);
+
+  const router = useRouter();
 
   const fetchBatchNumbers = useCallback(async () => {
     try {
@@ -129,21 +139,66 @@ export function BatchNumberManagement() {
     }
   }, [messageApi]);
 
+  // Function to fetch all drugs and suppliers for filter options
+  const fetchAllFilterOptions = useCallback(async () => {
+    try {
+      const result = await getAllBatchNumbersWithoutPagination();
+      if (result && result.data && result.data.length > 0) {
+        // Extract unique drugs
+        const drugsMap = new Map();
+        result.data.forEach((batch: BatchNumberResponseDTO) => {
+          if (batch.drug && !drugsMap.has(batch.drug.id)) {
+            drugsMap.set(batch.drug.id, {
+              id: batch.drug.id,
+              name: batch.drug.name,
+              drugCode: batch.drug.drugCode
+            });
+          }
+        });
+        
+        // Extract unique suppliers
+        const suppliersMap = new Map();
+        result.data.forEach((batch: BatchNumberResponseDTO) => {
+          if (batch.supplier && !suppliersMap.has(batch.supplier.id)) {
+            suppliersMap.set(batch.supplier.id, {
+              id: batch.supplier.id,
+              supplierName: batch.supplier.supplierName
+            });
+          }
+        });
+        
+        setDrugOptions(Array.from(drugsMap.values()));
+        setSupplierOptions(Array.from(suppliersMap.values()));
+      }
+    } catch (error) {
+      messageApi.error({
+        content: "Unable to load filter options.",
+        duration: 5,
+      });
+    }
+  }, [messageApi]);
+
+  // Replace the existing extractUniqueOptions with fetchAllFilterOptions
   useEffect(() => {
+    // Fetch batch numbers for current page
     fetchBatchNumbers();
+    // Fetch mergeable groups
     fetchMergeableGroups();
+    // Fetch all batch numbers for filter options
+    fetchAllFilterOptions();
 
     const connection = setupBatchNumberRealTime(
       (updatedBatch: BatchNumberResponseDTO) => {
         fetchBatchNumbers();
         fetchMergeableGroups();
+        fetchAllFilterOptions(); // Refresh filter options when data changes
       }
     );
 
     return () => {
       connection.stop();
     };
-  }, [fetchBatchNumbers, fetchMergeableGroups]);
+  }, [fetchBatchNumbers, fetchMergeableGroups, fetchAllFilterOptions]);
 
   const handleToggleStatus = async (id: string, isActive: boolean) => {
     const batch = batchNumbers.find((b) => b.id === id);
@@ -250,12 +305,46 @@ export function BatchNumberManagement() {
     });
   };
 
+  const handleFilterOpen = () => {
+    setIsFilterModalVisible(true);
+  };
+
+  const handleFilterClose = () => {
+    setIsFilterModalVisible(false);
+  };
+
+  const handleFilterApply = (filters: any) => {
+    setDrugNameFilter(filters.drugNameFilter || "");
+    setSupplierFilter(filters.supplierFilter || "");
+    setStatusFilter(filters.statusFilter || "");
+    setManufacturingDateRange(
+      filters.manufacturingDateRange && filters.manufacturingDateRange[0] && filters.manufacturingDateRange[1]
+        ? [
+            filters.manufacturingDateRange[0].format("YYYY-MM-DD"),
+            filters.manufacturingDateRange[1].format("YYYY-MM-DD"),
+          ]
+        : null
+    );
+    setExpiryDateRange(
+      filters.expiryDateRange && filters.expiryDateRange[0] && filters.expiryDateRange[1]
+        ? [
+            filters.expiryDateRange[0].format("YYYY-MM-DD"),
+            filters.expiryDateRange[1].format("YYYY-MM-DD"),
+          ]
+        : null
+    );
+    setAscending(filters.ascending);
+    setCurrentPage(1);
+    setIsFilterModalVisible(false);
+  };
+
   return (
     <>
       {contextHolder}
       <PageContainer
         title="Batch Number Management"
         icon={<BatchNumberIcon />}
+        onBack={() => router.back()}
       >
         {/* Search and Filters Toolbar */}
         <ToolbarCard
@@ -269,21 +358,17 @@ export function BatchNumberManagement() {
                 allowClear
               />
 
-              {/* Drug Name Filter */}
-              <Input
-                placeholder="Filter by Drug Name"
-                onChange={(e) => setDrugNameFilter(e.target.value)}
-                style={{ width: 200 }}
-                allowClear
-              />
-
-              {/* Supplier Filter */}
-              <Input
-                placeholder="Filter by Supplier"
-                onChange={(e) => setSupplierFilter(e.target.value)}
-                style={{ width: 200 }}
-                allowClear
-              />
+              
+              {/* Advanced Filters */}
+              <Tooltip title="Filters">
+                <Button
+                  icon={<FilterOutlined />}
+                  onClick={handleFilterOpen}
+                  disabled={loading}
+                >
+                  Filters
+                </Button>
+              </Tooltip>
 
               {/* Status */}
               <div>
@@ -326,19 +411,6 @@ export function BatchNumberManagement() {
                 />
               </Tooltip>
 
-              {/* Advanced Filters */}
-              <Tooltip title="Date Filters">
-                <Button
-                  icon={<FilterOutlined />}
-                  onClick={() => {
-                    // Could open a modal with date filters
-                    messageApi.info("Date filters would go here in a modal");
-                  }}
-                  disabled={loading}
-                >
-                  Dates
-                </Button>
-              </Tooltip>
 
               {/* Merge Button */}
               <Button
@@ -574,6 +646,33 @@ export function BatchNumberManagement() {
           fetchBatchNumbers();
           fetchMergeableGroups();
         }}
+      />
+
+      <BatchNumberFilterModal
+        visible={isFilterModalVisible}
+        onCancel={handleFilterClose}
+        onApply={handleFilterApply}
+        onReset={handleReset}
+        filters={{
+          drugNameFilter,
+          supplierFilter,
+          statusFilter,
+          manufacturingDateRange: manufacturingDateRange 
+            ? [
+                manufacturingDateRange[0] ? dayjs(manufacturingDateRange[0]) : null,
+                manufacturingDateRange[1] ? dayjs(manufacturingDateRange[1]) : null
+              ] as [dayjs.Dayjs | null, dayjs.Dayjs | null]
+            : [null, null],
+          expiryDateRange: expiryDateRange
+            ? [
+                expiryDateRange[0] ? dayjs(expiryDateRange[0]) : null,
+                expiryDateRange[1] ? dayjs(expiryDateRange[1]) : null
+              ] as [dayjs.Dayjs | null, dayjs.Dayjs | null]
+            : [null, null],
+          ascending
+        }}
+        drugOptions={drugOptions}
+        supplierOptions={supplierOptions}
       />
     </>
   );
