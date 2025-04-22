@@ -1254,11 +1254,12 @@ const HealthInsuranceManagement: React.FC = () => {
           <>
             {/* Export Button */}
             <Button
+              type="primary"
               icon={<FileExcelOutlined />}
               onClick={showExportModal}
               style={{ marginRight: "8px" }}
             >
-              Export
+              Export to Excel
             </Button>
           </>
         }
