@@ -576,7 +576,9 @@ const HealthInsuranceManagement: React.FC = () => {
       const result = await createInitialHealthInsurances();
       if (result.isSuccess) {
         const count = result.data || 0;
-        messageApi.success(`${count} initial health insurance records created successfully`);
+        messageApi.success(
+          `${count} initial health insurance records created successfully`
+        );
         fetchData();
       } else {
         messageApi.error(
@@ -874,7 +876,7 @@ const HealthInsuranceManagement: React.FC = () => {
 
             {/* Config Button */}
             <Button icon={<SettingOutlined />} onClick={showConfigModal}>
-              Config
+              Configuration
             </Button>
 
             {/* Create Button with Dropdown */}
@@ -931,7 +933,9 @@ const HealthInsuranceManagement: React.FC = () => {
         selectedRowKeys={selectedRowKeys}
         pageSize={pageSize}
         onPageSizeChange={setPageSize}
-        useItemsLabel={activeTab === "verification" || activeTab === "updateRequest"}
+        useItemsLabel={
+          activeTab === "verification" || activeTab === "updateRequest"
+        }
         bulkActions={
           ["verification", "updateRequest", "softDelete"].indexOf(activeTab) ===
           -1
@@ -1054,7 +1058,9 @@ const HealthInsuranceManagement: React.FC = () => {
         pageSize={pageSize}
         total={total}
         onChange={handlePageChange}
-        useItemsLabel={activeTab === "verification" || activeTab === "updateRequest"}
+        useItemsLabel={
+          activeTab === "verification" || activeTab === "updateRequest"
+        }
       />
 
       {/* Modals */}

@@ -54,7 +54,7 @@ export interface HealthInsuranceCreateManualDTO {
 }
 
 export interface HealthInsuranceConfigDTO {
-  reminderIntervalDays: number;
+  reminderInterval: number;
   deadlineDays: number;
   warningThresholdDays: number[];
 }
