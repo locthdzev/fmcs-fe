@@ -29,57 +29,57 @@ const HealthInsuranceStatictisIcon: React.FC<HealthInsuranceStatictisIconProps> 
         height="20"
         rx="2"
         stroke={iconColor}
-        strokeWidth="1.5"
+        strokeWidth="2.5"
         fill="none"
       />
       
       {/* Medical cross symbol */}
       <rect
-        x="7"
+        x="6.5"
         y="7"
-        width="10"
-        height="3"
+        width="11"
+        height="4"
         rx="1"
         fill={iconColor}
       />
       <rect
-        x="10.5"
-        y="5.5"
-        width="3"
-        height="6"
+        x="10"
+        y="5"
+        width="4"
+        height="8"
         rx="1"
         fill={iconColor}
       />
       
       {/* Bar chart elements */}
       <rect
-        x="5"
+        x="4.5"
         y="14"
-        width="2"
+        width="3"
         height="5"
         rx="0.5"
         fill={iconColor}
       />
       <rect
-        x="9"
+        x="8.5"
         y="12"
-        width="2"
+        width="3"
         height="7"
         rx="0.5"
         fill={iconColor}
       />
       <rect
-        x="13"
+        x="12.5"
         y="13"
-        width="2"
+        width="3"
         height="6"
         rx="0.5"
         fill={iconColor}
       />
       <rect
-        x="17"
+        x="16.5"
         y="11"
-        width="2"
+        width="3"
         height="8"
         rx="0.5"
         fill={iconColor}

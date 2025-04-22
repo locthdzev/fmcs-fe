@@ -370,9 +370,15 @@ const MyHealthCheckups: React.FC = () => {
   }, [filteredCheckups, state.sortField, state.sortOrder]);
 
   const handleViewDetails = useCallback((record: CheckupData) => {
-    dispatch({ type: "SET_SELECTED_CHECKUP", payload: record });
-    dispatch({ type: "TOGGLE_MODAL", payload: true });
-  }, []);
+    if (isEnhancedStudentCheckup(record)) {
+      // For student checkups, navigate to the details page
+      router.push(`/periodic-health-checkup/${record.id}`);
+    } else {
+      // For staff checkups, keep using the modal
+      dispatch({ type: "SET_SELECTED_CHECKUP", payload: record });
+      dispatch({ type: "TOGGLE_MODAL", payload: true });
+    }
+  }, [router]);
 
   const isEnhancedStudentCheckup = (checkup: CheckupData | null): checkup is EnhancedStudentCheckup =>
     checkup !== null && "mssv" in checkup && !!checkup.mssv;

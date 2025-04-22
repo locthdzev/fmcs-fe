@@ -27,7 +27,6 @@ import {
   Alert,
   message,
 } from "antd";
-import { toast } from "react-toastify";
 import moment from "moment";
 import {
   getAllPrescriptions,
@@ -330,11 +329,11 @@ export function PrescriptionManagement() {
         setPrescriptions(response.data.items || response.data);
         setTotal(response.data.totalCount || response.data.length || 0);
       } else {
-        toast.error("Failed to fetch prescriptions");
+        message.error("Failed to fetch prescriptions");
       }
     } catch (error) {
       console.error("Error fetching prescriptions:", error);
-      toast.error("Failed to fetch prescriptions");
+      message.error("Failed to fetch prescriptions");
     } finally {
       setLoading(false);
     }
@@ -381,7 +380,7 @@ export function PrescriptionManagement() {
       );
     } catch (error) {
       console.error("Error fetching users:", error);
-      toast.error("Failed to fetch users");
+      message.error("Failed to fetch users");
     }
   }, []);
 
@@ -391,7 +390,7 @@ export function PrescriptionManagement() {
       setDrugOptions(drugs);
     } catch (error) {
       console.error("Error fetching drugs:", error);
-      toast.error("Failed to fetch drugs");
+      message.error("Failed to fetch drugs");
     }
   }, []);
 
@@ -480,11 +479,11 @@ export function PrescriptionManagement() {
           setPrescriptions(response.data.items || response.data);
           setTotal(response.data.totalCount || response.data.length || 0);
         } else {
-          toast.error("Failed to reset filters");
+          message.error("Failed to reset filters");
         }
       } catch (error) {
         console.error("Error resetting filters:", error);
-        toast.error("Error resetting filters");
+        message.error("Error resetting filters");
       } finally {
         setLoading(false);
       }
@@ -528,14 +527,14 @@ export function PrescriptionManagement() {
     try {
       const response = await softDeletePrescriptions([id]);
       if (response.success) {
-        toast.success("Prescription soft deleted successfully");
+        message.success("Prescription soft deleted successfully");
         fetchPrescriptions();
       } else {
-        toast.error("Failed to soft delete prescription");
+        message.error("Failed to soft delete prescription");
       }
     } catch (error) {
       console.error("Error soft deleting prescription:", error);
-      toast.error("Failed to soft delete prescription");
+      message.error("Failed to soft delete prescription");
     }
   };
 
@@ -543,14 +542,14 @@ export function PrescriptionManagement() {
     try {
       const response = await restoreSoftDeletedPrescriptions([id]);
       if (response.success) {
-        toast.success("Prescription restored successfully");
+        message.success("Prescription restored successfully");
         fetchPrescriptions();
       } else {
-        toast.error("Failed to restore prescription");
+        message.error("Failed to restore prescription");
       }
     } catch (error) {
       console.error("Error restoring prescription:", error);
-      toast.error("Failed to restore prescription");
+      message.error("Failed to restore prescription");
     }
   };
 
@@ -558,14 +557,14 @@ export function PrescriptionManagement() {
     try {
       const response = await cancelPrescription(id, reason);
       if (response.success) {
-        toast.success("Prescription cancelled successfully");
+        message.success("Prescription cancelled successfully");
         fetchPrescriptions();
       } else {
-        toast.error("Failed to cancel prescription");
+        message.error("Failed to cancel prescription");
       }
     } catch (error) {
       console.error("Error cancelling prescription:", error);
-      toast.error("Failed to cancel prescription");
+      message.error("Failed to cancel prescription");
     }
   };
 
@@ -574,15 +573,15 @@ export function PrescriptionManagement() {
       setDeletingItems(true);
       const response = await softDeletePrescriptions(ids);
       if (response.success) {
-        toast.success("Selected prescriptions soft deleted successfully");
+        message.success("Selected prescriptions soft deleted successfully");
         setSelectedRowKeys([]);
         fetchPrescriptions();
       } else {
-        toast.error("Failed to soft delete selected prescriptions");
+        message.error("Failed to soft delete selected prescriptions");
       }
     } catch (error) {
       console.error("Error soft deleting prescriptions:", error);
-      toast.error("Failed to soft delete selected prescriptions");
+      message.error("Failed to soft delete selected prescriptions");
     } finally {
       setDeletingItems(false);
     }
@@ -593,15 +592,15 @@ export function PrescriptionManagement() {
       setRestoringItems(true);
       const response = await restoreSoftDeletedPrescriptions(ids);
       if (response.success) {
-        toast.success("Selected prescriptions restored successfully");
+        message.success("Selected prescriptions restored successfully");
         setSelectedRowKeys([]);
         fetchPrescriptions();
       } else {
-        toast.error("Failed to restore selected prescriptions");
+        message.error("Failed to restore selected prescriptions");
       }
     } catch (error) {
       console.error("Error restoring prescriptions:", error);
-      toast.error("Failed to restore selected prescriptions");
+      message.error("Failed to restore selected prescriptions");
     } finally {
       setRestoringItems(false);
     }
@@ -678,8 +677,8 @@ export function PrescriptionManagement() {
             <Menu>
               <Menu.Item
                 key="view"
-          icon={<EyeOutlined />}
-          onClick={() => router.push(`/prescription/${record.id}`)}
+                icon={<EyeOutlined />}
+                onClick={() => router.push(`/prescription/${record.id}`)}
               >
                 View Details
               </Menu.Item>
@@ -687,7 +686,7 @@ export function PrescriptionManagement() {
         {canEditPrescription(record.status) && (
                 <Menu.Item
                   key="edit"
-            icon={<FormOutlined />}
+                  icon={<FormOutlined />}
                   onClick={() =>
                     router.push(`/prescription/${record.id}?edit=true`)
                   }
@@ -706,25 +705,25 @@ export function PrescriptionManagement() {
                       title: "Cancel Prescription",
                       icon: <CloseCircleOutlined />,
                       content: (
-              <div>
+                        <div>
                           <p>
                             Are you sure you want to cancel this prescription?
                           </p>
-                <Input.TextArea
-                  placeholder="Reason for cancellation"
-                  id={`cancel-reason-${record.id}`}
-                  rows={3}
-                />
-              </div>
+                          <Input.TextArea
+                            placeholder="Reason for cancellation"
+                            id={`cancel-reason-${record.id}`}
+                            rows={3}
+                          />
+                        </div>
                       ),
                       onOk() {
-              const reasonElement = document.getElementById(
-                `cancel-reason-${record.id}`
-              ) as HTMLTextAreaElement;
-              if (reasonElement && reasonElement.value) {
-                handleCancel(record.id, reasonElement.value);
-              } else {
-                          toast.error(
+                        const reasonElement = document.getElementById(
+                          `cancel-reason-${record.id}`
+                        ) as HTMLTextAreaElement;
+                        if (reasonElement && reasonElement.value) {
+                          handleCancel(record.id, reasonElement.value);
+                        } else {
+                          message.error(
                             "Please provide a reason for cancellation"
                           );
                           return Promise.reject("No reason provided");
@@ -984,11 +983,11 @@ export function PrescriptionManagement() {
           setPrescriptions(response.data.items || response.data);
           setTotal(response.data.totalCount || response.data.length || 0);
         } else {
-          toast.error("Failed to fetch prescriptions with filters");
+          message.error("Failed to fetch prescriptions with filters");
         }
       } catch (error) {
         console.error("Error applying filters:", error);
-        toast.error("Error applying filters");
+        message.error("Error applying filters");
       } finally {
         setLoading(false);
       }
@@ -1128,7 +1127,7 @@ export function PrescriptionManagement() {
             />
 
             {/* Health Check Result Code */}
-            <Select
+            {/* <Select
               showSearch
               placeholder="Health Check Code"
               value={healthCheckResultCodeSearch || undefined}
@@ -1150,7 +1149,7 @@ export function PrescriptionManagement() {
                   value: code,
                   label: code,
               }))}
-            />
+            /> */}
             <Button
               icon={<FilterOutlined />}
               onClick={handleOpenFilterModal}
@@ -1249,7 +1248,7 @@ export function PrescriptionManagement() {
               placement="bottomRight"
             >
               <Button icon={<SettingOutlined />}>
-                Columns <DownOutlined />
+                Columns 
               </Button>
             </Dropdown>
           </>
