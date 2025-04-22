@@ -67,6 +67,7 @@ const InsuranceUpdateRequestList: React.FC<InsuranceUpdateRequestListProps> = ({
                 <RightOutlined key="arrow" style={{ fontSize: '16px', color: '#1890ff' }} />,
               ]}
               extra={<Tag color="processing">Pending Review</Tag>}
+              style={{ height: "100%" }}
             >
               <Skeleton loading={loading} active avatar>
                 <Row gutter={[16, 16]}>
@@ -85,11 +86,11 @@ const InsuranceUpdateRequestList: React.FC<InsuranceUpdateRequestListProps> = ({
                   <Col span={24}>
                     <Text strong>Update Request Information:</Text>
                     <div className="mt-2">
-                      <Space direction="vertical" size="small">
+                      <Space direction="vertical" size="small" style={{ width: "100%", minHeight: "104px" }}>
                         <Text>
                           Has Insurance: <Text strong>{request.hasInsurance ? "Yes" : "No"}</Text>
                         </Text>
-                        {request.hasInsurance && (
+                        {request.hasInsurance ? (
                           <>
                             <Text>
                               Insurance Number: <Text strong>{request.healthInsuranceNumber || "N/A"}</Text>
@@ -97,6 +98,11 @@ const InsuranceUpdateRequestList: React.FC<InsuranceUpdateRequestListProps> = ({
                             <Text>
                               Full Name: <Text strong>{request.fullName || "N/A"}</Text>
                             </Text>
+                          </>
+                        ) : (
+                          <>
+                            <Text style={{ visibility: "hidden" }}>Placeholder Line</Text>
+                            <Text style={{ visibility: "hidden" }}>Placeholder Line</Text>
                           </>
                         )}
                         <Text>

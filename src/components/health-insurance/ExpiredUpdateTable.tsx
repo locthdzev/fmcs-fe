@@ -1,10 +1,11 @@
 import React from "react";
-import { Table, Button, Space, Tooltip, Modal, message, Card, Dropdown } from "antd";
+import { Table, Button, Space, Tooltip, Modal, message, Card, Dropdown, Popconfirm } from "antd";
 import {
   DeleteOutlined,
   SendOutlined,
   ExclamationCircleOutlined,
   MoreOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
@@ -42,48 +43,34 @@ const ExpiredUpdateTable: React.FC<ExpiredUpdateTableProps> = ({
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
 
-  const handleSoftDelete = (id: string) => {
-    Modal.confirm({
-      title: "Are you sure you want to soft delete this health insurance?",
-      icon: <ExclamationCircleOutlined />,
-      content: "This action can be reversed later.",
-      onOk: async () => {
-        try {
-          const result = await softDeleteHealthInsurances([id]);
-          if (result.isSuccess) {
-            messageApi.success("Health insurance deleted successfully");
-            refreshData();
-          } else {
-            messageApi.error(result.message || "Failed to delete health insurance");
-          }
-        } catch (error) {
-          messageApi.error("Failed to delete health insurance");
-          console.error("Error deleting health insurance:", error);
-        }
-      },
-    });
+  const handleSoftDelete = async (id: string) => {
+    try {
+      const result = await softDeleteHealthInsurances([id]);
+      if (result.isSuccess) {
+        messageApi.success("Health insurance deleted successfully");
+        refreshData();
+      } else {
+        messageApi.error(result.message || "Failed to delete health insurance");
+      }
+    } catch (error) {
+      messageApi.error("Failed to delete health insurance");
+      console.error("Error deleting health insurance:", error);
+    }
   };
 
-  const handleResendUpdateRequest = (id: string) => {
-    Modal.confirm({
-      title: "Resend Update Request",
-      icon: <ExclamationCircleOutlined />,
-      content: "Are you sure you want to resend the update request for this insurance?",
-      onOk: async () => {
-        try {
-          const result = await resendUpdateRequest(id);
-          if (result.isSuccess) {
-            messageApi.success("Update request sent successfully");
-            refreshData();
-          } else {
-            messageApi.error(result.message || "Failed to send update request");
-          }
-        } catch (error) {
-          messageApi.error("Failed to send update request");
-          console.error("Error sending update request:", error);
-        }
-      },
-    });
+  const handleResendUpdateRequest = async (id: string) => {
+    try {
+      const result = await resendUpdateRequest(id);
+      if (result.isSuccess) {
+        messageApi.success("Update request sent successfully");
+        refreshData();
+      } else {
+        messageApi.error(result.message || "Failed to send update request");
+      }
+    } catch (error) {
+      messageApi.error("Failed to send update request");
+      console.error("Error sending update request:", error);
+    }
   };
 
   const renderUserInfo = (user: any) => {
@@ -237,22 +224,38 @@ const ExpiredUpdateTable: React.FC<ExpiredUpdateTableProps> = ({
                 {
                   key: "resend",
                   icon: <SendOutlined />,
-                  label: "Resend Update Request",
-                  onClick: () => handleResendUpdateRequest(record.id),
+                  label: (
+                    <Popconfirm
+                      title="Are you sure you want to resend the update request?"
+                      onConfirm={() => handleResendUpdateRequest(record.id)}
+                      okText="Yes"
+                      cancelText="No"
+                      icon={<QuestionCircleOutlined style={{ color: "blue" }} />}
+                    >
+                      <span>Resend Update Request</span>
+                    </Popconfirm>
+                  ),
                 },
                 {
                   key: "delete",
                   icon: <DeleteOutlined />,
-                  label: "Soft Delete",
+                  label: (
+                    <Popconfirm
+                      title="Are you sure you want to delete this record?"
+                      onConfirm={() => handleSoftDelete(record.id)}
+                      okText="Yes"
+                      cancelText="No"
+                      icon={<QuestionCircleOutlined style={{ color: "red" }} />}
+                    >
+                      <span>Soft Delete</span>
+                    </Popconfirm>
+                  ),
                   danger: true,
-                  onClick: () => handleSoftDelete(record.id),
                 },
               ],
             }}
-            placement="bottomRight"
-            trigger={["click"]}
           >
-            <Button icon={<MoreOutlined />} size="small" />
+            <Button type="text" icon={<MoreOutlined />} />
           </Dropdown>
         </div>
       ),
