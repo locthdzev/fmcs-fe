@@ -54,7 +54,7 @@ export interface HealthInsuranceCreateManualDTO {
 }
 
 export interface HealthInsuranceConfigDTO {
-  reminderIntervalDays: number;
+  reminderInterval: number;
   deadlineDays: number;
   warningThresholdDays: number[];
 }
@@ -502,11 +502,27 @@ export const verifyHealthInsurance = async (
 };
 
 export const softDeleteHealthInsurances = async (insuranceIds: string[]) => {
-  const response = await api.put(
-    "/health-insurance-management/insurances/soft-delete",
-    insuranceIds
-  );
-  return response.data;
+  try {
+    const response = await api.put(
+      "/health-insurance-management/insurances/soft-delete",
+      insuranceIds
+    );
+    
+    return {
+      isSuccess: response.data.isSuccess,
+      code: response.data.code,
+      message: response.data.message,
+      data: response.data.data || []
+    };
+  } catch (error: any) {
+    console.error("Error soft deleting insurances:", error);
+    return {
+      isSuccess: false,
+      code: error.response?.status || 500,
+      message: error.response?.data?.message || "Failed to delete health insurances",
+      data: []
+    };
+  }
 };
 
 export const restoreHealthInsurance = async (id: string) => {
@@ -1050,7 +1066,7 @@ export const getVerificationRequests = async (
   page = 1,
   pageSize = 10,
   search?: string,
-  sortBy = "CreatedAt",
+  sortBy = "UpdatedAt",
   ascending = false
 ) => {
   try {
