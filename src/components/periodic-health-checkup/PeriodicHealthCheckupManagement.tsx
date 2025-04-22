@@ -1965,15 +1965,13 @@ const CheckupList: React.FC<CheckupListProps> = React.memo(
                     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                       {/* Header with name and status */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <Avatar size="small" icon={<UserOutlined />} />
-                          <div style={{ marginLeft: '6px', width: 'calc(100% - 32px)', overflow: 'hidden' }}>
-                            <Tooltip title={checkup.fullName || ("mssv" in checkup ? checkup.mssv : 'Unknown')}>
-                              <div style={{ fontSize: '15px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {checkup.fullName || ("mssv" in checkup ? checkup.mssv : 'Unknown')}
-                              </div>
-                            </Tooltip>
-                            <div style={{ fontSize: '13px', color: '#888', marginTop: '1px' }}>
+                        <div style={{ display: 'flex' }}>
+                          <Avatar size="small" icon={<UserOutlined />} style={{ marginTop: '3px' }} />
+                          <div style={{ marginLeft: '8px', width: 'calc(100% - 32px)', overflow: 'hidden' }}>
+                            <div style={{ fontSize: '15px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {checkup.fullName || ("mssv" in checkup ? checkup.mssv : 'Unknown')}
+                            </div>
+                            <div style={{ fontSize: '13px', color: '#888' }}>
                               {"mssv" in checkup ? `Student ID: ${checkup.mssv}` : "Staff"}
                             </div>
                           </div>
