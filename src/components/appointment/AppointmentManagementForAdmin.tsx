@@ -1513,7 +1513,7 @@ export function AppointmentManagementForAdmin() {
     <div className="sticky-header">
       <Row align="middle" gutter={[8, 8]}>
         <Col xs={24} sm={6}>
-          <Text strong>Patient</Text>
+          <Text strong>User</Text>
         </Col>
         <Col xs={24} sm={6}>
           <Text strong>Healthcare Officer</Text>

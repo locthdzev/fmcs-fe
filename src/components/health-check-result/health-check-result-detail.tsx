@@ -465,7 +465,7 @@ export const HealthCheckResultDetail: React.FC<
           </Col>
           <Col xs={24} md={12}>
             <Descriptions
-              title="Patient Information"
+              title="Person Examined Information"
               bordered
               column={1}
               size="small"
