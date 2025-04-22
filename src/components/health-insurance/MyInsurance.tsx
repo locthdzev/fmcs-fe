@@ -437,7 +437,8 @@ export const UserHealthInsurance: React.FC = () => {
 
   const canRequestUpdate =
     insurance.verificationStatus === "Verified" ||
-    (insurance.verificationStatus === "Rejected" && insurance.status !== "Rejected");
+    (insurance.verificationStatus === "Rejected" && insurance.status !== "Rejected") ||
+    insurance.status === "NotApplicable";
 
   const hasPendingRequests = pendingRequests.length > 0;
 
@@ -511,66 +512,77 @@ export const UserHealthInsurance: React.FC = () => {
         <Row gutter={[24, 24]}>
           <Col xs={24} md={16}>
             <Card title="Insurance Information" className="mb-4">
-              <Descriptions column={2} bordered>
-                <Descriptions.Item label="Status" span={2}>
-                  {insurance.status === "Rejected" && insurance.verificationStatus === "Rejected" 
-                    ? getVerificationTag(insurance.verificationStatus)
-                    : <>
-                        {getStatusTag(insurance.status)}{" "}
-                        {getVerificationTag(insurance.verificationStatus)}
-                      </>
-                  }
-                </Descriptions.Item>
-                <Descriptions.Item label="Insurance Number" span={2}>
-                  {insurance.healthInsuranceNumber || "-"}
-                </Descriptions.Item>
-                <Descriptions.Item label="Full Name">
-                  {insurance.fullName || "-"}
-                </Descriptions.Item>
-                <Descriptions.Item label="Date of Birth">
-                  {formatDate(insurance.dateOfBirth)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Gender">
-                  {insurance.gender || "-"}
-                </Descriptions.Item>
-                <Descriptions.Item label="Address" span={2}>
-                  {insurance.address || "-"}
-                </Descriptions.Item>
-                <Descriptions.Item label="Healthcare Provider" span={2}>
-                  {insurance.healthcareProviderName}{" "}
-                  {insurance.healthcareProviderCode
-                    ? `(${insurance.healthcareProviderCode})`
-                    : ""}
-                </Descriptions.Item>
-                <Descriptions.Item label="Valid From">
-                  {formatDate(insurance.validFrom)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Valid To">
-                  {formatDate(insurance.validTo)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Issue Date">
-                  {formatDate(insurance.issueDate)}
-                </Descriptions.Item>
-                <Descriptions.Item
-                  label="Deadline"
-                  span={insurance.deadline ? 1 : 2}
-                >
-                  {insurance.deadline
-                    ? formatDateTime(insurance.deadline)
-                    : "-"}
-                </Descriptions.Item>
-                <Descriptions.Item label="Last Updated" span={2}>
-                  {insurance.updatedBy
-                    ? `${insurance.updatedBy.userName || ""} (${
-                        insurance.updatedBy.email || ""
-                      }) - ${formatDateTime(insurance.updatedAt)}`
-                    : insurance.createdBy
-                    ? `${insurance.createdBy.userName || ""} (${
-                        insurance.createdBy.email || ""
-                      }) - ${formatDateTime(insurance.createdAt)}`
-                    : formatDateTime(insurance.createdAt)}
-                </Descriptions.Item>
-              </Descriptions>
+              {insurance.status === "NotApplicable" ? (
+                <Alert
+                  message="No Health Insurance"
+                  description="You do not have health insurance registered in our system."
+                  type="info"
+                  showIcon
+                  icon={<FileExclamationOutlined />}
+                  className="mb-4"
+                />
+              ) : (
+                <Descriptions column={2} bordered>
+                  <Descriptions.Item label="Status" span={2}>
+                    {insurance.status === "Rejected" && insurance.verificationStatus === "Rejected" 
+                      ? getVerificationTag(insurance.verificationStatus)
+                      : <>
+                          {getStatusTag(insurance.status)}{" "}
+                          {getVerificationTag(insurance.verificationStatus)}
+                        </>
+                    }
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Insurance Number" span={2}>
+                    {insurance.healthInsuranceNumber || "-"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Full Name">
+                    {insurance.fullName || "-"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Date of Birth">
+                    {formatDate(insurance.dateOfBirth)}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Gender">
+                    {insurance.gender || "-"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Address" span={2}>
+                    {insurance.address || "-"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Healthcare Provider" span={2}>
+                    {insurance.healthcareProviderName}{" "}
+                    {insurance.healthcareProviderCode
+                      ? `(${insurance.healthcareProviderCode})`
+                      : ""}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Valid From">
+                    {formatDate(insurance.validFrom)}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Valid To">
+                    {formatDate(insurance.validTo)}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Issue Date">
+                    {formatDate(insurance.issueDate)}
+                  </Descriptions.Item>
+                  <Descriptions.Item
+                    label="Deadline"
+                    span={insurance.deadline ? 1 : 2}
+                  >
+                    {insurance.deadline
+                      ? formatDateTime(insurance.deadline)
+                      : "-"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Last Updated" span={2}>
+                    {insurance.updatedBy
+                      ? `${insurance.updatedBy.userName || ""} (${
+                          insurance.updatedBy.email || ""
+                        }) - ${formatDateTime(insurance.updatedAt)}`
+                      : insurance.createdBy
+                      ? `${insurance.createdBy.userName || ""} (${
+                          insurance.createdBy.email || ""
+                        }) - ${formatDateTime(insurance.createdAt)}`
+                      : formatDateTime(insurance.createdAt)}
+                  </Descriptions.Item>
+                </Descriptions>
+              )}
             </Card>
           </Col>
 

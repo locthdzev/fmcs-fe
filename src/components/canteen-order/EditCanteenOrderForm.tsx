@@ -176,7 +176,7 @@ export const EditCanteenOrderForm: React.FC<EditCanteenOrderFormProps> = ({
   };
   const fetchTrucks = async () => {
     try {
-      const trucksData = await getTrucks();
+      const trucksData = await getTrucks("Active");
       setTrucks(trucksData);
     } catch (error) {
       messageApi.error("Failed to fetch trucks", 5);

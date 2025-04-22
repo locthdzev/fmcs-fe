@@ -616,7 +616,7 @@ export function Trucks() {
   ]);
 
   const handleOpenDetails = async (id: string) => {
-    router.push(`/truck/${id}`);
+    router.push(`/delivery-truck/${id}`);
   };
 
   const handleUpdateSuccess = () => {
@@ -841,6 +841,12 @@ export function Trucks() {
     }
   };
 
+  // Add a function to get image URL with cache busting
+  const getImageUrlWithCacheBusting = (url: string | null | undefined): string => {
+    if (!url) return "";
+    return `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+  };
+
   const renderCell = useCallback(
     (truck: TruckResponse, columnKey: React.Key) => {
       const cellValue = truck[columnKey as keyof TruckResponse];
@@ -851,7 +857,7 @@ export function Trucks() {
             <div className="flex items-center gap-2">
               {truck.truckImage && (
                 <img
-                  src={truck.truckImage}
+                  src={getImageUrlWithCacheBusting(truck.truckImage)}
                   alt={truck.licensePlate}
                   className="w-8 h-8 object-cover rounded"
                   onError={(e) => {

@@ -154,6 +154,10 @@ export const TruckEditForm: React.FC<TruckEditFormProps> = ({
       try {
         const response = await updateTruck(truckId, formDataToSend);
         messageApi.success("Truck updated successfully", 5);
+        
+        // Navigate back to the details page with a cache-busting timestamp
+        router.push(`/delivery-truck/${truckId}?refresh=${Date.now()}`);
+        
         if (typeof onUpdate === 'function') {
           onUpdate();
         }

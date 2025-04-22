@@ -10,6 +10,7 @@ import {
   Tag,
   Card,
   Dropdown,
+  Popconfirm,
 } from "antd";
 import {
   DeleteOutlined,
@@ -75,28 +76,21 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
     router.push(`/health-insurance/${id}`);
   };
 
-  const handleSoftDelete = (id: string) => {
-    Modal.confirm({
-      title: "Are you sure you want to soft delete this health insurance?",
-      icon: <ExclamationCircleOutlined />,
-      content: "This action can be reversed later.",
-      onOk: async () => {
-        try {
-          const result = await softDeleteHealthInsurances([id]);
-          if (result.isSuccess) {
-            messageApi.success("Health insurance deleted successfully");
-            refreshData();
-          } else {
-            messageApi.error(
-              result.message || "Failed to delete health insurance"
-            );
-          }
-        } catch (error) {
-          messageApi.error("Failed to delete health insurance");
-          console.error("Error deleting health insurance:", error);
-        }
-      },
-    });
+  const handleSoftDelete = async (id: string) => {
+    try {
+      const result = await softDeleteHealthInsurances([id]);
+      if (result.isSuccess) {
+        messageApi.success("Health insurance deleted successfully");
+        refreshData();
+      } else {
+        messageApi.error(
+          result.message || "Failed to delete health insurance"
+        );
+      }
+    } catch (error) {
+      messageApi.error("Failed to delete health insurance");
+      console.error("Error deleting health insurance:", error);
+    }
   };
 
   const renderUserInfo = (user: any, record: HealthInsuranceResponseDTO) => {
@@ -474,24 +468,29 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
       width: 80,
       align: "center" as const,
       render: (record: HealthInsuranceResponseDTO) => (
-        <div style={{ textAlign: "center" }}>
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: "delete",
-                  icon: <DeleteOutlined />,
-                  label: "Soft Delete",
-                  danger: true,
-                  onClick: () => handleSoftDelete(record.id),
-                },
-              ],
-            }}
-            placement="bottomRight"
-            trigger={["click"]}
+        <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+          <Tooltip title="View Detail">
+            <Button
+              type="text"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => handleViewDetail(record.id)}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="Are you sure you want to delete this record?"
+            onConfirm={() => handleSoftDelete(record.id)}
+            okText="Yes"
+            cancelText="No"
+            icon={<QuestionCircleOutlined style={{ color: "red" }} />}
           >
-            <Button icon={<MoreOutlined />} size="small" />
-          </Dropdown>
+            <Button
+              type="text"
+              danger
+              size="small"
+              icon={<DeleteOutlined />}
+            />
+          </Popconfirm>
         </div>
       ),
     },
