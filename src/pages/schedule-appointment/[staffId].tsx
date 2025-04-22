@@ -21,7 +21,7 @@ import {
   cancelPresentLockedAppointment,
   cancelExpiredLockedAppointment,
 } from "@/api/appointment-api-fix-signalr";
-import { Button, Spin, Typography, Row, Col, Input } from "antd";
+import { Button, Spin, Typography, Row, Col, Input, message } from "antd";
 import {
   setupScheduleAppointmentLockedRealtime,
   setupCancelAppointmentRealtime,
@@ -30,7 +30,6 @@ import {
   setupCancelPresentLockedAppointmentRealtime,
   setupCancelExpiredLockedAppointmentRealtime,
 } from "@/api/appointment-signalr";
-import { toast } from "react-toastify";
 import moment from "moment-timezone";
 import Cookies from "js-cookie";
 import ConflictModal from "@/components/appointment/ConflictModal";
@@ -82,6 +81,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
   staff,
   token,
 }) => {
+  const [messageApi, contextHolder] = message.useMessage();
   const [schedulingInProgress, setSchedulingInProgress] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
@@ -153,12 +153,12 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
         }
       } catch (error) {
         console.error("Failed to fetch slots:", error);
-        toast.error("Failed to load available time slots");
+        messageApi.error("Failed to load available time slots");
       } finally {
         setFetchingSlots(false);
       }
     }, 50),
-    [staff.staffId, token, userId, schedulingInProgress, selectedTimeSlot]
+    [staff.staffId, token, userId, schedulingInProgress, selectedTimeSlot, messageApi]
   );
 
   // Fetch slot counts
@@ -233,7 +233,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
   // Token decoding
   useEffect(() => {
     if (!token) {
-      toast.error("Authentication token is missing");
+      messageApi.error("Authentication token is missing");
       return;
     }
     try {
@@ -244,10 +244,10 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
       setUserId(extractedUserId);
     } catch (error) {
       console.error("Token decoding failed:", error);
-      toast.error("Failed to authenticate: Invalid token");
+      messageApi.error("Failed to authenticate: Invalid token");
       setUserId(null);
     }
-  }, [token]);
+  }, [token, messageApi]);
 
   // Update refs when state changes
   useEffect(() => {
@@ -302,7 +302,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
         setSelectedTimeSlot(timeSlot);
         setIsConfirmed(false);
         setIsConfirming(false);
-        // toast.info(`Slot ${timeSlot} locked in another tab`);
+        // messageApi.info(`Slot ${timeSlot} locked in another tab`);
       } else if (
         type === "SLOT_LOCKED_BY_OTHER" &&
         broadcastedDate === selectedDateRef.current &&
@@ -313,7 +313,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
           isLocked: true,
           lockedByCurrentUser: false,
         });
-        // toast.info(`Slot ${timeSlot} is now taken`);
+        // messageApi.info(`Slot ${timeSlot} is now taken`);
       } else if (
         type === "CANCEL_SLOT" &&
         broadcastedDate === selectedDateRef.current
@@ -326,9 +326,9 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
         if (canceledTimeSlot === selectedTimeSlotRef.current) {
           resetSelectionState();
           if (reason === "user-initiated") {
-            // toast.info(`Your locked appointment (${canceledTimeSlot}) was canceled from another tab`);
+            // messageApi.info(`Your locked appointment (${canceledTimeSlot}) was canceled from another tab`);
           } else if (reason === "expiration") {
-            // toast.info(`Your locked appointment (${canceledTimeSlot}) has expired`);
+            // messageApi.info(`Your locked appointment (${canceledTimeSlot}) has expired`);
           }
         }
       } else if (
@@ -346,7 +346,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
         setIsConfirmed(true);
         setLoading(false);
         setIsConfirming(false);
-        toast.success("Appointment confirmed in another tab!");
+        messageApi.success("Appointment confirmed in another tab!");
       } else if (
         type === "CONFIRM_START" &&
         broadcastedId === appointmentIdRef.current &&
@@ -354,7 +354,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
       ) {
         setLoading(true);
         setIsConfirming(true);
-        toast.info("Confirmation started in another tab");
+        messageApi.info("Confirmation started in another tab");
       } else if (
         type === "CONFIRM_END" &&
         broadcastedId === appointmentIdRef.current &&
@@ -448,7 +448,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
           ) {
             resetSelectionState();
             if (!hasHandledExpirationRef.current) {
-              // toast.error("Your locked appointment has expired");
+              // messageApi.error("Your locked appointment has expired");
             }
           }
           // fetchAvailableSlots(data.date);
@@ -485,9 +485,9 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
     //     // Reset selection if this was the current user's slot
     //     if (timeSlot === selectedTimeSlotRef.current && appointmentId === appointmentIdRef.current) {
     //       resetSelectionState();
-    //       toast.info("Your previous appointment lock was canceled");
+    //       messageApi.info("Your previous appointment lock was canceled");
     //     } else if (signalRUserId !== userId) {
-    //       toast.info(`Slot ${timeSlot} is now available`);
+    //       messageApi.info(`Slot ${timeSlot} is now available`);
     //     }
     //   }
     // });
@@ -511,7 +511,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
             resetSelectionState();
             setIsConfirmed(true);
           }
-          // toast.success("Appointment confirmed via real-time update!");
+          // messageApi.success("Appointment confirmed via real-time update!");
         }
       }
     );
@@ -658,12 +658,12 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
               reason: "expiration",
             });
             resetSelectionState();
-            // toast.error("Appointment lock expired");
+            // messageApi.error("Appointment lock expired");
             // await fetchAvailableSlots(selectedDate);
             hasHandledExpirationRef.current = true; // Set after successful cancellation
           } else {
             console.error("Failed to cancel expired lock:", response.message);
-            toast.error(
+            messageApi.error(
               `Failed to release expired slot: ${
                 response.message || "Unknown error"
               }`
@@ -671,7 +671,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
           }
         } catch (error) {
           console.error("Lock expiration error:", error);
-          toast.error("Failed to free expired slot");
+          messageApi.error("Failed to free expired slot");
         } finally {
           setLoading(false);
         }
@@ -686,6 +686,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
       appointmentId,
       staff.staffId,
       fetchAvailableSlots,
+      messageApi
     ]
   );
 
@@ -727,7 +728,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
   const cancelCurrentLock = async (timeSlot: string) => {
     if (!appointmentId) {
       console.error("No appointment ID available to cancel");
-      toast.error("Cannot cancel lock: No appointment selected");
+      messageApi.error("Cannot cancel lock: No appointment selected");
       return;
     }
 
@@ -750,17 +751,17 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
           staffId: staff.staffId,
           reason: "user-initiated",
         });
-        // toast.info("Appointment lock canceled");
+        // messageApi.info("Appointment lock canceled");
       }
     } catch (error) {
       console.error("Cancel lock failed:", error);
-      toast.error("Failed to cancel appointment lock");
+      messageApi.error("Failed to cancel appointment lock");
     }
   };
 
   const handleScheduleAppointment = async (timeSlot: string) => {
     if (!selectedDate || !token || !userId) {
-      toast.error("Missing required information for scheduling");
+      messageApi.error("Missing required information for scheduling");
       return;
     }
 
@@ -829,7 +830,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
             return;
           }
         }
-        toast.error(
+        messageApi.error(
           `Validation failed: ${
             validationResponse.message || "Invalid request"
           }`
@@ -844,7 +845,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
         token
       );
       if (!cancelResponse.isSuccess) {
-        toast.error(
+        messageApi.error(
           `Failed to release previous lock: ${
             cancelResponse.message || "Unknown error"
           }`
@@ -872,7 +873,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
           selectedDate,
           staffId: staff.staffId,
         });
-        // toast.info(`Appointment locked until ${moment(appointmentData.lockedUntil).format("HH:mm")}`);
+        // messageApi.info(`Appointment locked until ${moment(appointmentData.lockedUntil).format("HH:mm")}`);
         setIntendedTimeSlot(null);
       } else if (
         scheduleResponse.code === 409 &&
@@ -899,18 +900,18 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
           // Wait for modal interaction (handled in Step 3)
           return; // Exit here; modal handlers will continue the flow
         } else {
-          toast.error("Scheduling conflict detected");
+          messageApi.error("Scheduling conflict detected");
           setSelectedTimeSlot(null);
         }
       } else {
-        toast.error(
+        messageApi.error(
           `Scheduling failed: ${scheduleResponse.message || "Unknown error"}`
         );
         setSelectedTimeSlot(null);
       }
     } catch (error) {
       console.error("Scheduling error:", error);
-      toast.error("Failed to schedule appointment");
+      messageApi.error("Failed to schedule appointment");
       setSelectedTimeSlot(null);
     } finally {
       setLoading(false);
@@ -923,7 +924,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
     if (!token || !selectedDate || !intendedTimeSlot || !conflictAppointment)
       return;
     if (!selectedDate || !token || !userId) {
-      toast.error("Missing required information for scheduling");
+      messageApi.error("Missing required information for scheduling");
       return;
     }
 
@@ -1017,12 +1018,12 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
             selectedDate,
             staffId: staff.staffId,
           });
-          // toast.info(`New appointment locked until ${moment(retryData.lockedUntil).format("HH:mm")}`);
+          // messageApi.info(`New appointment locked until ${moment(retryData.lockedUntil).format("HH:mm")}`);
           setIntendedTimeSlot(null); // Clear after success
           // Reset selection state after successful switch
           setSelectedTimeSlot(intendedTimeSlot);
         } else {
-          toast.error(
+          messageApi.error(
             `Retry failed: ${scheduleRetry.message || "Unknown error"}`
           );
           setSelectedTimeSlot(null);
@@ -1030,13 +1031,13 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
           await fetchAvailableSlots(selectedDate);
         }
       } else {
-        toast.error("Failed to cancel previous lock");
+        messageApi.error("Failed to cancel previous lock");
         setSelectedTimeSlot(null);
         setIntendedTimeSlot(null);
       }
     } catch (error) {
       console.error("Conflict resolution error:", error);
-      toast.error("Failed to resolve appointment conflict");
+      messageApi.error("Failed to resolve appointment conflict");
       setSelectedTimeSlot(null);
       setIntendedTimeSlot(null);
     } finally {
@@ -1047,7 +1048,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
   };
 
   const handleConflictCancel = () => {
-    // toast.info("Keeping existing appointment lock");
+    // messageApi.info("Keeping existing appointment lock");
     setSelectedTimeSlot(null);
     setIsConflictModalVisible(false);
     setConflictAppointment(null);
@@ -1057,7 +1058,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
 
   const handleConfirmAppointment = async () => {
     if (!appointmentId || !lockedUntil || !token || !appointmentReason.trim()) {
-      toast.error("Missing required information or Reason for appointment");
+      messageApi.error("Missing required information or Reason for appointment");
       return;
     }
 
@@ -1098,15 +1099,15 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
         });
         resetSelectionState();
         setIsConfirmed(true);
-        toast.success("Appointment confirmed successfully!");
+        messageApi.success("Appointment confirmed successfully!");
         setShouldRedirect(true);
       } else {
-        toast.error("Failed to confirm appointment");
+        messageApi.error("Failed to confirm appointment");
         resetSelectionState();
       }
     } catch (error) {
       console.error("Confirmation error:", error);
-      toast.error("Failed to confirm appointment");
+      messageApi.error("Failed to confirm appointment");
       resetSelectionState();
     } finally {
       // Broadcast that confirmation has ended
@@ -1201,8 +1202,9 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
 
   return (
     <div style={{ padding: "24px", width: "100%" }}>
-      <div className="flex flex-wrap w-full">
-        <div className="w-full rounded-3xl bg-white p-6 shadow-xl lg:w-8/12">
+      {contextHolder}
+      <div className="flex flex-wrap w-full justify-center">
+        <div className="w-full rounded-3xl bg-white p-6 shadow-xl">
           <Row
             gutter={[24, 24]}
             style={{ marginBottom: "32px", width: "100%", margin: 0 }}
@@ -1451,9 +1453,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
                   <Text>
                     Confirm within{" "}
                     {timeLeft !== null
-                      ? `${Math.floor(timeLeft / 60)}:${(timeLeft % 60)
-                          .toString()
-                          .padStart(2, "0")}`
+                      ? `2:00`
                       : "expired"}
                   </Text>
                   <br />
@@ -1469,15 +1469,6 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
               )}
             </>
           )}
-        </div>
-
-        <div className="mt-8 w-full lg:mt-0 lg:w-4/12 lg:pl-4">
-          <div className="rounded-3xl bg-white px-6 pt-6 shadow-lg">
-            <div className="flex pb-6 text-2xl font-bold text-gray-800">
-              {/* <p>Health Notifications</p> */}
-            </div>
-            {/* Add your notifications here */}
-          </div>
         </div>
       </div>
       <ConflictModal

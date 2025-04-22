@@ -12,10 +12,10 @@ import {
   Result,
   Badge,
   Descriptions,
+  message
 } from "antd";
 import dayjs from "dayjs";
 import Cookies from "js-cookie";
-import { toast } from "react-toastify";
 import {
   UserOutlined,
   MailOutlined,
@@ -94,6 +94,7 @@ interface AppointmentUserDetailsProps {
 }
 
 export function AppointmentUserDetails({ id }: AppointmentUserDetailsProps) {
+  const [messageApi, contextHolder] = message.useMessage();
   const [appointment, setAppointment] = useState<AppointmentResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,18 +107,18 @@ export function AppointmentUserDetails({ id }: AppointmentUserDetailsProps) {
       const result = await getAppointment(appointmentId, token);
       if (result.isSuccess && result.data) {
         setAppointment(result.data);
-        // toast.success("Appointment details loaded successfully!");
+        // messageApi.success("Appointment details loaded successfully!");
       } else {
         setError(result.message || "Failed to retrieve appointment details.");
-        toast.error(result.message || "Unable to load details.");
+        messageApi.error(result.message || "Unable to load details.");
       }
     } catch (error: any) {
       setError(error.message || "An error occurred while fetching data.");
-      toast.error(error.message || "An error occurred.");
+      messageApi.error(error.message || "An error occurred.");
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, messageApi]);
 
   useEffect(() => {
     if (!token) {
@@ -145,7 +146,7 @@ export function AppointmentUserDetails({ id }: AppointmentUserDetailsProps) {
       Reason: ${appointment?.reason || "Not specified"}
     `.trim();
     navigator.clipboard.writeText(details);
-    toast.info("Appointment details copied to clipboard!");
+    messageApi.info("Appointment details copied to clipboard!");
   };
 
   if (!token) {
@@ -198,6 +199,7 @@ export function AppointmentUserDetails({ id }: AppointmentUserDetailsProps) {
 
   return (
     <div className="p-4 bg-gray-100 flex items-center justify-center">
+      {contextHolder}
       <Card
         className="w-full max-w-4xl shadow-lg border-none"
         title={
