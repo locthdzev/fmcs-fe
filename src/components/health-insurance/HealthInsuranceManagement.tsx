@@ -668,12 +668,18 @@ const HealthInsuranceManagement: React.FC = () => {
       const result = await createInitialHealthInsurances();
       if (result.isSuccess) {
         const count = result.data || 0;
-        messageApi.success(
-          `${count} initial health insurance records created successfully`
-        );
+        if (count > 0) {
+          messageApi.success(
+            `${count} initial health insurance records created successfully`
+          );
+        } else {
+          messageApi.info(
+            "No new initial health insurance records needed to be created"
+          );
+        }
         fetchData();
       } else {
-        messageApi.error(
+        messageApi.info(
           result.message || "Failed to create initial health insurances"
         );
       }
