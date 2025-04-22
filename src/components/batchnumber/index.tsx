@@ -417,6 +417,11 @@ export function BatchNumberManagement() {
     e.stopPropagation();
   };
 
+  const navigateToBatchDetail = (id: string) => {
+    console.log("Navigating to batch detail with ID:", id);
+    router.push(`/batch-number/${id}`);
+  };
+
   return (
     <>
       {contextHolder}
@@ -759,6 +764,15 @@ export function BatchNumberManagement() {
               key="batchCode"
               sorter={(a, b) => a.batchCode.localeCompare(b.batchCode)}
               hidden={!columnVisibility.batchCode}
+              render={(batchCode, record) => (
+                <Button 
+                  type="link" 
+                  onClick={() => navigateToBatchDetail(record.id)}
+                  style={{ padding: 0, margin: 0, height: 'auto' }}
+                >
+                  {batchCode}
+                </Button>
+              )}
             />
             <Column
               title="DRUG NAME"

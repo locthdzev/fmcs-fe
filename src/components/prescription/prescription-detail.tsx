@@ -22,6 +22,7 @@ import {
   InputNumber,
   Select,
   Spin,
+  Tooltip,
 } from "antd";
 import { useRouter } from "next/router";
 import {
@@ -55,6 +56,13 @@ import {
   DeleteOutlined,
   UndoOutlined,
   PlusOutlined,
+  PrinterOutlined,
+  UserOutlined,
+  FileOutlined,
+  CalendarOutlined,
+  EnvironmentOutlined,
+  PhoneOutlined,
+  GiftOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
@@ -362,6 +370,23 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
     return status === "SoftDeleted";
   };
 
+  const getBatchStatusColor = (status: string | undefined) => {
+    switch (status) {
+      case "Priority":
+        return "primary";
+      case "Active":
+        return "success";
+      case "NearExpiry":
+        return "warning";
+      case "Inactive":
+        return "default";
+      case "Expired":
+        return "error";
+      default:
+        return "default";
+    }
+  };
+
   const renderActionButtons = () => {
     if (!prescription) return null;
 
@@ -608,6 +633,34 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
                 {detail.instructions}
               </Descriptions.Item>
             </Descriptions>
+
+            {detail.batchDetails && detail.batchDetails.length > 0 && (
+              <div className="mt-4">
+                <Divider orientation="left">Batch Information</Divider>
+                <Descriptions bordered column={1}>
+                  <Descriptions.Item label="Batch Number">
+                    <Button 
+                      type="link" 
+                      onClick={() => router.push(`/batch-number/${detail.batchDetails?.[0].batchId}`)}
+                      style={{ padding: 0, margin: 0 }}
+                    >
+                      {detail.batchDetails?.[0].batchCode}
+                    </Button>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Quantity Used">
+                    {detail.batchDetails?.[0].quantityUsed}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Expiry Date">
+                    {formatDate(detail.batchDetails?.[0].expiryDate)}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Batch Status">
+                    <Tag color={getBatchStatusColor(detail.batchDetails?.[0].status)}>
+                      {detail.batchDetails?.[0].status}
+                    </Tag>
+                  </Descriptions.Item>
+                </Descriptions>
+              </div>
+            )}
           </Card>
         ))}
       </div>
