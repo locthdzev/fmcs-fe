@@ -688,10 +688,26 @@ export function UserManagement() {
         ? filterUpdatedRange[1].toDate()
         : undefined;
 
+      // Tạo một bản sao của exportConfig để chắc chắn exportAllPages được đặt đúng
+      const configToSend = {
+        ...exportConfig,
+        exportAllPages: true  // Đảm bảo thiết lập trực tiếp để luôn xuất tất cả dữ liệu
+      };
+
+      console.log("Export config:", configToSend);
+      console.log("Using exportAllPages:", configToSend.exportAllPages);
+
+      // Nếu người dùng đã chọn export tất cả các trang, sử dụng page=1 và pageSize là một số lớn
+      // để đảm bảo backend trả về tất cả dữ liệu
+      const exportPage = 1;  // Luôn bắt đầu từ trang 1
+      const exportPageSize = 10000;  // Sử dụng một số lớn hơn tổng số user
+
+      console.log("Export page parameters:", { page: exportPage, pageSize: exportPageSize });
+
       const response = await exportUsersToExcelWithConfig(
-        exportConfig,
-        currentPage,
-        pageSize,
+        configToSend,
+        exportPage,
+        exportPageSize,
         filterFullName || undefined,
         filterUserName || undefined,
         filterEmail || undefined,

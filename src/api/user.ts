@@ -375,6 +375,10 @@ export const exportUsersToExcelWithConfig = async (
     params.append("sortBy", sortBy);
     params.append("ascending", ascending.toString());
 
+    console.log('Exporting users with config:', config);
+    console.log('Query params:', params.toString());
+    console.log('Export all pages:', config.exportAllPages);
+
     const response = await api.post(
       `/user-management/users/export-excel-config?${params.toString()}`,
       config
