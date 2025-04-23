@@ -49,10 +49,28 @@ export interface DrugInfo {
   name: string;
 }
 
+export interface BatchInfo {
+  id: string;
+  batchCode: string;
+  manufacturingDate?: string;
+  expiryDate?: string;
+  status?: string;
+}
+
+export interface BatchDetailInfo {
+  batchId: string;
+  batchCode: string;
+  quantityUsed: number;
+  expiryDate?: string;
+  status?: string;
+}
+
 // Prescription related interfaces
 export interface PrescriptionDetailResponseDTO {
   id: string;
   drug?: DrugInfo;
+  batch?: BatchInfo;
+  batchDetails?: BatchDetailInfo[];
   dosage: string;
   quantity: number;
   instructions: string;

@@ -25,6 +25,36 @@ export interface MergeBatchNumbersRequestDTO {
   batchNumberIds: string[];
 }
 
+export interface PrescriptionDTO {
+  id: string;
+  prescriptionCode: string;
+  patientName?: string;
+  patientId?: string;
+  staffName?: string;
+  staffId?: string;
+  staffEmail?: string;
+  staffUserName?: string;
+  totalQuantityUsed?: number;
+  quantity?: number;
+  doctorName?: string;
+  drugName?: string;
+  dosage?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+  status?: string;
+  prescriptionDate?: string;
+  healthCheckResultCode?: string;
+  relevantDrugDetails?: Array<{
+    drugId: string;
+    drugName: string;
+    drugCode: string;
+    quantity: number;
+    dosage: string;
+    instructions: string;
+  }>;
+}
+
 export const getAllBatchNumbers = async (
   page: number = 1,
   pageSize: number = 10,
@@ -129,5 +159,10 @@ export const getAllBatchNumbersWithoutPagination = async () => {
       count: true
     },
   });
+  return response.data;
+};
+
+export const getPrescriptionsByBatchNumberId = async (id: string) => {
+  const response = await api.get(`/batchnumber-management/batchnumbers/${id}/prescriptions`);
   return response.data;
 };

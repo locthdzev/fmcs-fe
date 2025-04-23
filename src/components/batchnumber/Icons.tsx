@@ -154,7 +154,7 @@ export function LockIcon() {
   );
 }
 
-export function BatchNumberIcon() {
+export function BatchNumberIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -162,6 +162,7 @@ export function BatchNumberIcon() {
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
+      {...props}
     >
       <path
         strokeLinecap="round"
