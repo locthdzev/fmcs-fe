@@ -675,7 +675,7 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
         <div className="flex items-center gap-2">
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/prescription")}
+            onClick={() => router.back()}
             style={{ marginRight: "8px" }}
           >
             Back

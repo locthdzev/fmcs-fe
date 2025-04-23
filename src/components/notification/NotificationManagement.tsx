@@ -109,10 +109,10 @@ export function NotificationManagement() {
 
   // Search filters
   const [searchText, setSearchText] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const [recipientTypeFilter, setRecipientTypeFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [recipientTypeFilter, setRecipientTypeFilter] = useState<string | undefined>(undefined);
   const [sendEmailFilter, setSendEmailFilter] = useState<boolean | null>(null);
-  const [createdByFilter, setCreatedByFilter] = useState<string>("");
+  const [createdByFilter, setCreatedByFilter] = useState<string | undefined>(undefined);
   const [dateRange, setDateRange] = useState<
     [dayjs.Dayjs | null, dayjs.Dayjs | null]
   >([null, null]);
@@ -133,8 +133,8 @@ export function NotificationManagement() {
 
   // Filter state for the modal
   const [filterState, setFilterState] = useState({
-    recipientTypeFilter: "",
-    createdByFilter: "",
+    recipientTypeFilter: undefined as string | undefined,
+    createdByFilter: undefined as string | undefined,
     sendEmailFilter: null as boolean | null,
     dateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
     sortBy: "CreatedAt",
@@ -357,10 +357,10 @@ export function NotificationManagement() {
   // Reset filters
   const handleReset = () => {
     setSearchText("");
-    setStatusFilter("");
-    setRecipientTypeFilter("");
+    setStatusFilter(undefined);
+    setRecipientTypeFilter(undefined);
     setSendEmailFilter(null);
-    setCreatedByFilter("");
+    setCreatedByFilter(undefined);
     setDateRange([null, null]);
     setSortBy("CreatedAt");
     setAscending(false);
@@ -489,9 +489,9 @@ export function NotificationManagement() {
   const handleApplyFilters = (filters: any) => {
     // Reset to page 1 when applying filters
     setCurrentPage(1);
-    setRecipientTypeFilter(filters.recipientType || "");
+    setRecipientTypeFilter(filters.recipientType || undefined);
     setSendEmailFilter(filters.sendEmail);
-    setCreatedByFilter(filters.createdBy || "");
+    setCreatedByFilter(filters.createdBy || undefined);
     setDateRange(filters.dateRange || [null, null]);
     setSortBy(filters.sortBy || "CreatedAt");
     setAscending(filters.ascending || false);
@@ -501,8 +501,8 @@ export function NotificationManagement() {
   // Reset all filters
   const handleResetFilters = () => {
     setFilterState({
-      recipientTypeFilter: "",
-      createdByFilter: "",
+      recipientTypeFilter: undefined,
+      createdByFilter: undefined,
       sendEmailFilter: null,
       dateRange: [null, null],
       sortBy: "CreatedAt",
@@ -543,9 +543,9 @@ export function NotificationManagement() {
   // Check if filters are applied
   const isFiltersApplied = () => {
     return (
-      recipientTypeFilter !== "" ||
+      recipientTypeFilter !== undefined ||
       sendEmailFilter !== null ||
-      createdByFilter !== "" ||
+      createdByFilter !== undefined ||
       (dateRange[0] !== null && dateRange[1] !== null)
     );
   };
@@ -630,16 +630,21 @@ export function NotificationManagement() {
           form={searchForm}
           layout="vertical"
           className="flex flex-wrap gap-4"
+          onValuesChange={(changedValues) => {
+            // Cập nhật state cho các giá trị thay đổi
+            if ('status' in changedValues) {
+              setStatusFilter(changedValues.status);
+            }
+            if ('searchText' in changedValues) {
+              setSearchText(changedValues.searchText);
+            }
+          }}
         >
           <div className="mb-3 flex items-center justify-between w-full">
             <div className="flex items-center gap-4">
               <Form.Item name="searchText" className="mb-0 min-w-[320px]">
                 <Search
                   placeholder="Search by title"
-                  value={searchText}
-                  onChange={(e) =>
-                    handleFormFieldChange("searchText", e.target.value)
-                  }
                   onSearch={() => fetchNotifications()}
                   allowClear
                 />
@@ -647,14 +652,7 @@ export function NotificationManagement() {
 
               <Form.Item name="status" className="mb-0">
                 <Select
-                  placeholder={
-                    <div style={{ display: "flex", alignItems: "center" }}>
-                      <TagOutlined style={{ marginRight: 8 }} />
-                      <span>Status</span>
-                    </div>
-                  }
-                  value={statusFilter}
-                  onChange={(value) => handleFormFieldChange("status", value)}
+                  placeholder="Status"
                   allowClear
                   style={{ width: "120px" }}
                 >

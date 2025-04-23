@@ -161,7 +161,7 @@ const PrescriptionFilterModal: React.FC<PrescriptionFilterModalProps> = ({
       ]}
     >
       <Space direction="vertical" style={{ width: "100%" }}>
-        <Divider orientation="left">Search Criteria</Divider>
+        <Divider orientation="left">Filter Option</Divider>
         <Row gutter={16}>
           {/* Health Check Result Code */}
           <Col span={12}>
