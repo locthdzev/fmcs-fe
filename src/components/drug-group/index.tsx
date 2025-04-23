@@ -72,7 +72,13 @@ export function capitalize(s: string) {
 const staticColumns = [
   {
     title: (
-      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+      <span
+        style={{
+          textTransform: "uppercase",
+          fontWeight: "bold",
+          display: "flex",
+        }}
+      >
         Group Name
       </span>
     ),
@@ -81,7 +87,13 @@ const staticColumns = [
   },
   {
     title: (
-      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+      <span
+        style={{
+          textTransform: "uppercase",
+          fontWeight: "bold",
+          display: "flex",
+        }}
+      >
         Description
       </span>
     ),
@@ -90,26 +102,50 @@ const staticColumns = [
   },
   {
     title: (
-      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+      <span
+        style={{
+          textTransform: "uppercase",
+          fontWeight: "bold",
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
         Created At
       </span>
     ),
     dataIndex: "createdAt",
     key: "createdAt",
-    render: (date: string) => (date ? dayjs(date).format("DD/MM/YYYY") : "-"),
+    render: (date: string) =>
+      date ? dayjs(date).format("DD/MM/YYYY HH:mm:ss") : "-",
+    align: "center" as const,
   },
   {
     title: (
-      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+      <span
+        style={{
+          textTransform: "uppercase",
+          fontWeight: "bold",
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
         Status
       </span>
     ),
     dataIndex: "status",
     key: "status",
+    align: "center" as const,
   },
   {
     title: (
-      <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+      <span
+        style={{
+          textTransform: "uppercase",
+          fontWeight: "bold",
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
         Actions
       </span>
     ),
@@ -151,7 +187,7 @@ export function DrugGroups() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalAvailableItems, setTotalAvailableItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const [pageSize, setPageSize] = useState(10);
   const [filterValue, setFilterValue] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [sorter, setSorter] = useState<
@@ -661,7 +697,7 @@ export function DrugGroups() {
   }, [columnVisibility]);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN");
+    return dayjs(dateString).format("DD/MM/YYYY HH:mm:ss");
   };
 
   const handleTableChange: TableProps<DrugGroupResponse>["onChange"] = (
@@ -874,7 +910,14 @@ export function DrugGroups() {
   const columns: TableProps<DrugGroupResponse>["columns"] = useMemo(() => {
     const actionColumn = {
       title: (
-        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+        <span
+          style={{
+            textTransform: "uppercase",
+            fontWeight: "bold",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
           ACTIONS
         </span>
       ),
@@ -920,6 +963,7 @@ export function DrugGroups() {
         if (col.key === "status") {
           return {
             ...col,
+            align: "center" as const,
             render: (status: string) => (
               <Tag color={status === "Active" ? "success" : "error"}>
                 {status ? status.toUpperCase() : ""}
@@ -930,8 +974,9 @@ export function DrugGroups() {
         if (col.key === "createdAt" || col.key === "updatedAt") {
           return {
             ...col,
+            align: "center" as const,
             render: (date: string) =>
-              date ? dayjs(date).format("DD/MM/YYYY") : "-",
+              date ? dayjs(date).format("DD/MM/YYYY HH:mm:ss") : "-",
           };
         }
         return col;
@@ -1145,10 +1190,10 @@ export function DrugGroups() {
 
         {showActivateButton && (
           <Button
-            style={{ 
-              backgroundColor: "#f6ffed", 
-              color: "#52c41a", 
-              borderColor: "#b7eb8f" 
+            style={{
+              backgroundColor: "#f6ffed",
+              color: "#52c41a",
+              borderColor: "#b7eb8f",
             }}
             onClick={() => showConfirm("activate", handleActivate)}
             disabled={loading}
@@ -1159,10 +1204,10 @@ export function DrugGroups() {
 
         {showDeactivateButton && (
           <Button
-            style={{ 
-              backgroundColor: "#fff2f0", 
-              color: "#ff4d4f", 
-              borderColor: "#ffccc7" 
+            style={{
+              backgroundColor: "#fff2f0",
+              color: "#ff4d4f",
+              borderColor: "#ffccc7",
             }}
             onClick={() => showConfirm("deactivate", handleDeactivate)}
             disabled={loading}
@@ -1190,7 +1235,6 @@ export function DrugGroups() {
           <Option value={20}>20</Option>
           <Option value={50}>50</Option>
           <Option value={100}>100</Option>
-
         </Select>
       </div>
     );
@@ -1255,7 +1299,6 @@ export function DrugGroups() {
                       allowClear
                       placeholder={
                         <div style={{ display: "flex", alignItems: "center" }}>
-                          
                           <span>Search by group name...</span>
                         </div>
                       }
@@ -1319,8 +1362,7 @@ export function DrugGroups() {
                           !sorter &&
                           advancedFilters === initialAdvancedFilters
                         }
-                      >
-                      </Button>
+                      ></Button>
                     </Tooltip>
 
                     <Dropdown

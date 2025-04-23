@@ -168,7 +168,7 @@ const DrugFilterModal: React.FC<DrugFilterModalProps> = ({
     >
       <Space direction="vertical" style={{ width: "100%" }}>
         {/* Search Criteria Section */}
-        <Divider orientation="left">Search Criteria</Divider>
+        <Divider orientation="left">Filter Options</Divider>
         <Row gutter={16}>
           {/* Drug Group */}
           <Col span={12}>
@@ -367,7 +367,7 @@ const DrugFilterModal: React.FC<DrugFilterModalProps> = ({
         </Row>
 
         {/* Sort Settings */}
-        <Divider orientation="left">Sort Settings</Divider>
+        <Divider orientation="left">Sort Direction</Divider>
         <Row gutter={16}>
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
