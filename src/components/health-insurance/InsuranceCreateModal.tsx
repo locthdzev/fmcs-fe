@@ -13,6 +13,8 @@ import {
   Divider,
   Switch,
   Card,
+  Row,
+  Col,
 } from "antd";
 import {
   PlusOutlined,
@@ -169,7 +171,6 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
     <Modal
       title={
         <Space>
-          <PlusOutlined />
           <Title level={4} style={{ margin: 0 }}>
             {isManual
               ? "Create Health Insurance"
@@ -179,7 +180,7 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
       }
       open={visible}
       onCancel={onClose}
-      width={800}
+      width={1000}
       footer={null}
       destroyOnClose
     >
@@ -223,47 +224,69 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
             </Space>
             <Divider style={{ margin: "8px 0" }} />
 
-            <Form.Item
-              name="healthInsuranceNumber"
-              label="Health Insurance Number"
-              rules={[
-                {
-                  required: true,
-                  message: "Please input health insurance number",
-                },
-              ]}
-            >
-              <Input placeholder="Enter health insurance number" />
-            </Form.Item>
+            <Row gutter={24}>
+              <Col span={12}>
+                <Form.Item
+                  name="healthInsuranceNumber"
+                  label="Health Insurance Number"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input health insurance number",
+                    },
+                  ]}
+                >
+                  <Input placeholder="Enter health insurance number" />
+                </Form.Item>
+              </Col>
+              
+              <Col span={12}>
+                <Form.Item
+                  name="fullName"
+                  label="Full Name"
+                  rules={[{ required: true, message: "Please input full name" }]}
+                >
+                  <Input placeholder="Enter full name" />
+                </Form.Item>
+              </Col>
+            </Row>
 
-            <Form.Item
-              name="fullName"
-              label="Full Name"
-              rules={[{ required: true, message: "Please input full name" }]}
-            >
-              <Input placeholder="Enter full name" />
-            </Form.Item>
+            <Row gutter={24}>
+              <Col span={8}>
+                <Form.Item
+                  name="dateOfBirth"
+                  label="Date of Birth"
+                  rules={[
+                    { required: true, message: "Please select date of birth" },
+                  ]}
+                >
+                  <DatePicker style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+              
+              <Col span={8}>
+                <Form.Item
+                  name="gender"
+                  label="Gender"
+                  rules={[{ required: true, message: "Please select gender" }]}
+                >
+                  <Select placeholder="Select gender">
+                    <Option value="Male">Male</Option>
+                    <Option value="Female">Female</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
 
-            <Form.Item
-              name="dateOfBirth"
-              label="Date of Birth"
-              rules={[
-                { required: true, message: "Please select date of birth" },
-              ]}
-            >
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item
-              name="gender"
-              label="Gender"
-              rules={[{ required: true, message: "Please select gender" }]}
-            >
-              <Select placeholder="Select gender">
-                <Option value="Male">Male</Option>
-                <Option value="Female">Female</Option>
-              </Select>
-            </Form.Item>
+              <Col span={8}>
+                <Form.Item
+                  name="issueDate"
+                  label="Issue Date"
+                  rules={[{ required: true, message: "Please select issue date" }]}
+                >
+                  <DatePicker style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+            </Row>
 
             <Form.Item
               name="address"
@@ -273,59 +296,63 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
               <Input.TextArea rows={2} placeholder="Enter address" />
             </Form.Item>
 
-            <Form.Item
-              name="healthcareProviderName"
-              label="Healthcare Provider Name"
-              rules={[
-                {
-                  required: true,
-                  message: "Please input healthcare provider name",
-                },
-              ]}
-            >
-              <Input placeholder="Enter healthcare provider name" />
-            </Form.Item>
+            <Row gutter={24}>
+              <Col span={12}>
+                <Form.Item
+                  name="healthcareProviderName"
+                  label="Healthcare Provider Name"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input healthcare provider name",
+                    },
+                  ]}
+                >
+                  <Input placeholder="Enter healthcare provider name" />
+                </Form.Item>
+              </Col>
+              
+              <Col span={12}>
+                <Form.Item
+                  name="healthcareProviderCode"
+                  label="Healthcare Provider Code"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input healthcare provider code",
+                    },
+                  ]}
+                >
+                  <Input placeholder="Enter healthcare provider code" />
+                </Form.Item>
+              </Col>
+            </Row>
 
-            <Form.Item
-              name="healthcareProviderCode"
-              label="Healthcare Provider Code"
-              rules={[
-                {
-                  required: true,
-                  message: "Please input healthcare provider code",
-                },
-              ]}
-            >
-              <Input placeholder="Enter healthcare provider code" />
-            </Form.Item>
-
-            <Form.Item
-              name="validFrom"
-              label="Valid From"
-              rules={[
-                { required: true, message: "Please select valid from date" },
-              ]}
-            >
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item
-              name="validTo"
-              label="Valid To"
-              rules={[
-                { required: true, message: "Please select valid to date" },
-              ]}
-            >
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item
-              name="issueDate"
-              label="Issue Date"
-              rules={[{ required: true, message: "Please select issue date" }]}
-            >
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
+            <Row gutter={24}>
+              <Col span={12}>
+                <Form.Item
+                  name="validFrom"
+                  label="Valid From"
+                  rules={[
+                    { required: true, message: "Please select valid from date" },
+                  ]}
+                >
+                  <DatePicker style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+              
+              <Col span={12}>
+                <Form.Item
+                  name="validTo"
+                  label="Valid To"
+                  rules={[
+                    { required: true, message: "Please select valid to date" },
+                  ]}
+                >
+                  <DatePicker style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+            </Row>
 
             <Form.Item
               name="imageFile"

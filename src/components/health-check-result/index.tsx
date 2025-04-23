@@ -1098,7 +1098,7 @@ export function HealthCheckResultManagement() {
       key: "patient",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          PATIENT
+          PERSON EXAMINED
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -1133,7 +1133,7 @@ export function HealthCheckResultManagement() {
       key: "staff",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          DOCTOR / NURSE
+          HEALTHCARE STAFF
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -1649,8 +1649,7 @@ export function HealthCheckResultManagement() {
                       ascending !== false
                     )
                   }
-                >
-                </Button>
+                ></Button>
               </Tooltip>
 
               {/* Column Settings */}

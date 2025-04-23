@@ -24,7 +24,7 @@ const HealthcareStaffCard: React.FC<HealthcareStaffCardProps> = ({ staff }) => {
       cover={
         <img
           alt={staff.fullName}
-          src={staff.imageURL || "/default-doctor-image.png"}
+          src={staff.imageURL || "/images/placeholder.jpg"}
           style={{ height: 150, objectFit: "cover", borderRadius: "10px 10px 0 0" }}
         />
       }

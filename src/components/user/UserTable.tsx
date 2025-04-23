@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   Table,
   Button,
@@ -31,9 +31,11 @@ import {
   DownOutlined,
   MoreOutlined,
   UserOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { UserResponseDTO } from "@/api/user";
+import { UserContext } from "@/context/UserContext";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -74,6 +76,7 @@ const UserTable: React.FC<UserTableProps> = ({
   getAllUserIdsByStatus,
 }) => {
   const [messageApi, contextHolder] = message.useMessage();
+  const userContext = useContext(UserContext);
 
   // ======== STATE MANAGEMENT ========
   // Selection states
@@ -347,6 +350,30 @@ const UserTable: React.FC<UserTableProps> = ({
     }
   };
 
+  // Kiểm tra quyền của người dùng hiện tại với tài khoản được xem
+  const hasPermissionToModify = (userRoles: string[] = []) => {
+    // Nếu không có thông tin về người dùng hiện tại, cho phép mặc định
+    if (!userContext?.user) return true;
+
+    // Lấy vai trò của người dùng hiện tại
+    const currentUserRoles = userContext.user.role || [];
+    
+    // Nếu người dùng hiện tại là Manager
+    const isCurrentUserManager = currentUserRoles.includes("Manager");
+    
+    // Nếu người dùng cần kiểm tra quyền là Admin hoặc Manager
+    const isTargetUserAdmin = userRoles.includes("Admin");
+    const isTargetUserManager = userRoles.includes("Manager");
+    
+    // Manager không được phép chỉnh sửa tài khoản Admin hoặc Manager khác
+    if (isCurrentUserManager && (isTargetUserAdmin || isTargetUserManager)) {
+      return false;
+    }
+    
+    // Các trường hợp khác đều được phép
+    return true;
+  };
+
   // ======== UI COMPONENTS ========
   // Render Select All checkbox with dropdown
   const renderSelectAll = () => {
@@ -464,6 +491,19 @@ const UserTable: React.FC<UserTableProps> = ({
   const renderActionButtons = () => {
     if (selectedUsers.length === 0) return null;
 
+    // Kiểm tra xem trong số các người dùng đã chọn có Admin/Manager không khi người dùng hiện tại là Manager
+    let hasRestrictedUsers = false;
+    
+    if (userContext?.user?.role?.includes("Manager")) {
+      // Lọc danh sách người dùng đã chọn
+      const selectedUserRecords = users.filter(user => selectedUsers.includes(user.id));
+      
+      // Kiểm tra xem có bất kỳ Admin hoặc Manager nào trong danh sách không
+      hasRestrictedUsers = selectedUserRecords.some(user => 
+        user.roles?.includes("Admin") || user.roles?.includes("Manager")
+      );
+    }
+
     // Use the tracked state to determine which buttons to show
     const { hasActive, hasInactive } = selectedItemTypes;
 
@@ -471,9 +511,18 @@ const UserTable: React.FC<UserTableProps> = ({
       <>
         <Text type="secondary">{selectedUsers.length} Items selected</Text>
 
+        {/* Hiển thị thông báo nếu có người dùng bị hạn chế quyền */}
+        {hasRestrictedUsers && (
+          <Tooltip title="You don't have permission to modify Admin or Manager accounts">
+            <Text type="danger" style={{ marginLeft: 8 }}>
+              <InfoCircleOutlined /> Some selected users cannot be modified
+            </Text>
+          </Tooltip>
+        )}
+
         {/* Show Activate button only if there are inactive users in selection */}
         {hasInactive && (
-          <Tooltip title="Activate selected inactive users">
+          <Tooltip title={hasRestrictedUsers ? "Some selected users cannot be activated" : "Activate selected inactive users"}>
             <Popconfirm
               title={
                 <div style={{ padding: "0 10px" }}>Activate selected users</div>
@@ -481,11 +530,20 @@ const UserTable: React.FC<UserTableProps> = ({
               description={
                 <p style={{ padding: "10px 40px 10px 18px" }}>
                   Are you sure you want to activate selected inactive users?
+                  {hasRestrictedUsers && (
+                    <div style={{ color: "#ff4d4f", marginTop: 8 }}>
+                      Note: Admin and Manager accounts will be skipped
+                    </div>
+                  )}
                 </p>
               }
               onConfirm={async () => {
                 try {
-                  const inactiveUserIds = selectedUsers;
+                  // Lọc ra các ID của những người dùng có thể kích hoạt
+                  const inactiveUserIds = selectedUsers.filter(id => {
+                    const user = users.find(u => u.id === id);
+                    return user && user.status === "Inactive" && hasPermissionToModify(user.roles);
+                  });
 
                   if (inactiveUserIds.length > 0) {
                     await Promise.all(
@@ -518,7 +576,7 @@ const UserTable: React.FC<UserTableProps> = ({
 
         {/* Show Deactivate button only if there are active users in selection */}
         {hasActive && (
-          <Tooltip title="Deactivate selected active users">
+          <Tooltip title={hasRestrictedUsers ? "Some selected users cannot be deactivated" : "Deactivate selected active users"}>
             <Popconfirm
               title={
                 <div style={{ padding: "0 10px" }}>
@@ -528,11 +586,20 @@ const UserTable: React.FC<UserTableProps> = ({
               description={
                 <p style={{ padding: "10px 40px 10px 18px" }}>
                   Are you sure you want to deactivate selected active users?
+                  {hasRestrictedUsers && (
+                    <div style={{ color: "#ff4d4f", marginTop: 8 }}>
+                      Note: Admin and Manager accounts will be skipped
+                    </div>
+                  )}
                 </p>
               }
               onConfirm={async () => {
                 try {
-                  const activeUserIds = selectedUsers;
+                  // Lọc ra các ID của những người dùng có thể vô hiệu hóa
+                  const activeUserIds = selectedUsers.filter(id => {
+                    const user = users.find(u => u.id === id);
+                    return user && user.status === "Active" && hasPermissionToModify(user.roles);
+                  });
 
                   if (activeUserIds.length > 0) {
                     await Promise.all(
@@ -833,45 +900,77 @@ const UserTable: React.FC<UserTableProps> = ({
       key: "actions",
       fixed: "right" as const,
       width: 120,
-      render: (text: string, record: UserResponseDTO) => (
-        <div style={{ textAlign: "center" }}>
-          <Dropdown
-            overlay={
-              <Menu>
-                <Menu.Item
-                  key="edit"
-                  icon={<FormOutlined />}
-                  onClick={() => onEdit?.(record)}
-                >
-                  Edit
-                </Menu.Item>
-                {record.status === "Active" ? (
+      render: (text: string, record: UserResponseDTO) => {
+        // Kiểm tra xem người dùng hiện tại có quyền chỉnh sửa tài khoản này không
+        const hasPermission = hasPermissionToModify(record.roles);
+        
+        if (!hasPermission) {
+          return (
+            <Tooltip title="You don't have permission to modify this user">
+              <Button 
+                icon={<InfoCircleOutlined />} 
+                size="small" 
+                disabled 
+                style={{ cursor: "not-allowed" }}
+              />
+            </Tooltip>
+          );
+        }
+        
+        return (
+          <div style={{ textAlign: "center" }}>
+            <Dropdown
+              overlay={
+                <Menu>
                   <Menu.Item
-                    key="deactivate"
-                    icon={<StopOutlined />}
-                    onClick={() => onDeactivate(record.id)}
-                    danger
+                    key="edit"
+                    icon={<FormOutlined />}
+                    onClick={() => onEdit?.(record)}
                   >
-                    Deactivate
+                    Edit
                   </Menu.Item>
-                ) : (
-                  <Menu.Item
-                    key="activate"
-                    icon={<CheckCircleOutlined />}
-                    onClick={() => onActivate(record.id)}
-                    style={{ color: "#52c41a" }}
-                  >
-                    Activate
-                  </Menu.Item>
-                )}
-              </Menu>
-            }
-            placement="bottomCenter"
-          >
-            <Button icon={<MoreOutlined />} size="small" />
-          </Dropdown>
-        </div>
-      ),
+                  {record.status === "Active" ? (
+                    <Menu.Item
+                      key="deactivate"
+                      icon={<StopOutlined />}
+                      danger
+                    >
+                      <Popconfirm
+                        title="Deactivate User"
+                        description="Are you sure you want to deactivate this user?"
+                        onConfirm={() => onDeactivate(record.id)}
+                        okText="Yes"
+                        cancelText="No"
+                      >
+                        <span>Deactivate</span>
+                      </Popconfirm>
+                    </Menu.Item>
+                  ) : (
+                    <Menu.Item
+                      key="activate"
+                      icon={<CheckCircleOutlined />}
+                      style={{ color: "#52c41a" }}
+                    >
+                      <Popconfirm
+                        title="Activate User"
+                        description="Are you sure you want to activate this user?"
+                        onConfirm={() => onActivate(record.id)}
+                        okText="Yes"
+                        cancelText="No"
+                      >
+                        <span>Activate</span>
+                      </Popconfirm>
+                    </Menu.Item>
+                  )}
+                </Menu>
+              }
+              placement="bottomCenter"
+            >
+              <Button icon={<MoreOutlined />} size="small" />
+            </Dropdown>
+          </div>
+        );
+      },
       align: "center" as const,
     },
   ];

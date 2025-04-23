@@ -171,6 +171,18 @@ export interface PrescriptionHistoryExportConfigDTO {
   includeChangeDetails: boolean;
 }
 
+export interface GroupedPrescriptionHistoryResponseDTO {
+  groupKey: string;
+  groupName: string;
+  totalChanges: number;
+  firstChangeDate: string;
+  lastChangeDate: string;
+  affectedPrescriptionCodes: string[];
+  actionTypeCounts: Record<string, number>;
+  statusChangeCounts: Record<string, number>;
+  historyDetails: PrescriptionHistoryResponseDTO[];
+}
+
 // API Functions
 export const getAllPrescriptions = async (
   page: number = 1,
@@ -424,6 +436,49 @@ export const getPrescriptionHistoriesByPrescriptionId = async (
     return data;
   } catch (error) {
     console.error("Error fetching prescription histories:", error);
+    throw error;
+  }
+};
+
+export const getGroupedPrescriptionHistories = async (
+  page: number = 1,
+  pageSize: number = 10,
+  action?: string,
+  startActionDate?: string,
+  endActionDate?: string,
+  performedBySearch?: string,
+  previousStatus?: string,
+  newStatus?: string,
+  sortBy: string = "ActionDate",
+  ascending: boolean = false,
+  prescriptionCode?: string,
+  healthCheckResultCode?: string
+) => {
+  try {
+    const response = await api.get("/prescription-management/prescription-histories/grouped", {
+      params: {
+        page,
+        pageSize,
+        action,
+        startActionDate,
+        endActionDate,
+        performedBySearch,
+        previousStatus,
+        newStatus,
+        sortBy,
+        ascending,
+        prescriptionCode,
+        healthCheckResultCode,
+      },
+    });
+    const data = response.data;
+    // Map isSuccess to success if needed
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching grouped prescription histories:", error);
     throw error;
   }
 };

@@ -9,8 +9,7 @@ import {
   AppointmentStatisticsDTO,
 } from "@/api/appointment-api";
 import Link from "next/link";
-import { Typography, Spin } from "antd";
-import { toast } from "react-toastify";
+import { Typography, Spin, message } from "antd";
 import Cookies from "js-cookie";
 
 const { Title } = Typography;
@@ -24,6 +23,7 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
   initialStaffList,
   token,
 }) => {
+  const [messageApi, contextHolder] = message.useMessage();
   const [staffList, setStaffList] =
     useState<AvailableOfficersResponseDTO[]>(initialStaffList);
   const [statistics, setStatistics] = useState<AppointmentStatisticsDTO | null>(
@@ -33,62 +33,23 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
 
   const connectionRef = useRef<(() => void) | null>(null);
 
-  const [healthNotifications] = useState<any[]>([
-    {
-      id: 1,
-      title: "Nurse Sarah",
-      date: "Dec, 12",
-      message:
-        "New health screening schedule has been posted for this month. Please check and confirm. 🏥",
-      image:
-        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=2550&q=80",
-    },
-    {
-      id: 2,
-      title: "Canteen Manager",
-      date: "Dec, 12",
-      message:
-        "Weekly food safety inspection completed. All standards met successfully.",
-      image:
-        "https://images.unsplash.com/photo-1600486913747-55e5470d6f40?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=2550&q=80",
-    },
-    {
-      id: 3,
-      title: "Dr. Johnson",
-      date: "Dec, 12",
-      message:
-        "Reminder: Vaccination campaign starts next week. Please prepare necessary arrangements.",
-      image:
-        "https://images.unsplash.com/photo-1543965170-4c01a586684e?ixid=MXwxMjA3fDB8MHxzZWFyY2h8NDZ8fG1hbnxlbnwwfDB8MHw%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=900&q=60",
-    },
-    {
-      id: 4,
-      title: "Nutritionist Lisa",
-      date: "Dec, 12",
-      message:
-        "New healthy menu options added for next month. Student feedback has been positive.",
-      image:
-        "https://images.unsplash.com/photo-1533993192821-2cce3a8267d1?ixid=MXwxMjA3fDB8MHxzZWFyY2h8MTl8fHdvbWFuJTIwbW9kZXJufGVufDB8fDB8&ixlib=rb-1.2.1&auto=format&fit=crop&w=900&q=60",
-    },
-  ]);
-
   const fetchStaffList = useCallback(async () => {
     setLoading(true);
     try {
       const response = await getAllHealthcareStaff();
       setStaffList(response.data || []);
     } catch (error) {
-      toast.error("Unable to load healthcare staff list.");
+      messageApi.error("Unable to load healthcare staff list.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [messageApi]);
 
   const fetchStatistics = useCallback(async () => {
     setLoading(true);
     const token = Cookies.get("token");
     if (!token) {
-      toast.error("No token found. Please log in.");
+      messageApi.error("No token found. Please log in.");
       setLoading(false);
       return;
     }
@@ -96,11 +57,11 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
       const result = await getAppointmentStatistics(token);
       setStatistics(result.data);
     } catch (error: any) {
-      toast.error(error.message || "Unable to load appointment statistics.");
+      messageApi.error(error.message || "Unable to load appointment statistics.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [messageApi]);
 
   useEffect(() => {
     fetchStaffList(); // Initial fetch
@@ -138,9 +99,10 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
 
   return (
     <div style={{ padding: "24px", width: "100%" }}>
-      <div className="flex flex-wrap w-full">
-        {/* Left Column for Healthcare Staff */}
-        <div className="w-full rounded-3xl bg-white p-6 shadow-xl lg:w-8/12">
+      {contextHolder}
+      <div className="flex flex-wrap w-full justify-center">
+        {/* Healthcare Staff Section */}
+        <div className="w-full rounded-3xl bg-white p-6 shadow-xl" style={{ maxWidth: "1200px" }}>
           <div className="mb-8 flex items-center justify-between text-black">
             <Title level={2} style={{ margin: 0 }}>
               Campus Health Officers
@@ -182,7 +144,7 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
               <Spin tip="Loading staff..." />
             </div>
           ) : staffList.length > 0 ? (
-            <div className="flex flex-wrap w-full">
+            <div className="flex flex-wrap justify-center">
               {staffList.map((staff, index) => {
                 const colors = [
                   {
@@ -215,30 +177,30 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
                 const color = colors[index % colors.length];
 
                 return (
-                  <div key={staff.staffId} className="w-full md:w-56 p-2">
+                  <div key={staff.staffId} className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/5 p-3">
                     <Link href={`/schedule-appointment/${staff.staffId}`}>
                       <div
-                        className={`rounded-3xl p-2 ${color.bg} cursor-pointer hover:shadow-lg transition-shadow flex flex-col items-center`}
-                        style={{ minHeight: "220px" }}
+                        className={`rounded-3xl p-3 ${color.bg} cursor-pointer hover:shadow-lg transition-shadow flex flex-col items-center`}
+                        style={{ minHeight: "240px" }}
                       >
-                        <div className="w-40 h-40 flex items-center justify-center bg-gray-100 rounded-2xl">
+                        <div className="w-36 h-36 flex items-center justify-center bg-gray-100 rounded-2xl overflow-hidden">
                           <img
                             src={
                               staff.imageURL ||
-                              "https://images.unsplash.com/photo-1570295999919-56cebcd28b2b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80"
+                              "/images/placeholder.jpg"
                             }
                             alt={`${staff.fullName}'s image`}
-                            className="w-full h-full object-contain rounded-2xl"
+                            className="w-full h-full object-cover rounded-2xl"
                           />
                         </div>
 
-                        <div className="mt-2 flex items-center">
+                        <div className="mt-3 flex items-center">
                           <span className="h-3 w-3 bg-green-500 rounded-full mr-1"></span>
                           <span className="text-xs font-medium text-green-600">
                             Available
                           </span>
                         </div>
-                        <div className="mt-1 text-center">
+                        <div className="mt-2 text-center">
                           <p className="text-base font-bold">
                             {staff.fullName}
                           </p>
@@ -256,42 +218,6 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
             <p>No healthcare staff available at this time.</p>
           )}
         </div>
-
-        {/* Right Column for Health Notifications */}
-        {/* <div className="mt-8 w-full lg:mt-0 lg:w-4/12 lg:pl-4">
-          <div className="rounded-3xl bg-white px-6 pt-6 shadow-lg">
-            <div className="flex pb-6 text-2xl font-bold text-gray-800">
-              <p>Health Notifications</p>
-            </div>
-            <div>
-              {healthNotifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className="flex w-full border-t border-gray-200 p-4 hover:bg-gray-100 2xl:items-start"
-                >
-                  <img
-                    src={notification.image}
-                    alt="profile image"
-                    className="h-10 w-10 rounded-full object-cover"
-                  />
-                  <div className="w-full pl-4">
-                    <div className="flex w-full items-center justify-between">
-                      <div className="font-medium text-gray-800">
-                        {notification.title}
-                      </div>
-                    </div>
-                    <p className="my-2 text-sm text-gray-600">
-                      {notification.message}
-                    </p>
-                    <p className="text-right text-sm text-gray-500">
-                      {notification.date}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div> */}
       </div>
     </div>
   );
