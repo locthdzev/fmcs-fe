@@ -26,6 +26,7 @@ import {
   Form,
   Select,
   message,
+  Divider,
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
@@ -46,6 +47,7 @@ import {
   TimeSlotDTO,
   AppointmentUpdateRequestDTO,
   updateAppointmentByStaff,
+  getAllHealthcareStaff,
 } from "@/api/appointment-api";
 import {
   SearchOutlined,
@@ -70,6 +72,8 @@ import {
   PhoneOutlined,
   VideoCameraOutlined,
   LoadingOutlined,
+  ArrowLeftOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import { UserContext } from "@/context/UserContext";
 import AppointmentUserDetails from "./AppointmentUserDetails";
@@ -78,6 +82,7 @@ import moment from "moment-timezone";
 import debounce from "lodash/debounce";
 import { Virtuoso } from "react-virtuoso";
 import { getAllUsers, UserResponseDTO } from "@/api/user";
+import AppointmentToolbar from "./Toolbar";
 
 const styles = `
   @keyframes blink {
@@ -574,21 +579,53 @@ const UpdateAppointmentModal: React.FC<{
 const ScheduleAppointmentForStaff: React.FC<{
   visible: boolean;
   onClose: () => void;
-  staffId: string;
-}> = ({ visible, onClose, staffId }) => {
+}> = ({ visible, onClose }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<TimeSlotDTO[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [availableStaff, setAvailableStaff] = useState<{value: string, label: string}[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(false);
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const token = Cookies.get("token");
   const [messageApi, contextHolder] = message.useMessage();
 
+  // Fetch available healthcare staff
+  const fetchHealthcareStaff = useCallback(async () => {
+    if (!token) return;
+    setLoadingStaff(true);
+    try {
+      const response = await getAllHealthcareStaff();
+      if (response.isSuccess && response.data) {
+        const staffOptions = response.data.map((staff) => ({
+          value: staff.staffId,
+          label: `${staff.fullName} (${staff.email})`,
+        }));
+        setAvailableStaff(staffOptions);
+      } else {
+        messageApi.error("Failed to load healthcare staff");
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch healthcare staff:", error);
+      messageApi.error("Failed to load healthcare staff");
+    } finally {
+      setLoadingStaff(false);
+    }
+  }, [token, messageApi]);
+
+  // Load healthcare staff when modal opens
+  useEffect(() => {
+    if (visible) {
+      fetchHealthcareStaff();
+    }
+  }, [visible, fetchHealthcareStaff]);
+
   const fetchAvailableSlots = useCallback(
     async (date: string) => {
-      if (!token) return;
+      if (!token || !selectedStaffId) return;
       setLoading(true);
       try {
-        const response = await getAvailableTimeSlots(staffId, date, token);
+        const response = await getAvailableTimeSlots(selectedStaffId, date, token);
         setAvailableSlots(response.data?.availableSlots || []);
       } catch (error: any) {
         console.error("Failed to fetch slots:", error);
@@ -597,23 +634,38 @@ const ScheduleAppointmentForStaff: React.FC<{
         setLoading(false);
       }
     },
-    [staffId, token, messageApi]
+    [selectedStaffId, token, messageApi]
   );
 
   const onDateChange = (date: moment.Moment | null) => {
     if (date) {
       const dateStr = date.format("YYYY-MM-DD");
       setSelectedDate(dateStr);
-      fetchAvailableSlots(dateStr);
+      if (selectedStaffId) {
+        fetchAvailableSlots(dateStr);
+      }
     } else {
       setSelectedDate(null);
       setAvailableSlots([]);
     }
   };
 
+  const onStaffChange = (value: string) => {
+    setSelectedStaffId(value);
+    form.setFieldValue("timeSlot", undefined); // Reset time slot when staff changes
+    if (selectedDate && value) {
+      fetchAvailableSlots(selectedDate);
+    }
+  };
+
   const onFinish = async (values: any) => {
     if (!token) {
       messageApi.error("Authentication token missing.");
+      return;
+    }
+
+    if (!selectedStaffId) {
+      messageApi.error("Please select a healthcare staff.");
       return;
     }
 
@@ -628,7 +680,7 @@ const ScheduleAppointmentForStaff: React.FC<{
       const appointmentDate = vietnamMoment.format("YYYY-MM-DDTHH:mm:ssZ");
 
       const request: AppointmentCreateRequestForstaffDTO = {
-        staffId,
+        staffId: selectedStaffId,
         email: values.email,
         appointmentDate,
         reason: values.reason,
@@ -663,6 +715,7 @@ const ScheduleAppointmentForStaff: React.FC<{
   const handleClose = () => {
     setSelectedDate(null);
     setAvailableSlots([]);
+    setSelectedStaffId(null);
     form.resetFields();
     onClose();
   };
@@ -682,6 +735,25 @@ const ScheduleAppointmentForStaff: React.FC<{
         onFinish={onFinish}
         initialValues={{ reason: "Health consultation" }}
       >
+        <Form.Item
+          name="staffId"
+          label="Healthcare Staff"
+          rules={[
+            { required: true, message: "Please select a healthcare staff" },
+          ]}
+        >
+          <Select
+            showSearch
+            placeholder="Select a healthcare staff"
+            loading={loadingStaff}
+            options={availableStaff}
+            onChange={onStaffChange}
+            filterOption={(input, option) =>
+              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+            }
+          />
+        </Form.Item>
+
         <Form.Item
           name="email"
           label="Student/User Email"
@@ -704,6 +776,7 @@ const ScheduleAppointmentForStaff: React.FC<{
               current && current.isBefore(dayjs().startOf("day"))
             }
             style={{ width: "100%" }}
+            disabled={!selectedStaffId}
           />
         </Form.Item>
 
@@ -714,7 +787,7 @@ const ScheduleAppointmentForStaff: React.FC<{
         >
           <Select
             placeholder="Select a time slot"
-            disabled={!selectedDate || loading}
+            disabled={!selectedDate || !selectedStaffId || loading}
             loading={loading}
           >
             {availableSlots
@@ -1794,106 +1867,106 @@ export function AppointmentManagementForAdmin() {
     <div className="p-4 bg-gray-50 min-h-screen">
       {contextHolder}
       <style>{styles}</style>
-      <Card className="mb-6 shadow-md rounded-xl">
-        <Title level={2} className="text-center mb-4 text-gray-800">
-          Appointment Management
-        </Title>
-        <Collapse
-          defaultActiveKey={["1"]}
-          bordered={false}
-          className="filter-section"
-          items={[
-            {
-              key: "1",
-              label: (
-                <Space>
-                  <FilterOutlined />
-                  <Text strong>Filters</Text>
-                  {activeFilterCount > 0 && (
-                    <Badge
-                      count={activeFilterCount}
-                      style={{ backgroundColor: "#1890ff" }}
-                    />
-                  )}
-                </Space>
-              ),
-              children: (
-                <Row gutter={[16, 16]} align="middle">
-                  <Col xs={24} sm={12} md={8}>
-                    <Input.Search
-                      placeholder="Search by student or staff name"
-                      value={searchText}
-                      onChange={(e) => debouncedSetSearchText(e.target.value)}
-                      allowClear
-                      prefix={<SearchOutlined />}
-                      className="search-input"
-                      aria-label="Search appointments by student or staff name"
-                    />
-                  </Col>
-                  <Col xs={24} sm={12} md={8}>
-                    <RangePicker
-                      value={dateRange}
-                      onChange={handleDateRangeChange}
-                      format="DD/MM/YYYY"
-                      className="w-full rounded-lg"
-                      presets={rangePresets}
-                      prefix={<CalendarOutlined />}
-                      aria-label="Select date range for appointments"
-                    />
-                  </Col>
-                  <Col xs={24} sm={24} md={8}>
-                    <Space size="small" wrap>
-                      <Tooltip title="Reset all filters">
-                        <Button
-                          onClick={resetFilters}
-                          icon={<ReloadOutlined />}
-                          className="rounded-lg action-button"
-                          aria-label="Reset all filters"
-                        />
-                      </Tooltip>
-                      <Tooltip title="Refresh appointments">
-                        <Button
-                          onClick={handleRefresh}
-                          icon={<ReloadOutlined />}
-                          className="rounded-lg action-button"
-                          aria-label="Refresh appointments"
-                          loading={loading}
-                        >
-                          Refresh
-                        </Button>
-                      </Tooltip>
-                      <Tooltip title="Reset user appointment status to Normal">
-                        <Button
-                          type="default"
-                          icon={<UserSwitchOutlined />}
-                          className="rounded-lg action-button"
-                          aria-label="Reset user appointment status"
-                          onClick={handleOpenResetModal}
-                        >
-                          Reset User
-                        </Button>
-                      </Tooltip>
-                      <Tooltip title="Schedule new appointment">
-                        <Button
-                          type="primary"
-                          icon={<ScheduleOutlined />}
-                          className="rounded-lg action-button"
-                          onClick={handleScheduleClick}
-                        >
-                          Schedule
-                        </Button>
-                      </Tooltip>
-                    </Space>
-                  </Col>
-                </Row>
-              ),
-              extra: <DownOutlined />,
-            },
-          ]}
-        />
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => window.history.back()}
+            style={{ marginRight: "8px" }}
+          >
+            Back
+          </Button>
+          <CalendarOutlined style={{ fontSize: "24px" }} />
+          <h3 className="text-xl font-bold">Appointment Management</h3>
+        </div>
+      </div>
+      
+      <Card 
+        className="shadow mb-4"
+        bodyStyle={{ padding: "16px" }}
+        style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+      >
+        <Row align="middle" gutter={[16, 16]}>
+          <Col span={24}>
+            <Title level={4} style={{ margin: 0 }}>
+              <AppstoreOutlined
+                style={{ marginRight: "8px", fontSize: "20px" }}
+              />
+              Toolbar
+            </Title>
+          </Col>
+        </Row>
+
+        <Divider style={{ margin: "16px 0" }} />
+        
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Input.Search
+              placeholder="Search by student or staff name"
+              value={searchText}
+              onChange={(e) => debouncedSetSearchText(e.target.value)}
+              allowClear
+              prefix={<SearchOutlined />}
+              style={{ width: "300px" }}
+              aria-label="Search appointments by student or staff name"
+            />
+
+            <RangePicker
+              value={dateRange}
+              onChange={handleDateRangeChange}
+              format="DD/MM/YYYY"
+              style={{ width: "280px" }}
+              presets={rangePresets}
+              prefix={<CalendarOutlined />}
+              aria-label="Select date range for appointments"
+            />
+
+            <Tooltip title="Reset all filters">
+              <Button
+                onClick={resetFilters}
+                icon={<ReloadOutlined />}
+                disabled={!searchText && !dateRange}
+              />
+            </Tooltip>
+
+            <Tooltip title="Refresh appointments">
+              <Button
+                onClick={handleRefresh}
+                icon={<ReloadOutlined />}
+                loading={loading}
+              >
+                Refresh
+              </Button>
+            </Tooltip>
+
+            <Tooltip title="Reset user appointment status to Normal">
+              <Button
+                type="default"
+                icon={<UserSwitchOutlined />}
+                onClick={handleOpenResetModal}
+              >
+                Reset User
+              </Button>
+            </Tooltip>
+          </div>
+
+          <Tooltip title="Schedule new appointment">
+            <Button
+              type="primary"
+              icon={<ScheduleOutlined />}
+              onClick={handleScheduleClick}
+            >
+              Schedule
+            </Button>
+          </Tooltip>
+        </div>
       </Card>
 
-      <Card className="shadow-md rounded-xl">
+      <Card 
+        className="shadow mb-4"
+        bodyStyle={{ padding: "16px" }}
+        style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+      >
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
@@ -2015,7 +2088,6 @@ export function AppointmentManagementForAdmin() {
           setScheduleModalVisible(false);
           handleRefresh();
         }}
-        staffId={user?.userId || ""}
       />
 
       <UpdateAppointmentModal
