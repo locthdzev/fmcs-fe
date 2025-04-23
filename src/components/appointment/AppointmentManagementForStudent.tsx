@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useContext } from "react";
+import React, { useState, useEffect, useCallback, useContext, useRef } from "react";
 import {
   Button,
   Input,
@@ -138,6 +138,7 @@ export function AppointmentManagementForStudent() {
   const [direction, setDirection] = useState<"horizontal" | "vertical">(
     "horizontal"
   );
+  const justCancelledRef = useRef<Set<string>>(new Set());
 
   const token = Cookies.get("token");
 
@@ -219,11 +220,15 @@ export function AppointmentManagementForStudent() {
               } else if (data.eventType === "Confirmed") {
                 messageApi.success("Appointment confirmed!");
               } else if (data.eventType === "Released") {
-                messageApi.success("Appointment cancelled!");
+                if (!justCancelledRef.current.has(data.appointmentId)) {
+                  messageApi.success("Appointment cancelled!");
+                } else {
+                  justCancelledRef.current.delete(data.appointmentId);
+                }
               }
             }
           },
-          (error) => {
+          (error: Error) => {
             console.error("SignalR error:", error);
             if (isMounted) {
               messageApi.error("Real-time updates failed. Please refresh the page.");
@@ -253,16 +258,22 @@ export function AppointmentManagementForStudent() {
       if (!token) {
         throw new Error("Authentication token is missing. Please log in.");
       }
+      justCancelledRef.current.add(id);
       const response = await cancelAppointment(id, token);
       if (response.isSuccess) {
         messageApi.success("Appointment cancelled!");
         setIsDetailsModalVisible(false);
         setSelectedAppointment(null);
         fetchAppointments();
+        setTimeout(() => {
+          justCancelledRef.current.delete(id);
+        }, 5000);
       } else {
+        justCancelledRef.current.delete(id);
         messageApi.error(response.message || "Failed to cancel appointment.");
       }
     } catch (error: any) {
+      justCancelledRef.current.delete(id);
       console.error("Error cancelling appointment:", error);
       messageApi.error(error.message || "Unable to cancel appointment.");
       if (error.message?.includes("token")) {

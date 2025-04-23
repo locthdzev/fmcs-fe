@@ -34,6 +34,7 @@ import moment from "moment-timezone";
 import Cookies from "js-cookie";
 import ConflictModal from "@/components/appointment/ConflictModal";
 import SignalRManager from "@/api/signalr-manager";
+import { getStaffSchedulesByDateRange } from "@/api/schedule";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -77,6 +78,15 @@ interface JwtPayload {
   [key: string]: any;
 }
 
+interface StaffWorkSchedule {
+  id: string;
+  workDate: string;
+  shiftName?: string;
+  startTime?: string;
+  endTime?: string;
+  dayOfWeek?: string;
+}
+
 const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
   staff,
   token,
@@ -102,6 +112,9 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
   const [appointmentReason, setAppointmentReason] = useState<string>("");
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
+  const [staffWorkSchedules, setStaffWorkSchedules] = useState<StaffWorkSchedule[]>([]);
+  const [workScheduleLoading, setWorkScheduleLoading] = useState(false);
+  const [availableWorkDates, setAvailableWorkDates] = useState<Set<string>>(new Set());
 
   const [isConflictModalVisible, setIsConflictModalVisible] = useState(false);
   const [conflictAppointment, setConflictAppointment] =
@@ -690,13 +703,67 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
     ]
   );
 
+  // Fetch staff work schedules for the next 30 days
+  const fetchStaffWorkSchedules = useCallback(async () => {
+    if (!token) return;
+    
+    setWorkScheduleLoading(true);
+    try {
+      const startDate = moment().format('YYYY-MM-DD');
+      const endDate = moment().add(30, 'days').format('YYYY-MM-DD');
+      
+      const response = await getStaffSchedulesByDateRange(
+        staff.staffId,
+        startDate,
+        endDate
+      );
+      
+      if (response.isSuccess && Array.isArray(response.data)) {
+        setStaffWorkSchedules(response.data);
+        
+        // Extract available work dates
+        const workDates = new Set<string>(
+          response.data.map((schedule: StaffWorkSchedule) => 
+            moment(schedule.workDate).format('YYYY-MM-DD')
+          )
+        );
+        setAvailableWorkDates(workDates);
+        
+        // Log the available dates for debugging
+        console.log("Available work dates:", Array.from(workDates));
+      } else {
+        console.error("Failed to fetch staff work schedules:", response.message);
+      }
+    } catch (error) {
+      console.error("Error fetching staff work schedules:", error);
+      messageApi.error("Failed to load staff work schedule");
+    } finally {
+      setWorkScheduleLoading(false);
+    }
+  }, [staff.staffId, token, messageApi]);
+
+  // Load staff work schedules on component mount
+  useEffect(() => {
+    fetchStaffWorkSchedules();
+  }, [fetchStaffWorkSchedules]);
+
+  // Check if a date is available based on staff work schedule
+  const isDateAvailable = useCallback((dateStr: string) => {
+    // If we haven't loaded any work schedules yet, consider all dates available
+    if (workScheduleLoading || availableWorkDates.size === 0) {
+      return true;
+    }
+    return availableWorkDates.has(dateStr);
+  }, [availableWorkDates, workScheduleLoading]);
+
+  // Modified handleDateChange to check for staff availability
   const handleDateChange = (index: number) => {
     const dates = [];
     let daysAdded = 0;
     let currentDay = moment();
 
     while (daysAdded < 32) {
-      if (currentDay.day() !== 0) {
+      if (currentDay.day() !== 0) { // Skip Sundays
         dates.push(currentDay.clone());
         daysAdded++;
       }
@@ -704,6 +771,13 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
     }
 
     const date = dates[index].format("YYYY-MM-DD");
+    
+    // Only allow selecting dates when staff is scheduled to work
+    if (!isDateAvailable(date)) {
+      messageApi.warning(`${staff.fullName} is not scheduled to work on this day.`);
+      return;
+    }
+    
     if (date === selectedDate) {
       fetchAvailableSlots(date);
     } else {
@@ -1313,27 +1387,30 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
                 const slotCount = slotCounts[dateStr] || 0;
                 const isFullyBooked = slotCount === 0;
                 const isHovered = hoveredIndex === index.toString();
+                const isAvailable = isDateAvailable(dateStr);
+                const isSunday = date.day() === 0;
 
                 return (
                   <Col key={dateStr} xs={8} sm={6} md={4} lg={3}>
                     <Button
                       type={isSelected ? "primary" : "default"}
-                      onClick={() => handleDateChange(index)}
+                      onClick={() => !isSunday && isAvailable && handleDateChange(index)}
                       onMouseEnter={() => setHoveredIndex(index.toString())}
                       onMouseLeave={() => setHoveredIndex(null)}
+                      disabled={!isAvailable || isSunday || workScheduleLoading}
                       style={{
                         width: "100%",
                         height: "80px", // Larger height for better touch/click area
                         borderRadius: "12px", // Softer corners
                         backgroundColor: isSelected
                           ? "#e6f4ea" // Soft green for selected
-                          : isHovered
-                          ? "#f5f5f5" // Light gray for hover
-                          : "#ffffff", // White default
+                          : isAvailable 
+                            ? (isHovered ? "#f5f5f5" : "#ffffff") // Light gray for hover, white default
+                            : "#f5f5f5", // Light gray for unavailable
                         border: isSelected
                           ? "2px solid #28c41a" // Green border for selected
                           : "1px solid #d9d9d9", // Subtle default border
-                        boxShadow: isHovered
+                        boxShadow: isHovered && isAvailable
                           ? "0 4px 8px rgba(0, 0, 0, 0.1)"
                           : "none", // Shadow on hover
                         display: "flex",
@@ -1342,18 +1419,31 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
                         alignItems: "center",
                         padding: "10px",
                         transition: "all 0.3s ease",
+                        opacity: isAvailable ? 1 : 0.5, // Reduced opacity for unavailable dates
                       }}
                     >
                       <span
                         style={{
                           fontSize: "14px",
                           fontWeight: "600",
-                          color: "#333",
+                          color: isAvailable ? "#333" : "#999",
                         }}
                       >
                         {date.format("ddd, DD-MM")}
                       </span>
-                      {fetchingSlotCounts ? (
+                      {workScheduleLoading ? (
+                        <Spin size="small" style={{ marginTop: "4px" }} />
+                      ) : !isAvailable ? (
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: "#ff4d4f",
+                            marginTop: "4px",
+                          }}
+                        >
+                          Unavailable
+                        </span>
+                      ) : fetchingSlotCounts ? (
                         <Spin size="small" style={{ marginTop: "4px" }} />
                       ) : !isFullyBooked ? (
                         <span
