@@ -100,9 +100,11 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [roleActionLoading, setRoleActionLoading] = useState(false);
 
-  // Thêm state để theo dõi quyền hạn của người dùng hiện tại
-  const [hasEditPermission, setHasEditPermission] = useState<boolean>(true);
-  const [hasRoleManagePermission, setHasRoleManagePermission] = useState<boolean>(true);
+  // State để theo dõi quyền hạn của người dùng hiện tại
+  const [hasEditPermission, setHasEditPermission] = useState<boolean>(false);
+  const [hasRoleManagePermission, setHasRoleManagePermission] = useState<boolean>(false);
+  const [isAuthorizedUser, setIsAuthorizedUser] = useState<boolean>(false);
+  const [isRegularUser, setIsRegularUser] = useState<boolean>(false);
 
   // Custom styles for the fields
   const fieldStyles = `
@@ -143,10 +145,14 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
       } else {
         // Nếu không có quyền, chuyển hướng về URL bình thường
         router.replace(`/user/${id}`, undefined, { shallow: true });
-        messageApi.error("You don't have permission to edit this user");
+        
+        // Chỉ hiển thị thông báo lỗi cho Admin và Manager
+        if (isAuthorizedUser) {
+          messageApi.error("You don't have permission to edit this user");
+        }
       }
     }
-  }, [edit, hasEditPermission, id, router, messageApi]);
+  }, [edit, hasEditPermission, id, router, messageApi, isAuthorizedUser]);
 
   // Update formState when the user data is loaded
   useEffect(() => {
@@ -178,20 +184,40 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
       const currentUserRoles = userContext.user.role || [];
       const targetUserRoles = user.roles || [];
 
-      // Kiểm tra nếu người dùng hiện tại là Manager
+      // Kiểm tra xem người dùng hiện tại có phải là User không
+      const isCurrentUserJustUser = currentUserRoles.includes("User") && currentUserRoles.length === 1;
+      setIsRegularUser(isCurrentUserJustUser);
+      
+      // Chỉ Admin và Manager mới có quyền edit và quản lý roles
+      const isCurrentUserAdmin = currentUserRoles.includes("Admin");
       const isCurrentUserManager = currentUserRoles.includes("Manager");
+      
+      // Đánh dấu người dùng hiện tại có phải là Admin hoặc Manager không
+      setIsAuthorizedUser(isCurrentUserAdmin || isCurrentUserManager);
       
       // Kiểm tra xem người dùng đang xem có phải là Admin hoặc Manager không
       const isTargetUserAdmin = targetUserRoles.includes("Admin");
       const isTargetUserManager = targetUserRoles.includes("Manager");
 
-      // Manager không được phép edit hoặc thay đổi trạng thái của Admin hoặc Manager khác
-      if (isCurrentUserManager && (isTargetUserAdmin || isTargetUserManager)) {
-        setHasEditPermission(false);
-        setHasRoleManagePermission(false);
-      } else {
+      // Admin có toàn quyền
+      if (isCurrentUserAdmin) {
         setHasEditPermission(true);
         setHasRoleManagePermission(true);
+      } 
+      // Manager không được phép edit hoặc thay đổi trạng thái của Admin hoặc Manager khác
+      else if (isCurrentUserManager) {
+        if (isTargetUserAdmin || isTargetUserManager) {
+          setHasEditPermission(false);
+          setHasRoleManagePermission(false);
+        } else {
+          setHasEditPermission(true); 
+          setHasRoleManagePermission(true);
+        }
+      } 
+      // Các vai trò khác (Healthcare Staff, Canteen Staff, User) không có quyền
+      else {
+        setHasEditPermission(false);
+        setHasRoleManagePermission(false);
       }
     }
   }, [user, userContext?.user]);
@@ -285,7 +311,10 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
     
     // Kiểm tra quyền trước khi thực hiện cập nhật
     if (!hasEditPermission) {
-      messageApi.error("You don't have permission to update this user");
+      // Chỉ hiển thị thông báo lỗi cho Admin và Manager
+      if (isAuthorizedUser) {
+        messageApi.error("You don't have permission to update this user");
+      }
       setIsEditing(false);
       router.replace(`/user/${id}`, undefined, { shallow: true });
       return;
@@ -340,7 +369,10 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
     
     // Kiểm tra quyền trước khi kích hoạt
     if (!hasEditPermission) {
-      messageApi.error("You don't have permission to activate this user");
+      // Chỉ hiển thị thông báo lỗi cho Admin và Manager
+      if (isAuthorizedUser) {
+        messageApi.error("You don't have permission to activate this user");
+      }
       return;
     }
 
@@ -362,7 +394,10 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
     
     // Kiểm tra quyền trước khi vô hiệu hóa
     if (!hasEditPermission) {
-      messageApi.error("You don't have permission to deactivate this user");
+      // Chỉ hiển thị thông báo lỗi cho Admin và Manager
+      if (isAuthorizedUser) {
+        messageApi.error("You don't have permission to deactivate this user");
+      }
       return;
     }
 
@@ -497,6 +532,11 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
           </Button>
         </Space>
       );
+    }
+
+    // Chỉ hiển thị các nút hành động nếu người dùng là Admin hoặc Manager
+    if (!isAuthorizedUser) {
+      return null;
     }
 
     return (
@@ -807,7 +847,7 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
             )}
             
             {/* Form cập nhật vai trò chỉ hiển thị nếu có quyền */}
-            {hasRoleManagePermission ? (
+            {hasRoleManagePermission && isAuthorizedUser && (
               <div className="mt-4 p-4 bg-gray-50 rounded-md border border-gray-200">
                 <div className="flex flex-col gap-2">
                   <Text strong>Update Role</Text>
@@ -852,16 +892,297 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
                   )}
                 </div>
               </div>
-            ) : (
-              <div className="mt-4 p-4 bg-gray-100 rounded-md text-center">
-                <Text type="secondary">
-                  <InfoCircleOutlined /> You don't have permission to change this user's role
-                </Text>
-              </div>
             )}
           </Col>
         </Row>
       </Card>
+    );
+  };
+
+  // Hàm render thông tin người dùng với nội dung giới hạn cho User
+  const renderUserInformation = () => {
+    // Kiểm tra người dùng hiện tại có vai trò User hay không
+    const currentUserRoles = userContext?.user?.role || [];
+    const isCurrentUserUser = currentUserRoles.includes("User") && currentUserRoles.length === 1;
+    
+    // Kiểm tra xem có phải đang xem chính mình hay không
+    const isViewingSelf = userContext?.user?.userId === user?.id;
+    
+    // Nếu là user thường và không phải đang xem chính mình, hiển thị thông tin giới hạn
+    if (isCurrentUserUser && !isViewingSelf) {
+      return (
+        <Form form={form} layout="vertical">
+          <Row gutter={[24, 16]}>
+            <Col xs={24} md={6}>
+              <div className="flex flex-col items-center mb-4">
+                {/* Hiển thị ảnh đại diện hoặc avatar */}
+                <Avatar
+                  icon={<UserOutlined />}
+                  style={{ backgroundColor: "#1890ff" }}
+                  size={200}
+                />
+              </div>
+            </Col>
+
+            <Col xs={24} md={18}>
+              <Row gutter={[16, 16]}>
+                {/* Full Name - Hiển thị cho tất cả người dùng */}
+                <Col xs={24} sm={12}>
+                  <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                    <span className="text-xs font-medium text-gray-700">
+                      Full Name
+                    </span>
+                    <div className="mt-1 w-full p-0">
+                      {user?.fullName || "-"}
+                    </div>
+                  </div>
+                </Col>
+                
+                {/* Username - Hiển thị cho tất cả người dùng */}
+                <Col xs={24} sm={12}>
+                  <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                    <span className="text-xs font-medium text-gray-700">
+                      Username
+                    </span>
+                    <div className="mt-1 w-full p-0">
+                      {user?.userName || "-"}
+                    </div>
+                  </div>
+                </Col>
+                
+                {/* Email - Hiển thị cho tất cả người dùng */}
+                <Col xs={24} sm={12}>
+                  <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                    <span className="text-xs font-medium text-gray-700">
+                      Email
+                    </span>
+                    <div className="mt-1 w-full p-0">
+                      {user?.email || "-"}
+                    </div>
+                  </div>
+                </Col>
+                
+                {/* Phone - Hiển thị cho tất cả người dùng */}
+                <Col xs={24} sm={12}>
+                  <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                    <span className="text-xs font-medium text-gray-700">
+                      Phone
+                    </span>
+                    <div className="mt-1 w-full p-0">
+                      {user?.phone || "-"}
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+            </Col>
+          </Row>
+        </Form>
+      );
+    }
+    
+    // Nếu không phải User hoặc đang xem chính mình, hiển thị thông tin đầy đủ
+    return (
+      <Form form={form} layout="vertical">
+        <Row gutter={[24, 16]}>
+          <Col xs={24} md={6}>
+            <div className="flex flex-col items-center mb-4">
+              {/* User Image */}
+              {renderProfileImage()}
+            </div>
+          </Col>
+
+          <Col xs={24} md={18}>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                  <span className="text-xs font-medium text-gray-700">
+                    Full Name
+                  </span>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="fullName"
+                      value={formState.fullName}
+                      onChange={(e) => {
+                        handleInputChange("fullName", e.target.value);
+                      }}
+                      className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+                    />
+                  ) : (
+                    <div className="mt-1 w-full p-0">
+                      {user?.fullName || "-"}
+                    </div>
+                  )}
+                </div>
+              </Col>
+              <Col xs={24} sm={12}>
+                <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                  <span className="text-xs font-medium text-gray-700">
+                    Username
+                  </span>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="userName"
+                      value={formState.userName}
+                      onChange={(e) => {
+                        handleInputChange("userName", e.target.value);
+                      }}
+                      className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+                    />
+                  ) : (
+                    <div className="mt-1 w-full p-0">
+                      {user?.userName || "-"}
+                    </div>
+                  )}
+                </div>
+              </Col>
+              <Col xs={24} sm={12}>
+                <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                  <span className="text-xs font-medium text-gray-700">
+                    Email
+                  </span>
+                  {isEditing ? (
+                    <input
+                      type="email"
+                      name="email"
+                      value={formState.email}
+                      onChange={(e) => {
+                        handleInputChange("email", e.target.value);
+                      }}
+                      className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+                    />
+                  ) : (
+                    <div className="mt-1 w-full p-0">
+                      {user?.email || "-"}
+                    </div>
+                  )}
+                </div>
+              </Col>
+              <Col xs={24} sm={12}>
+                <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                  <span className="text-xs font-medium text-gray-700">
+                    Phone
+                  </span>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="phone"
+                      value={formState.phone}
+                      onChange={(e) => {
+                        handleInputChange("phone", e.target.value);
+                      }}
+                      className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+                    />
+                  ) : (
+                    <div className="mt-1 w-full p-0">
+                      {user?.phone || "-"}
+                    </div>
+                  )}
+                </div>
+              </Col>
+              <Col xs={24} sm={12}>
+                <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                  <span className="text-xs font-medium text-gray-700">
+                    Gender
+                  </span>
+                  {isEditing ? (
+                    <div className="mt-1">
+                      <Radio.Group
+                        value={formState.gender}
+                        onChange={(e) =>
+                          handleInputChange("gender", e.target.value)
+                        }
+                      >
+                        <Radio value="Male">Male</Radio>
+                        <Radio value="Female">Female</Radio>
+                      </Radio.Group>
+                    </div>
+                  ) : (
+                    <div className="mt-1 w-full p-0">
+                      {user?.gender || "-"}
+                    </div>
+                  )}
+                </div>
+              </Col>
+              <Col xs={24} sm={12}>
+                <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                  <span className="text-xs font-medium text-gray-700">
+                    Date of Birth
+                  </span>
+                  {isEditing ? (
+                    <div className="mt-1">
+                      <DatePicker
+                        style={{ width: "100%", border: "none" }}
+                        value={
+                          formState.dob ? dayjs(formState.dob) : null
+                        }
+                        onChange={(date) =>
+                          handleInputChange(
+                            "dob",
+                            date ? date.format("YYYY-MM-DD") : null
+                          )
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <div className="mt-1 w-full p-0">
+                      {formatDate(user?.dob)}
+                    </div>
+                  )}
+                </div>
+              </Col>
+              <Col xs={24}>
+                <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                  <span className="text-xs font-medium text-gray-700">
+                    Address
+                  </span>
+                  {isEditing ? (
+                    <textarea
+                      name="address"
+                      value={formState.address}
+                      onChange={(e) => {
+                        handleInputChange("address", e.target.value);
+                      }}
+                      className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm resize-none"
+                      rows={3}
+                    />
+                  ) : (
+                    <div className="mt-1 w-full p-0">
+                      {user?.address || "No address available."}
+                    </div>
+                  )}
+                </div>
+              </Col>
+
+              <Col xs={24}>
+                <Divider style={{ margin: "8px 0" }} />
+              </Col>
+
+              <Col xs={24} sm={12}>
+                <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                  <span className="text-xs font-medium text-gray-700">
+                    Created At
+                  </span>
+                  <div className="mt-1 w-full p-0">
+                    {formatDateTime(user?.createdAt)}
+                  </div>
+                </div>
+              </Col>
+              <Col xs={24} sm={12}>
+                <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                  <span className="text-xs font-medium text-gray-700">
+                    Updated At
+                  </span>
+                  <div className="mt-1 w-full p-0">
+                    {formatDateTime(user?.updatedAt)}
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+      </Form>
     );
   };
 
@@ -904,8 +1225,10 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
     // Cập nhật URL
     router.replace(`/user/${id}`, undefined, { shallow: true });
     
-    // Hiển thị thông báo
-    messageApi.error("You don't have permission to edit this user");
+    // Hiển thị thông báo chỉ khi là người dùng có quyền truy cập trang quản lý
+    if (isAuthorizedUser) {
+      messageApi.error("You don't have permission to edit this user");
+    }
     
     // Đợi một chút để React cập nhật state trước khi render
     return (
@@ -941,223 +1264,25 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
             title={<Title level={5}>User Information</Title>}
             extra={
               <Space>
-                {user?.roles?.map((role) => (
+                {!isRegularUser && user?.roles?.map((role) => (
                   <Tag key={role} color={getRoleColor(role)}>
                     {role}
                   </Tag>
                 ))}
-                <Tag color={getStatusColor(user?.status)}>
-                  {user?.status ? user.status.toUpperCase() : ""}
-                </Tag>
+                {!isRegularUser && (
+                  <Tag color={getStatusColor(user?.status)}>
+                    {user?.status ? user.status.toUpperCase() : ""}
+                  </Tag>
+                )}
               </Space>
             }
           >
-            <Form form={form} layout="vertical">
-              <Row gutter={[24, 16]}>
-                <Col xs={24} md={6}>
-                  <div className="flex flex-col items-center mb-4">
-                    {/* User Image */}
-                    {renderProfileImage()}
-                  </div>
-                </Col>
-
-                <Col xs={24} md={18}>
-                  <Row gutter={[16, 16]}>
-                    <Col xs={24} sm={12}>
-                      <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">
-                          Full Name
-                        </span>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            name="fullName"
-                            value={formState.fullName}
-                            onChange={(e) => {
-                              handleInputChange("fullName", e.target.value);
-                            }}
-                            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-                          />
-                        ) : (
-                          <div className="mt-1 w-full p-0">
-                            {user?.fullName || "-"}
-                          </div>
-                        )}
-                      </div>
-                    </Col>
-                    <Col xs={24} sm={12}>
-                      <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">
-                          Username
-                        </span>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            name="userName"
-                            value={formState.userName}
-                            onChange={(e) => {
-                              handleInputChange("userName", e.target.value);
-                            }}
-                            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-                          />
-                        ) : (
-                          <div className="mt-1 w-full p-0">
-                            {user?.userName || "-"}
-                          </div>
-                        )}
-                      </div>
-                    </Col>
-                    <Col xs={24} sm={12}>
-                      <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">
-                          Email
-                        </span>
-                        {isEditing ? (
-                          <input
-                            type="email"
-                            name="email"
-                            value={formState.email}
-                            onChange={(e) => {
-                              handleInputChange("email", e.target.value);
-                            }}
-                            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-                          />
-                        ) : (
-                          <div className="mt-1 w-full p-0">
-                            {user?.email || "-"}
-                          </div>
-                        )}
-                      </div>
-                    </Col>
-                    <Col xs={24} sm={12}>
-                      <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">
-                          Phone
-                        </span>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            name="phone"
-                            value={formState.phone}
-                            onChange={(e) => {
-                              handleInputChange("phone", e.target.value);
-                            }}
-                            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-                          />
-                        ) : (
-                          <div className="mt-1 w-full p-0">
-                            {user?.phone || "-"}
-                          </div>
-                        )}
-                      </div>
-                    </Col>
-                    <Col xs={24} sm={12}>
-                      <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">
-                          Gender
-                        </span>
-                        {isEditing ? (
-                          <div className="mt-1">
-                            <Radio.Group
-                              value={formState.gender}
-                              onChange={(e) =>
-                                handleInputChange("gender", e.target.value)
-                              }
-                            >
-                              <Radio value="Male">Male</Radio>
-                              <Radio value="Female">Female</Radio>
-                            </Radio.Group>
-                          </div>
-                        ) : (
-                          <div className="mt-1 w-full p-0">
-                            {user?.gender || "-"}
-                          </div>
-                        )}
-                      </div>
-                    </Col>
-                    <Col xs={24} sm={12}>
-                      <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">
-                          Date of Birth
-                        </span>
-                        {isEditing ? (
-                          <div className="mt-1">
-                            <DatePicker
-                              style={{ width: "100%", border: "none" }}
-                              value={
-                                formState.dob ? dayjs(formState.dob) : null
-                              }
-                              onChange={(date) =>
-                                handleInputChange(
-                                  "dob",
-                                  date ? date.format("YYYY-MM-DD") : null
-                                )
-                              }
-                            />
-                          </div>
-                        ) : (
-                          <div className="mt-1 w-full p-0">
-                            {formatDate(user?.dob)}
-                          </div>
-                        )}
-                      </div>
-                    </Col>
-                    <Col xs={24}>
-                      <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">
-                          Address
-                        </span>
-                        {isEditing ? (
-                          <textarea
-                            name="address"
-                            value={formState.address}
-                            onChange={(e) => {
-                              handleInputChange("address", e.target.value);
-                            }}
-                            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm resize-none"
-                            rows={3}
-                          />
-                        ) : (
-                          <div className="mt-1 w-full p-0">
-                            {user?.address || "No address available."}
-                          </div>
-                        )}
-                      </div>
-                    </Col>
-
-                    <Col xs={24}>
-                      <Divider style={{ margin: "8px 0" }} />
-                    </Col>
-
-                    <Col xs={24} sm={12}>
-                      <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">
-                          Created At
-                        </span>
-                        <div className="mt-1 w-full p-0">
-                          {formatDateTime(user?.createdAt)}
-                        </div>
-                      </div>
-                    </Col>
-                    <Col xs={24} sm={12}>
-                      <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-gray-700">
-                          Updated At
-                        </span>
-                        <div className="mt-1 w-full p-0">
-                          {formatDateTime(user?.updatedAt)}
-                        </div>
-                      </div>
-                    </Col>
-                  </Row>
-                </Col>
-              </Row>
-            </Form>
+            {renderUserInformation()}
           </Card>
         </Col>
         
         {/* Add Role Management section only if user has permission */}
-        {hasRoleManagePermission && (
+        {hasRoleManagePermission && isAuthorizedUser && (
           <Col xs={24} md={24}>
             {renderRoleManagement()}
           </Col>
