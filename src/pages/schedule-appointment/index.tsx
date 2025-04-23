@@ -187,7 +187,7 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
                           <img
                             src={
                               staff.imageURL ||
-                              "https://images.unsplash.com/photo-1570295999919-56cebcd28b2b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80"
+                              "/images/placeholder.jpg"
                             }
                             alt={`${staff.fullName}'s image`}
                             className="w-full h-full object-cover rounded-2xl"

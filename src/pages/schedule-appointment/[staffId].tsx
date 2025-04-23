@@ -1297,7 +1297,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
                 }}
               >
                 <img
-                  src={staff.imageURL || "/default-doctor-image.png"}
+                  src={staff.imageURL || "/images/placeholder.jpg"}
                   alt={staff.fullName}
                   style={{
                     width: "100%",
@@ -1306,7 +1306,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
                     borderRadius: "4px",
                   }}
                   onError={(e) =>
-                    (e.currentTarget.src = "/default-doctor-image.png")
+                    (e.currentTarget.src = "/images/placeholder.jpg")
                   }
                 />
               </div>
