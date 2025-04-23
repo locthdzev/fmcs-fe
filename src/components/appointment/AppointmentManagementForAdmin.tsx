@@ -25,8 +25,8 @@ import {
   Badge,
   Form,
   Select,
+  message,
 } from "antd";
-import { toast } from "react-toastify";
 import dayjs, { Dayjs } from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import Cookies from "js-cookie";
@@ -68,7 +68,8 @@ import {
   UserOutlined,
   MailOutlined,
   PhoneOutlined,
-  VideoCameraOutlined, // Added for Happening button
+  VideoCameraOutlined,
+  LoadingOutlined,
 } from "@ant-design/icons";
 import { UserContext } from "@/context/UserContext";
 import AppointmentUserDetails from "./AppointmentUserDetails";
@@ -76,6 +77,7 @@ import jwtDecode from "jwt-decode";
 import moment from "moment-timezone";
 import debounce from "lodash/debounce";
 import { Virtuoso } from "react-virtuoso";
+import { getAllUsers, UserResponseDTO } from "@/api/user";
 
 const styles = `
   @keyframes blink {
@@ -202,6 +204,89 @@ const styles = `
   .action-button:hover {
     transform: translateY(-1px);
   }
+  
+  /* Redesigned tabs */
+  .appointment-tabs .ant-tabs-nav {
+    background: #fff;
+    padding: 8px 16px 0;
+    margin-bottom: 0;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .appointment-tabs .ant-tabs-content-holder {
+    background: #fff;
+    border-radius: 0 0 8px 8px;
+    padding: 0 16px 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  
+  .appointment-tabs .ant-tabs-tab {
+    padding: 12px 16px;
+    transition: all 0.3s ease;
+    border-radius: 8px 8px 0 0;
+    position: relative;
+  }
+  
+  .appointment-tabs .ant-tabs-tab:hover {
+    background: #f0f7ff;
+  }
+  
+  .appointment-tabs .ant-tabs-tab-active {
+    font-weight: 500;
+  }
+  
+  .appointment-tabs .ant-tabs-tab-active:before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #1890ff;
+    border-radius: 3px 3px 0 0;
+  }
+  
+  .appointment-tabs .status-count {
+    margin-left: 8px;
+    background: #f5f5f5;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    color: #666;
+  }
+  
+  .appointment-tabs .ant-tabs-tab-active .status-count {
+    background: #e6f7ff;
+    color: #1890ff;
+  }
+  
+  .tab-content-container {
+    height: 70vh;
+    padding: 16px 4px;
+    overflow-x: hidden;
+  }
+  
+  .empty-state-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    background: #f9f9f9;
+    border-radius: 12px;
+    border: 1px dashed #d9d9d9;
+  }
+  
+  .empty-state-icon {
+    font-size: 36px;
+    margin-bottom: 16px;
+    color: #bfbfbf;
+  }
+  
+  .tab-icon {
+    margin-right: 8px;
+  }
 `;
 
 dayjs.extend(isBetween);
@@ -209,6 +294,7 @@ dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
 const { Option } = Select;
+const { TabPane } = Tabs;
 
 const formatDate = (datetime: string | undefined) =>
   datetime ? dayjs(datetime).format("DD MMMM YYYY") : "N/A";
@@ -282,6 +368,7 @@ const UpdateAppointmentModal: React.FC<{
   const [availableSlots, setAvailableSlots] = useState<TimeSlotDTO[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const token = Cookies.get("token");
+  const [messageApi, contextHolder] = message.useMessage();
 
   const fetchAvailableSlots = useCallback(
     async (date: string) => {
@@ -296,12 +383,12 @@ const UpdateAppointmentModal: React.FC<{
         setAvailableSlots(response.data?.availableSlots || []);
       } catch (error: any) {
         console.error("Failed to fetch slots:", error);
-        toast.error("Failed to load available slots.");
+        messageApi.error("Failed to load available slots.");
       } finally {
         setLoading(false);
       }
     },
-    [appointment?.staffId, token]
+    [appointment?.staffId, token, messageApi]
   );
 
   useEffect(() => {
@@ -335,7 +422,7 @@ const UpdateAppointmentModal: React.FC<{
 
   const onFinish = async (values: any) => {
     if (!token || !appointment) {
-      toast.error("Authentication token or appointment data missing.");
+      messageApi.error("Authentication token or appointment data missing.");
       return;
     }
 
@@ -368,16 +455,16 @@ const UpdateAppointmentModal: React.FC<{
         request
       );
       if (response.isSuccess) {
-        toast.success("Appointment updated successfully!");
+        messageApi.success("Appointment updated successfully!");
         form.resetFields();
         onUpdateSuccess();
         onClose();
       } else {
-        toast.error(`Failed to update: ${response.message || "Unknown error"}`);
+        messageApi.error(`Failed to update: ${response.message || "Unknown error"}`);
       }
     } catch (error: any) {
       console.error("Error updating appointment:", error);
-      toast.error("Failed to update appointment.");
+      messageApi.error("Failed to update appointment.");
     } finally {
       setLoading(false);
     }
@@ -392,12 +479,17 @@ const UpdateAppointmentModal: React.FC<{
 
   return (
     <Modal
-      title={<Title level={4}>Update Appointment</Title>}
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Update Appointment
+        </Title>
+      }
       open={visible}
       onCancel={handleClose}
       footer={null}
       width={600}
     >
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"
@@ -489,6 +581,7 @@ const ScheduleAppointmentForStaff: React.FC<{
   const [availableSlots, setAvailableSlots] = useState<TimeSlotDTO[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const token = Cookies.get("token");
+  const [messageApi, contextHolder] = message.useMessage();
 
   const fetchAvailableSlots = useCallback(
     async (date: string) => {
@@ -499,12 +592,12 @@ const ScheduleAppointmentForStaff: React.FC<{
         setAvailableSlots(response.data?.availableSlots || []);
       } catch (error: any) {
         console.error("Failed to fetch slots:", error);
-        toast.error("Failed to load available slots.");
+        messageApi.error("Failed to load available slots.");
       } finally {
         setLoading(false);
       }
     },
-    [staffId, token]
+    [staffId, token, messageApi]
   );
 
   const onDateChange = (date: moment.Moment | null) => {
@@ -520,7 +613,7 @@ const ScheduleAppointmentForStaff: React.FC<{
 
   const onFinish = async (values: any) => {
     if (!token) {
-      toast.error("Authentication token missing.");
+      messageApi.error("Authentication token missing.");
       return;
     }
 
@@ -551,17 +644,17 @@ const ScheduleAppointmentForStaff: React.FC<{
         token
       );
       if (response.isSuccess) {
-        toast.success("Appointment scheduled successfully!");
+        messageApi.success("Appointment scheduled successfully!");
         form.resetFields();
         onClose();
       } else {
-        toast.error(
+        messageApi.error(
           `Failed to schedule: ${response.message || "Unknown error"}`
         );
       }
     } catch (error: any) {
       console.error("Error scheduling appointment:", error);
-      toast.error("Failed to schedule appointment.");
+      messageApi.error("Failed to schedule appointment.");
     } finally {
       setLoading(false);
     }
@@ -576,12 +669,13 @@ const ScheduleAppointmentForStaff: React.FC<{
 
   return (
     <Modal
-      title={<Title level={4}>Schedule Appointment with Student</Title>}
+      title={<Title level={4}>Schedule Appointment with User</Title>}
       open={visible}
       onCancel={handleClose}
       footer={null}
       width={600}
     >
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"
@@ -658,9 +752,7 @@ export function AppointmentManagementForAdmin() {
   const context = useContext(UserContext);
   const user = context?.user;
   const [appointments, setAppointments] = useState<AppointmentResponseDTO[]>([]);
-  const [happeningAppointments, setHappeningAppointments] = useState<
-    AppointmentResponseDTO[]
-  >([]);
+  const [happeningAppointments, setHappeningAppointments] = useState<AppointmentResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -668,17 +760,16 @@ export function AppointmentManagementForAdmin() {
   const [blockModalVisible, setBlockModalVisible] = useState(false);
   const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState<
-    string | null
-  >(null);
-  const [selectedAppointment, setSelectedAppointment] =
-    useState<AppointmentResponseDTO | null>(null);
-  const [resetStatusUserId, setResetStatusUserId] = useState<string | null>(
-    null
-  );
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentResponseDTO | null>(null);
+  const [resetUserModalVisible, setResetUserModalVisible] = useState(false);
+  const [resetStatusUserId, setResetStatusUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("All");
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [fetchProgress, setFetchProgress] = useState<number>(0);
+  const [userOptions, setUserOptions] = useState<{ value: string; label: string }[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
 
   const fetchAppointments = useCallback(
     async (userId: string) => {
@@ -700,7 +791,7 @@ export function AppointmentManagementForAdmin() {
             setFetchProgress((allAppointments.length / totalRecords) * 100);
             page++;
           } else {
-            toast.error(result.message || "Failed to fetch appointments");
+            messageApi.error(result.message || "Failed to fetch appointments");
             break;
           }
         } while ((page - 1) * pageSize < totalRecords);
@@ -713,23 +804,23 @@ export function AppointmentManagementForAdmin() {
       } catch (error: any) {
         console.error("Error fetching appointments:", error);
         if (error.response?.status === 401) {
-          toast.error("Session expired. Please log in again.");
+          messageApi.error("Session expired. Please log in again.");
           router.push("/");
         } else {
-          toast.error("Failed to load appointments.");
+          messageApi.error("Failed to load appointments.");
         }
       } finally {
         setLoading(false);
         setFetchProgress(0);
       }
     },
-    [router]
+    [router, messageApi]
   );
 
   useEffect(() => {
     const token = Cookies.get("token");
     if (!token) {
-      toast.error("No authentication token found.");
+      messageApi.error("No authentication token found.");
       router.push("/");
       return;
     }
@@ -738,22 +829,22 @@ export function AppointmentManagementForAdmin() {
       const decoded: any = jwtDecode(token);
       const userId = decoded.userid;
       if (!userId) {
-        toast.error("Invalid user ID in token.");
+        messageApi.error("Invalid user ID in token.");
         router.push("/");
         return;
       }
       fetchAppointments(userId);
     } catch (error) {
       console.error("Invalid token:", error);
-      toast.error("Invalid authentication token.");
+      messageApi.error("Invalid authentication token.");
       router.push("/");
     }
-  }, [fetchAppointments, router]);
+  }, [fetchAppointments, router, messageApi]);
 
   const handleRefresh = useCallback(() => {
     const token = Cookies.get("token");
     if (!token) {
-      toast.error("No authentication token found.");
+      messageApi.error("No authentication token found.");
       router.push("/");
       return;
     }
@@ -765,10 +856,10 @@ export function AppointmentManagementForAdmin() {
       }
     } catch (error) {
       console.error("Invalid token on refresh:", error);
-      toast.error("Invalid authentication token.");
+      messageApi.error("Invalid authentication token.");
       router.push("/");
     }
-  }, [fetchAppointments, router]);
+  }, [fetchAppointments, router, messageApi]);
 
   const handleAction = useCallback(
     async (
@@ -790,7 +881,7 @@ export function AppointmentManagementForAdmin() {
           : await action(id, token);
         console.log("Action response:", response);
         if (response.isSuccess) {
-          toast.success(successMsg);
+          messageApi.success(successMsg);
           const staffId = jwtDecode<any>(token).userid || user?.userId;
           if (staffId) {
             await fetchAppointments(staffId);
@@ -799,7 +890,7 @@ export function AppointmentManagementForAdmin() {
             }
           }
         } else {
-          toast.error(
+          messageApi.error(
             `Failed to ${successMsg.toLowerCase()}: ${
               response.message || "Unknown error"
             }`
@@ -811,26 +902,23 @@ export function AppointmentManagementForAdmin() {
           error.response?.status === 401 ||
           error.message === "No authentication token found."
         ) {
-          toast.error("Session expired or unauthorized. Please log in again.");
+          messageApi.error("Session expired or unauthorized. Please log in again.");
           router.push("/");
         } else {
-          toast.error(`An error occurred: ${error.message || "Unknown error"}`);
+          messageApi.error(`An error occurred: ${error.message || "Unknown error"}`);
         }
       } finally {
         setActionLoading(null);
         setResetStatusUserId(null);
       }
     },
-    [fetchAppointments, router, user?.userId]
+    [fetchAppointments, router, user?.userId, messageApi]
   );
 
-  const handleEditClick = useCallback(
-    (appointment: AppointmentResponseDTO) => {
-      setSelectedAppointment(appointment);
-      setEditModalVisible(true);
-    },
-    []
-  );
+  const handleEditClick = useCallback((appointment: AppointmentResponseDTO) => {
+    setSelectedAppointment(appointment);
+    setEditModalVisible(true);
+  }, []);
 
   const debouncedSetSearchText = useMemo(
     () => debounce((value: string) => setSearchText(value), 300),
@@ -890,7 +978,10 @@ export function AppointmentManagementForAdmin() {
   }, []);
 
   const getActionMenuItems = useCallback(
-    (appointment: AppointmentResponseDTO, actionLoading: string | null): any[] => {
+    (
+      appointment: AppointmentResponseDTO,
+      actionLoading: string | null
+    ): any[] => {
       const isAnyActionLoading = !!actionLoading;
       const items: any[] = [];
 
@@ -921,7 +1012,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Mark the appointment as fully completed">
                 <Popconfirm
-                  title={`Are you sure you want to mark "${appointment.studentName ?? "N/A"}"'s appointment as fully completed?`}
+                  title={`Are you sure you want to mark "${
+                    appointment.studentName ?? "N/A"
+                  }"'s appointment as fully completed?`}
                   description="This will indicate the appointment has concluded successfully."
                   onConfirm={() =>
                     handleAction(
@@ -958,7 +1051,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Confirm the student attended the appointment">
                 <Popconfirm
-                  title={`Did "${appointment.studentName ?? "N/A"}" attend this appointment?`}
+                  title={`Did "${
+                    appointment.studentName ?? "N/A"
+                  }" attend this appointment?`}
                   description="This confirms the student was present but does not mark the appointment as finished."
                   onConfirm={() =>
                     handleAction(
@@ -995,7 +1090,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Report the student missed the appointment">
                 <Popconfirm
-                  title={`Did "${appointment.studentName ?? "N/A"}" miss this appointment?`}
+                  title={`Did "${
+                    appointment.studentName ?? "N/A"
+                  }" miss this appointment?`}
                   description="This will mark the appointment as missed and may update the user's status to Warning."
                   onConfirm={() =>
                     handleAction(
@@ -1033,7 +1130,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Cancel the appointment">
                 <Popconfirm
-                  title={`Are you sure you want to cancel "${appointment.studentName ?? "N/A"}"'s appointment?`}
+                  title={`Are you sure you want to cancel "${
+                    appointment.studentName ?? "N/A"
+                  }"'s appointment?`}
                   description="This action cannot be undone."
                   onConfirm={() =>
                     handleAction(
@@ -1076,7 +1175,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Mark the appointment as fully completed">
                 <Popconfirm
-                  title={`Are you sure you want to mark "${appointment.studentName ?? "N/A"}"'s appointment as fully completed?`}
+                  title={`Are you sure you want to mark "${
+                    appointment.studentName ?? "N/A"
+                  }"'s appointment as fully completed?`}
                   description="This will indicate the appointment has concluded successfully."
                   onConfirm={() =>
                     handleAction(
@@ -1113,7 +1214,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Report the student missed the appointment">
                 <Popconfirm
-                  title={`Did "${appointment.studentName ?? "N/A"}" miss this appointment?`}
+                  title={`Did "${
+                    appointment.studentName ?? "N/A"
+                  }" miss this appointment?`}
                   description="This will mark the appointment as missed and may update the user's status to Warning."
                   onConfirm={() =>
                     handleAction(
@@ -1155,7 +1258,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Mark the appointment as fully completed">
                 <Popconfirm
-                  title={`Are you sure you want to mark "${appointment.studentName ?? "N/A"}"'s appointment as fully completed?`}
+                  title={`Are you sure you want to mark "${
+                    appointment.studentName ?? "N/A"
+                  }"'s appointment as fully completed?`}
                   description="This will indicate the appointment has concluded successfully."
                   onConfirm={() =>
                     handleAction(
@@ -1192,7 +1297,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Confirm the student attended the appointment">
                 <Popconfirm
-                  title={`Did "${appointment.studentName ?? "N/A"}" attend this appointment?`}
+                  title={`Did "${
+                    appointment.studentName ?? "N/A"
+                  }" attend this appointment?`}
                   description="This confirms the student was present but does not mark the appointment as finished."
                   onConfirm={() =>
                     handleAction(
@@ -1230,7 +1337,9 @@ export function AppointmentManagementForAdmin() {
             label: (
               <Tooltip title="Reset this user's appointment status to Normal, allowing them to book appointments again">
                 <Popconfirm
-                  title={`Reset "${appointment.studentName ?? "N/A"}"'s appointment status to Normal?`}
+                  title={`Reset "${
+                    appointment.studentName ?? "N/A"
+                  }"'s appointment status to Normal?`}
                   description="This will allow the user to schedule appointments again."
                   onConfirm={() =>
                     handleAction(
@@ -1290,7 +1399,12 @@ export function AppointmentManagementForAdmin() {
       const appointment = data.appointments[index];
       if (!appointment) return null;
 
-      console.log("Rendering AppointmentRow:", appointment.id, "Status:", appointment.status);
+      console.log(
+        "Rendering AppointmentRow:",
+        appointment.id,
+        "Status:",
+        appointment.status
+      );
 
       return (
         <div className="appointment-card">
@@ -1319,13 +1433,15 @@ export function AppointmentManagementForAdmin() {
                         type="secondary"
                         ellipsis={{ tooltip: appointment.staffName }}
                       >
-                         {appointment.staffName ?? "N/A"}
+                        {appointment.staffName ?? "N/A"}
                       </Text>
                     </Col>
                     <Col xs={24} sm={5}>
                       <Text type="secondary" className="text-xs">
-                        {formatDate(appointment.appointmentDate)}<br />
-                        {formatTime(appointment.appointmentDate)} - {formatTime(appointment.endTime)}
+                        {formatDate(appointment.appointmentDate)}
+                        <br />
+                        {formatTime(appointment.appointmentDate)} -{" "}
+                        {formatTime(appointment.endTime)}
                       </Text>
                     </Col>
                     <Col xs={24} sm={4}>
@@ -1414,18 +1530,19 @@ export function AppointmentManagementForAdmin() {
                         </div>
                       </Col>
                       <Col xs={24} sm={12}>
-                        <div className="details-title">Healthcare Officer Information</div>
+                        <div className="details-title">
+                          Healthcare Officer Information
+                        </div>
                         <div className="details-item">
                           <UserOutlined />
                           <span>{appointment.staffName ?? "N/A"}</span>
                         </div>
                         <div className="details-item">
-                        <PhoneOutlined />
+                          <PhoneOutlined />
                           <span>{appointment.staffEmail ?? "N/A"}</span>
                         </div>
                         <div className="details-item">
-                        
-                        <MailOutlined />
+                          <MailOutlined />
                           <span>{appointment.staffPhone ?? "N/A"}</span>
                         </div>
                       </Col>
@@ -1481,7 +1598,7 @@ export function AppointmentManagementForAdmin() {
     <div className="sticky-header">
       <Row align="middle" gutter={[8, 8]}>
         <Col xs={24} sm={6}>
-          <Text strong>Patient</Text>
+          <Text strong>User</Text>
         </Col>
         <Col xs={24} sm={6}>
           <Text strong>Healthcare Officer</Text>
@@ -1538,62 +1655,50 @@ export function AppointmentManagementForAdmin() {
     ]
   );
 
-  const tabItems = useMemo(() => {
-    console.log("Computing tabItems");
-    const statuses = [
-      "All",
-      "Scheduled",
-      "Happening",
-      "Finished",
-      "Missed",
-      "Cancelled",
-    ] as const;
-    return statuses.map((status) => ({
-      key: status,
-      label: (
-        <span>
-          <Tag color={status === "All" ? "default" : getStatusColor(status)}>
-            {status}
-          </Tag>
-          {status === "All"
-            ? filteredAppointments.length
-            : filteredAppointments.filter((a) =>
-                status === "Cancelled"
-                  ? a.status === "Cancelled" || a.status === "CancelledAfterConfirm"
-                  : a.status === status
-              ).length}
-        </span>
-      ),
-      children: (
-        <div style={{ height: "70vh" }}>
-          {filteredTabAppointments.length === 0 ? (
-            <Card className="text-center py-6 rounded-xl shadow-sm">
-              <Text className="text-gray-500">
-                No{" "}
-                {status === "All"
-                  ? "appointments"
-                  : status.toLowerCase() + " appointments"}
-                .
-              </Text>
-            </Card>
-          ) : (
-            <Virtuoso
-              style={{ height: "100%" }}
-              data={filteredTabAppointments}
-              itemContent={(index) => (
-                <AppointmentRow index={index} data={rowData} />
-              )}
-              components={{
-                Header: StickyHeader,
-              }}
-              computeItemKey={(index, item) => item.id}
-              key={activeTab}
-            />
-          )}
-        </div>
-      ),
-    }));
-  }, [filteredTabAppointments, rowData, activeTab, filteredAppointments]);
+  const renderTabIcon = (status: string) => {
+    switch (status) {
+      case "All":
+        return <CalendarOutlined className="tab-icon" />;
+      case "Scheduled":
+        return <ClockCircleOutlined className="tab-icon" />;
+      case "Happening":
+        return <PlayCircleOutlined className="tab-icon" />;
+      case "Finished":
+        return <CheckCircleFilled className="tab-icon" />;
+      case "Missed":
+        return <CloseCircleFilled className="tab-icon" />;
+      case "Cancelled":
+        return <StopOutlined className="tab-icon" />;
+      default:
+        return null;
+    }
+  };
+
+  const renderEmptyState = (status: string) => (
+    <div className="empty-state-card">
+      {renderTabIcon(status)}
+      <Text className="text-gray-500" strong>
+        No{" "}
+        {status === "All"
+          ? "appointments"
+          : status.toLowerCase() + " appointments"}{" "}
+        found
+      </Text>
+      <Text type="secondary" style={{ marginTop: 8 }}>
+        {status === "All"
+          ? "There are no appointments matching your filters."
+          : `There are no ${status.toLowerCase()} appointments at this time.`}
+      </Text>
+      <Button
+        type="link"
+        onClick={resetFilters}
+        icon={<ReloadOutlined />}
+        style={{ marginTop: 12 }}
+      >
+        Reset filters
+      </Button>
+    </div>
+  );
 
   const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
     { label: "Today", value: [dayjs(), dayjs()] },
@@ -1609,6 +1714,73 @@ export function AppointmentManagementForAdmin() {
 
   const activeFilterCount = (searchText ? 1 : 0) + (dateRange ? 1 : 0);
 
+  const fetchUserOptions = useCallback(async () => {
+    setLoadingUsers(true);
+    try {
+      const token = Cookies.get("token");
+      if (!token) {
+        throw new Error("No authentication token found.");
+      }
+
+      const response = await getAllUsers(
+        1, // page
+        1000, // pageSize - large number to get as many as possible
+        undefined, // fullNameSearch
+        undefined, // userNameSearch
+        undefined, // emailSearch
+        undefined, // phoneSearch
+        undefined, // roleFilter
+        undefined, // genderFilter
+        undefined, // other parameters...
+      );
+
+      if (response.isSuccess && response.data) {
+        const options = response.data.map((user: UserResponseDTO) => ({
+          value: user.email,
+          label: `${user.fullName} (${user.email})`,
+        }));
+        setUserOptions(options);
+      } else {
+        console.error("Failed to fetch users:", response.message);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, []);
+
+  const handleResetUserStatus = () => {
+    if (!resetStatusUserId) {
+      messageApi.error("Please select a User Email");
+      return;
+    }
+    
+    handleAction(
+      updateUserAppointmentStatusToNormal,
+      resetStatusUserId,
+      "User appointment status reset to Normal!",
+      resetStatusUserId
+    );
+    setResetUserModalVisible(false);
+    setResetStatusUserId(null);
+  };
+
+  // Filter options when searching
+  const handleUserSearch = debounce((value: string) => {
+    // This will use the existing options but filter them based on the search input
+    // If you want to do a server-side search, you would call the API here
+    console.log("Searching for user:", value);
+  }, 300);
+
+  // Open modal and fetch users if not already fetched
+  const handleOpenResetModal = () => {
+    setResetUserModalVisible(true);
+    if (userOptions.length === 0) {
+      fetchUserOptions();
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50">
@@ -1620,10 +1792,11 @@ export function AppointmentManagementForAdmin() {
   console.log("AppointmentManagementForAdmin rendered");
   return (
     <div className="p-4 bg-gray-50 min-h-screen">
+      {contextHolder}
       <style>{styles}</style>
       <Card className="mb-6 shadow-md rounded-xl">
         <Title level={2} className="text-center mb-4 text-gray-800">
-          Staff Appointment Dashboard
+          Appointment Management
         </Title>
         <Collapse
           defaultActiveKey={["1"]}
@@ -1676,9 +1849,7 @@ export function AppointmentManagementForAdmin() {
                           icon={<ReloadOutlined />}
                           className="rounded-lg action-button"
                           aria-label="Reset all filters"
-                        >
-                          Reset
-                        </Button>
+                        />
                       </Tooltip>
                       <Tooltip title="Refresh appointments">
                         <Button
@@ -1691,52 +1862,27 @@ export function AppointmentManagementForAdmin() {
                           Refresh
                         </Button>
                       </Tooltip>
-                      <Popconfirm
-                        title="Reset User Appointment Status"
-                        description={
-                          <div>
-                            <p>
-                              Please enter the User Email to reset their
-                              appointment status:
-                            </p>
-                            <Input
-                              placeholder="User Email"
-                              value={resetStatusUserId || ""}
-                              onChange={(e) =>
-                                setResetStatusUserId(e.target.value)
-                              }
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </div>
-                        }
-                        onConfirm={() => {
-                          if (resetStatusUserId) {
-                            handleAction(
-                              updateUserAppointmentStatusToNormal,
-                              resetStatusUserId,
-                              "User appointment status reset to Normal!",
-                              resetStatusUserId
-                            );
-                          } else {
-                            toast.error("Please enter a User Email");
-                          }
-                        }}
-                        onCancel={() => setResetStatusUserId(null)}
-                        okText="Reset"
-                        cancelText="Cancel"
-                        placement="bottomRight"
-                      >
-                        <Tooltip title="Reset user appointment status to Normal">
-                          <Button
-                            type="default"
-                            icon={<UserSwitchOutlined />}
-                            className="rounded-lg action-button"
-                            aria-label="Reset user appointment status"
-                          >
-                            Reset User
-                          </Button>
-                        </Tooltip>
-                      </Popconfirm>
+                      <Tooltip title="Reset user appointment status to Normal">
+                        <Button
+                          type="default"
+                          icon={<UserSwitchOutlined />}
+                          className="rounded-lg action-button"
+                          aria-label="Reset user appointment status"
+                          onClick={handleOpenResetModal}
+                        >
+                          Reset User
+                        </Button>
+                      </Tooltip>
+                      <Tooltip title="Schedule new appointment">
+                        <Button
+                          type="primary"
+                          icon={<ScheduleOutlined />}
+                          className="rounded-lg action-button"
+                          onClick={handleScheduleClick}
+                        >
+                          Schedule
+                        </Button>
+                      </Tooltip>
                     </Space>
                   </Col>
                 </Row>
@@ -1747,15 +1893,102 @@ export function AppointmentManagementForAdmin() {
         />
       </Card>
 
-      <>
-
+      <Card className="shadow-md rounded-xl">
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
-          className="px-2"
-          items={tabItems}
-        />
-      </>
+          className="appointment-tabs"
+          size="large"
+          type="card"
+          animated={{ inkBar: true, tabPane: true }}
+          tabBarExtraContent={
+            <Badge
+              count={happeningAppointments.length}
+              style={{ backgroundColor: "#ff4d4f" }}
+              offset={[-5, 5]}
+            >
+              <Button
+                type="primary"
+                onClick={handleHappeningClick}
+                icon={<VideoCameraOutlined />}
+                danger={happeningAppointments.length > 0}
+                ghost={happeningAppointments.length > 0}
+              >
+                Live Sessions ({happeningAppointments.length})
+              </Button>
+            </Badge>
+          }
+        >
+          {[
+            "All",
+            "Scheduled",
+            "Happening",
+            "Finished",
+            "Missed",
+            "Cancelled",
+          ].map((status) => {
+            const appointmentCount =
+              status === "All"
+                ? filteredAppointments.length
+                : status === "Cancelled"
+                ? filteredAppointments.filter(
+                    (a) =>
+                      a.status === "Cancelled" ||
+                      a.status === "CancelledAfterConfirm"
+                  ).length
+                : filteredAppointments.filter((a) => a.status === status)
+                    .length;
+
+            const statusAppointments =
+              status === "All"
+                ? filteredAppointments
+                : status === "Cancelled"
+                ? filteredAppointments.filter(
+                    (a) =>
+                      a.status === "Cancelled" ||
+                      a.status === "CancelledAfterConfirm"
+                  )
+                : filteredAppointments.filter((a) => a.status === status);
+
+            return (
+              <TabPane
+                key={status}
+                tab={
+                  <span>
+                    {renderTabIcon(status)}
+                    {status}
+                    <span className="status-count">{appointmentCount}</span>
+                  </span>
+                }
+              >
+                <div className="tab-content-container">
+                  {statusAppointments.length === 0 ? (
+                    renderEmptyState(status)
+                  ) : (
+                    <Virtuoso
+                      style={{ height: "100%" }}
+                      data={statusAppointments}
+                      itemContent={(index) => (
+                        <AppointmentRow
+                          index={index}
+                          data={{
+                            ...rowData,
+                            appointments: statusAppointments,
+                          }}
+                        />
+                      )}
+                      components={{
+                        Header: StickyHeader,
+                      }}
+                      computeItemKey={(index, item) => item.id}
+                    />
+                  )}
+                </div>
+              </TabPane>
+            );
+          })}
+        </Tabs>
+      </Card>
 
       <Modal
         title="Appointment User Details"
@@ -1794,6 +2027,72 @@ export function AppointmentManagementForAdmin() {
         appointment={selectedAppointment}
         onUpdateSuccess={handleRefresh}
       />
+
+      <Modal
+        title={
+          <Title level={4} style={{ margin: 0 }}>
+            <UserSwitchOutlined style={{ marginRight: 8 }} />
+            Reset User Appointment Status
+          </Title>
+        }
+        open={resetUserModalVisible}
+        onCancel={() => {
+          setResetUserModalVisible(false);
+          setResetStatusUserId(null);
+        }}
+        footer={[
+          <Button 
+            key="cancel" 
+            onClick={() => {
+              setResetUserModalVisible(false);
+              setResetStatusUserId(null);
+            }}
+          >
+            Cancel
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            onClick={handleResetUserStatus}
+            loading={!!actionLoading}
+          >
+            Reset Status
+          </Button>
+        ]}
+        width={500}
+        destroyOnClose
+      >
+        <div style={{ padding: "16px 0" }}>
+          <Text>Please select the User Email to reset their appointment status to Normal:</Text>
+          <div style={{ margin: "16px 0" }}>
+            <Select
+              showSearch
+              placeholder="Search and select a user"
+              optionFilterProp="label"
+              onChange={(value) => setResetStatusUserId(value)}
+              onSearch={handleUserSearch}
+              value={resetStatusUserId}
+              style={{ width: "100%" }}
+              notFoundContent={loadingUsers ? <Spin size="small" /> : null}
+              filterOption={(input, option) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={userOptions}
+              loading={loadingUsers}
+              allowClear
+            />
+            {loadingUsers && (
+              <div style={{ marginTop: 8, color: '#1890ff', display: 'flex', alignItems: 'center' }}>
+                <LoadingOutlined style={{ marginRight: 8 }} />
+                <Text type="secondary">Loading users...</Text>
+              </div>
+            )}
+          </div>
+          <Text type="secondary">
+            Resetting the status will allow the user to schedule appointments again if they were previously blocked.
+          </Text>
+        </div>
+      </Modal>
     </div>
   );
 }

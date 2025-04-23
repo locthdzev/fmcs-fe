@@ -1,12 +1,12 @@
 import { GoogleLogin } from "@react-oauth/google";
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { login, loginWithGoogle } from "@/api/auth";
 import { UserContext } from "@/context/UserContext";
 import Cookies from "js-cookie";
 import { ImagesSlider } from "@/components/ui/images-slider";
 import { motion } from "framer-motion";
-import { message } from "antd";
+import { message, Alert } from "antd";
 
 export default function Login() {
   console.log("Login");
@@ -14,11 +14,32 @@ export default function Login() {
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const router = useRouter();
   const context = useContext(UserContext);
   const [messageApi, contextHolder] = message.useMessage();
 
   const { loginContext } = context || {};
+
+  // Hàm kiểm tra Capslock chỉ khi input password được focus
+  const checkCapsLock = (e: KeyboardEvent) => {
+    if (passwordFocused) {
+      setCapsLockOn(e.getModifierState("CapsLock"));
+    }
+  };
+
+  // Thêm sự kiện lắng nghe Capslock
+  useEffect(() => {
+    window.addEventListener("keydown", checkCapsLock);
+    window.addEventListener("keyup", checkCapsLock);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("keydown", checkCapsLock);
+      window.removeEventListener("keyup", checkCapsLock);
+    };
+  }, [passwordFocused]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,10 +116,11 @@ export default function Login() {
   };
 
   const images = [
-    "../fpt-ct-campus1.jpg",
-    "../fpt-ct-campus2.jpg",
-    "../fpt-ct-campus3.jpg",
-    "../fpt-ct-campus4.jpg",
+    "../login-1.jpg",
+    "../login-2.jpg",
+    "../login-3.jpg",
+    "../login-4.jpg",
+    "../login-5.jpeg",
   ];
 
   return (
@@ -225,6 +247,8 @@ export default function Login() {
                 placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
                 required
                 className="w-full p-3 pl-10 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300 text-black"
               />
@@ -240,26 +264,24 @@ export default function Login() {
                   clipRule="evenodd"
                 />
               </svg>
+              {capsLockOn && passwordFocused && (
+                <div className="absolute left-0 top-0 transform -translate-x-full -translate-y-1/2 mt-6 ml-3">
+                  <div className="bg-yellow-50 border border-yellow-400 text-yellow-800 px-3 py-2 rounded-lg shadow-lg">
+                    <div className="flex items-center space-x-1 text-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span>Caps Lock is ON</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={handleClickShowPassword}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
               >
                 {showPassword ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z"
-                      clipRule="evenodd"
-                    />
-                    <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
-                  </svg>
-                ) : (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-5 w-5"
@@ -273,8 +295,22 @@ export default function Login() {
                       clipRule="evenodd"
                     />
                   </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z"
+                      clipRule="evenodd"
+                    />
+                    <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+                  </svg>
                 )}
-              </button>{" "}
+              </button>
             </div>
             <div className="flex items-center justify-between">
               <label className="flex items-center space-x-2 text-gray-600">

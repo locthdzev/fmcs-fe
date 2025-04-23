@@ -18,11 +18,11 @@ const Chatbot: React.FC = () => {
   const router = useRouter();
 
   const randomThoughts = [
-    "Chào bạn, hỏi mình gì đi!",
-    "Hello, bạn khỏe không?",
-    "Hôm nay bạn thế nào?",
-    "Mình có thể giúp gì cho bạn?",
-    "Chào, đừng ngại hỏi mình nhé!",
+    "Hi there, ask me anything!",
+    "Hello, how are you?",
+    "How are you doing today?",
+    "How can I help you?",
+    "Hi, don't hesitate to ask me!",
   ];
 
   const [thought, setThought] = useState(randomThoughts[0]);

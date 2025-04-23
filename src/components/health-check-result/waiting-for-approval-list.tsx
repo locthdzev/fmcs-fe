@@ -532,7 +532,7 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
       key: "patient",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          PATIENT
+          PERSON EXAMINED
         </span>
       ),
       dataIndex: "user",

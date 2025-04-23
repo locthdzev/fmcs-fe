@@ -443,7 +443,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       key: "patient",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          PATIENT
+          PERSON EXAMINED
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -480,7 +480,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       key: "staff",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          DOCTOR / NURSE
+          HEALTHCARE STAFF
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (

@@ -723,9 +723,9 @@ export const sendHealthInsuranceUpdateRequest = async () => {
   return response.data;
 };
 
-export const exportHealthInsurances = () =>
+export const exportHealthInsurances = (status?: string) =>
   exportToExcel(
-    "/health-insurance-management/insurances/export",
+    `/health-insurance-management/insurances/export${status && status !== 'All' ? `?status=${status}` : ''}`,
     "Health_Insurances.xlsx"
   );
 
