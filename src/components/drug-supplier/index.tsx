@@ -1218,7 +1218,7 @@ export function DrugSuppliers() {
                   rowSelection={rowSelection}
                   pagination={false}
                   onChange={handleTableChange}
-                  scroll={{ x: "max-content", y: 500 }}
+                  scroll={{ x: "max-content" }}
                   bordered
                 />
               </div>
