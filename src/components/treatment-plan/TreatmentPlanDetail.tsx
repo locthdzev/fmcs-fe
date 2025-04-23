@@ -713,7 +713,11 @@ export const TreatmentPlanDetail: React.FC<TreatmentPlanDetailProps> = ({
       </Card>
 
       <Modal
-        title="Edit Treatment Plan"
+        title={
+          <Title level={4} style={{ margin: 0 }}>
+            Edit Treatment Plan
+          </Title>
+        }
         open={editModalVisible}
         onOk={handleUpdate}
         onCancel={() => setEditModalVisible(false)}

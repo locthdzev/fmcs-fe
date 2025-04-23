@@ -240,9 +240,8 @@ const UpdateStudentHealthCheckup: React.FC<UpdateStudentHealthCheckupProps> = ({
             rules={[{ required: true, message: "Please select a status" }]}
           >
             <Select placeholder="Select status">
-              <Select.Option value="Completed">Completed</Select.Option>
-              <Select.Option value="Pending">Pending</Select.Option>
-              <Select.Option value="In Progress">In Progress</Select.Option>
+              <Select.Option value="Active">Active</Select.Option>
+              <Select.Option value="Inactive">Inactive</Select.Option>
             </Select>
           </Form.Item>
 

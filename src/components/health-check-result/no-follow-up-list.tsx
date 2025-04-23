@@ -154,7 +154,7 @@ const FilterModal: React.FC<{
                 allowClear
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
               />
             </div>
           </Col>
@@ -170,7 +170,7 @@ const FilterModal: React.FC<{
                 allowClear
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
               />
             </div>
           </Col>
@@ -443,7 +443,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       key: "patient",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          PATIENT
+          PERSON EXAMINED
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -480,7 +480,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       key: "staff",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          DOCTOR / NURSE
+          HEALTHCARE STAFF
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (

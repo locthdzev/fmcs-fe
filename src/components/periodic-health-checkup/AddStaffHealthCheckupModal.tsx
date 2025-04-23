@@ -1,6 +1,14 @@
 import React from "react";
-import { Modal } from "antd";
+import { Modal, Typography, Button, Space, Divider } from "antd";
 import AddStaffHealthCheckupPage from "./AddStaffHealthCheckupPage";
+import { 
+  CheckCircleOutlined, 
+  CloseCircleOutlined, 
+  SaveOutlined, 
+  UserAddOutlined 
+} from "@ant-design/icons";
+
+const { Title } = Typography;
 
 interface AddStaffHealthCheckupModalProps {
   visible: boolean;
@@ -15,15 +23,27 @@ const AddStaffHealthCheckupModal: React.FC<AddStaffHealthCheckupModalProps> = ({
 }) => {
   return (
     <Modal
-      title={null}
+      title={
+        <div className="flex items-center justify-between py-3 px-6">
+          <div className="flex items-center">
+            <UserAddOutlined style={{ fontSize: '20px', color: '#1890ff', marginRight: 10 }} />
+            <Title level={4} style={{ margin: 0 }}>Add Staff Health Checkup</Title>
+          </div>
+        </div>
+      }
       open={visible}
       onCancel={onClose}
-      footer={null}
-      width={600}
+      width={680}
       bodyStyle={{ padding: 0 }}
       destroyOnClose
+      centered
+      maskClosable={false}
+      footer={null}
     >
-      <AddStaffHealthCheckupPage onSuccess={onSuccess} onClose={onClose} />
+      <Divider style={{ margin: 0 }} />
+      <div className="p-5">
+        <AddStaffHealthCheckupPage onSuccess={onSuccess} onClose={onClose} />
+      </div>
     </Modal>
   );
 };

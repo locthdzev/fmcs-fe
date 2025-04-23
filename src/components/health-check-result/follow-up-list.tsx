@@ -399,7 +399,7 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
       key: "patient",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          PATIENT
+          PERSON EXAMINED
         </span>
       ),
       dataIndex: "user",
@@ -535,7 +535,7 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
               placeholder="Search by result code"
               value={codeSearch}
               onChange={(e) => setCodeSearch(e.target.value)}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               style={{ width: 200 }}
               allowClear
             />

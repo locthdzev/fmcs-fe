@@ -1,18 +1,41 @@
 import { useEffect, useState, useContext } from "react";
-import { getUserProfile, UserProfile, updateUser, updateProfileImage } from "@/api/user";
+import {
+  getUserProfile,
+  UserProfile,
+  updateUser,
+  updateProfileImage,
+} from "@/api/user";
 import { changePassword } from "@/api/auth";
 import router from "next/router";
 import Cookies from "js-cookie";
-import { Button, Form, Input, Modal, Upload, message, Image, Spin } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  Upload,
+  message,
+  Image,
+  Spin,
+  Divider,
+  Typography,
+} from "antd";
 import { LockIcon } from "@/components/users/Icons";
-import { UploadOutlined, LoadingOutlined, CameraOutlined, EyeOutlined } from "@ant-design/icons";
+import {
+  UploadOutlined,
+  LoadingOutlined,
+  CameraOutlined,
+  EyeOutlined,
+  SecurityScanOutlined,
+  LockOutlined,
+} from "@ant-design/icons";
 import type { UploadProps } from "antd/es/upload";
 import { UserContext } from "@/context/UserContext";
-import ImgCrop from 'antd-img-crop';
+import ImgCrop from "antd-img-crop";
 
 // Định nghĩa style cho animation
 const spinAnimation = {
-  animation: 'spin 15s linear infinite',
+  animation: "spin 15s linear infinite",
 };
 
 // Định nghĩa keyframes trong style tag
@@ -101,11 +124,17 @@ export default function UserProfilePage() {
         if (result?.message?.toLowerCase().includes("old password")) {
           messageApi.error("The old password is incorrect. Please try again.");
         } else if (result?.message?.toLowerCase().includes("same")) {
-          messageApi.error("The new password cannot be the same as the old password.");
+          messageApi.error(
+            "The new password cannot be the same as the old password."
+          );
         } else if (result?.message?.toLowerCase().includes("requirements")) {
-          messageApi.error("The new password does not meet security requirements. Password must be at least 8 characters long and contain a mix of letters, numbers, and special characters.");
+          messageApi.error(
+            "The new password does not meet security requirements. Password must be at least 8 characters long and contain a mix of letters, numbers, and special characters."
+          );
         } else {
-          messageApi.error(result?.message || "Failed to change password. Please try again.");
+          messageApi.error(
+            result?.message || "Failed to change password. Please try again."
+          );
         }
       }
     } catch (error: any) {
@@ -114,49 +143,65 @@ export default function UserProfilePage() {
       if (errorMessage?.toLowerCase().includes("old password")) {
         messageApi.error("The old password is incorrect. Please try again.");
       } else if (errorMessage?.toLowerCase().includes("same")) {
-        messageApi.error("The new password cannot be the same as the old password.");
+        messageApi.error(
+          "The new password cannot be the same as the old password."
+        );
       } else if (errorMessage?.toLowerCase().includes("requirements")) {
-        messageApi.error("The new password does not meet security requirements. Password must be at least 8 characters long and contain a mix of letters, numbers, and special characters.");
+        messageApi.error(
+          "The new password does not meet security requirements. Password must be at least 8 characters long and contain a mix of letters, numbers, and special characters."
+        );
       } else {
-        messageApi.error(errorMessage || "Failed to change password. Please try again.");
+        messageApi.error(
+          errorMessage || "Failed to change password. Please try again."
+        );
       }
     }
   };
 
   const beforeUpload = (file: File) => {
-    const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/gif';
+    const isJpgOrPng =
+      file.type === "image/jpeg" ||
+      file.type === "image/png" ||
+      file.type === "image/gif";
     if (!isJpgOrPng) {
-      messageApi.error('You can only upload JPG/PNG/GIF files!');
+      messageApi.error("You can only upload JPG/PNG/GIF files!");
       return false;
     }
-    
+
     const isLt2M = file.size / 1024 / 1024 < 2;
     if (!isLt2M) {
-      messageApi.error('Image must be smaller than 2MB!');
+      messageApi.error("Image must be smaller than 2MB!");
       return false;
     }
-    
+
     return isJpgOrPng && isLt2M;
   };
 
   // Kiểm tra xem người dùng có quyền thay đổi ảnh hay không
   const canChangeProfileImage = (roles: string[]) => {
-    const allowedRoles = ["Admin", "Manager", "Healthcare Staff", "Canteen Staff"];
-    return roles.some(role => allowedRoles.includes(role));
+    const allowedRoles = [
+      "Admin",
+      "Manager",
+      "Healthcare Staff",
+      "Canteen Staff",
+    ];
+    return roles.some((role) => allowedRoles.includes(role));
   };
 
   const handleUpload = async (options: any) => {
     const { file, onSuccess, onError, onProgress } = options;
-    
+
     // Kiểm tra quyền thay đổi ảnh
     if (!canChangeProfileImage(userProfile?.roles || [])) {
-      messageApi.error("Only Admin, Manager, Healthcare Staff and Canteen Staff can update profile image.");
+      messageApi.error(
+        "Only Admin, Manager, Healthcare Staff and Canteen Staff can update profile image."
+      );
       onError("Permission denied");
       return;
     }
-    
+
     setUploadLoading(true);
-    
+
     try {
       // Trả về progress giả lập cho UX tốt hơn
       let percent = 0;
@@ -164,17 +209,17 @@ export default function UserProfilePage() {
         percent = Math.min(99, percent + 5);
         onProgress({ percent });
       }, 100);
-      
+
       const result = await updateProfileImage(file);
-      
+
       clearInterval(interval);
-      
+
       console.log("Update profile image result:", result); // Log toàn bộ kết quả trả về
-      
+
       // Kiểm tra cấu trúc response từ API
       if (result) {
         let imageURL = null;
-        
+
         // Kiểm tra các trường hợp có thể chứa URL ảnh
         if (result.data?.ImageURL) {
           imageURL = result.data.ImageURL;
@@ -182,7 +227,10 @@ export default function UserProfilePage() {
           imageURL = result.data.imageURL;
         } else if (result.data?.imageUrl) {
           imageURL = result.data.imageUrl;
-        } else if (typeof result.data === 'string' && result.data.startsWith('http')) {
+        } else if (
+          typeof result.data === "string" &&
+          result.data.startsWith("http")
+        ) {
           imageURL = result.data;
         } else if (result.ImageURL) {
           imageURL = result.ImageURL;
@@ -194,34 +242,34 @@ export default function UserProfilePage() {
 
         if (imageURL) {
           // Thêm timestamp để đảm bảo URL luôn mới và browser không cache ảnh cũ
-          const timestampedURL = imageURL.includes('?') 
-            ? `${imageURL}&t=${new Date().getTime()}` 
+          const timestampedURL = imageURL.includes("?")
+            ? `${imageURL}&t=${new Date().getTime()}`
             : `${imageURL}?t=${new Date().getTime()}`;
-          
+
           // Cập nhật imageURL trong profile
           setUserProfile((prevProfile) => {
             if (!prevProfile) return null;
             return {
               ...prevProfile,
-              imageURL: timestampedURL
+              imageURL: timestampedURL,
             };
           });
-          
+
           // Cập nhật imageURL trong UserContext
           if (userContext) {
             // Cập nhật hình ảnh người dùng trong context
             userContext.updateUserImage(timestampedURL);
-            
+
             // Sử dụng forceUpdate để bắt buộc re-render các component sử dụng context
             userContext.forceUpdate();
           }
-          
+
           // Hiển thị thông báo thành công sau khi đã cập nhật xong
           messageApi.success("Profile image updated successfully.");
-          
+
           // Log để kiểm tra giá trị mới của ảnh
           console.log("New profile image set:", timestampedURL);
-          
+
           onSuccess(result, file);
         } else {
           console.error("No image URL found in response:", result);
@@ -229,29 +277,33 @@ export default function UserProfilePage() {
           try {
             const userProfileData = await getUserProfile();
             if (userProfileData.imageURL) {
-              const timestampedURL = userProfileData.imageURL.includes('?') 
-                ? `${userProfileData.imageURL}&t=${new Date().getTime()}` 
+              const timestampedURL = userProfileData.imageURL.includes("?")
+                ? `${userProfileData.imageURL}&t=${new Date().getTime()}`
                 : `${userProfileData.imageURL}?t=${new Date().getTime()}`;
-              
+
               setUserProfile((prevProfile) => ({
                 ...prevProfile!,
-                imageURL: timestampedURL
+                imageURL: timestampedURL,
               }));
-              
+
               if (userContext) {
                 userContext.updateUserImage(timestampedURL);
                 userContext.forceUpdate();
               }
-              
+
               messageApi.success("Profile image updated successfully.");
               onSuccess(result, file);
             } else {
-              messageApi.warning("Image updated but URL not returned. Please reload the page.");
+              messageApi.warning(
+                "Image updated but URL not returned. Please reload the page."
+              );
               onSuccess(result, file);
             }
           } catch (error) {
             console.error("Error fetching updated profile:", error);
-            messageApi.warning("Image updated but URL not returned. Please reload the page.");
+            messageApi.warning(
+              "Image updated but URL not returned. Please reload the page."
+            );
             onSuccess(result, file);
           }
         }
@@ -301,23 +353,23 @@ export default function UserProfilePage() {
           <h3 className="text-2xl font-bold mb-4">
             {isEditing ? "Edit Profile" : "User Profile"}
           </h3>
-          
+
           {/* Profile Image Section - Hiển thị cho các role được phép */}
           {canUpdateImage && (
             <div className="mb-8 flex flex-col items-center">
               <div className="relative">
                 {/* Outer glow effect */}
                 <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 blur-lg opacity-30"></div>
-                
+
                 {/* Decorative ring - với animation inline */}
-                <div 
-                  className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600" 
+                <div
+                  className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"
                   style={spinAnimation}
                 ></div>
-                
+
                 {/* Main container with white border */}
                 <div className="relative p-1 rounded-full bg-white shadow-xl">
-                  <div 
+                  <div
                     className="relative w-32 h-32 rounded-full overflow-hidden cursor-pointer ring-4 ring-white"
                     onClick={() => {
                       if (userProfile.imageURL) {
@@ -358,10 +410,11 @@ export default function UserProfilePage() {
                       className="absolute -right-2 -bottom-2 z-10"
                     >
                       <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-full cursor-pointer shadow-lg transition-all duration-300 hover:scale-110">
-                        {uploadLoading 
-                          ? <LoadingOutlined className="text-lg" /> 
-                          : <CameraOutlined className="text-lg" />
-                        }
+                        {uploadLoading ? (
+                          <LoadingOutlined className="text-lg" />
+                        ) : (
+                          <CameraOutlined className="text-lg" />
+                        )}
                       </div>
                     </Upload>
                   </ImgCrop>
@@ -372,7 +425,7 @@ export default function UserProfilePage() {
               {userProfile.imageURL && (
                 <Image
                   src={userProfile.imageURL}
-                  style={{ display: 'none' }}
+                  style={{ display: "none" }}
                   preview={{
                     visible: previewVisible,
                     onVisibleChange: (vis) => setPreviewVisible(vis),
@@ -382,7 +435,7 @@ export default function UserProfilePage() {
               )}
             </div>
           )}
-          
+
           {isEditing ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
@@ -465,7 +518,9 @@ export default function UserProfilePage() {
                 htmlFor="address"
                 className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 md:col-span-2"
               >
-                <span className="text-xs font-medium text-gray-700">Address</span>
+                <span className="text-xs font-medium text-gray-700">
+                  Address
+                </span>
                 <input
                   type="text"
                   id="address"
@@ -487,7 +542,9 @@ export default function UserProfilePage() {
                   { label: "Gender", value: userProfile.gender },
                   {
                     label: "Date of Birth",
-                    value: new Date(userProfile.dob).toLocaleDateString("vi-VN"),
+                    value: new Date(userProfile.dob).toLocaleDateString(
+                      "vi-VN"
+                    ),
                   },
                   { label: "Phone", value: userProfile.phone },
                 ].map((field, index) => (
@@ -541,11 +598,18 @@ export default function UserProfilePage() {
               </Button>
             )}
           </div>
-          <div className="mt-6 border-t border-gray-200 pt-2">
-            <h3 className="text-xl font-bold mb-2">Account & Security</h3>
+          <div className="mt-6 pt-2">
+            <Divider orientation="left">
+              <div className="flex items-center gap-2">
+                <SecurityScanOutlined style={{ fontSize: "24px" }} />
+                <Typography.Title level={5} style={{ margin: 0 }}>
+                  Account & Security
+                </Typography.Title>
+              </div>
+            </Divider>
             <div className="flex items-center">
               <span className="mr-2">
-                <LockIcon />
+                <LockOutlined style={{ fontSize: "20px" }} />
               </span>
               <span className="mr-2 font-bold italic">
                 Change account password
@@ -611,7 +675,10 @@ export default function UserProfilePage() {
                       },
                       ({ getFieldValue }) => ({
                         validator(_, value) {
-                          if (!value || getFieldValue("newPassword") === value) {
+                          if (
+                            !value ||
+                            getFieldValue("newPassword") === value
+                          ) {
                             return Promise.resolve();
                           }
                           return Promise.reject(

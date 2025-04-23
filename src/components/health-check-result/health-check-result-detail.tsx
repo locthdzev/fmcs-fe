@@ -103,14 +103,14 @@ export const HealthCheckResultDetail: React.FC<
     try {
       const response = await getHealthCheckResultHistoriesByResultId(id);
       if (response.isSuccess) {
-        setHistories(response.data);
+        setHistories(response.data || []);
       } else {
-        toast.error(
-          response.message || "Unable to load health check result history"
-        );
+        console.error("Failed to fetch histories:", response.message);
+        setHistories([]);
       }
     } catch (error) {
-      toast.error("Unable to load health check result history");
+      console.error("Unable to load health check result history:", error);
+      setHistories([]);
     } finally {
       setHistoriesLoading(false);
     }
@@ -421,16 +421,15 @@ export const HealthCheckResultDetail: React.FC<
     return (
       <div className="p-6">
         <Card>
-          <Empty description="Health check result not found" />
-          <div className="text-center mt-4">
+          <Empty description="Health check result not found">
             <Button
               type="primary"
               icon={<ArrowLeftOutlined />}
-              onClick={() => router.push("/health-check-result/management")}
+              onClick={() => router.back()}
             >
               Back
             </Button>
-          </div>
+          </Empty>
         </Card>
       </div>
     );
@@ -444,7 +443,7 @@ export const HealthCheckResultDetail: React.FC<
             <Space align="center">
               <Button
                 icon={<ArrowLeftOutlined />}
-                onClick={() => router.push("/health-check-result/management")}
+                onClick={() => router.back()}
               >
                 Back
               </Button>
@@ -465,7 +464,7 @@ export const HealthCheckResultDetail: React.FC<
           </Col>
           <Col xs={24} md={12}>
             <Descriptions
-              title="Patient Information"
+              title="Person Examined Information"
               bordered
               column={1}
               size="small"

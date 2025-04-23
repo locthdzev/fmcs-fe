@@ -19,6 +19,10 @@ import {
   Progress,
   Alert,
   theme,
+  Menu,
+  message,
+  Modal,
+  Tag,
 } from "antd";
 import {
   BarChart,
@@ -41,8 +45,13 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
+  Treemap,
+  ScatterChart,
+  Scatter,
+  ComposedChart,
 } from "recharts";
 import { getUserStatistics } from "@/api/user";
+import { exportUserStatisticsToExcel } from "./export/user-statitics";
 import type { RangePickerProps } from "antd/es/date-picker";
 import dayjs from "dayjs";
 import {
@@ -59,12 +68,18 @@ import {
   StopOutlined,
   IdcardOutlined,
   UserAddOutlined,
+  DownloadOutlined,
+  DotChartOutlined,
+  AppstoreOutlined,
+  TableOutlined,
+  FileExcelOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
 const { useToken } = theme;
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
+const { TabPane } = Tabs;
 
 // Type definitions
 interface StatisticsData {
@@ -91,20 +106,27 @@ interface ChartDataItem {
 }
 
 // Chart type options
-type ChartType = "pie" | "bar" | "line" | "area" | "radar";
+const chartTypes: Record<string, { icon: React.ReactNode; label: string }> = {
+  bar: { icon: <BarChartOutlined />, label: "Bar Chart" },
+  line: { icon: <LineChartOutlined />, label: "Line Chart" },
+  area: { icon: <AreaChartOutlined />, label: "Area Chart" },
+  pie: { icon: <PieChartOutlined />, label: "Pie Chart" },
+  radar: { icon: <RadarChartOutlined />, label: "Radar Chart" },
+  scatter: { icon: <DotChartOutlined />, label: "Scatter Chart" },
+};
 
 // Colors for the charts
 const COLORS = [
-  "#0088FE",
-  "#00C49F",
-  "#FFBB28",
-  "#FF8042",
-  "#8884D8",
-  "#82CA9D",
-  "#FFC658",
-  "#FF6B6B",
-  "#6A6AFF",
-  "#FF96FF",
+  "#1677ff",
+  "#52c41a",
+  "#faad14",
+  "#f5222d",
+  "#722ed1",
+  "#13c2c2",
+  "#fa8c16",
+  "#eb2f96",
+  "#a0d911",
+  "#1890ff",
 ];
 
 export function UserStatistics() {
@@ -118,27 +140,59 @@ export function UserStatistics() {
     null,
     null,
   ]);
+  const [activeDateFilter, setActiveDateFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>("1");
+  
+  // State cho Export Modal
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportDateRange, setExportDateRange] = useState<[Date | null, Date | null]>([null, null]);
+  
+  // Thêm state để theo dõi khi nào dữ liệu được cập nhật
+  const [dataVersion, setDataVersion] = useState(0);
 
   // Chart type states
-  const [roleChartType, setRoleChartType] = useState<ChartType>("pie");
-  const [genderChartType, setGenderChartType] = useState<ChartType>("pie");
-  const [monthlyChartType, setMonthlyChartType] = useState<ChartType>("bar");
+  const [roleChartType, setRoleChartType] = useState<string>("pie");
+  const [genderChartType, setGenderChartType] = useState<string>("pie");
+  const [monthlyChartType, setMonthlyChartType] = useState<string>("line");
   
-  // Common chart data
-  const { roleChartData, genderChartData, monthlyChartData } =
-    statistics ? prepareChartData() : { roleChartData: [], genderChartData: [], monthlyChartData: [] };
-
-  // Fetch data on component mount and when date range changes
+  // Fetch data on component mount
   useEffect(() => {
-    fetchStatistics(dateRange[0], dateRange[1]);
-  }, [dateRange]);
+    fetchStatistics();
+  }, []);
+
+  // Memoize chart data để cập nhật khi statistics hoặc dataVersion thay đổi
+  const chartData = React.useMemo(() => {
+    return prepareChartData();
+  }, [statistics, dataVersion]);
 
   const fetchStatistics = async (startDate?: Date | null, endDate?: Date | null) => {
     setLoading(true);
     try {
-      const response = await getUserStatistics(startDate || undefined, endDate || undefined);
+      console.log("Đang tải dữ liệu với filter:", { startDate, endDate });
+      
+      // Gọi API với tham số date nếu có
+      const response = await getUserStatistics(
+        startDate || undefined, 
+        endDate || undefined
+      );
+      
       if (response && response.isSuccess && response.data) {
+        console.log("Dữ liệu đã lọc:", response.data);
+        console.log("Date range:", startDate, endDate);
+        
+        // Kiểm tra xem usersByMonthCreated có dữ liệu không
+        if (response.data.usersByMonthCreated) {
+          console.log("Monthly data:", response.data.usersByMonthCreated);
+        } else {
+          console.warn("Không có dữ liệu theo tháng!");
+        }
+        
+        // Cập nhật state với dữ liệu mới
         setStatistics(response.data);
+        // Tăng data version để trigger re-render
+        setDataVersion(prev => prev + 1);
+      } else {
+        console.error("API trả về lỗi hoặc không có dữ liệu", response);
       }
     } catch (error) {
       console.error("Error fetching statistics:", error);
@@ -155,6 +209,67 @@ export function UserStatistics() {
     } else {
       setDateRange([null, null]);
     }
+    // Không fetch dữ liệu ở đây, chờ người dùng nhấn Apply
+  };
+
+  const applyDateFilter = () => {
+    console.log("Applying date filter:", dateRange);
+    if (dateRange[0] && dateRange[1]) {
+      fetchStatistics(dateRange[0], dateRange[1]);
+      setActiveDateFilter("custom");
+    } else {
+      alert("Vui lòng chọn khoảng thời gian!");
+    }
+  };
+
+  const resetDateFilter = () => {
+    setDateRange([null, null]);
+    fetchStatistics(); // Fetch lại dữ liệu không có filter
+    setActiveDateFilter("all");
+  };
+
+  const applyQuickFilter = (period: string) => {
+    const today = new Date();
+    let startDate: Date | null = null;
+    let endDate: Date = today;
+
+    switch (period) {
+      case "last7days":
+        startDate = new Date();
+        startDate.setDate(today.getDate() - 7);
+        setActiveDateFilter("last7days");
+        break;
+      case "last30days":
+        startDate = new Date();
+        startDate.setDate(today.getDate() - 30);
+        setActiveDateFilter("last30days");
+        break;
+      case "last3months":
+        startDate = new Date();
+        startDate.setMonth(today.getMonth() - 3);
+        setActiveDateFilter("last3months");
+        break;
+      case "last6months":
+        startDate = new Date();
+        startDate.setMonth(today.getMonth() - 6);
+        setActiveDateFilter("last6months");
+        break;
+      case "thisyear":
+        startDate = new Date(today.getFullYear(), 0, 1);
+        setActiveDateFilter("thisyear");
+        break;
+      case "lastyear":
+        startDate = new Date(today.getFullYear() - 1, 0, 1);
+        endDate = new Date(today.getFullYear() - 1, 11, 31);
+        setActiveDateFilter("lastyear");
+        break;
+      default:
+        startDate = null;
+        setActiveDateFilter("all");
+    }
+
+    setDateRange([startDate, endDate]);
+    fetchStatistics(startDate || undefined, endDate);
   };
 
   const handleRefresh = () => {
@@ -164,6 +279,82 @@ export function UserStatistics() {
   // Navigation
   const handleBack = () => {
     router.back();
+  };
+
+  // Hàm xử lý khi người dùng nhấn nút Export to Excel
+  const handleExportToExcel = () => {
+    if (statistics) {
+      // Đảm bảo usersByMonthCreated không bị undefined
+      const dataWithValidMonthly = {
+        ...statistics,
+        usersByMonthCreated: statistics.usersByMonthCreated || {}
+      };
+      
+      const response = {
+        isSuccess: true,
+        code: 200,
+        data: dataWithValidMonthly,
+        responseFailed: null,
+        message: "User statistics exported successfully"
+      };
+      
+      // Chuyển đổi Date | null thành Date | undefined cho API
+      let startDate: Date | undefined = undefined;
+      let endDate: Date | undefined = undefined;
+      
+      if (exportDateRange[0] !== null) {
+        startDate = exportDateRange[0];
+      } else if (dateRange[0] !== null) {
+        startDate = dateRange[0];
+      }
+      
+      if (exportDateRange[1] !== null) {
+        endDate = exportDateRange[1];
+      } else if (dateRange[1] !== null) {
+        endDate = dateRange[1];
+      }
+      
+      // Gọi hàm export với response và date range đã chuyển đổi
+      exportUserStatisticsToExcel(
+        response,
+        "User Statistics Report",
+        startDate,
+        endDate
+      );
+      
+      // Đóng modal sau khi export
+      setExportModalVisible(false);
+    } else {
+      message.error("Không có dữ liệu để xuất Excel");
+    }
+  };
+
+  // Hàm mở modal export
+  const showExportModal = () => {
+    if (dateRange[0] && dateRange[1]) {
+      // Create new Date objects to avoid reference copying
+      setExportDateRange([
+        new Date(dateRange[0].getTime()),
+        new Date(dateRange[1].getTime())
+      ]);
+    } else {
+      setExportDateRange([null, null]);
+    }
+    setExportModalVisible(true);
+  };
+  
+  // Hàm đóng modal export
+  const closeExportModal = () => {
+    setExportModalVisible(false);
+  };
+  
+  // Hàm xử lý khi date range trong modal thay đổi
+  const handleExportDateRangeChange = (dates: RangePickerProps["value"]) => {
+    if (dates && dates[0] && dates[1]) {
+      setExportDateRange([dates[0].toDate(), dates[1].toDate()]);
+    } else {
+      setExportDateRange([null, null]);
+    }
   };
 
   if (loading) {
@@ -195,13 +386,32 @@ export function UserStatistics() {
     }));
 
     // Monthly distribution data
-    const monthlyChartData: ChartDataItem[] = Object.entries(
-      statistics?.usersByMonthCreated || {}
-    ).map(([month, count]) => ({
-      name: month,
-      count: count as number,
-      value: count as number,
-    }));
+    let monthlyChartData: ChartDataItem[] = [];
+    
+    if (statistics?.usersByMonthCreated && Object.keys(statistics.usersByMonthCreated).length > 0) {
+      // Sử dụng dữ liệu từ API
+      monthlyChartData = Object.entries(statistics.usersByMonthCreated)
+        .map(([month, count]) => ({
+          name: month,
+          count: count as number,
+          value: count as number,
+        }))
+        .sort((a, b) => {
+          // Sắp xếp tháng theo thứ tự thời gian
+          const dateA = new Date(a.name);
+          const dateB = new Date(b.name);
+          return dateA.getTime() - dateB.getTime();
+        });
+    } else {
+      // Nếu không có dữ liệu, để mảng rỗng
+      monthlyChartData = [];
+    }
+
+    console.log('Đã chuẩn bị dữ liệu biểu đồ:', {
+      roleChartData,
+      genderChartData,
+      monthlyChartData
+    });
 
     return {
       roleChartData,
@@ -215,46 +425,73 @@ export function UserStatistics() {
     return date ? dayjs(date).format("DD/MM/YYYY") : "";
   };
 
-  const dateRangeDisplay =
-    dateRange[0] && dateRange[1]
-      ? `${formatDate(dateRange[0])} - ${formatDate(dateRange[1])}`
-      : "All Time";
+  const getDateRangeDisplay = () => {
+    if (dateRange[0] && dateRange[1]) {
+      return `${formatDate(dateRange[0])} - ${formatDate(dateRange[1])}`;
+    }
+    return "All Time";
+  };
+
+  // Lưu giá trị chuỗi
+  const dateRangeDisplay = getDateRangeDisplay();
+
+  const renderDateRangeInfo = () => {
+    if (!statistics) return null;
+    
+    const totalUsers = statistics.totalUsers || 0;
+    const usersInRange = statistics.usersInDateRange || totalUsers;
+    const isFiltered = dateRange[0] && dateRange[1] && usersInRange !== totalUsers;
+    
+    return (
+      <Badge
+        status={isFiltered ? "warning" : "processing"}
+        text={
+          <Space direction="vertical" size="small">
+            <Text strong style={{ fontSize: "14px" }}>
+              Current Filter: {dateRangeDisplay}
+            </Text>
+            {dateRange[0] && dateRange[1] && (
+              <Text style={{ fontSize: "12px" }}>
+                {usersInRange} users in date range 
+                {totalUsers > 0 && ` (${Math.round((usersInRange / totalUsers) * 100)}% of total)`}
+              </Text>
+            )}
+          </Space>
+        }
+      />
+    );
+  };
 
   // Chart renderer
   const renderChart = (
-    chartId: string,
+    type: string,
     data: ChartDataItem[],
-    chartType: ChartType,
-    setChartType: React.Dispatch<React.SetStateAction<ChartType>>
+    chartType: string,
+    setChartType: React.Dispatch<React.SetStateAction<string>>
   ) => {
-    // Chart type options
-    const chartTypes = [
-      { key: "pie", icon: <PieChartOutlined />, text: "Pie" },
-      { key: "bar", icon: <BarChartOutlined />, text: "Bar" },
-      { key: "line", icon: <LineChartOutlined />, text: "Line" },
-      { key: "area", icon: <AreaChartOutlined />, text: "Area" },
-      { key: "radar", icon: <RadarChartOutlined />, text: "Radar" },
-    ];
-
-    // Chart config menu
+    // Chart type selector
     const chartConfigMenu = (
-      <div className="flex justify-end mb-2">
-        <Radio.Group
+      <Space
+        className="mb-3 chart-controls"
+        style={{ display: "flex", justifyContent: "flex-end" }}
+      >
+        <Select
           value={chartType}
-          onChange={(e) => setChartType(e.target.value)}
-          buttonStyle="solid"
-          size="small"
-        >
-          {chartTypes.map((type) => (
-            <Radio.Button key={`${chartId}-${type.key}`} value={type.key}>
-              {type.icon} {type.text}
-            </Radio.Button>
-          ))}
-        </Radio.Group>
-      </div>
+          onChange={setChartType}
+          style={{ width: 150 }}
+          options={Object.entries(chartTypes).map(([key, { icon, label }]) => ({
+            value: key,
+            label: (
+              <Space>
+                {icon}
+                {label}
+              </Space>
+            ),
+          }))}
+        />
+      </Space>
     );
 
-    // Chart component renderer
     const renderChartComponent = () => {
       switch (chartType) {
         case "pie":
@@ -389,6 +626,32 @@ export function UserStatistics() {
               </RadarChart>
             </ResponsiveContainer>
           );
+        case "scatter":
+          return (
+            <ResponsiveContainer width="100%" height={400}>
+              <ScatterChart
+                margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  type="category" 
+                  dataKey="name" 
+                  name="Category" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={70}
+                />
+                <YAxis type="number" dataKey="value" name="Value" />
+                <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value) => [`${value} users`]} />
+                <Legend />
+                <Scatter
+                  name="Number of Users"
+                  data={data}
+                  fill={token.colorPrimary}
+                />
+              </ScatterChart>
+            </ResponsiveContainer>
+          );
         default:
           return <div>Please select a chart type</div>;
       }
@@ -403,60 +666,8 @@ export function UserStatistics() {
     );
   };
 
-  // Tab items definition
-  const tabItems = [
-    {
-      key: "1",
-      label: (
-        <Space align="center">
-          Role Distribution
-          <AntTooltip title="Shows distribution of users by their roles">
-            <QuestionCircleOutlined />
-          </AntTooltip>
-        </Space>
-      ),
-      content: renderChart(
-        "role",
-        roleChartData,
-        roleChartType,
-        setRoleChartType
-      ),
-    },
-    {
-      key: "2",
-      label: (
-        <Space align="center">
-          Gender Distribution
-          <AntTooltip title="Shows distribution of users by gender">
-            <QuestionCircleOutlined />
-          </AntTooltip>
-        </Space>
-      ),
-      content: renderChart(
-        "gender",
-        genderChartData,
-        genderChartType,
-        setGenderChartType
-      ),
-    },
-    {
-      key: "3",
-      label: (
-        <Space align="center">
-          Monthly Registration
-          <AntTooltip title="Shows number of users registered in each month">
-            <QuestionCircleOutlined />
-          </AntTooltip>
-        </Space>
-      ),
-      content: renderChart(
-        "monthly",
-        monthlyChartData,
-        monthlyChartType,
-        setMonthlyChartType
-      ),
-    },
-  ];
+  // Common chart data
+  const { roleChartData, genderChartData, monthlyChartData } = chartData;
 
   // Component rendering functions
   const renderFilterSection = () => (
@@ -476,319 +687,517 @@ export function UserStatistics() {
             User Statistics Dashboard
           </h3>
         </div>
-        <div className="flex items-center gap-2">
-          <RangePicker
-            value={
-              dateRange[0] && dateRange[1]
-                ? [dayjs(dateRange[0]), dayjs(dateRange[1])]
-                : null
-            }
-            onChange={handleDateRangeChange}
-            allowClear
-          />
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={handleRefresh}
-            title="Refresh data"
-          >
-            Refresh
-          </Button>
-        </div>
       </div>
 
-      {/* Date range display */}
-      <Alert
-        message={
-          <Space align="center">
-            <span>Showing statistics for: </span>
-            <Text strong>{dateRangeDisplay}</Text>
-          </Space>
-        }
-        type="info"
-        showIcon
-        style={{ marginBottom: "16px" }}
-      />
+      <Card
+        className="mb-6 statistics-filter-card"
+        style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+      >
+        <Row align="middle" gutter={[16, 16]}>
+          <Col span={16}>
+            <Title level={4} style={{ margin: 0 }}>
+              <AppstoreOutlined style={{ marginRight: "8px" }} />
+              Filter Options
+            </Title>
+          </Col>
+          <Col span={8} style={{ textAlign: "right" }}>
+            <Space>
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={handleRefresh}
+              >
+                Refresh
+              </Button>
+              <Button icon={<FileExcelOutlined />} type="primary" onClick={showExportModal}>
+                Export to Excel
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+
+        <Divider style={{ margin: "16px 0" }} />
+
+        <Title level={5}>Date Range Filter</Title>
+        <Row gutter={16} className="mb-3">
+          <Col span={24}>
+            <Space wrap>
+              <Button
+                type={activeDateFilter === "all" ? "primary" : "default"}
+                onClick={() => applyQuickFilter("all")}
+              >
+                All Time
+              </Button>
+              <Button
+                type={activeDateFilter === "last7days" ? "primary" : "default"}
+                onClick={() => applyQuickFilter("last7days")}
+              >
+                Last 7 Days
+              </Button>
+              <Button
+                type={activeDateFilter === "last30days" ? "primary" : "default"}
+                onClick={() => applyQuickFilter("last30days")}
+              >
+                Last 30 Days
+              </Button>
+              <Button
+                type={activeDateFilter === "last3months" ? "primary" : "default"}
+                onClick={() => applyQuickFilter("last3months")}
+              >
+                Last 3 Months
+              </Button>
+              <Button
+                type={activeDateFilter === "last6months" ? "primary" : "default"}
+                onClick={() => applyQuickFilter("last6months")}
+              >
+                Last 6 Months
+              </Button>
+              <Button
+                type={activeDateFilter === "thisyear" ? "primary" : "default"}
+                onClick={() => applyQuickFilter("thisyear")}
+              >
+                This Year
+              </Button>
+              <Button
+                type={activeDateFilter === "lastyear" ? "primary" : "default"}
+                onClick={() => applyQuickFilter("lastyear")}
+              >
+                Last Year
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+        <Divider style={{ margin: "12px 0" }} />
+        <Row gutter={16} className="mb-3">
+          <Col span={16}>
+            <Space>
+              <Text>Custom Range:</Text>
+              <RangePicker
+                value={
+                  dateRange[0] && dateRange[1]
+                    ? [dayjs(dateRange[0]), dayjs(dateRange[1])]
+                    : null
+                }
+                onChange={handleDateRangeChange}
+              />
+              <Button type="primary" onClick={applyDateFilter}>
+                Apply
+              </Button>
+              <Button onClick={resetDateFilter}>Reset</Button>
+            </Space>
+          </Col>
+          <Col span={8} style={{ textAlign: "right" }}>
+            {renderDateRangeInfo()}
+          </Col>
+        </Row>
+        
+        {/* Thêm thông báo khi biểu đồ đang dùng dữ liệu đã lọc */}
+        {dateRange[0] && dateRange[1] && (
+          <Alert
+            message="Filtered Data"
+            description="Biểu đồ đang hiển thị dữ liệu trong khoảng thời gian đã chọn."
+            type="info"
+            showIcon
+            style={{ marginTop: "12px" }}
+          />
+        )}
+      </Card>
     </>
   );
 
   const renderStatisticsCards = () => (
     <>
-      <Divider orientation="left">User Summary</Divider>
-      <Row gutter={[16, 16]} className="mb-6">
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    Total Users
-                  </Title>
-                  <AntTooltip title="Total number of users in the system">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics?.totalUsers || 0}
-              valueStyle={{ color: token.colorPrimary }}
-              prefix={<TeamOutlined />}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    Active Users
-                  </Title>
-                  <AntTooltip title="Number of active users in the system">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics?.activeUsers || 0}
-              valueStyle={{ color: token.colorSuccess }}
-              prefix={<CheckCircleOutlined />}
-            />
-            <div style={{ marginTop: "10px" }}>
-              <Progress
-                percent={Math.round(
-                  ((statistics?.activeUsers || 0) / (statistics?.totalUsers || 1)) * 100
-                )}
-                status="success"
+      <Card 
+        className="mb-6 statistics-summary-card"
+        style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+        title={
+          <Title level={4} style={{ margin: 0 }}>
+            <TeamOutlined style={{ marginRight: "8px" }} />
+            User Summary
+          </Title>
+        }
+      >
+        <Row gutter={[16, 16]} className="mb-6">
+          <Col xs={24} sm={12} md={8}>
+            <Card
+              hoverable
+              className="statistic-card"
+              style={{
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Statistic
+                title={
+                  <Space align="center">
+                    <Title level={5} style={{ margin: 0 }}>
+                      Total Users
+                    </Title>
+                    <AntTooltip title="Total number of users in the system">
+                      <QuestionCircleOutlined
+                        style={{
+                          fontSize: "14px",
+                          color: token.colorTextSecondary,
+                        }}
+                      />
+                    </AntTooltip>
+                  </Space>
+                }
+                value={statistics?.totalUsers || 0}
+                valueStyle={{ color: token.colorTextHeading }}
+                prefix={<Badge status="default" />}
               />
-            </div>
-          </Card>
-        </Col>
+              <div style={{ marginTop: "10px" }}>
+                <Progress
+                  percent={100}
+                  showInfo={false}
+                  strokeColor={token.colorTextHeading}
+                />
+              </div>
+            </Card>
+          </Col>
 
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    Inactive Users
-                  </Title>
-                  <AntTooltip title="Number of inactive users in the system">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics?.inactiveUsers || 0}
-              valueStyle={{ color: token.colorError }}
-              prefix={<StopOutlined />}
-            />
-            <div style={{ marginTop: "10px" }}>
-              <Progress
-                percent={Math.round(
-                  ((statistics?.inactiveUsers || 0) / (statistics?.totalUsers || 1)) * 100
-                )}
-                status="exception"
+          <Col xs={24} sm={12} md={8}>
+            <Card
+              hoverable
+              className="statistic-card"
+              style={{
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Statistic
+                title={
+                  <Space align="center">
+                    <Title level={5} style={{ margin: 0 }}>
+                      Active Users
+                    </Title>
+                    <AntTooltip title="Number of active users in the system">
+                      <QuestionCircleOutlined
+                        style={{
+                          fontSize: "14px",
+                          color: token.colorTextSecondary,
+                        }}
+                      />
+                    </AntTooltip>
+                  </Space>
+                }
+                value={statistics?.activeUsers || 0}
+                valueStyle={{ color: "#1677ff" }}
+                prefix={<Badge status="processing" />}
               />
-            </div>
-          </Card>
-        </Col>
+              <div style={{ marginTop: "10px" }}>
+                <Progress
+                  percent={Math.round(
+                    ((statistics?.activeUsers || 0) / (statistics?.totalUsers || 1)) * 100
+                  )}
+                  showInfo={false}
+                  strokeColor="#1677ff"
+                />
+              </div>
+            </Card>
+          </Col>
 
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    Multi-Role Users
-                  </Title>
-                  <AntTooltip title="Number of users with multiple roles">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics?.usersWithMultipleRoles || 0}
-              valueStyle={{ color: token.colorInfo }}
-              prefix={<IdcardOutlined />}
-            />
-            <div style={{ marginTop: "10px" }}>
-              <Progress
-                percent={Math.round(
-                  ((statistics?.usersWithMultipleRoles || 0) / (statistics?.totalUsers || 1)) * 100
-                )}
-                status="active"
+          <Col xs={24} sm={12} md={8}>
+            <Card
+              hoverable
+              className="statistic-card"
+              style={{
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Statistic
+                title={
+                  <Space align="center">
+                    <Title level={5} style={{ margin: 0 }}>
+                      Inactive Users
+                    </Title>
+                    <AntTooltip title="Number of inactive users in the system">
+                      <QuestionCircleOutlined
+                        style={{
+                          fontSize: "14px",
+                          color: token.colorTextSecondary,
+                        }}
+                      />
+                    </AntTooltip>
+                  </Space>
+                }
+                value={statistics?.inactiveUsers || 0}
+                valueStyle={{ color: "#52c41a" }}
+                prefix={<Badge status="success" />}
               />
-            </div>
-          </Card>
-        </Col>
-      </Row>
+              <div style={{ marginTop: "10px" }}>
+                <Progress
+                  percent={Math.round(
+                    ((statistics?.inactiveUsers || 0) / (statistics?.totalUsers || 1)) * 100
+                  )}
+                  showInfo={false}
+                  strokeColor="#52c41a"
+                />
+              </div>
+            </Card>
+          </Col>
+        </Row>
 
-      {/* New User Growth Statistics */}
-      <Divider orientation="left">User Growth</Divider>
-      <Row gutter={[16, 16]} className="mb-6">
-        <Col xs={24} sm={8}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    New Users This Week
-                  </Title>
-                  <AntTooltip title="Users registered in the last 7 days">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics?.newUsersThisWeek || 0}
-              valueStyle={{ color: '#52c41a' }}
-              prefix={<UserAddOutlined />}
-            />
-          </Card>
-        </Col>
+        <Divider style={{ margin: "16px 0" }} />
 
-        <Col xs={24} sm={8}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    New Users This Month
-                  </Title>
-                  <AntTooltip title="Users registered in the last 30 days">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics?.newUsersThisMonth || 0}
-              valueStyle={{ color: '#1890ff' }}
-              prefix={<UserAddOutlined />}
-            />
-          </Card>
-        </Col>
+        {/* New User Growth Statistics */}
+        <Title level={4} style={{ margin: "16px 0" }}>
+          <UserAddOutlined style={{ marginRight: "8px" }} />
+          User Growth
+        </Title>
+        <Row gutter={[16, 16]} className="mb-6">
+          <Col xs={24} sm={8}>
+            <Card
+              hoverable
+              className="statistic-card"
+              style={{
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Statistic
+                title={
+                  <Space align="center">
+                    <Title level={5} style={{ margin: 0 }}>
+                      New Users This Week
+                    </Title>
+                    <AntTooltip title="Users registered in the last 7 days">
+                      <QuestionCircleOutlined
+                        style={{
+                          fontSize: "14px",
+                          color: token.colorTextSecondary,
+                        }}
+                      />
+                    </AntTooltip>
+                  </Space>
+                }
+                value={statistics?.newUsersThisWeek || 0}
+                valueStyle={{ color: '#52c41a' }}
+                prefix={<Badge status="success" />}
+              />
+              <div style={{ marginTop: "10px" }}>
+                <Progress
+                  percent={Math.round(
+                    ((statistics?.newUsersThisWeek || 0) / (statistics?.totalUsers || 1)) * 100
+                  )}
+                  showInfo={false}
+                  strokeColor="#52c41a"
+                />
+              </div>
+            </Card>
+          </Col>
 
-        <Col xs={24} sm={8}>
-          <Card
-            hoverable
-            className="statistic-card"
-            style={{
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Statistic
-              title={
-                <Space align="center">
-                  <Title level={5} style={{ margin: 0 }}>
-                    New Users This Year
-                  </Title>
-                  <AntTooltip title="Users registered in the current year">
-                    <QuestionCircleOutlined
-                      style={{
-                        fontSize: "14px",
-                        color: token.colorTextSecondary,
-                      }}
-                    />
-                  </AntTooltip>
-                </Space>
-              }
-              value={statistics?.newUsersThisYear || 0}
-              valueStyle={{ color: '#722ed1' }}
-              prefix={<UserAddOutlined />}
-            />
-          </Card>
-        </Col>
-      </Row>
+          <Col xs={24} sm={8}>
+            <Card
+              hoverable
+              className="statistic-card"
+              style={{
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Statistic
+                title={
+                  <Space align="center">
+                    <Title level={5} style={{ margin: 0 }}>
+                      New Users This Month
+                    </Title>
+                    <AntTooltip title="Users registered in the last 30 days">
+                      <QuestionCircleOutlined
+                        style={{
+                          fontSize: "14px",
+                          color: token.colorTextSecondary,
+                        }}
+                      />
+                    </AntTooltip>
+                  </Space>
+                }
+                value={statistics?.newUsersThisMonth || 0}
+                valueStyle={{ color: '#1890ff' }}
+                prefix={<Badge status="processing" />}
+              />
+              <div style={{ marginTop: "10px" }}>
+                <Progress
+                  percent={Math.round(
+                    ((statistics?.newUsersThisMonth || 0) / (statistics?.totalUsers || 1)) * 100
+                  )}
+                  showInfo={false}
+                  strokeColor="#1890ff"
+                />
+              </div>
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={8}>
+            <Card
+              hoverable
+              className="statistic-card"
+              style={{
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Statistic
+                title={
+                  <Space align="center">
+                    <Title level={5} style={{ margin: 0 }}>
+                      New Users This Year
+                    </Title>
+                    <AntTooltip title="Users registered in the current year">
+                      <QuestionCircleOutlined
+                        style={{
+                          fontSize: "14px",
+                          color: token.colorTextSecondary,
+                        }}
+                      />
+                    </AntTooltip>
+                  </Space>
+                }
+                value={statistics?.newUsersThisYear || 0}
+                valueStyle={{ color: '#722ed1' }}
+                prefix={<Badge status="warning" />}
+              />
+              <div style={{ marginTop: "10px" }}>
+                <Progress
+                  percent={Math.round(
+                    ((statistics?.newUsersThisYear || 0) / (statistics?.totalUsers || 1)) * 100
+                  )}
+                  showInfo={false}
+                  strokeColor="#722ed1"
+                />
+              </div>
+            </Card>
+          </Col>
+        </Row>
+      </Card>
     </>
+  );
+
+  const renderChartTabs = () => (
+    <Card
+      className="mb-6 chart-card"
+      style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          <BarChartOutlined style={{ marginRight: "8px" }} />
+          Detailed Analysis
+        </Title>
+      }
+    >
+      <Tabs
+        activeKey={activeTab}
+        onChange={(key) => setActiveTab(key)}
+        tabBarStyle={{ marginBottom: "24px" }}
+        tabBarGutter={20}
+        type="card"
+        items={[
+          {
+            key: "1",
+            label: (
+              <Space align="center">
+                <TeamOutlined />
+                Role Distribution
+                <AntTooltip title="Shows distribution of users by their roles">
+                  <QuestionCircleOutlined />
+                </AntTooltip>
+              </Space>
+            ),
+            children: renderChart("role", roleChartData, roleChartType, setRoleChartType),
+          },
+          {
+            key: "2",
+            label: (
+              <Space align="center">
+                <IdcardOutlined />
+                Gender Distribution
+                <AntTooltip title="Shows distribution of users by gender">
+                  <QuestionCircleOutlined />
+                </AntTooltip>
+              </Space>
+            ),
+            children: renderChart("gender", genderChartData, genderChartType, setGenderChartType),
+          },
+          {
+            key: "3",
+            label: (
+              <Space align="center">
+                <LineChartOutlined />
+                Monthly Registration
+                <AntTooltip title="Shows number of users registered in each month">
+                  <QuestionCircleOutlined />
+                </AntTooltip>
+              </Space>
+            ),
+            children: renderChart("monthly", monthlyChartData, monthlyChartType, setMonthlyChartType),
+          },
+        ]}
+      />
+    </Card>
   );
 
   // Main render
   return (
-    <div className="p-6">
+    <div className="history-container" style={{ padding: "20px" }}>
       {renderFilterSection()}
       {renderStatisticsCards()}
+      {renderChartTabs()}
       
-      <Divider orientation="left">Detailed Analysis</Divider>
-      <Card>
-        <Tabs
-          defaultActiveKey="1"
-          type="card"
-          size="large"
-          items={tabItems.map((item) => ({
-            label: item.label,
-            key: item.key,
-            children: item.content,
-          }))}
-        />
-      </Card>
+      {/* Export Modal */}
+      <Modal
+        title="Export User Statistics"
+        open={exportModalVisible}
+        onCancel={closeExportModal}
+        footer={[
+          <Button key="back" onClick={closeExportModal}>
+            Cancel
+          </Button>,
+          <Button key="submit" type="primary" icon={<FileExcelOutlined />} onClick={handleExportToExcel}>
+            Export to Excel
+          </Button>,
+        ]}
+      >
+        <div style={{ marginBottom: "20px" }}>
+          <Title level={5}>Select Date Range for Export</Title>
+          <RangePicker
+            style={{ width: "100%", marginTop: "8px" }}
+            value={exportDateRange[0] && exportDateRange[1] ? 
+              [dayjs(exportDateRange[0]), dayjs(exportDateRange[1])] : null}
+            onChange={handleExportDateRangeChange}
+          />
+        </div>
+        
+        <Divider orientation="left">Report Format Information</Divider>
+        
+        <div style={{ marginBottom: "16px" }}>
+          <Space direction="vertical" style={{ width: '100%' }}>            
+            <Alert
+              message="Report Contents"
+              description={
+                <div>
+                  The export includes detailed statistics about user distribution
+                  across multiple sheets including summary data, role distribution, 
+                  gender distribution, and monthly trends.
+                </div>
+              }
+              type="info"
+              showIcon
+              style={{ marginTop: '12px' }}
+            />
+          </Space>
+        </div>
+        
+        <div style={{ marginTop: "16px" }}>
+          <Title level={5}>Export Preview</Title>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: "8px" }}>
+            <Tag color="orange">Summary Statistics</Tag>
+            <Tag color="green">Role Distribution</Tag>
+            <Tag color="blue">Gender Distribution</Tag>
+            <Tag color="purple">Monthly Distribution</Tag>
+            <Tag color="cyan">New Users</Tag>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

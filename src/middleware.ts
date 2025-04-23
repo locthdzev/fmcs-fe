@@ -5,49 +5,197 @@ import jwtDecode from "jwt-decode";
 // Các trang có thể truy cập mà không cần xác thực
 const publicRoutes = ["/", "/auth/recover-password", "/auth/reset-password"];
 
-// Các trang tất cả người dùng đã đăng nhập có thể truy cập
-const commonUserRoutes = [
-  "/home",
-  "/my-health-insurance",
-  "/admin/documentation",
-  "/admin/settings/general",
-  "/admin/settings/security",
-  "/survey/MySurvey",
-  "/survey/details",
-  "/my-schedule",
-  "/my-health-check",
-  "/health-check-result"
-];
-
-// Các trang chỉ dành cho Admin
-const adminOnlyRoutes = [
-  "/user",
-  "/drug",
-  "/drug-group",
-  "/drug-order",
-  "/drug-supplier",
-  "/canteen-item",
-  "/canteen-order",
-  "/truck",
-  "/appointment/management",
-  "/appointment/manageforstaff",
-  "/periodic-health-checkup",
-  "/schedule",
-  "/shift",
-  "/batch-number",
-  "/inventory-record",
-  "/inventory-history",
-  "/notification/management",
-  "/survey/management",
-  "/health-insurance",
-  "/health-check-result",
-  "/prescription",
-  "/treatment-plan",
-  "/medicines-statitics",
-];
+// Danh sách route được phép cho từng vai trò
+const roleRoutes = {
+  Admin: [
+    "/my-profile",
+    "/home",
+    "/statistics/user",
+    "/statistics/treatment-plan",
+    "/statistics/drug",
+    "/statistics/survey",
+    "/statistics/prescription",
+    "/statistics/canteenorder",
+    "/statistics/inventoryrecord",
+    "/statistics/health-check-result",
+    "/statistics/healthinsurance",
+    "/statistics/appointment",
+    "/user",
+    "/drug",
+    "/drug-group",
+    "/drug-order",
+    "/drug-supplier",
+    "/batch-number",
+    "/inventory-record",
+    "/inventory-record/history",
+    "/appointment",
+    "/survey",
+    "/health-check-result",
+    "/health-check-result/pending",
+    "/health-check-result/follow-up",
+    "/health-check-result/no-follow-up",
+    "/health-check-result/adjustment",
+    "/health-check-result/soft-deleted",
+    "/health-check-result/history",
+    "/prescription",
+    "/prescription/history",
+    "/treatment-plan",
+    "/treatment-plan/history",
+    "/periodic-health-checkup",
+    "/health-insurance",
+    "/health-insurance/initial",
+    "/health-insurance/expired-update",
+    "/health-insurance/soft-deleted",
+    "/health-insurance/verification",
+    "/health-insurance/no-insurance",
+    "/health-insurance/update-requests",
+    "/health-insurance/history",
+    "/shift",
+    "/schedule",
+    "/notification",
+    "/canteen-item",
+    "/canteen-order",
+    "/delivery-truck",
+    "/schedule-appointment",
+    "/my-appointment",
+    "/my-health-check",
+    "/my-health-insurance",
+    "/settings",
+    "/documentation",
+  ],
+  Manager: [
+    "/my-profile",
+    "/home",
+    "/statistics/user",
+    "/statistics/treatment-plan",
+    "/statistics/drug",
+    "/statistics/survey",
+    "/statistics/prescription",
+    "/statistics/canteenorder",
+    "/statistics/inventoryrecord",
+    "/statistics/health-check-result",
+    "/statistics/healthinsurance",
+    "/statistics/appointment",
+    "/user",
+    "/drug",
+    "/drug-group",
+    "/drug-order",
+    "/drug-supplier",
+    "/batch-number",
+    "/inventory-record",
+    "/inventory-record/history",
+    "/appointment",
+    "/survey",
+    "/health-check-result",
+    "/health-check-result/pending",
+    "/health-check-result/follow-up",
+    "/health-check-result/no-follow-up",
+    "/health-check-result/adjustment",
+    "/health-check-result/soft-deleted",
+    "/health-check-result/history",
+    "/prescription",
+    "/prescription/history",
+    "/treatment-plan",
+    "/treatment-plan/history",
+    "/periodic-health-checkup",
+    "/health-insurance",
+    "/health-insurance/initial",
+    "/health-insurance/expired-update",
+    "/health-insurance/soft-deleted",
+    "/health-insurance/verification",
+    "/health-insurance/no-insurance",
+    "/health-insurance/update-requests",
+    "/health-insurance/history",
+    "/shift",
+    "/schedule",
+    "/notification",
+    "/canteen-item",
+    "/canteen-order",
+    "/delivery-truck",
+    "/schedule-appointment",
+    "/my-appointment",
+    "/my-health-check",
+    "/my-health-insurance",
+    "/settings",
+    "/documentation",
+  ],
+  "Healthcare Staff": [
+    "/my-profile",
+    "/home",
+    "/statistics/treatment-plan",
+    "/statistics/drug",
+    "/statistics/prescription",
+    "/statistics/inventoryrecord",
+    "/statistics/health-check-result",
+    "/statistics/healthinsurance",
+    "/statistics/appointment",
+    "/drug",
+    "/drug-group",
+    "/drug-order",
+    "/drug-supplier",
+    "/batch-number",
+    "/inventory-record",
+    "/inventory-record/history",
+    "/health-check-result",
+    "/health-check-result/pending",
+    "/health-check-result/follow-up",
+    "/health-check-result/no-follow-up",
+    "/health-check-result/adjustment",
+    "/health-check-result/soft-deleted",
+    "/health-check-result/history",
+    "/prescription",
+    "/prescription/history",
+    "/treatment-plan",
+    "/treatment-plan/history",
+    "/periodic-health-checkup",
+    "/health-insurance",
+    "/health-insurance/initial",
+    "/health-insurance/expired-update",
+    "/health-insurance/soft-deleted",
+    "/health-insurance/verification",
+    "/health-insurance/no-insurance",
+    "/health-insurance/update-requests",
+    "/health-insurance/history",
+    "/notification",
+    "/canteen-item",
+    "/canteen-order",
+    "/delivery-truck",
+    "/schedule-appointment",
+    "/my-assigned-appointment",
+    "/my-appointment",
+    "/my-assigned-survey",
+    "/my-health-check",
+    "/my-periodic-checkup",
+    "/my-health-insurance",
+    "/my-schedule",
+    "/settings",
+    "/documentation",
+  ],
+  "Canteen Staff": [
+    "/my-profile",
+    "/home",
+    "/canteen-item",
+    "/canteen-order",
+    "/statistics/canteenorder",
+    "/delivery-truck",
+    "/settings",
+    "/documentation",
+  ],
+  User: [
+    "/my-profile",
+    "/home",
+    "/schedule-appointment",
+    "/my-appointment",
+    "/my-submitted-survey",
+    "/my-health-check",
+    "/my-periodic-checkup",
+    "/my-health-insurance",
+    "/settings",
+    "/documentation",
+  ],
+};
 
 export function middleware(request: NextRequest) {
-  // Lấy đường dẫn yêu cầu
   const path = request.nextUrl.pathname;
   console.log("Middleware checking path:", path);
 
@@ -62,88 +210,73 @@ export function middleware(request: NextRequest) {
   console.log("Middleware is running, token:", token ? "exists" : "missing");
 
   if (!token) {
-    // Nếu không có token, chuyển hướng về trang đăng nhập
     console.log("No token found, redirecting to login page");
     return NextResponse.redirect(new URL("/", request.url));
   }
 
   try {
-    // Kiểm tra xem đây có phải là đường dẫn dành cho mọi người dùng đã đăng nhập không
-    const isCommonRoute = commonUserRoutes.some((route) => {
-      // Khớp chính xác
-      if (path === route) return true;
-
-      // Đường dẫn bắt đầu bằng route + '/'
-      if (route !== "/" && path.startsWith(`${route}/`)) return true;
-
-      // Trường hợp đặc biệt cho survey details có chứa UUID
-      if (
-        route === "/survey/details" &&
-        path.match(
-          /^\/survey\/details\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
-        )
-      ) {
-        return true;
-      }
-
-      return false;
-    });
-
-    if (isCommonRoute) {
-      console.log("Common route accessible to all authenticated users");
-      return NextResponse.next();
-    }
-
-    // Kiểm tra xem đường dẫn có phải là trang chỉ dành cho admin không
-    const isAdminRoute = adminOnlyRoutes.some((route) => {
-      if (path === route) return true;
-      if (route !== "/" && path.startsWith(`${route}/`)) return true;
-      return false;
-    });
-
-    // Nếu không phải trang admin-only, cho phép truy cập (có thể cấu hình thêm sau)
-    if (!isAdminRoute) {
-      return NextResponse.next();
-    }
-
-    // Nếu là trang admin, kiểm tra quyền
+    // Kiểm tra quyền dựa trên vai trò
     const decoded: any = jwtDecode(token.value);
-
-    // Xử lý trường role có thể là mảng hoặc chuỗi
     let roles =
       decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-
-    // Chuyển đổi thành mảng nếu là chuỗi
     if (typeof roles === "string") {
       roles = [roles];
     } else if (!Array.isArray(roles)) {
       roles = [];
     }
 
-    const isAdmin = roles.includes("Admin");
-
     console.log("User roles:", roles);
-    console.log("Is admin:", isAdmin);
 
-    // Nếu không phải admin và đang cố truy cập trang chỉ dành cho admin, chuyển hướng về trang home
-    if (!isAdmin && isAdminRoute) {
-      console.log(
-        "Non-admin user trying to access admin-only route, redirecting to home"
-      );
+    const isAllowed = roles.some((role: string) =>
+      roleRoutes[role as keyof typeof roleRoutes]?.some(
+        (route: string) => path === route || path.startsWith(`${route}/`)
+      )
+    );
+
+    if (!isAllowed) {
+      console.log("User not authorized for this route, redirecting to home");
       return NextResponse.redirect(new URL("/home", request.url));
     }
 
-    // Nếu là admin hoặc trang không cần quyền admin, tiếp tục
     console.log("Access granted, proceeding");
     return NextResponse.next();
   } catch (error) {
     console.error("Error in middleware:", error);
-    // Nếu có lỗi khi giải mã token, chuyển hướng về trang đăng nhập
     return NextResponse.redirect(new URL("/", request.url));
   }
 }
 
 export const config = {
-  // Khớp tất cả các đường dẫn ngoại trừ API và tệp tĩnh
-  matcher: ["/home", "/user", "/dashboard", "/admin", "/user/me", "/settings"], // Danh sách các route cần bảo vệ
+  matcher: [
+    "/my-profile",
+    "/home",
+    "/statistics/:path*",
+    "/user",
+    "/drug/:path*",
+    "/inventory-record/:path*",
+    "/appointment",
+    "/survey",
+    "/health-check-result/:path*",
+    "/prescription/:path*",
+    "/treatment-plan/:path*",
+    "/periodic-health-checkup",
+    "/health-insurance/:path*",
+    "/shift",
+    "/schedule",
+    "/notification",
+    "/canteen-item",
+    "/canteen-order",
+    "/delivery-truck",
+    "/schedule-appointment",
+    "/my-assigned-appointment",
+    "/my-appointment",
+    "/my-submitted-survey",
+    "/my-assigned-survey",
+    "/my-health-check",
+    "/my-periodic-checkup",
+    "/my-health-insurance",
+    "/my-schedule",
+    "/settings",
+    "/documentation",
+  ],
 };

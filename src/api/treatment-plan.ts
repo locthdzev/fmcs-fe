@@ -18,6 +18,7 @@ export interface HealthCheckResultInfo {
   healthCheckResultCode: string;
   user?: UserInfo;
   checkupDate: string;
+  status?: string;
 }
 
 export interface DrugInfo {
@@ -597,6 +598,41 @@ export const getTreatmentPlanIdsByStatus = async (statuses: string[]) => {
     return [];
   } catch (error) {
     console.error("Error fetching treatment plan IDs by status:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get treatment plans for the currently logged in user
+ */
+export const getCurrentUserTreatmentPlans = async (
+  page: number = 1,
+  pageSize: number = 10,
+  sortBy: string = "StartDate",
+  ascending: boolean = false,
+  status?: string
+) => {
+  try {
+    const response = await api.get(
+      "/treatment-plan-management/treatment-plans/current-user",
+      {
+        params: {
+          page,
+          pageSize,
+          sortBy,
+          ascending,
+          status,
+        },
+      }
+    );
+    const data = response.data;
+    // Map isSuccess to success for consistency
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching current user treatment plans:", error);
     throw error;
   }
 }; 

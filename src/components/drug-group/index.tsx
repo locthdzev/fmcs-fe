@@ -1145,7 +1145,11 @@ export function DrugGroups() {
 
         {showActivateButton && (
           <Button
-            className="bg-success-100 text-success border-success"
+            style={{ 
+              backgroundColor: "#f6ffed", 
+              color: "#52c41a", 
+              borderColor: "#b7eb8f" 
+            }}
             onClick={() => showConfirm("activate", handleActivate)}
             disabled={loading}
           >
@@ -1155,7 +1159,11 @@ export function DrugGroups() {
 
         {showDeactivateButton && (
           <Button
-            className="bg-danger-100 text-danger border-danger"
+            style={{ 
+              backgroundColor: "#fff2f0", 
+              color: "#ff4d4f", 
+              borderColor: "#ffccc7" 
+            }}
             onClick={() => showConfirm("deactivate", handleDeactivate)}
             disabled={loading}
           >
@@ -1180,6 +1188,9 @@ export function DrugGroups() {
           <Option value={10}>10</Option>
           <Option value={15}>15</Option>
           <Option value={20}>20</Option>
+          <Option value={50}>50</Option>
+          <Option value={100}>100</Option>
+
         </Select>
       </div>
     );
@@ -1244,10 +1255,11 @@ export function DrugGroups() {
                       allowClear
                       placeholder={
                         <div style={{ display: "flex", alignItems: "center" }}>
-                          <SearchOutlined style={{ marginRight: 8 }} />
+                          
                           <span>Search by group name...</span>
                         </div>
                       }
+                      prefix={<SearchOutlined style={{ color: "blue" }} />}
                       value={filterValue || undefined}
                       onChange={handleSearchSelectChange}
                       style={{ width: "300px" }}
@@ -1308,7 +1320,6 @@ export function DrugGroups() {
                           advancedFilters === initialAdvancedFilters
                         }
                       >
-                        Reset
                       </Button>
                     </Tooltip>
 

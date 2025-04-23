@@ -41,6 +41,7 @@ export interface UserResponseDTO {
   createdAt: string;
   updatedAt: string;
   roles: string[];
+  imageURL?: string;
 }
 
 export interface UpdateAccountsStatusRequest {
@@ -89,13 +90,20 @@ export interface UserStatisticsDTO {
   usersByRole: Record<string, number>;
   usersWithMultipleRoles: number;
   usersByGender: Record<string, number>;
-  usersByMonthCreated?: Record<string, number>;
+  usersByMonthCreated: Record<string, number>;
   newUsersThisWeek: number;
   newUsersThisMonth: number;
   newUsersThisYear: number;
   usersInDateRange: number;
   startDate: string | null;
   endDate: string | null;
+}
+
+export interface ApiResponse<T> {
+  isSuccess: boolean;
+  code: number;
+  message?: string;
+  data: T;
 }
 
 export const getAllUsers = async (
@@ -367,6 +375,10 @@ export const exportUsersToExcelWithConfig = async (
     params.append("sortBy", sortBy);
     params.append("ascending", ascending.toString());
 
+    console.log('Exporting users with config:', config);
+    console.log('Query params:', params.toString());
+    console.log('Export all pages:', config.exportAllPages);
+
     const response = await api.post(
       `/user-management/users/export-excel-config?${params.toString()}`,
       config
@@ -378,39 +390,63 @@ export const exportUsersToExcelWithConfig = async (
   }
 };
 
-export const getUserStatistics = async (startDate?: Date, endDate?: Date) => {
+export const getUserStatistics = async (
+  startDate?: Date,
+  endDate?: Date
+): Promise<ApiResponse<UserStatisticsDTO>> => {
   try {
+    // Format dates for API request
+    const startDateStr = startDate ? startDate.toISOString() : undefined;
+    const endDateStr = endDate ? endDate.toISOString() : undefined;
+
+    console.log("Sending API request with params:", { startDate: startDateStr, endDate: endDateStr });
+    
+    // Build query parameters
     const params = new URLSearchParams();
-    if (startDate) params.append("startDate", startDate.toISOString());
-    if (endDate) params.append("endDate", endDate.toISOString());
-
-    const response = await api.get<{
-      isSuccess: boolean;
-      data: UserStatisticsDTO;
-      code: number;
-      message?: string;
-    }>(`/user-management/users/statistics?${params.toString()}`);
-
+    if (startDateStr) params.append("startDate", startDateStr);
+    if (endDateStr) params.append("endDate", endDateStr);
+    
+    const query = params.toString() ? `?${params.toString()}` : "";
+    
+    const response = await api.get<ApiResponse<UserStatisticsDTO>>(
+      `/user-management/users/statistics${query}`
+    );
+    
+    console.log("API response for statistics:", response.data);
+    
     return response.data;
   } catch (error) {
+    console.error("Error fetching user statistics:", error);
     throw error;
   }
 };
 
 export const getUserById = async (userId: string): Promise<UserResponseDTO> => {
   try {
-    const response = await api.get<{
-      isSuccess: boolean;
-      data: UserResponseDTO;
-      code: number;
-      message?: string;
-    }>(`/user-management/users/${userId}`);
-    if (response.data.isSuccess && response.data.data) {
-      return response.data.data;
-    }
-    throw new Error(response.data.message || "Failed to fetch user.");
+    const response = await api.get(`/user-management/users/${userId}`);
+    return response.data.data;
   } catch (error) {
     throw error;
+  }
+};
+
+export const getActiveUsersWithoutInsurance = async () => {
+  try {
+    const response = await api.get("/user-management/users/active-without-insurance");
+    return {
+      isSuccess: response.data.isSuccess,
+      code: response.data.code,
+      message: response.data.message,
+      data: response.data.data || [],
+    };
+  } catch (error: any) {
+    console.error("Error fetching active users without insurance:", error);
+    return {
+      isSuccess: false,
+      code: error.response?.status || 500,
+      message: error.response?.data?.message || "Failed to fetch users without insurance",
+      data: [],
+    };
   }
 };
 
@@ -437,6 +473,34 @@ export const updateProfileImage = async (imageFile: File) => {
     return response.data;
   } catch (error: any) {
     console.error('Error updating profile image:', error);
+    console.error('Error response:', error.response?.data);
+    throw error;
+  }
+};
+
+export const updateUserImage = async (userId: string, imageFile: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('imageFile', imageFile);
+    
+    console.log(`Sending user image update request with file: ${imageFile.name}, size: ${imageFile.size}, for user: ${userId}`);
+    
+    const response = await api.put(`/user-management/users/${userId}/update-image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    console.log('User image update response:', response.data);
+    
+    // Kiểm tra response có cấu trúc đúng không
+    if (!response.data) {
+      throw new Error('Empty response received from server');
+    }
+    
+    return response.data;
+  } catch (error: any) {
+    console.error(`Error updating image for user ${userId}:`, error);
     console.error('Error response:', error.response?.data);
     throw error;
   }

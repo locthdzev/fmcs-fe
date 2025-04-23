@@ -138,7 +138,7 @@ const HealthCheckFilterModal: React.FC<HealthCheckFilterModalProps> = ({
                 placeholder="Search by patient"
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 style={{ width: "100%" }}
                 allowClear
               />
@@ -155,7 +155,7 @@ const HealthCheckFilterModal: React.FC<HealthCheckFilterModalProps> = ({
                 placeholder="Search by medical staff"
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 style={{ width: "100%" }}
                 allowClear
               />
@@ -532,7 +532,7 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
       key: "patient",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          PATIENT
+          PERSON EXAMINED
         </span>
       ),
       dataIndex: "user",
@@ -740,7 +740,7 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
               placeholder="Search by result code"
               value={codeSearch}
               onChange={(e) => setCodeSearch(e.target.value)}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               style={{ width: 200 }}
               allowClear
             />

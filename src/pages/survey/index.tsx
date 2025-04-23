@@ -1,17 +1,10 @@
-import { useEffect } from 'react';
-import { useRouter } from 'next/router';
+import React from "react";
+import { SurveyManagement } from "@/components/survey";
 
-export default function SurveyIndexPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    // Redirect to survey management page
-    router.push('/survey/management');
-  }, [router]);
-
+export default function SurveyManagementPage() {
   return (
-    <div className="flex items-center justify-center h-screen">
-      <p className="text-lg">Đang chuyển hướng...</p>
+    <div className="w-full">
+      <SurveyManagement />
     </div>
   );
-} 
+}

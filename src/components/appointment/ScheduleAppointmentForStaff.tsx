@@ -135,7 +135,7 @@ const ScheduleAppointmentForStaff: React.FC<
 
   return (
     <Modal
-      title={<Title level={4}>Schedule Appointment with Student</Title>}
+      title={<Title level={4}>Schedule Appointment with User</Title>}
       visible={visible}
       onCancel={onClose}
       footer={null}

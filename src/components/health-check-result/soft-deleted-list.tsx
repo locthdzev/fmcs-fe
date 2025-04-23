@@ -134,7 +134,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 placeholder="Search by patient"
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 allowClear
                 style={{ width: "100%" }}
               />
@@ -151,7 +151,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 placeholder="Search by doctor/nurse"
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 allowClear
                 style={{ width: "100%" }}
               />
@@ -441,7 +441,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
       key: "patient",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          PATIENT
+          PERSON EXAMINED
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -476,7 +476,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
       key: "staff",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          DOCTOR / NURSE
+          HEALTHCARE STAFF
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
@@ -575,7 +575,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
               placeholder="Search by result code"
               value={codeSearch}
               onChange={(e) => setCodeSearch(e.target.value)}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "blue" }} />}
               style={{ width: 200 }}
               allowClear
             />
