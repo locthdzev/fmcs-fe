@@ -95,10 +95,11 @@ export default function Login() {
   };
 
   const images = [
-    "../fpt-ct-campus1.jpg",
-    "../fpt-ct-campus2.jpg",
-    "../fpt-ct-campus3.jpg",
-    "../fpt-ct-campus4.jpg",
+    "../login-1.jpg",
+    "../login-2.jpg",
+    "../login-3.jpg",
+    "../login-4.jpg",
+    "../login-5.jpeg",
   ];
 
   return (

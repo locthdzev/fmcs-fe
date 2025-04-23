@@ -20,6 +20,9 @@ import {
   Alert,
   theme,
   Menu,
+  message,
+  Modal,
+  Tag,
 } from "antd";
 import {
   BarChart,
@@ -48,6 +51,7 @@ import {
   ComposedChart,
 } from "recharts";
 import { getUserStatistics } from "@/api/user";
+import { exportUserStatisticsToExcel } from "./export/user-statitics";
 import type { RangePickerProps } from "antd/es/date-picker";
 import dayjs from "dayjs";
 import {
@@ -138,6 +142,10 @@ export function UserStatistics() {
   ]);
   const [activeDateFilter, setActiveDateFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("1");
+  
+  // State cho Export Modal
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportDateRange, setExportDateRange] = useState<[Date | null, Date | null]>([null, null]);
   
   // Thêm state để theo dõi khi nào dữ liệu được cập nhật
   const [dataVersion, setDataVersion] = useState(0);
@@ -271,6 +279,82 @@ export function UserStatistics() {
   // Navigation
   const handleBack = () => {
     router.back();
+  };
+
+  // Hàm xử lý khi người dùng nhấn nút Export to Excel
+  const handleExportToExcel = () => {
+    if (statistics) {
+      // Đảm bảo usersByMonthCreated không bị undefined
+      const dataWithValidMonthly = {
+        ...statistics,
+        usersByMonthCreated: statistics.usersByMonthCreated || {}
+      };
+      
+      const response = {
+        isSuccess: true,
+        code: 200,
+        data: dataWithValidMonthly,
+        responseFailed: null,
+        message: "User statistics exported successfully"
+      };
+      
+      // Chuyển đổi Date | null thành Date | undefined cho API
+      let startDate: Date | undefined = undefined;
+      let endDate: Date | undefined = undefined;
+      
+      if (exportDateRange[0] !== null) {
+        startDate = exportDateRange[0];
+      } else if (dateRange[0] !== null) {
+        startDate = dateRange[0];
+      }
+      
+      if (exportDateRange[1] !== null) {
+        endDate = exportDateRange[1];
+      } else if (dateRange[1] !== null) {
+        endDate = dateRange[1];
+      }
+      
+      // Gọi hàm export với response và date range đã chuyển đổi
+      exportUserStatisticsToExcel(
+        response,
+        "User Statistics Report",
+        startDate,
+        endDate
+      );
+      
+      // Đóng modal sau khi export
+      setExportModalVisible(false);
+    } else {
+      message.error("Không có dữ liệu để xuất Excel");
+    }
+  };
+
+  // Hàm mở modal export
+  const showExportModal = () => {
+    if (dateRange[0] && dateRange[1]) {
+      // Create new Date objects to avoid reference copying
+      setExportDateRange([
+        new Date(dateRange[0].getTime()),
+        new Date(dateRange[1].getTime())
+      ]);
+    } else {
+      setExportDateRange([null, null]);
+    }
+    setExportModalVisible(true);
+  };
+  
+  // Hàm đóng modal export
+  const closeExportModal = () => {
+    setExportModalVisible(false);
+  };
+  
+  // Hàm xử lý khi date range trong modal thay đổi
+  const handleExportDateRangeChange = (dates: RangePickerProps["value"]) => {
+    if (dates && dates[0] && dates[1]) {
+      setExportDateRange([dates[0].toDate(), dates[1].toDate()]);
+    } else {
+      setExportDateRange([null, null]);
+    }
   };
 
   if (loading) {
@@ -624,7 +708,7 @@ export function UserStatistics() {
               >
                 Refresh
               </Button>
-              <Button icon={<FileExcelOutlined />} type="primary">
+              <Button icon={<FileExcelOutlined />} type="primary" onClick={showExportModal}>
                 Export to Excel
               </Button>
             </Space>
@@ -1058,6 +1142,62 @@ export function UserStatistics() {
       {renderFilterSection()}
       {renderStatisticsCards()}
       {renderChartTabs()}
+      
+      {/* Export Modal */}
+      <Modal
+        title="Export User Statistics"
+        open={exportModalVisible}
+        onCancel={closeExportModal}
+        footer={[
+          <Button key="back" onClick={closeExportModal}>
+            Cancel
+          </Button>,
+          <Button key="submit" type="primary" icon={<FileExcelOutlined />} onClick={handleExportToExcel}>
+            Export to Excel
+          </Button>,
+        ]}
+      >
+        <div style={{ marginBottom: "20px" }}>
+          <Title level={5}>Select Date Range for Export</Title>
+          <RangePicker
+            style={{ width: "100%", marginTop: "8px" }}
+            value={exportDateRange[0] && exportDateRange[1] ? 
+              [dayjs(exportDateRange[0]), dayjs(exportDateRange[1])] : null}
+            onChange={handleExportDateRangeChange}
+          />
+        </div>
+        
+        <Divider orientation="left">Report Format Information</Divider>
+        
+        <div style={{ marginBottom: "16px" }}>
+          <Space direction="vertical" style={{ width: '100%' }}>            
+            <Alert
+              message="Report Contents"
+              description={
+                <div>
+                  The export includes detailed statistics about user distribution
+                  across multiple sheets including summary data, role distribution, 
+                  gender distribution, and monthly trends.
+                </div>
+              }
+              type="info"
+              showIcon
+              style={{ marginTop: '12px' }}
+            />
+          </Space>
+        </div>
+        
+        <div style={{ marginTop: "16px" }}>
+          <Title level={5}>Export Preview</Title>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: "8px" }}>
+            <Tag color="orange">Summary Statistics</Tag>
+            <Tag color="green">Role Distribution</Tag>
+            <Tag color="blue">Gender Distribution</Tag>
+            <Tag color="purple">Monthly Distribution</Tag>
+            <Tag color="cyan">New Users</Tag>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
