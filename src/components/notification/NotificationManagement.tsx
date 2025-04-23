@@ -647,12 +647,7 @@ export function NotificationManagement() {
 
               <Form.Item name="status" className="mb-0">
                 <Select
-                  placeholder={
-                    <div style={{ display: "flex", alignItems: "center" }}>
-                      <TagOutlined style={{ marginRight: 8 }} />
-                      <span>Status</span>
-                    </div>
-                  }
+                  placeholder="Status"
                   value={statusFilter}
                   onChange={(value) => handleFormFieldChange("status", value)}
                   allowClear
