@@ -27,6 +27,12 @@ import {
   Select,
   message,
   Divider,
+  Calendar,
+  List,
+  Avatar,
+  Progress,
+  Empty,
+  Radio,
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
@@ -79,10 +85,13 @@ import { UserContext } from "@/context/UserContext";
 import AppointmentUserDetails from "./AppointmentUserDetails";
 import jwtDecode from "jwt-decode";
 import moment from "moment-timezone";
+import "moment-timezone";
 import debounce from "lodash/debounce";
 import { Virtuoso } from "react-virtuoso";
 import { getAllUsers, UserResponseDTO } from "@/api/user";
 import AppointmentToolbar from "./Toolbar";
+import { getStaffSchedulesByDateRange } from "@/api/schedule";
+import StaffScheduleCalendarModal from "./StaffScheduleCalendarModal";
 
 const styles = `
   @keyframes blink {
@@ -465,7 +474,9 @@ const UpdateAppointmentModal: React.FC<{
         onUpdateSuccess();
         onClose();
       } else {
-        messageApi.error(`Failed to update: ${response.message || "Unknown error"}`);
+        messageApi.error(
+          `Failed to update: ${response.message || "Unknown error"}`
+        );
       }
     } catch (error: any) {
       console.error("Error updating appointment:", error);
@@ -579,16 +590,75 @@ const UpdateAppointmentModal: React.FC<{
 const ScheduleAppointmentForStaff: React.FC<{
   visible: boolean;
   onClose: () => void;
-}> = ({ visible, onClose }) => {
+  onSuccessfulSchedule?: () => void; // Add this new prop
+}> = ({ visible, onClose, onSuccessfulSchedule }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<TimeSlotDTO[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [availableStaff, setAvailableStaff] = useState<{value: string, label: string}[]>([]);
+  const [availableStaff, setAvailableStaff] = useState<
+    { value: string; label: string }[]
+  >([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const token = Cookies.get("token");
   const [messageApi, contextHolder] = message.useMessage();
+  const [staffWorkSchedules, setStaffWorkSchedules] = useState<any[]>([]);
+  const [availableWorkDates, setAvailableWorkDates] = useState<Set<string>>(
+    new Set()
+  );
+  const [workScheduleLoading, setWorkScheduleLoading] = useState(false);
+  const [calendarModalVisible, setCalendarModalVisible] = useState(false);
+  const [selectedDateSchedule, setSelectedDateSchedule] = useState<any | null>(
+    null
+  );
+  const [activeUsers, setActiveUsers] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(
+    null
+  );
+
+  // Danh sách tất cả các timeslot có thể có
+  const allPossibleTimeSlots = [
+    "08:00 - 08:30",
+    "08:30 - 09:00",
+    "09:00 - 09:30",
+    "09:30 - 10:00",
+    "10:00 - 10:30",
+    "10:30 - 11:00",
+    "11:00 - 11:30",
+    "11:30 - 12:00",
+    "13:30 - 14:00",
+    "14:00 - 14:30",
+    "14:30 - 15:00",
+    "15:00 - 15:30",
+    "15:30 - 16:00",
+    "16:00 - 16:30",
+    "16:30 - 17:00",
+    "17:00 - 17:30",
+  ];
+
+  // Max date - 1 month from now
+  const maxDate = dayjs().add(1, "month");
+
+  // Chuyển đổi thời gian từ AM/PM sang định dạng 24h để hiển thị
+  const convertTo24HourFormat = useCallback((timeStr: string) => {
+    if (!timeStr) return "";
+    const [timePart, ampm] = timeStr.split(" ");
+    let [hours, minutes] = timePart.split(":").map(Number);
+
+    if (ampm.toUpperCase() === "PM" && hours < 12) {
+      hours += 12;
+    } else if (ampm.toUpperCase() === "AM" && hours === 12) {
+      hours = 0;
+    }
+
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}`;
+  }, []);
 
   // Fetch available healthcare staff
   const fetchHealthcareStaff = useCallback(async () => {
@@ -613,20 +683,204 @@ const ScheduleAppointmentForStaff: React.FC<{
     }
   }, [token, messageApi]);
 
-  // Load healthcare staff when modal opens
+  // Fetch active users excluding Canteen Staff
+  const fetchActiveUsers = useCallback(async () => {
+    setLoadingUsers(true);
+    try {
+      const response = await getAllUsers(
+        1, // page
+        1000, // pageSize - large number to get as many as possible
+        undefined, // fullNameSearch
+        undefined, // userNameSearch
+        undefined, // emailSearch
+        undefined, // phoneSearch
+        undefined, // roleFilter - not filtering by role here, we'll filter in JS
+        undefined, // genderFilter
+        undefined, // dobStartDate
+        undefined, // dobEndDate
+        undefined, // createdStartDate
+        undefined, // createdEndDate
+        undefined, // updatedStartDate
+        undefined, // updatedEndDate
+        "Active", // status - only active users
+        "CreatedAt", // sortBy
+        false // ascending
+      );
+
+      if (response.isSuccess && response.data) {
+        // Filter out users with Canteen Staff role
+        const filteredUsers = response.data.filter(
+          (user: UserResponseDTO) => !user.roles?.includes("Canteen Staff")
+        );
+
+        const options = filteredUsers.map((user: UserResponseDTO) => ({
+          value: user.email,
+          label: `${user.fullName} (${user.email})`,
+        }));
+        setActiveUsers(options);
+      } else {
+        messageApi.error("Failed to load users");
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch users:", error);
+      messageApi.error("Failed to load users");
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, [messageApi]);
+
+  // Load healthcare staff and active users when modal opens
   useEffect(() => {
     if (visible) {
       fetchHealthcareStaff();
+      fetchActiveUsers();
     }
-  }, [visible, fetchHealthcareStaff]);
+  }, [visible, fetchHealthcareStaff, fetchActiveUsers]);
+
+  // Fetch staff work schedules
+  const fetchStaffWorkSchedules = useCallback(
+    async (staffId: string) => {
+      if (!token) return;
+
+      setWorkScheduleLoading(true);
+      try {
+        const startDate = dayjs().format("YYYY-MM-DD");
+        const endDate = dayjs().add(30, "days").format("YYYY-MM-DD");
+
+        const response = await getStaffSchedulesByDateRange(
+          staffId,
+          startDate,
+          endDate
+        );
+
+        if (response.isSuccess && Array.isArray(response.data)) {
+          setStaffWorkSchedules(response.data);
+
+          // Extract available work dates
+          const workDates = new Set<string>(
+            response.data.map((schedule: any) =>
+              dayjs(schedule.workDate).format("YYYY-MM-DD")
+            )
+          );
+          setAvailableWorkDates(workDates);
+
+          console.log("Available work dates:", Array.from(workDates));
+        } else {
+          console.error(
+            "Failed to fetch staff work schedules:",
+            response.message
+          );
+          messageApi.error("Failed to load staff work schedule");
+        }
+      } catch (error) {
+        console.error("Error fetching staff work schedules:", error);
+        messageApi.error("Failed to load staff work schedule");
+      } finally {
+        setWorkScheduleLoading(false);
+      }
+    },
+    [token, messageApi]
+  );
+
+  // Lọc time slots dựa trên ca làm việc trong ngày đã chọn
+  const filterTimeSlotsByShift = useCallback(
+    (date: string) => {
+      if (!staffWorkSchedules.length) return [];
+
+      // Tìm lịch làm việc của ngày đã chọn
+      const dateSchedule = staffWorkSchedules.find(
+        (schedule) => dayjs(schedule.workDate).format("YYYY-MM-DD") === date
+      );
+
+      if (!dateSchedule) return [];
+
+      setSelectedDateSchedule(dateSchedule);
+
+      // Lấy thời gian bắt đầu và kết thúc ca làm việc
+      const shiftStartTime = dateSchedule.startTime; // Định dạng "9:00 AM"
+      const shiftEndTime = dateSchedule.endTime; // Định dạng "1:00 PM"
+
+      if (!shiftStartTime || !shiftEndTime) return [];
+
+      console.log(`Staff shift time: ${shiftStartTime} - ${shiftEndTime}`);
+
+      // Chuyển đổi thời gian từ định dạng AM/PM sang định dạng 24h
+      const convertTimeToMinutes = (timeStr: string) => {
+        // Xử lý chuỗi thời gian như "9:00 AM" hoặc "1:00 PM"
+        const [timePart, ampm] = timeStr.split(" ");
+        let [hours, minutes] = timePart.split(":").map(Number);
+
+        // Chuyển đổi từ 12h sang 24h
+        if (ampm.toUpperCase() === "PM" && hours < 12) {
+          hours += 12;
+        } else if (ampm.toUpperCase() === "AM" && hours === 12) {
+          hours = 0;
+        }
+
+        return hours * 60 + minutes;
+      };
+
+      // Tính số phút cho thời gian ca làm việc
+      const shiftStartMinutes = convertTimeToMinutes(shiftStartTime);
+      const shiftEndMinutes = convertTimeToMinutes(shiftEndTime);
+
+      console.log(
+        `Converted shift time (minutes): ${shiftStartMinutes} - ${shiftEndMinutes}`
+      );
+
+      // Lọc các time slots nằm trong khoảng thời gian của ca làm việc
+      return allPossibleTimeSlots.filter((slot) => {
+        const [slotStart] = slot.split(" - ");
+        const [slotEnd] = slot.split(" - ")[1].split(" ");
+
+        // Chuyển đổi thành số phút kể từ 00:00 để dễ so sánh
+        const parseTimeToMinutes = (timeStr: string) => {
+          const [hours, minutes] = timeStr.split(":").map(Number);
+          return hours * 60 + minutes;
+        };
+
+        const slotStartMinutes = parseTimeToMinutes(slotStart);
+        const slotEndMinutes = parseTimeToMinutes(slotEnd);
+
+        // Kiểm tra slot có nằm trong khoảng thời gian ca làm việc không
+        return (
+          slotStartMinutes >= shiftStartMinutes &&
+          slotEndMinutes <= shiftEndMinutes
+        );
+      });
+    },
+    [staffWorkSchedules]
+  );
 
   const fetchAvailableSlots = useCallback(
     async (date: string) => {
       if (!token || !selectedStaffId) return;
       setLoading(true);
       try {
-        const response = await getAvailableTimeSlots(selectedStaffId, date, token);
-        setAvailableSlots(response.data?.availableSlots || []);
+        // Gọi API để lấy danh sách time slots khả dụng từ server
+        const response = await getAvailableTimeSlots(
+          selectedStaffId,
+          date,
+          token
+        );
+
+        // Lấy danh sách các time slots có thể đặt lịch theo ca làm việc
+        const shiftsTimeSlots = filterTimeSlotsByShift(date);
+
+        // Lọc lại danh sách các slots từ API dựa trên ca làm việc
+        const filteredSlots =
+          response.data?.availableSlots.filter((slot) =>
+            shiftsTimeSlots.includes(slot.timeSlot)
+          ) || [];
+
+        console.log("Filtered slots based on staff shift:", filteredSlots);
+        setAvailableSlots(filteredSlots);
+
+        if (filteredSlots.length === 0 && shiftsTimeSlots.length > 0) {
+          messageApi.info(
+            "No available time slots within staff's working hours for this date"
+          );
+        }
       } catch (error: any) {
         console.error("Failed to fetch slots:", error);
         messageApi.error("Failed to load available slots.");
@@ -634,28 +888,78 @@ const ScheduleAppointmentForStaff: React.FC<{
         setLoading(false);
       }
     },
-    [selectedStaffId, token, messageApi]
+    [selectedStaffId, token, messageApi, filterTimeSlotsByShift]
   );
 
   const onDateChange = (date: moment.Moment | null) => {
     if (date) {
       const dateStr = date.format("YYYY-MM-DD");
+
+      // Check if the staff is scheduled to work on this date
+      if (!availableWorkDates.has(dateStr)) {
+        messageApi.warning(
+          `Selected healthcare staff is not scheduled to work on ${date.format(
+            "DD/MM/YYYY"
+          )}.`
+        );
+        return;
+      }
+
       setSelectedDate(dateStr);
       if (selectedStaffId) {
         fetchAvailableSlots(dateStr);
       }
+
+      // Set the form field value to display the selected date
+      form.setFieldValue("date", dateStr);
     } else {
       setSelectedDate(null);
       setAvailableSlots([]);
+      setSelectedDateSchedule(null);
+      form.setFieldValue("date", undefined);
     }
   };
 
   const onStaffChange = (value: string) => {
     setSelectedStaffId(value);
     form.setFieldValue("timeSlot", undefined); // Reset time slot when staff changes
-    if (selectedDate && value) {
-      fetchAvailableSlots(selectedDate);
+    setSelectedDate(null); // Reset selected date
+    setSelectedDateSchedule(null); // Reset selected date schedule
+    form.setFieldValue("date", undefined); // Reset date field
+    setAvailableSlots([]); // Reset time slots
+
+    // Fetch staff work schedules when a staff is selected
+    if (value) {
+      fetchStaffWorkSchedules(value);
+    } else {
+      setStaffWorkSchedules([]);
+      setAvailableWorkDates(new Set());
     }
+  };
+
+  // Check if a date is available based on staff work schedule
+  const isDateDisabled = (current: dayjs.Dayjs) => {
+    // Disable dates before today or after 1 month
+    if (current.isBefore(dayjs().startOf("day")) || current.isAfter(maxDate)) {
+      return true;
+    }
+
+    // If no staff selected or still loading, disable all dates
+    if (!selectedStaffId || workScheduleLoading) {
+      return true;
+    }
+
+    // Check if the date is in the staff's work schedule
+    const dateStr = current.format("YYYY-MM-DD");
+    return !availableWorkDates.has(dateStr);
+  };
+
+  const openCalendarModal = () => {
+    if (!selectedStaffId) {
+      messageApi.warning("Please select a healthcare staff first");
+      return;
+    }
+    setCalendarModalVisible(true);
   };
 
   const onFinish = async (values: any) => {
@@ -697,8 +1001,15 @@ const ScheduleAppointmentForStaff: React.FC<{
       );
       if (response.isSuccess) {
         messageApi.success("Appointment scheduled successfully!");
-        form.resetFields();
-        onClose();
+        // Add a small delay to make sure the message is seen before closing the modal
+        setTimeout(() => {
+          form.resetFields();
+          onClose();
+          // Call the callback to refresh the parent component only when successfully scheduled
+          if (onSuccessfulSchedule) {
+            onSuccessfulSchedule();
+          }
+        }, 1000);
       } else {
         messageApi.error(
           `Failed to schedule: ${response.message || "Unknown error"}`
@@ -716,106 +1027,195 @@ const ScheduleAppointmentForStaff: React.FC<{
     setSelectedDate(null);
     setAvailableSlots([]);
     setSelectedStaffId(null);
+    setStaffWorkSchedules([]);
+    setAvailableWorkDates(new Set());
+    setCalendarModalVisible(false);
+    setSelectedDateSchedule(null);
+    setSelectedUserEmail(null);
     form.resetFields();
     onClose();
   };
 
+  const handleUserChange = (value: string) => {
+    setSelectedUserEmail(value);
+    form.setFieldValue("email", value);
+  };
+
+  // Filter user options when searching
+  const handleUserSearch = (input: string, option: any) => {
+    return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+  };
+
   return (
-    <Modal
-      title={<Title level={4}>Schedule Appointment with User</Title>}
-      open={visible}
-      onCancel={handleClose}
-      footer={null}
-      width={600}
-    >
-      {contextHolder}
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={onFinish}
-        initialValues={{ reason: "Health consultation" }}
+    <>
+      <Modal
+        title={<Title level={4}>Schedule Appointment with User</Title>}
+        visible={visible}
+        onCancel={handleClose}
+        footer={null}
+        width={600}
       >
-        <Form.Item
-          name="staffId"
-          label="Healthcare Staff"
-          rules={[
-            { required: true, message: "Please select a healthcare staff" },
-          ]}
+        {contextHolder}
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onFinish}
+          initialValues={{ reason: "Health consultation" }}
         >
-          <Select
-            showSearch
-            placeholder="Select a healthcare staff"
-            loading={loadingStaff}
-            options={availableStaff}
-            onChange={onStaffChange}
-            filterOption={(input, option) =>
-              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-            }
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="email"
-          label="Student/User Email"
-          rules={[
-            { required: true, message: "Please enter the student/user Email" },
-          ]}
-        >
-          <Input placeholder="Enter student/user Email" />
-        </Form.Item>
-
-        <Form.Item
-          name="appointmentDate"
-          label="Date"
-          rules={[{ required: true, message: "Please select a date" }]}
-        >
-          <DatePicker
-            format="YYYY-MM-DD"
-            onChange={onDateChange}
-            disabledDate={(current) =>
-              current && current.isBefore(dayjs().startOf("day"))
-            }
-            style={{ width: "100%" }}
-            disabled={!selectedStaffId}
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="timeSlot"
-          label="Time Slot"
-          rules={[{ required: true, message: "Please select a time slot" }]}
-        >
-          <Select
-            placeholder="Select a time slot"
-            disabled={!selectedDate || !selectedStaffId || loading}
-            loading={loading}
+          <Form.Item
+            name="staffId"
+            label="Healthcare Staff"
+            rules={[
+              { required: true, message: "Please select a healthcare staff" },
+            ]}
           >
-            {availableSlots
-              .filter((slot) => slot.isAvailable && !slot.isLocked)
-              .map((slot) => (
-                <Option key={slot.timeSlot} value={slot.timeSlot}>
-                  {slot.timeSlot}
-                </Option>
-              ))}
-          </Select>
-        </Form.Item>
+            <Select
+              showSearch
+              placeholder="Select a healthcare staff"
+              loading={loadingStaff}
+              options={availableStaff}
+              onChange={onStaffChange}
+              filterOption={(input, option) =>
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+            />
+          </Form.Item>
 
-        <Form.Item
-          name="reason"
-          label="Reason"
-          rules={[{ required: true, message: "Please enter a reason" }]}
-        >
-          <Input.TextArea rows={3} placeholder="Enter reason for appointment" />
-        </Form.Item>
+          <Form.Item
+            name="email"
+            label="User"
+            rules={[{ required: true, message: "Please select a user" }]}
+          >
+            <Select
+              showSearch
+              placeholder="Search and select a user"
+              loading={loadingUsers}
+              options={activeUsers}
+              onChange={handleUserChange}
+              filterOption={(input, option) =>
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              notFoundContent={
+                loadingUsers ? (
+                  <Spin size="small" />
+                ) : (
+                  <Empty description="No users found" />
+                )
+              }
+            />
+          </Form.Item>
 
-        <Form.Item>
-          <Button type="primary" htmlType="submit" loading={loading} block>
-            Schedule Appointment
-          </Button>
-        </Form.Item>
-      </Form>
-      {loading && <Spin />}
-    </Modal>
+          <Form.Item
+            label="Date"
+            required
+            name="date"
+            rules={[{ required: true, message: "Please select a date" }]}
+          >
+            <Button
+              type="default"
+              onClick={openCalendarModal}
+              disabled={!selectedStaffId || workScheduleLoading}
+              icon={<CalendarOutlined />}
+              style={{
+                width: "100%",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              {selectedDate
+                ? dayjs(selectedDate).format("DD/MM/YYYY")
+                : "Select date"}
+              <div>{workScheduleLoading && <Spin size="small" />}</div>
+            </Button>
+          </Form.Item>
+
+          {selectedDateSchedule && (
+            <div className="mb-4 p-2 bg-blue-50 rounded border border-blue-200">
+              <div className="text-xs text-blue-700 font-medium">
+                Work Schedule:
+              </div>
+              <div className="flex justify-between mt-1">
+                <div>
+                  <span className="text-sm font-medium">Shift:</span>{" "}
+                  <span className="text-sm">
+                    {selectedDateSchedule.shiftName}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium">Time:</span>
+                  <span className="text-sm">
+                    {convertTo24HourFormat(selectedDateSchedule.startTime)} -{" "}
+                    {convertTo24HourFormat(selectedDateSchedule.endTime)}
+                  </span>
+                  <span className="text-xs text-gray-500 ml-1">
+                    ({selectedDateSchedule.startTime} -{" "}
+                    {selectedDateSchedule.endTime})
+                  </span>
+                </div>
+              </div>
+              <div className="mt-1 text-xs text-gray-500">
+                Appointments can only be scheduled during healthcare staff
+                working hours
+              </div>
+            </div>
+          )}
+          <Form.Item
+            name="timeSlot"
+            label="Time Slot"
+            rules={[{ required: true, message: "Please select a time slot" }]}
+          >
+            <Select
+              placeholder="Select a time slot"
+              disabled={!selectedDate || !selectedStaffId || loading}
+              loading={loading}
+            >
+              {availableSlots
+                .filter((slot) => slot.isAvailable && !slot.isLocked)
+                .map((slot) => (
+                  <Option key={slot.timeSlot} value={slot.timeSlot}>
+                    {slot.timeSlot}
+                  </Option>
+                ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="reason"
+            label="Reason"
+            rules={[{ required: true, message: "Please enter a reason" }]}
+          >
+            <Input.TextArea
+              rows={3}
+              placeholder="Enter reason for appointment"
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={loading} block>
+              Schedule Appointment
+            </Button>
+          </Form.Item>
+        </Form>
+        {/* Removed the redundant Spin component here */}
+      </Modal>
+
+      <StaffScheduleCalendarModal
+        open={calendarModalVisible}
+        onClose={() => setCalendarModalVisible(false)}
+        staffId={selectedStaffId}
+        availableWorkDates={availableWorkDates}
+        onDateSelect={(date) => {
+          onDateChange(moment(date));
+          setCalendarModalVisible(false);
+        }}
+        isDateDisabled={isDateDisabled}
+      />
+    </>
   );
 };
 
@@ -824,8 +1224,12 @@ export function AppointmentManagementForAdmin() {
   const router = useRouter();
   const context = useContext(UserContext);
   const user = context?.user;
-  const [appointments, setAppointments] = useState<AppointmentResponseDTO[]>([]);
-  const [happeningAppointments, setHappeningAppointments] = useState<AppointmentResponseDTO[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentResponseDTO[]>(
+    []
+  );
+  const [happeningAppointments, setHappeningAppointments] = useState<
+    AppointmentResponseDTO[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -833,14 +1237,21 @@ export function AppointmentManagementForAdmin() {
   const [blockModalVisible, setBlockModalVisible] = useState(false);
   const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
-  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentResponseDTO | null>(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<
+    string | null
+  >(null);
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<AppointmentResponseDTO | null>(null);
   const [resetUserModalVisible, setResetUserModalVisible] = useState(false);
-  const [resetStatusUserId, setResetStatusUserId] = useState<string | null>(null);
+  const [resetStatusUserId, setResetStatusUserId] = useState<string | null>(
+    null
+  );
   const [activeTab, setActiveTab] = useState<string>("All");
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [fetchProgress, setFetchProgress] = useState<number>(0);
-  const [userOptions, setUserOptions] = useState<{ value: string; label: string }[]>([]);
+  const [userOptions, setUserOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -975,10 +1386,14 @@ export function AppointmentManagementForAdmin() {
           error.response?.status === 401 ||
           error.message === "No authentication token found."
         ) {
-          messageApi.error("Session expired or unauthorized. Please log in again.");
+          messageApi.error(
+            "Session expired or unauthorized. Please log in again."
+          );
           router.push("/");
         } else {
-          messageApi.error(`An error occurred: ${error.message || "Unknown error"}`);
+          messageApi.error(
+            `An error occurred: ${error.message || "Unknown error"}`
+          );
         }
       } finally {
         setActionLoading(null);
@@ -1804,7 +2219,7 @@ export function AppointmentManagementForAdmin() {
         undefined, // phoneSearch
         undefined, // roleFilter
         undefined, // genderFilter
-        undefined, // other parameters...
+        undefined // other parameters...
       );
 
       if (response.isSuccess && response.data) {
@@ -1828,7 +2243,7 @@ export function AppointmentManagementForAdmin() {
       messageApi.error("Please select a User Email");
       return;
     }
-    
+
     handleAction(
       updateUserAppointmentStatusToNormal,
       resetStatusUserId,
@@ -1880,8 +2295,8 @@ export function AppointmentManagementForAdmin() {
           <h3 className="text-xl font-bold">Appointment Management</h3>
         </div>
       </div>
-      
-      <Card 
+
+      <Card
         className="shadow mb-4"
         bodyStyle={{ padding: "16px" }}
         style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
@@ -1898,7 +2313,7 @@ export function AppointmentManagementForAdmin() {
         </Row>
 
         <Divider style={{ margin: "16px 0" }} />
-        
+
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Input.Search
@@ -1962,7 +2377,7 @@ export function AppointmentManagementForAdmin() {
         </div>
       </Card>
 
-      <Card 
+      <Card
         className="shadow mb-4"
         bodyStyle={{ padding: "16px" }}
         style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
@@ -2086,8 +2501,8 @@ export function AppointmentManagementForAdmin() {
         visible={scheduleModalVisible}
         onClose={() => {
           setScheduleModalVisible(false);
-          handleRefresh();
         }}
+        onSuccessfulSchedule={handleRefresh} // Only refresh when an appointment is successfully scheduled
       />
 
       <UpdateAppointmentModal
@@ -2113,8 +2528,8 @@ export function AppointmentManagementForAdmin() {
           setResetStatusUserId(null);
         }}
         footer={[
-          <Button 
-            key="cancel" 
+          <Button
+            key="cancel"
             onClick={() => {
               setResetUserModalVisible(false);
               setResetStatusUserId(null);
@@ -2129,13 +2544,16 @@ export function AppointmentManagementForAdmin() {
             loading={!!actionLoading}
           >
             Reset Status
-          </Button>
+          </Button>,
         ]}
         width={500}
         destroyOnClose
       >
         <div style={{ padding: "16px 0" }}>
-          <Text>Please select the User Email to reset their appointment status to Normal:</Text>
+          <Text>
+            Please select the User Email to reset their appointment status to
+            Normal:
+          </Text>
           <div style={{ margin: "16px 0" }}>
             <Select
               showSearch
@@ -2147,21 +2565,31 @@ export function AppointmentManagementForAdmin() {
               style={{ width: "100%" }}
               notFoundContent={loadingUsers ? <Spin size="small" /> : null}
               filterOption={(input, option) =>
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
               }
               options={userOptions}
               loading={loadingUsers}
               allowClear
             />
             {loadingUsers && (
-              <div style={{ marginTop: 8, color: '#1890ff', display: 'flex', alignItems: 'center' }}>
+              <div
+                style={{
+                  marginTop: 8,
+                  color: "#1890ff",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
                 <LoadingOutlined style={{ marginRight: 8 }} />
                 <Text type="secondary">Loading users...</Text>
               </div>
             )}
           </div>
           <Text type="secondary">
-            Resetting the status will allow the user to schedule appointments again if they were previously blocked.
+            Resetting the status will allow the user to schedule appointments
+            again if they were previously blocked.
           </Text>
         </div>
       </Modal>
