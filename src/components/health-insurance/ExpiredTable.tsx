@@ -83,9 +83,7 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
         messageApi.success("Health insurance deleted successfully");
         refreshData();
       } else {
-        messageApi.error(
-          result.message || "Failed to delete health insurance"
-        );
+        messageApi.error(result.message || "Failed to delete health insurance");
       }
     } catch (error) {
       messageApi.error("Failed to delete health insurance");
@@ -469,14 +467,6 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
       align: "center" as const,
       render: (record: HealthInsuranceResponseDTO) => (
         <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-          <Tooltip title="View Detail">
-            <Button
-              type="text"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => handleViewDetail(record.id)}
-            />
-          </Tooltip>
           <Popconfirm
             title="Are you sure you want to delete this record?"
             onConfirm={() => handleSoftDelete(record.id)}
@@ -484,12 +474,7 @@ const ExpiredTable: React.FC<ExpiredTableProps> = ({
             cancelText="No"
             icon={<QuestionCircleOutlined style={{ color: "red" }} />}
           >
-            <Button
-              type="text"
-              danger
-              size="small"
-              icon={<DeleteOutlined />}
-            />
+            <Button type="text" danger size="small" icon={<DeleteOutlined />} />
           </Popconfirm>
         </div>
       ),

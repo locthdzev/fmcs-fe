@@ -217,9 +217,19 @@ export const getDrugById = async (id: string) => {
 
 export const getDrugsByDrugGroupId = async (drugGroupId: string) => {
   try {
+    console.log(`Calling API: GET /drug-management/drugs/by-group/${drugGroupId}`);
     const response = await api.get(`/drug-management/drugs/by-group/${drugGroupId}`);
-    return response.data.data;
+    console.log("Response status:", response.status);
+    console.log("Response data preview:", JSON.stringify(response.data).substring(0, 100) + "...");
+    
+    // If API returns an empty array but still a successful response
+    if (response.data && response.data.isSuccess && Array.isArray(response.data.data) && response.data.data.length === 0) {
+      console.log("API returned successful response with empty drugs array");
+    }
+    
+    return response.data;
   } catch (error) {
+    console.error("Error fetching drugs by drug group ID:", error);
     throw error;
   }
 };

@@ -124,6 +124,24 @@ export const getCurrentUserSchedules = async (
   }
 };
 
+export const getStaffSchedulesByDateRange = async (
+  staffId: string,
+  startDate: string,
+  endDate: string
+) => {
+  try {
+    const response = await api.get(`/schedule-management/schedules/staff/${staffId}`, {
+      params: {
+        startDate,
+        endDate,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const createSchedule = async (scheduleData: ScheduleCreateRequest) => {
   try {
     const response = await api.post(

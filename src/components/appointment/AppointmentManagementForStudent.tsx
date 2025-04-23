@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useContext } from "react";
+import React, { useState, useEffect, useCallback, useContext, useRef } from "react";
 import {
   Button,
   Input,
@@ -15,8 +15,8 @@ import {
   Tooltip,
   Spin,
   Modal,
+  message
 } from "antd";
-import { toast } from "react-toastify";
 import dayjs, { Dayjs } from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import Cookies from "js-cookie";
@@ -52,6 +52,7 @@ dayjs.extend(isBetween);
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
+const { Title, Text } = Typography;
 
 const formatDateTime = (datetime: string | undefined) => {
   if (!datetime) return "";
@@ -110,6 +111,7 @@ const getStatusTooltip = (status: string | undefined) => {
 };
 
 export function AppointmentManagementForStudent() {
+  const [messageApi, contextHolder] = message.useMessage();
   const router = useRouter();
   const { user } = useContext(UserContext)!;
   const [appointments, setAppointments] = useState<AppointmentResponseDTO[]>(
@@ -136,6 +138,7 @@ export function AppointmentManagementForStudent() {
   const [direction, setDirection] = useState<"horizontal" | "vertical">(
     "horizontal"
   );
+  const justCancelledRef = useRef<Set<string>>(new Set());
 
   const token = Cookies.get("token");
 
@@ -213,18 +216,22 @@ export function AppointmentManagementForStudent() {
             if (isMounted) {
               fetchAppointments();
               if (data.eventType === "SlotLocked") {
-                // toast.success("New appointment scheduled!");
+                messageApi.success("New appointment scheduled!");
               } else if (data.eventType === "Confirmed") {
-                // toast.success("Appointment confirmed!");
+                messageApi.success("Appointment confirmed!");
               } else if (data.eventType === "Released") {
-                // toast.success("Appointment cancelled!");
+                if (!justCancelledRef.current.has(data.appointmentId)) {
+                  messageApi.success("Appointment cancelled!");
+                } else {
+                  justCancelledRef.current.delete(data.appointmentId);
+                }
               }
             }
           },
-          (error) => {
+          (error: Error) => {
             console.error("SignalR error:", error);
             if (isMounted) {
-              // toast.error("Real-time updates failed. Please refresh the page.");
+              messageApi.error("Real-time updates failed. Please refresh the page.");
             }
           }
         );
@@ -240,7 +247,7 @@ export function AppointmentManagementForStudent() {
         connection = null;
       }
     };
-  }, [fetchAppointments, token, router, user?.userId]);
+  }, [fetchAppointments, token, router, user?.userId, messageApi]);
 
   const handleCancel = async (
     id: string,
@@ -251,18 +258,24 @@ export function AppointmentManagementForStudent() {
       if (!token) {
         throw new Error("Authentication token is missing. Please log in.");
       }
+      justCancelledRef.current.add(id);
       const response = await cancelAppointment(id, token);
       if (response.isSuccess) {
-        toast.success("Appointment cancelled!");
+        messageApi.success("Appointment cancelled!");
         setIsDetailsModalVisible(false);
         setSelectedAppointment(null);
         fetchAppointments();
+        setTimeout(() => {
+          justCancelledRef.current.delete(id);
+        }, 5000);
       } else {
-        toast.error(response.message || "Failed to cancel appointment.");
+        justCancelledRef.current.delete(id);
+        messageApi.error(response.message || "Failed to cancel appointment.");
       }
     } catch (error: any) {
+      justCancelledRef.current.delete(id);
       console.error("Error cancelling appointment:", error);
-      toast.error(error.message || "Unable to cancel appointment.");
+      messageApi.error(error.message || "Unable to cancel appointment.");
       if (error.message?.includes("token")) {
         router.push("/");
       }
@@ -318,12 +331,12 @@ export function AppointmentManagementForStudent() {
       await Promise.all(
         selectedRowKeys.map((id) => cancelAppointment(id as string, token))
       );
-      toast.success("Selected appointments cancelled successfully!");
+      messageApi.success("Selected appointments cancelled successfully!");
       setSelectedRowKeys([]);
       fetchAppointments();
     } catch (error: any) {
       console.error("Error bulk cancelling appointments:", error);
-      toast.error(error.message || "Unable to cancel selected appointments.");
+      messageApi.error(error.message || "Unable to cancel selected appointments.");
       if (error.message?.includes("token")) {
         router.push("/");
       }
@@ -359,7 +372,7 @@ export function AppointmentManagementForStudent() {
     link.download = "appointments.csv";
     link.click();
     window.URL.revokeObjectURL(url);
-    toast.success("Appointments exported successfully!");
+    messageApi.success("Appointments exported successfully!");
   };
 
   const topContent = (
@@ -508,6 +521,7 @@ export function AppointmentManagementForStudent() {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
+      {contextHolder}
       <style global jsx>{`
         .appointment-block {
           transition: all 0.3s ease;
@@ -954,7 +968,11 @@ export function AppointmentManagementForStudent() {
       </Card>
 
       <Modal
-        title="Appointment Details"
+        title={
+          <Title level={4} style={{ margin: 0 }}>
+            Appointment Details
+          </Title>
+        }
         open={isDetailsModalVisible}
         onCancel={() => {
           setIsDetailsModalVisible(false);

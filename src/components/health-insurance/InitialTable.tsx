@@ -1,5 +1,15 @@
 import React, { useState } from "react";
-import { Table, Button, Space, Tooltip, Modal, message, Card, Dropdown, Popconfirm } from "antd";
+import {
+  Table,
+  Button,
+  Space,
+  Tooltip,
+  Modal,
+  message,
+  Card,
+  Dropdown,
+  Popconfirm,
+} from "antd";
 import {
   EditOutlined,
   DeleteOutlined,
@@ -44,7 +54,8 @@ const InitialTable: React.FC<InitialTableProps> = ({
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [selectedInsurance, setSelectedInsurance] = useState<HealthInsuranceResponseDTO | null>(null);
+  const [selectedInsurance, setSelectedInsurance] =
+    useState<HealthInsuranceResponseDTO | null>(null);
 
   const handleEditInsurance = async (id: string) => {
     try {
@@ -101,7 +112,9 @@ const InitialTable: React.FC<InitialTableProps> = ({
     return (
       <div style={{ display: "flex", flexDirection: "column" }}>
         <span>{user.userName || ""}</span>
-        <span style={{ fontSize: "12px", color: "#888" }}>{user.email || ""}</span>
+        <span style={{ fontSize: "12px", color: "#888" }}>
+          {user.email || ""}
+        </span>
       </div>
     );
   };
@@ -254,12 +267,12 @@ const InitialTable: React.FC<InitialTableProps> = ({
               ],
             }}
           >
-            <Button type="text" icon={<MoreOutlined />} />
+            <Button icon={<MoreOutlined />} size="small" />
           </Dropdown>
         </div>
       ),
     },
-  ].filter(column => column.key === "actions" || !column.hidden);
+  ].filter((column) => column.key === "actions" || !column.hidden);
 
   return (
     <>
@@ -283,7 +296,7 @@ const InitialTable: React.FC<InitialTableProps> = ({
             bordered
           />
         </div>
-        
+
         {editModalVisible && selectedInsurance && (
           <HealthInsuranceEditModal
             visible={editModalVisible}

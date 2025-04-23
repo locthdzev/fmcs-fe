@@ -17,6 +17,7 @@ import {
   Space,
   Avatar,
   Checkbox,
+  Alert,
 } from "antd";
 import {
   HealthInsuranceResponseDTO,
@@ -35,6 +36,7 @@ import {
   UserSwitchOutlined,
   FormOutlined,
   MailOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import dayjs from "dayjs";
@@ -61,6 +63,7 @@ export default function HealthInsuranceEditModal({
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [messageApi, contextHolder] = message.useMessage();
   const [hasInsurance, setHasInsurance] = useState(true);
+  const [imageRequired, setImageRequired] = useState(false);
 
   React.useEffect(() => {
     if (visible && insurance) {
@@ -70,6 +73,7 @@ export default function HealthInsuranceEditModal({
           insurance.status !== "NoInsurance");
 
       setHasInsurance(hasInsuranceValue);
+      setImageRequired(hasInsuranceValue && !insurance.imageUrl);
 
       form.setFieldsValue({
         hasInsurance: hasInsuranceValue,
@@ -106,7 +110,24 @@ export default function HealthInsuranceEditModal({
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
+      
+      // Kiểm tra điều kiện về hình ảnh: nếu có bảo hiểm, không có ảnh hiện tại và không có file ảnh mới
+      if (values.hasInsurance && !insurance?.imageUrl && !imageFile) {
+        messageApi.error("Image is required when you have health insurance and there is no existing image.");
+        console.log("Validation failed - Image required but not provided");
+        console.log("Insurance has imageUrl:", !!insurance?.imageUrl);
+        console.log("New image file:", imageFile);
+        return;
+      }
+      
       setLoading(true);
+      
+      console.log("Insurance before submit:", {
+        id: insurance?.id,
+        hasImageUrl: !!insurance?.imageUrl,
+        status: insurance?.status
+      });
+      console.log("Image file to be submitted:", imageFile);
 
       // Ensure all fields are included and properly formatted
       const formattedValues = {
@@ -176,19 +197,32 @@ export default function HealthInsuranceEditModal({
   };
 
   const handleUploadChange = (info: any) => {
+    console.log("Upload change triggered", info);
     let newFileList = [...info.fileList];
     newFileList = newFileList.slice(-1);
     setFileList(newFileList);
 
-    if (info.file.originFileObj) {
+    if (info.file && info.file.originFileObj) {
+      console.log("Setting image file:", info.file.originFileObj);
       setImageFile(info.file.originFileObj);
       form.setFieldsValue({ imageChanged: true });
-      console.log("Image changed, new file:", info.file.originFileObj);
+    } else {
+      console.log("No originFileObj found in upload info", info.file);
     }
   };
 
+  const beforeUpload = (file: any) => {
+    console.log("Before upload called with file:", file);
+    // Đặt file trực tiếp vào state
+    setImageFile(file);
+    return false; // Prevent auto upload
+  };
+
   const handleHasInsuranceChange = (e: any) => {
-    setHasInsurance(e.target.checked);
+    const checked = e.target.checked;
+    setHasInsurance(checked);
+    // Update imageRequired based on whether user has insurance and existing image
+    setImageRequired(checked && !insurance?.imageUrl);
   };
 
   if (!insurance) return null;
@@ -278,6 +312,18 @@ export default function HealthInsuranceEditModal({
         <Form.Item name="imageChanged" hidden>
           <Input />
         </Form.Item>
+
+        {/* Hiển thị cảnh báo nếu ảnh là bắt buộc */}
+        {imageRequired && (
+          <Alert
+            message="Insurance Card Image Required"
+            description="You must upload an image of your insurance card. This is required for records without an existing image."
+            type="warning"
+            showIcon
+            icon={<WarningOutlined />}
+            style={{ marginBottom: "16px" }}
+          />
+        )}
 
         <Form.Item
           name="hasInsurance"
@@ -495,20 +541,21 @@ export default function HealthInsuranceEditModal({
                   label={
                     <Space>
                       <FileImageOutlined />
-                      Insurance Image
+                      Insurance Image {imageRequired && <span style={{ color: 'red' }}>*</span>}
                     </Space>
                   }
+                  extra={imageRequired && <Typography.Text type="danger">An insurance card image is required</Typography.Text>}
                 >
                   <Upload
                     accept="image/*"
                     fileList={fileList}
                     onChange={handleUploadChange}
-                    beforeUpload={() => false}
+                    beforeUpload={beforeUpload}
                     maxCount={1}
                     className="upload-list-inline"
                   >
                     <Button icon={<UploadOutlined />} block>
-                      Click to Upload New Image
+                      {imageRequired ? "Upload Image (Required)" : "Click to Upload New Image"}
                     </Button>
                   </Upload>
                 </Form.Item>
