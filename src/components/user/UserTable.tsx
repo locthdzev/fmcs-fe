@@ -933,19 +933,33 @@ const UserTable: React.FC<UserTableProps> = ({
                     <Menu.Item
                       key="deactivate"
                       icon={<StopOutlined />}
-                      onClick={() => onDeactivate(record.id)}
                       danger
                     >
-                      Deactivate
+                      <Popconfirm
+                        title="Deactivate User"
+                        description="Are you sure you want to deactivate this user?"
+                        onConfirm={() => onDeactivate(record.id)}
+                        okText="Yes"
+                        cancelText="No"
+                      >
+                        <span>Deactivate</span>
+                      </Popconfirm>
                     </Menu.Item>
                   ) : (
                     <Menu.Item
                       key="activate"
                       icon={<CheckCircleOutlined />}
-                      onClick={() => onActivate(record.id)}
                       style={{ color: "#52c41a" }}
                     >
-                      Activate
+                      <Popconfirm
+                        title="Activate User"
+                        description="Are you sure you want to activate this user?"
+                        onConfirm={() => onActivate(record.id)}
+                        okText="Yes"
+                        cancelText="No"
+                      >
+                        <span>Activate</span>
+                      </Popconfirm>
                     </Menu.Item>
                   )}
                 </Menu>

@@ -179,13 +179,12 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
 
   // Thêm useEffect để kiểm tra quyền của người dùng hiện tại
   useEffect(() => {
-    // Khi user và userContext đã được load
-    if (user && userContext?.user) {
+    // Khi userContext đã được load, thiết lập isRegularUser ngay lập tức
+    if (userContext?.user) {
       const currentUserRoles = userContext.user.role || [];
-      const targetUserRoles = user.roles || [];
-
-      // Kiểm tra xem người dùng hiện tại có phải là User không
-      const isCurrentUserJustUser = currentUserRoles.includes("User") && currentUserRoles.length === 1;
+      // Kiểm tra xem người dùng hiện tại có phải là User không - còn phụ thuộc vào cấu trúc mảng vai trò 
+      // Ví dụ ["User"] hoặc ["User", "OtherRole"] - thay đổi điều kiện kiểm tra
+      const isCurrentUserJustUser = currentUserRoles.includes("User");
       setIsRegularUser(isCurrentUserJustUser);
       
       // Chỉ Admin và Manager mới có quyền edit và quản lý roles
@@ -195,9 +194,30 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
       // Đánh dấu người dùng hiện tại có phải là Admin hoặc Manager không
       setIsAuthorizedUser(isCurrentUserAdmin || isCurrentUserManager);
       
+      console.log('UserContext roles:', currentUserRoles);
+      console.log('Is regular user (has User role):', isCurrentUserJustUser);
+    }
+  }, [userContext?.user]);
+
+  // Debug thông tin sau mỗi render
+  useEffect(() => {
+    console.log('Current state - isRegularUser:', isRegularUser);
+    console.log('Current state - isAuthorizedUser:', isAuthorizedUser);
+  }, [isRegularUser, isAuthorizedUser]);
+
+  // Thêm useEffect để kiểm tra quyền của người dùng hiện tại khi có thông tin user
+  useEffect(() => {
+    // Khi user và userContext đã được load
+    if (user && userContext?.user) {
+      const currentUserRoles = userContext.user.role || [];
+      const targetUserRoles = user.roles || [];
+      
       // Kiểm tra xem người dùng đang xem có phải là Admin hoặc Manager không
       const isTargetUserAdmin = targetUserRoles.includes("Admin");
       const isTargetUserManager = targetUserRoles.includes("Manager");
+
+      const isCurrentUserAdmin = currentUserRoles.includes("Admin");
+      const isCurrentUserManager = currentUserRoles.includes("Manager");
 
       // Admin có toàn quyền
       if (isCurrentUserAdmin) {
@@ -901,26 +921,39 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
 
   // Hàm render thông tin người dùng với nội dung giới hạn cho User
   const renderUserInformation = () => {
-    // Kiểm tra người dùng hiện tại có vai trò User hay không
-    const currentUserRoles = userContext?.user?.role || [];
-    const isCurrentUserUser = currentUserRoles.includes("User") && currentUserRoles.length === 1;
-    
-    // Kiểm tra xem có phải đang xem chính mình hay không
-    const isViewingSelf = userContext?.user?.userId === user?.id;
-    
-    // Nếu là user thường và không phải đang xem chính mình, hiển thị thông tin giới hạn
-    if (isCurrentUserUser && !isViewingSelf) {
+    // Sử dụng biến isRegularUser đã được thiết lập ở cấp component
+    if (isRegularUser) {
       return (
         <Form form={form} layout="vertical">
           <Row gutter={[24, 16]}>
             <Col xs={24} md={6}>
               <div className="flex flex-col items-center mb-4">
-                {/* Hiển thị ảnh đại diện hoặc avatar */}
-                <Avatar
-                  icon={<UserOutlined />}
-                  style={{ backgroundColor: "#1890ff" }}
-                  size={200}
-                />
+                {/* Hiển thị ảnh thật khi người dùng được xem không phải User và có ảnh */}
+                {!isPrimaryRoleUser(user?.roles) && user?.imageURL ? (
+                  <div className="relative" style={{ width: 200, height: 200 }}>
+                    <Image
+                      src={user.imageURL}
+                      alt={user.fullName}
+                      width={200}
+                      height={200}
+                      style={{
+                        objectFit: "cover",
+                        borderRadius: "50%",
+                        width: "100%",
+                        height: "100%",
+                      }}
+                      preview={{
+                        mask: <EyeOutlined />,
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <Avatar
+                    icon={<UserOutlined />}
+                    style={{ backgroundColor: "#1890ff" }}
+                    size={200}
+                  />
+                )}
               </div>
             </Col>
 
@@ -980,7 +1013,7 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
       );
     }
     
-    // Nếu không phải User hoặc đang xem chính mình, hiển thị thông tin đầy đủ
+    // Nếu không phải User, hiển thị thông tin đầy đủ
     return (
       <Form form={form} layout="vertical">
         <Row gutter={[24, 16]}>
@@ -1186,6 +1219,11 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
     );
   };
 
+  // Thêm useEffect để log khi component re-render với giá trị isRegularUser mới
+  useEffect(() => {
+    console.log('Rendering card with isRegularUser:', isRegularUser);
+  }, [isRegularUser]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -1239,6 +1277,134 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
     );
   }
 
+  // Chế độ giao diện giới hạn cho người dùng có vai trò User
+  if (isRegularUser) {
+    return (
+      <div className="p-4">
+        {contextHolder}
+        <style>{fieldStyles}</style>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={() => router.push("/user")}
+              style={{ marginRight: "8px" }}
+            >
+              Back
+            </Button>
+            <UserOutlined style={{ fontSize: 24 }} />
+            <h3 className="text-xl font-bold">User Details</h3>
+          </div>
+        </div>
+
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={24}>
+            <Card 
+              title={<Title level={5}>User Information</Title>}
+              extra={
+                <Space>
+                  {user?.roles?.map((role) => (
+                    <Tag key={role} color={getRoleColor(role)}>
+                      {role}
+                    </Tag>
+                  ))}
+                </Space>
+              }
+            >
+              <Form form={form} layout="vertical">
+                <Row gutter={[24, 16]}>
+                  <Col xs={24} md={6}>
+                    <div className="flex flex-col items-center mb-4">
+                      {/* Hiển thị ảnh thật khi người dùng được xem không phải User và có ảnh */}
+                      {!isPrimaryRoleUser(user?.roles) && user?.imageURL ? (
+                        <div className="relative" style={{ width: 200, height: 200 }}>
+                          <Image
+                            src={user.imageURL}
+                            alt={user.fullName}
+                            width={200}
+                            height={200}
+                            style={{
+                              objectFit: "cover",
+                              borderRadius: "50%",
+                              width: "100%",
+                              height: "100%",
+                            }}
+                            preview={{
+                              mask: <EyeOutlined />,
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <Avatar
+                          icon={<UserOutlined />}
+                          style={{ backgroundColor: "#1890ff" }}
+                          size={200}
+                        />
+                      )}
+                    </div>
+                  </Col>
+
+                  <Col xs={24} md={18}>
+                    <Row gutter={[16, 16]}>
+                      {/* Full Name - Hiển thị cho tất cả người dùng */}
+                      <Col xs={24} sm={12}>
+                        <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                          <span className="text-xs font-medium text-gray-700">
+                            Full Name
+                          </span>
+                          <div className="mt-1 w-full p-0">
+                            {user?.fullName || "-"}
+                          </div>
+                        </div>
+                      </Col>
+                      
+                      {/* Username - Hiển thị cho tất cả người dùng */}
+                      <Col xs={24} sm={12}>
+                        <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                          <span className="text-xs font-medium text-gray-700">
+                            Username
+                          </span>
+                          <div className="mt-1 w-full p-0">
+                            {user?.userName || "-"}
+                          </div>
+                        </div>
+                      </Col>
+                      
+                      {/* Email - Hiển thị cho tất cả người dùng */}
+                      <Col xs={24} sm={12}>
+                        <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                          <span className="text-xs font-medium text-gray-700">
+                            Email
+                          </span>
+                          <div className="mt-1 w-full p-0">
+                            {user?.email || "-"}
+                          </div>
+                        </div>
+                      </Col>
+                      
+                      {/* Phone - Hiển thị cho tất cả người dùng */}
+                      <Col xs={24} sm={12}>
+                        <div className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+                          <span className="text-xs font-medium text-gray-700">
+                            Phone
+                          </span>
+                          <div className="mt-1 w-full p-0">
+                            {user?.phone || "-"}
+                          </div>
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
+              </Form>
+            </Card>
+          </Col>
+        </Row>
+      </div>
+    );
+  }
+
+  // Giao diện đầy đủ cho Admin, Manager và các vai trò khác
   return (
     <div className="p-4">
       {contextHolder}
@@ -1263,18 +1429,18 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
           <Card
             title={<Title level={5}>User Information</Title>}
             extra={
-              <Space>
-                {!isRegularUser && user?.roles?.map((role) => (
-                  <Tag key={role} color={getRoleColor(role)}>
-                    {role}
-                  </Tag>
-                ))}
-                {!isRegularUser && (
+              !isRegularUser ? (
+                <Space>
+                  {user?.roles?.map((role) => (
+                    <Tag key={role} color={getRoleColor(role)}>
+                      {role}
+                    </Tag>
+                  ))}
                   <Tag color={getStatusColor(user?.status)}>
                     {user?.status ? user.status.toUpperCase() : ""}
                   </Tag>
-                )}
-              </Space>
+                </Space>
+              ) : null
             }
           >
             {renderUserInformation()}
