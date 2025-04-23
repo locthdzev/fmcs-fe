@@ -19,6 +19,8 @@ import {
   Avatar,
   DatePicker,
   Radio,
+  Table,
+  Tooltip,
 } from "antd";
 import dayjs from "dayjs";
 import {
@@ -29,6 +31,9 @@ import {
   activateUsers,
   deactivateUsers,
   UserResponseDTO,
+  assignRoleToUser,
+  unassignRoleFromUser,
+  getAllRoles,
 } from "@/api/user";
 import { UserContext } from "@/context/UserContext";
 import {
@@ -41,6 +46,10 @@ import {
   UserOutlined,
   CameraOutlined,
   EyeOutlined,
+  SafetyOutlined,
+  ReloadOutlined,
+  PlusOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import type { UploadFile, UploadProps } from "antd/es/upload/interface";
@@ -48,9 +57,18 @@ import ImgCrop from "antd-img-crop";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+const { Option } = Select;
 
 interface UserDetailProps {
   id: string;
+}
+
+// Thêm interface cho role
+interface Role {
+  id: string;
+  roleName: string;
+  description?: string;
+  status?: string;
 }
 
 export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
@@ -75,6 +93,16 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
     address: "",
     phone: "",
   });
+  
+  // Role management states
+  const [allRoles, setAllRoles] = useState<Role[]>([]);
+  const [roleLoading, setRoleLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [roleActionLoading, setRoleActionLoading] = useState(false);
+
+  // Thêm state để theo dõi quyền hạn của người dùng hiện tại
+  const [hasEditPermission, setHasEditPermission] = useState<boolean>(true);
+  const [hasRoleManagePermission, setHasRoleManagePermission] = useState<boolean>(true);
 
   // Custom styles for the fields
   const fieldStyles = `
@@ -88,20 +116,37 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
     .user-detail-select .ant-select-arrow {
       right: 0 !important;
     }
+    
+    .role-table .ant-table-thead > tr > th {
+      background-color: #f0f5ff;
+      font-weight: 600;
+    }
+    
+    .role-table .ant-tag {
+      font-weight: 500;
+    }
   `;
 
   useEffect(() => {
     if (id) {
       fetchUserDetails();
+      fetchAllRoles();
     }
   }, [id]);
 
   useEffect(() => {
     // If the edit query parameter is present, set editing mode to true
     if (edit === "true") {
-      setIsEditing(true);
+      // Chỉ cho phép chỉnh sửa nếu có quyền
+      if (hasEditPermission) {
+        setIsEditing(true);
+      } else {
+        // Nếu không có quyền, chuyển hướng về URL bình thường
+        router.replace(`/user/${id}`, undefined, { shallow: true });
+        messageApi.error("You don't have permission to edit this user");
+      }
     }
-  }, [edit]);
+  }, [edit, hasEditPermission, id, router, messageApi]);
 
   // Update formState when the user data is loaded
   useEffect(() => {
@@ -120,6 +165,36 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
       form.setFieldsValue(newState);
     }
   }, [user, form]);
+
+  // Thêm log để kiểm tra dữ liệu vai trò
+  useEffect(() => {
+    console.log("All roles:", allRoles);
+  }, [allRoles]);
+
+  // Thêm useEffect để kiểm tra quyền của người dùng hiện tại
+  useEffect(() => {
+    // Khi user và userContext đã được load
+    if (user && userContext?.user) {
+      const currentUserRoles = userContext.user.role || [];
+      const targetUserRoles = user.roles || [];
+
+      // Kiểm tra nếu người dùng hiện tại là Manager
+      const isCurrentUserManager = currentUserRoles.includes("Manager");
+      
+      // Kiểm tra xem người dùng đang xem có phải là Admin hoặc Manager không
+      const isTargetUserAdmin = targetUserRoles.includes("Admin");
+      const isTargetUserManager = targetUserRoles.includes("Manager");
+
+      // Manager không được phép edit hoặc thay đổi trạng thái của Admin hoặc Manager khác
+      if (isCurrentUserManager && (isTargetUserAdmin || isTargetUserManager)) {
+        setHasEditPermission(false);
+        setHasRoleManagePermission(false);
+      } else {
+        setHasEditPermission(true);
+        setHasRoleManagePermission(true);
+      }
+    }
+  }, [user, userContext?.user]);
 
   const fetchUserDetails = async () => {
     setLoading(true);
@@ -150,6 +225,20 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
       setUser(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllRoles = async () => {
+    try {
+      setRoleLoading(true);
+      const roles = await getAllRoles();
+      console.log("Roles fetched from API:", roles);
+      setAllRoles(roles);
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      messageApi.error("Failed to fetch roles");
+    } finally {
+      setRoleLoading(false);
     }
   };
 
@@ -193,6 +282,14 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
 
   const handleUpdate = async (values: any) => {
     if (!user) return;
+    
+    // Kiểm tra quyền trước khi thực hiện cập nhật
+    if (!hasEditPermission) {
+      messageApi.error("You don't have permission to update this user");
+      setIsEditing(false);
+      router.replace(`/user/${id}`, undefined, { shallow: true });
+      return;
+    }
 
     setSubmitLoading(true);
 
@@ -240,6 +337,12 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
 
   const handleActivate = async () => {
     if (!user) return;
+    
+    // Kiểm tra quyền trước khi kích hoạt
+    if (!hasEditPermission) {
+      messageApi.error("You don't have permission to activate this user");
+      return;
+    }
 
     setStatusChangeLoading(true);
     try {
@@ -256,6 +359,12 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
 
   const handleDeactivate = async () => {
     if (!user) return;
+    
+    // Kiểm tra quyền trước khi vô hiệu hóa
+    if (!hasEditPermission) {
+      messageApi.error("You don't have permission to deactivate this user");
+      return;
+    }
 
     setStatusChangeLoading(true);
     try {
@@ -392,51 +501,59 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
 
     return (
       <Space>
-        {user.status === "Active" ? (
-          <Popconfirm
-            title="Deactivate User"
-            description="Are you sure you want to deactivate this user?"
-            onConfirm={handleDeactivate}
-            okText="Yes"
-            cancelText="No"
-          >
+        {hasEditPermission ? (
+          <>
+            {user.status === "Active" ? (
+              <Popconfirm
+                title="Deactivate User"
+                description="Are you sure you want to deactivate this user?"
+                onConfirm={handleDeactivate}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Button
+                  danger
+                  icon={<StopOutlined />}
+                  loading={statusChangeLoading}
+                >
+                  Deactivate
+                </Button>
+              </Popconfirm>
+            ) : (
+              <Popconfirm
+                title="Activate User"
+                description="Are you sure you want to activate this user?"
+                onConfirm={handleActivate}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Button
+                  icon={<CheckCircleOutlined />}
+                  style={{ color: "#52c41a", borderColor: "#52c41a" }}
+                  loading={statusChangeLoading}
+                >
+                  Activate
+                </Button>
+              </Popconfirm>
+            )}
             <Button
-              danger
-              icon={<StopOutlined />}
-              loading={statusChangeLoading}
+              type="primary"
+              icon={<FormOutlined />}
+              onClick={() => {
+                setIsEditing(true);
+                router.replace(`/user/${id}?edit=true`, undefined, {
+                  shallow: true,
+                });
+              }}
             >
-              Deactivate
+              Edit
             </Button>
-          </Popconfirm>
+          </>
         ) : (
-          <Popconfirm
-            title="Activate User"
-            description="Are you sure you want to activate this user?"
-            onConfirm={handleActivate}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button
-              icon={<CheckCircleOutlined />}
-              style={{ color: "#52c41a", borderColor: "#52c41a" }}
-              loading={statusChangeLoading}
-            >
-              Activate
-            </Button>
-          </Popconfirm>
+          <Text type="secondary" italic>
+            <InfoCircleOutlined /> You don't have permission to edit this user
+          </Text>
         )}
-        <Button
-          type="primary"
-          icon={<FormOutlined />}
-          onClick={() => {
-            setIsEditing(true);
-            router.replace(`/user/${id}?edit=true`, undefined, {
-              shallow: true,
-            });
-          }}
-        >
-          Edit
-        </Button>
       </Space>
     );
   };
@@ -545,6 +662,209 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
     }
   };
 
+  const handleUpdateRole = async () => {
+    if (!user || !selectedRole || !hasRoleManagePermission) return;
+    
+    try {
+      setRoleActionLoading(true);
+      // Tìm role id dựa trên roleName đã chọn
+      const roleToAssign = allRoles.find(role => role.roleName === selectedRole);
+      if (!roleToAssign) {
+        messageApi.error("Role not found");
+        setRoleActionLoading(false);
+        return;
+      }
+      
+      // Kiểm tra quyền: Manager không được gán vai trò Admin hoặc Manager
+      const currentUserRoles = userContext?.user?.role || [];
+      const isCurrentUserManager = currentUserRoles.includes("Manager");
+      
+      if (isCurrentUserManager && (roleToAssign.roleName === "Admin" || roleToAssign.roleName === "Manager")) {
+        messageApi.error("You don't have permission to assign Admin or Manager roles");
+        setRoleActionLoading(false);
+        return;
+      }
+      
+      // Lấy vai trò hiện tại nếu có
+      const currentRole = user.roles && user.roles.length > 0 ? user.roles[0] : null;
+      const currentRoleData = currentRole ? allRoles.find(role => role.roleName === currentRole) : null;
+      
+      // Kiểm tra thêm một lần nữa, không cho phép Manager chuyển người dùng từ Admin/Manager sang các vai trò khác
+      if (isCurrentUserManager && (currentRole === "Admin" || currentRole === "Manager")) {
+        messageApi.error("You don't have permission to change roles for Admin or Manager accounts");
+        setRoleActionLoading(false);
+        return;
+      }
+      
+      // Nếu có vai trò hiện tại, xóa vai trò cũ trước
+      if (currentRoleData) {
+        await unassignRoleFromUser(user.id, currentRoleData.id);
+      }
+      
+      // Gán vai trò mới
+      console.log("Assigning role:", roleToAssign.roleName, "with ID:", roleToAssign.id);
+      await assignRoleToUser(user.id, roleToAssign.id);
+      messageApi.success(`User role updated to '${roleToAssign.roleName}'`);
+      fetchUserDetails(); // Refresh user data to get updated roles
+      setSelectedRole(""); // Reset selection
+    } catch (error) {
+      console.error("Error updating role:", error);
+      messageApi.error("Failed to update role");
+    } finally {
+      setRoleActionLoading(false);
+    }
+  };
+  
+  const renderRoleManagement = () => {
+    if (!user) return null;
+    
+    // Lấy tất cả vai trò có thể gán, lọc theo quyền
+    const currentUserRoles = userContext?.user?.role || [];
+    const isCurrentUserManager = currentUserRoles.includes("Manager");
+    
+    // Nếu người dùng hiện tại là Manager, không hiển thị Admin và Manager trong danh sách vai trò
+    let availableRoles = allRoles;
+    if (isCurrentUserManager) {
+      availableRoles = allRoles.filter(role => 
+        role.roleName !== "Admin" && role.roleName !== "Manager"
+      );
+    }
+    
+    // Lọc những vai trò mà người dùng đã có
+    availableRoles = availableRoles.filter(
+      (role) => !user.roles?.includes(role.roleName)
+    );
+    
+    // Lấy vai trò hiện tại của người dùng
+    const currentRole = user.roles && user.roles.length > 0 ? user.roles[0] : null;
+    const currentRoleData = currentRole ? allRoles.find(role => role.roleName === currentRole) : null;
+    
+    // Dữ liệu vai trò hiện tại để hiển thị
+    const userRoleData = currentRoleData ? {
+      key: currentRoleData.id,
+      name: currentRoleData.roleName,
+      description: currentRoleData.description || "-",
+    } : null;
+    
+    const columns = [
+      {
+        title: "Current Role",
+        dataIndex: "name",
+        key: "name",
+        render: (text: string) => (
+          <Tag color={getRoleColor(text)}>{text}</Tag>
+        ),
+      },
+      {
+        title: "Description",
+        dataIndex: "description",
+        key: "description",
+      }
+    ];
+    
+    return (
+      <Card 
+        title={
+          <div className="flex items-center gap-2">
+            <SafetyOutlined style={{ fontSize: 18 }} />
+            <Title level={5} style={{ margin: 0 }}>Role Management</Title>
+          </div>
+        }
+        className="mt-4"
+        extra={
+          <Tooltip title="Refresh roles">
+            <Button 
+              icon={<ReloadOutlined />} 
+              onClick={() => {
+                fetchUserDetails();
+                fetchAllRoles();
+              }}
+              size="small"
+            />
+          </Tooltip>
+        }
+      >
+        <Row gutter={[16, 16]}>
+          <Col xs={24}>
+            {/* Hiển thị vai trò hiện tại */}
+            {userRoleData ? (
+              <div className="mb-4">
+                <Table
+                  columns={columns}
+                  dataSource={[userRoleData]}
+                  rowKey="key"
+                  size="small"
+                  loading={roleLoading}
+                  pagination={false}
+                  bordered
+                  className="role-table"
+                />
+              </div>
+            ) : (
+              <div className="mb-4 p-4 bg-gray-200 rounded-md text-center">
+                <Text type="secondary">User has no role assigned</Text>
+              </div>
+            )}
+            
+            {/* Form cập nhật vai trò chỉ hiển thị nếu có quyền */}
+            {hasRoleManagePermission ? (
+              <div className="mt-4 p-4 bg-gray-50 rounded-md border border-gray-200">
+                <div className="flex flex-col gap-2">
+                  <Text strong>Update Role</Text>
+                  <div className="flex flex-wrap gap-2 items-center mt-2">
+                    <Select
+                      placeholder="Select new role"
+                      style={{ width: 250 }}
+                      value={selectedRole}
+                      onChange={(value) => setSelectedRole(value)}
+                      loading={roleLoading}
+                      showSearch
+                      optionFilterProp="children"
+                    >
+                      {availableRoles.map((role) => (
+                        <Option 
+                          key={role.id} 
+                          value={role.roleName}
+                          disabled={role.roleName === currentRole}
+                        >
+                          {role.roleName} {role.roleName === currentRole ? "(Current)" : ""}
+                        </Option>
+                      ))}
+                    </Select>
+                    <Button
+                      type="primary"
+                      onClick={handleUpdateRole}
+                      disabled={!selectedRole || selectedRole === currentRole}
+                      loading={roleActionLoading}
+                    >
+                      Update Role
+                    </Button>
+                  </div>
+                  {currentRole && (
+                    <Text type="warning" className="mt-2">
+                      <InfoCircleOutlined /> Updating the role will replace the current role
+                    </Text>
+                  )}
+                  {isCurrentUserManager && (
+                    <Text type="secondary" className="mt-2">
+                      <InfoCircleOutlined /> As a Manager, you can only assign Healthcare Staff, Canteen Staff, or User roles
+                    </Text>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 p-4 bg-gray-100 rounded-md text-center">
+                <Text type="secondary">
+                  <InfoCircleOutlined /> You don't have permission to change this user's role
+                </Text>
+              </div>
+            )}
+          </Col>
+        </Row>
+      </Card>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -576,6 +896,26 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
     );
   }
 
+  // Nếu user đang trong chế độ edit nhưng không có quyền, chuyển về chế độ xem
+  if (isEditing && !hasEditPermission) {
+    // Chuyển về chế độ xem
+    setIsEditing(false);
+    
+    // Cập nhật URL
+    router.replace(`/user/${id}`, undefined, { shallow: true });
+    
+    // Hiển thị thông báo
+    messageApi.error("You don't have permission to edit this user");
+    
+    // Đợi một chút để React cập nhật state trước khi render
+    return (
+      <div className="flex justify-center items-center h-screen">
+        {contextHolder}
+        <Spin size="large" tip="Checking permissions..." />
+      </div>
+    );
+  }
+
   return (
     <div className="p-4">
       {contextHolder}
@@ -601,13 +941,13 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
             title={<Title level={5}>User Information</Title>}
             extra={
               <Space>
-                {user.roles?.map((role) => (
+                {user?.roles?.map((role) => (
                   <Tag key={role} color={getRoleColor(role)}>
                     {role}
                   </Tag>
                 ))}
-                <Tag color={getStatusColor(user.status)}>
-                  {user.status ? user.status.toUpperCase() : ""}
+                <Tag color={getStatusColor(user?.status)}>
+                  {user?.status ? user.status.toUpperCase() : ""}
                 </Tag>
               </Space>
             }
@@ -640,7 +980,7 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
                           />
                         ) : (
                           <div className="mt-1 w-full p-0">
-                            {user.fullName || "-"}
+                            {user?.fullName || "-"}
                           </div>
                         )}
                       </div>
@@ -662,7 +1002,7 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
                           />
                         ) : (
                           <div className="mt-1 w-full p-0">
-                            {user.userName || "-"}
+                            {user?.userName || "-"}
                           </div>
                         )}
                       </div>
@@ -684,7 +1024,7 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
                           />
                         ) : (
                           <div className="mt-1 w-full p-0">
-                            {user.email || "-"}
+                            {user?.email || "-"}
                           </div>
                         )}
                       </div>
@@ -706,7 +1046,7 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
                           />
                         ) : (
                           <div className="mt-1 w-full p-0">
-                            {user.phone || "-"}
+                            {user?.phone || "-"}
                           </div>
                         )}
                       </div>
@@ -730,7 +1070,7 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
                           </div>
                         ) : (
                           <div className="mt-1 w-full p-0">
-                            {user.gender || "-"}
+                            {user?.gender || "-"}
                           </div>
                         )}
                       </div>
@@ -757,7 +1097,7 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
                           </div>
                         ) : (
                           <div className="mt-1 w-full p-0">
-                            {formatDate(user.dob)}
+                            {formatDate(user?.dob)}
                           </div>
                         )}
                       </div>
@@ -779,7 +1119,7 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
                           />
                         ) : (
                           <div className="mt-1 w-full p-0">
-                            {user.address || "No address available."}
+                            {user?.address || "No address available."}
                           </div>
                         )}
                       </div>
@@ -795,7 +1135,7 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
                           Created At
                         </span>
                         <div className="mt-1 w-full p-0">
-                          {formatDateTime(user.createdAt)}
+                          {formatDateTime(user?.createdAt)}
                         </div>
                       </div>
                     </Col>
@@ -805,7 +1145,7 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
                           Updated At
                         </span>
                         <div className="mt-1 w-full p-0">
-                          {formatDateTime(user.updatedAt)}
+                          {formatDateTime(user?.updatedAt)}
                         </div>
                       </div>
                     </Col>
@@ -815,6 +1155,13 @@ export const UserDetail: React.FC<UserDetailProps> = ({ id }) => {
             </Form>
           </Card>
         </Col>
+        
+        {/* Add Role Management section only if user has permission */}
+        {hasRoleManagePermission && (
+          <Col xs={24} md={24}>
+            {renderRoleManagement()}
+          </Col>
+        )}
       </Row>
     </div>
   );
