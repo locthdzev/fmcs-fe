@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useContext } from "react";
+import React, { useState, useEffect, useCallback, useContext, useRef } from "react";
 import {
   Button,
   Input,
@@ -15,8 +15,8 @@ import {
   Tooltip,
   Spin,
   Modal,
+  message
 } from "antd";
-import { toast } from "react-toastify";
 import dayjs, { Dayjs } from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import Cookies from "js-cookie";
@@ -52,6 +52,7 @@ dayjs.extend(isBetween);
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
+const { Title, Text } = Typography;
 
 const formatDateTime = (datetime: string | undefined) => {
   if (!datetime) return "";
@@ -60,55 +61,84 @@ const formatDateTime = (datetime: string | undefined) => {
 
 const getStatusColor = (status: string | undefined) => {
   switch (status) {
-    case "Scheduled": return "blue";
-    case "Happening": return "orange";
-    case "Finished": return "green";
-    case "Missed": return "red";
-    case "CancelledAfterConfirm": return "gray";
-    default: return "default";
+    case "Scheduled":
+      return "blue";
+    case "Happening":
+      return "orange";
+    case "Finished":
+      return "green";
+    case "Missed":
+      return "red";
+    case "CancelledAfterConfirm":
+      return "gray";
+    default:
+      return "default";
   }
 };
 
 const getStatusIcon = (status: string | undefined) => {
   switch (status) {
-    case "Scheduled": return <ClockCircleOutlined style={{ marginRight: 4 }} />;
-    case "Happening": return <PlayCircleOutlined style={{ marginRight: 4 }} />;
-    case "Finished": return <CheckCircleFilled style={{ marginRight: 4 }} />;
-    case "Missed": return <CloseCircleFilled style={{ marginRight: 4 }} />;
-    case "CancelledAfterConfirm": return <StopOutlined style={{ marginRight: 4 }} />;
-    default: return null;
+    case "Scheduled":
+      return <ClockCircleOutlined style={{ marginRight: 4 }} />;
+    case "Happening":
+      return <PlayCircleOutlined style={{ marginRight: 4 }} />;
+    case "Finished":
+      return <CheckCircleFilled style={{ marginRight: 4 }} />;
+    case "Missed":
+      return <CloseCircleFilled style={{ marginRight: 4 }} />;
+    case "CancelledAfterConfirm":
+      return <StopOutlined style={{ marginRight: 4 }} />;
+    default:
+      return null;
   }
 };
 
 const getStatusTooltip = (status: string | undefined) => {
   switch (status) {
-    case "Scheduled": return "Appointment is booked and upcoming.";
-    case "Happening": return "Appointment is currently in progress.";
-    case "Finished": return "Appointment has been completed.";
-    case "Missed": return "Appointment was not attended.";
-    case "CancelledAfterConfirm": return "Appointment was cancelled after confirmation.";
-    default: return "";
+    case "Scheduled":
+      return "Appointment is booked and upcoming.";
+    case "Happening":
+      return "Appointment is currently in progress.";
+    case "Finished":
+      return "Appointment has been completed.";
+    case "Missed":
+      return "Appointment was not attended.";
+    case "CancelledAfterConfirm":
+      return "Appointment was cancelled after confirmation.";
+    default:
+      return "";
   }
 };
 
 export function AppointmentManagementForStudent() {
+  const [messageApi, contextHolder] = message.useMessage();
   const router = useRouter();
   const { user } = useContext(UserContext)!;
-  const [appointments, setAppointments] = useState<AppointmentResponseDTO[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentResponseDTO[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentResponseDTO | null>(null);
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<AppointmentResponseDTO | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(
+    undefined
+  );
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [sortBy, setSortBy] = useState("CreateAt");
   const [ascending, setAscending] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [hoveredAppointment, setHoveredAppointment] = useState<string | null>(null);
+  const [hoveredAppointment, setHoveredAppointment] = useState<string | null>(
+    null
+  );
   const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
-  const [direction, setDirection] = useState<"horizontal" | "vertical">("horizontal");
+  const [direction, setDirection] = useState<"horizontal" | "vertical">(
+    "horizontal"
+  );
+  const justCancelledRef = useRef<Set<string>>(new Set());
 
   const token = Cookies.get("token");
 
@@ -131,14 +161,20 @@ export function AppointmentManagementForStudent() {
     if (!user?.auth || !user?.userId) return;
     setLoading(true);
     try {
-      console.log("Fetching appointments for user:", user.userId, { currentPage, pageSize, sortBy, ascending });
-      const result: PagedResultDTO<AppointmentResponseDTO> = await getAppointmentsByUserId(
-        user.userId,
+      console.log("Fetching appointments for user:", user.userId, {
         currentPage,
         pageSize,
         sortBy,
-        ascending
-      );
+        ascending,
+      });
+      const result: PagedResultDTO<AppointmentResponseDTO> =
+        await getAppointmentsByUserId(
+          user.userId,
+          currentPage,
+          pageSize,
+          sortBy,
+          ascending
+        );
       if (result.isSuccess) {
         setAppointments(result.data || []);
         setTotal(result.totalRecords || 0);
@@ -180,18 +216,22 @@ export function AppointmentManagementForStudent() {
             if (isMounted) {
               fetchAppointments();
               if (data.eventType === "SlotLocked") {
-                // toast.success("New appointment scheduled!");
+                messageApi.success("New appointment scheduled!");
               } else if (data.eventType === "Confirmed") {
-                // toast.success("Appointment confirmed!");
+                messageApi.success("Appointment confirmed!");
               } else if (data.eventType === "Released") {
-                // toast.success("Appointment cancelled!");
+                if (!justCancelledRef.current.has(data.appointmentId)) {
+                  messageApi.success("Appointment cancelled!");
+                } else {
+                  justCancelledRef.current.delete(data.appointmentId);
+                }
               }
             }
           },
-          (error) => {
+          (error: Error) => {
             console.error("SignalR error:", error);
             if (isMounted) {
-              // toast.error("Real-time updates failed. Please refresh the page.");
+              messageApi.error("Real-time updates failed. Please refresh the page.");
             }
           }
         );
@@ -207,26 +247,35 @@ export function AppointmentManagementForStudent() {
         connection = null;
       }
     };
-  }, [fetchAppointments, token, router, user?.userId]);
+  }, [fetchAppointments, token, router, user?.userId, messageApi]);
 
-  const handleCancel = async (id: string, e?: React.MouseEvent<HTMLElement>) => {
+  const handleCancel = async (
+    id: string,
+    e?: React.MouseEvent<HTMLElement>
+  ) => {
     if (e) e.stopPropagation();
     try {
       if (!token) {
         throw new Error("Authentication token is missing. Please log in.");
       }
+      justCancelledRef.current.add(id);
       const response = await cancelAppointment(id, token);
       if (response.isSuccess) {
-        toast.success("Appointment cancelled!");
+        messageApi.success("Appointment cancelled!");
         setIsDetailsModalVisible(false);
         setSelectedAppointment(null);
         fetchAppointments();
+        setTimeout(() => {
+          justCancelledRef.current.delete(id);
+        }, 5000);
       } else {
-        toast.error(response.message || "Failed to cancel appointment.");
+        justCancelledRef.current.delete(id);
+        messageApi.error(response.message || "Failed to cancel appointment.");
       }
     } catch (error: any) {
+      justCancelledRef.current.delete(id);
       console.error("Error cancelling appointment:", error);
-      toast.error(error.message || "Unable to cancel appointment.");
+      messageApi.error(error.message || "Unable to cancel appointment.");
       if (error.message?.includes("token")) {
         router.push("/");
       }
@@ -239,24 +288,36 @@ export function AppointmentManagementForStudent() {
   };
 
   const filteredAppointments = React.useMemo(() => {
-    console.log("Filtering with:", { 
-      searchText, 
-      statusFilter, 
-      dateRange: dateRange ? [dateRange[0].format("YYYY-MM-DD"), dateRange[1].format("YYYY-MM-DD")] : null 
+    console.log("Filtering with:", {
+      searchText,
+      statusFilter,
+      dateRange: dateRange
+        ? [dateRange[0].format("YYYY-MM-DD"), dateRange[1].format("YYYY-MM-DD")]
+        : null,
     });
     if (!searchText && !statusFilter && !dateRange) return appointments;
-    return appointments.filter(appointment => {
+    return appointments.filter((appointment) => {
       const matchesSearch = searchText
-        ? appointment.staffName?.toLowerCase().includes(searchText.toLowerCase())
+        ? appointment.staffName
+            ?.toLowerCase()
+            .includes(searchText.toLowerCase())
         : true;
-      const matchesStatus = statusFilter ? appointment.status === statusFilter : true;
-      const matchesDate = dateRange && appointment.appointmentDate
-        ? dayjs(appointment.appointmentDate).isValid() &&
-          dayjs(appointment.appointmentDate).isBetween(dateRange[0], dateRange[1], "day", "[]")
+      const matchesStatus = statusFilter
+        ? appointment.status === statusFilter
         : true;
-      console.log(`Appointment ${appointment.id}:`, { 
-        date: appointment.appointmentDate, 
-        matchesDate 
+      const matchesDate =
+        dateRange && appointment.appointmentDate
+          ? dayjs(appointment.appointmentDate).isValid() &&
+            dayjs(appointment.appointmentDate).isBetween(
+              dateRange[0],
+              dateRange[1],
+              "day",
+              "[]"
+            )
+          : true;
+      console.log(`Appointment ${appointment.id}:`, {
+        date: appointment.appointmentDate,
+        matchesDate,
       });
       return matchesSearch && matchesStatus && matchesDate;
     });
@@ -267,13 +328,15 @@ export function AppointmentManagementForStudent() {
       if (!token) {
         throw new Error("Authentication token is missing. Please log in.");
       }
-      await Promise.all(selectedRowKeys.map(id => cancelAppointment(id as string, token)));
-      toast.success("Selected appointments cancelled successfully!");
+      await Promise.all(
+        selectedRowKeys.map((id) => cancelAppointment(id as string, token))
+      );
+      messageApi.success("Selected appointments cancelled successfully!");
       setSelectedRowKeys([]);
       fetchAppointments();
     } catch (error: any) {
       console.error("Error bulk cancelling appointments:", error);
-      toast.error(error.message || "Unable to cancel selected appointments.");
+      messageApi.error(error.message || "Unable to cancel selected appointments.");
       if (error.message?.includes("token")) {
         router.push("/");
       }
@@ -286,14 +349,21 @@ export function AppointmentManagementForStudent() {
   };
 
   const redirectToStaffSchedule = () => {
-    router.push("http://localhost:3333/appointment"); // Adjust URL as needed
+    router.push("http://localhost:3333/schedule-appointment"); // Adjust URL as needed
   };
 
   const handleExport = () => {
     // Placeholder for export functionality
-    const csvContent = filteredAppointments.map(appointment => (
-      `${appointment.staffName},${formatDateTime(appointment.appointmentDate)},${appointment.status},${appointment.reason || ""},${formatDateTime(appointment.createdAt)}`
-    )).join("\n");
+    const csvContent = filteredAppointments
+      .map(
+        (appointment) =>
+          `${appointment.staffName},${formatDateTime(
+            appointment.appointmentDate
+          )},${appointment.status},${appointment.reason || ""},${formatDateTime(
+            appointment.createdAt
+          )}`
+      )
+      .join("\n");
     const header = "Staff Name,Date & Time,Status,Reason,Booked At\n";
     const blob = new Blob([header + csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
@@ -302,19 +372,19 @@ export function AppointmentManagementForStudent() {
     link.download = "appointments.csv";
     link.click();
     window.URL.revokeObjectURL(url);
-    toast.success("Appointments exported successfully!");
+    messageApi.success("Appointments exported successfully!");
   };
 
   const topContent = (
-    <Card 
-      className="mb-6 shadow-lg transition-all duration-300 hover:shadow-xl" 
+    <Card
+      className="mb-6 shadow-lg transition-all duration-300 hover:shadow-xl"
       bordered={false}
       style={{ borderRadius: "12px" }}
     >
       <Row gutter={[16, 16]}>
         <Col span={24}>
-          <Typography.Title 
-            level={4} 
+          <Typography.Title
+            level={4}
             className="mb-4 transition-colors duration-200 hover:text-teal-600"
           >
             My Appointments
@@ -354,18 +424,37 @@ export function AppointmentManagementForStudent() {
               suffixIcon={<FilterOutlined />}
               className="hover:border-teal-400 transition-colors duration-200"
             >
-              <Option value="Scheduled"><Badge status="processing" text="Scheduled" /></Option>
-              <Option value="Happening">
-                <Space><span className="blinking-dot" />Happening</Space>
+              <Option value="Scheduled">
+                <Badge status="processing" text="Scheduled" />
               </Option>
-              <Option value="Finished"><Badge status="success" text="Finished" /></Option>
-              <Option value="Missed"><Badge status="error" text="Missed" /></Option>
-              <Option value="CancelledAfterConfirm"><Badge status="default" text="Cancelled" /></Option>
+              <Option value="Happening">
+                <Space>
+                  <span className="blinking-dot" />
+                  Happening
+                </Space>
+              </Option>
+              <Option value="Finished">
+                <Badge status="success" text="Finished" />
+              </Option>
+              <Option value="Missed">
+                <Badge status="error" text="Missed" />
+              </Option>
+              <Option value="CancelledAfterConfirm">
+                <Badge status="default" text="Cancelled" />
+              </Option>
             </Select>
             <RangePicker
               value={dateRange}
               onChange={(dates) => {
-                console.log("Date range changed to:", dates ? [dates[0]?.format("YYYY-MM-DD"), dates[1]?.format("YYYY-MM-DD")] : null);
+                console.log(
+                  "Date range changed to:",
+                  dates
+                    ? [
+                        dates[0]?.format("YYYY-MM-DD"),
+                        dates[1]?.format("YYYY-MM-DD"),
+                      ]
+                    : null
+                );
                 setDateRange(dates as [Dayjs, Dayjs] | null);
               }}
               format="DD/MM/YYYY"
@@ -386,7 +475,7 @@ export function AppointmentManagementForStudent() {
               onClick={redirectToStaffSchedule}
               className="transition-all duration-200 hover:scale-105 export-button schedule-button"
             >
-               Healthcare Officer 
+              Healthcare Officer
             </Button>
           </Space>
           {dateRange && (
@@ -432,17 +521,18 @@ export function AppointmentManagementForStudent() {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
+      {contextHolder}
       <style global jsx>{`
         .appointment-block {
           transition: all 0.3s ease;
           transform: translateY(0);
         }
-        .appointment-block:hover .appointment-info-container{
+        .appointment-block:hover .appointment-info-container {
           border-color: rgb(206, 225, 241) !important;
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
         }
         .appointment-image-container {
-          background-color: #E6F0FA !important;
+          background-color: #e6f0fa !important;
           transition: all 0.3s ease;
           background-size: cover !important;
           background-position: center !important;
@@ -452,15 +542,15 @@ export function AppointmentManagementForStudent() {
         .appointment-block:hover {
           box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
           transform: translateY(-4px);
-          border-color:rgb(173, 235, 228);
+          border-color: rgb(173, 235, 228);
         }
         .appointment-info-container {
           cursor: pointer;
         }
         .action-button {
-          background-color: #F5F5F5;
+          background-color: #f5f5f5;
           color: #000;
-          border: 1px solid #D9D9D9;
+          border: 1px solid #d9d9d9;
           border-radius: 6px;
           padding: 4px 12px;
           height: 32px;
@@ -471,11 +561,11 @@ export function AppointmentManagementForStudent() {
           transition: all 0.3s ease;
         }
         .action-button:hover {
-          background-color:rgb(169, 240, 133);
+          background-color: rgb(169, 240, 133);
           color: white;
-          border-color:rgb(153, 238, 111);
+          border-color: rgb(153, 238, 111);
           transform: translateY(-2px);
-          box-shadow: 0 2px 4px rgba(82,196,26,0.3);
+          box-shadow: 0 2px 4px rgba(82, 196, 26, 0.3);
         }
         .blinking-dot {
           width: 7px;
@@ -507,9 +597,15 @@ export function AppointmentManagementForStudent() {
           animation: pulseBackground 2s infinite;
         }
         @keyframes pulseBackground {
-          0% { background-color: #ff4500; }
-          50% { background-color: #ff8c00; }
-          100% { background-color: #ff4500; }
+          0% {
+            background-color: #ff4500;
+          }
+          50% {
+            background-color: #ff8c00;
+          }
+          100% {
+            background-color: #ff4500;
+          }
         }
         .appointment-details {
           display: grid;
@@ -537,7 +633,7 @@ export function AppointmentManagementForStudent() {
             grid-template-columns: 50px 1fr !important;
             font-size: 13px !important;
           }
-            
+
           .action-button {
             width: 100px !important;
             height: 28px !important;
@@ -618,8 +714,8 @@ export function AppointmentManagementForStudent() {
           transition: all 0.3s ease;
         }
         .export-button:hover {
-          background-color:rgb(76, 223, 174);
-          border-color:rgb(65, 218, 167);
+          background-color: rgb(76, 223, 174);
+          border-color: rgb(65, 218, 167);
           color: white;
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
@@ -633,17 +729,25 @@ export function AppointmentManagementForStudent() {
           align-items: center;
           justify-content: center;
           transition: all 0.3s ease;
-          background: linear-gradient(135deg,rgb(123, 219, 236),rgb(122, 171, 252));
+          background: linear-gradient(
+            135deg,
+            rgb(123, 219, 236),
+            rgb(122, 171, 252)
+          );
         }
         .schedule-button:hover {
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(130, 229, 247, 0.4);
-          background: linear-gradient(135deg,rgb(99, 201, 226),rgb(136, 171, 245));
+          background: linear-gradient(
+            135deg,
+            rgb(99, 201, 226),
+            rgb(136, 171, 245)
+          );
         }
       `}</style>
-      
+
       {topContent}
-      <Card 
+      <Card
         bordered={false}
         className="shadow-md"
         style={{ borderRadius: "12px", overflow: "hidden" }}
@@ -675,12 +779,23 @@ export function AppointmentManagementForStudent() {
               }}
             >
               <Row gutter={[16, 16]} justify="center">
-                <Col xs={24} sm={24} md={8} lg={6} xl={4} style={{ textAlign: "center" }}>
+                <Col
+                  xs={24}
+                  sm={24}
+                  md={8}
+                  lg={6}
+                  xl={4}
+                  style={{ textAlign: "center" }}
+                >
                   <div
                     className="appointment-image-container"
                     onClick={(e) => {
                       e.stopPropagation();
-                      router.push(`http://localhost:3333/appointment/schedule/${appointment.staffId || "default"}`);
+                      router.push(
+                        `http://localhost:3333/appointment/schedule/${
+                          appointment.staffId || "default"
+                        }`
+                      );
                     }}
                     style={{
                       borderRadius: "10px",
@@ -690,7 +805,9 @@ export function AppointmentManagementForStudent() {
                       maxHeight: "180px",
                       margin: "0 auto",
                       aspectRatio: "1 / 1",
-                      backgroundImage: `url(${appointment.imageURL || "/doctor-image.png"})`,
+                      backgroundImage: `url(${
+                        appointment.imageURL || "/images/placeholder.jpg"
+                      })`,
                       border: "2px solid #E6F0FA",
                     }}
                   />
@@ -699,7 +816,11 @@ export function AppointmentManagementForStudent() {
                   <div
                     className="appointment-info-container p-4 rounded-lg w-full box-border"
                     onClick={(e) => {
-                      if ((e.target as HTMLElement).closest(".action-button") || (e.target as HTMLElement).closest(".ant-popconfirm")) return;
+                      if (
+                        (e.target as HTMLElement).closest(".action-button") ||
+                        (e.target as HTMLElement).closest(".ant-popconfirm")
+                      )
+                        return;
                       showDetails(appointment);
                     }}
                     style={{
@@ -728,7 +849,7 @@ export function AppointmentManagementForStudent() {
                           gap: "8px",
                         }}
                       >
-                        <h2 
+                        <h2
                           className="text-lg md:text-xl font-semibold text-gray-800 m-0 transition-colors duration-200 hover:text-teal-600 cursor-pointer"
                           style={{
                             overflow: "hidden",
@@ -738,7 +859,13 @@ export function AppointmentManagementForStudent() {
                         >
                           {appointment.staffName}
                         </h2>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
                           <Tooltip title={getStatusTooltip(appointment.status)}>
                             <Tag
                               color={getStatusColor(appointment.status)}
@@ -752,10 +879,14 @@ export function AppointmentManagementForStudent() {
                               }}
                             >
                               {getStatusIcon(appointment.status)}
-                              {appointment.status === "CancelledAfterConfirm" ? "Cancelled" : appointment.status}
+                              {appointment.status === "CancelledAfterConfirm"
+                                ? "Cancelled"
+                                : appointment.status}
                             </Tag>
                           </Tooltip>
-                          {appointment.status === "Happening" && <span className="blinking-dot" />}
+                          {appointment.status === "Happening" && (
+                            <span className="blinking-dot" />
+                          )}
                         </div>
                       </div>
                       <p className="text-gray-500 text-[13px] mt-1 italic">
@@ -763,16 +894,28 @@ export function AppointmentManagementForStudent() {
                       </p>
                       <hr className="border-t border-gray-200 my-2" />
                       <div className="appointment-details">
-                        <span className="font-medium text-gray-700 text-[14px]">Start:</span>
-                        <span className="text-gray-700 text-[14px]">{formatDateTimeLong(appointment.appointmentDate)}</span>
+                        <span className="font-medium text-gray-700 text-[14px]">
+                          Start:
+                        </span>
+                        <span className="text-gray-700 text-[14px]">
+                          {formatDateTimeLong(appointment.appointmentDate)}
+                        </span>
                         {appointment.endTime && (
                           <>
-                            <span className="font-medium text-gray-700 text-[14px]">End:</span>
-                            <span className="text-gray-700 text-[14px]">{formatDateTimeLong(appointment.endTime)}</span>
+                            <span className="font-medium text-gray-700 text-[14px]">
+                              End:
+                            </span>
+                            <span className="text-gray-700 text-[14px]">
+                              {formatDateTimeLong(appointment.endTime)}
+                            </span>
                           </>
                         )}
-                        <span className="font-medium text-gray-700 text-[14px]">Booked:</span>
-                        <span className="text-gray-700 text-[14px]">{formatDateTimeLong(appointment.createdAt)}</span>
+                        <span className="font-medium text-gray-700 text-[14px]">
+                          Booked:
+                        </span>
+                        <span className="text-gray-700 text-[14px]">
+                          {formatDateTimeLong(appointment.createdAt)}
+                        </span>
                       </div>
                     </div>
                     <div className="flex flex-col justify-end items-end gap-2">
@@ -825,7 +968,11 @@ export function AppointmentManagementForStudent() {
       </Card>
 
       <Modal
-        title="Appointment Details"
+        title={
+          <Title level={4} style={{ margin: 0 }}>
+            Appointment Details
+          </Title>
+        }
         open={isDetailsModalVisible}
         onCancel={() => {
           setIsDetailsModalVisible(false);

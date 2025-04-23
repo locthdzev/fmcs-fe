@@ -126,7 +126,7 @@ const HealthCheckFilterModal: React.FC<{
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Patient
+                Person Examined
               </div>
               <Input
                 placeholder="Search by patient"
@@ -449,7 +449,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
       key: "patient",
       title: (
         <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
-          PATIENT
+          PERSON EXAMINED
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (

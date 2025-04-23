@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Button, Form, Upload, Typography, Space, message, UploadFile, Progress, Dropdown, Menu } from "antd";
-import { UploadOutlined, DownloadOutlined } from "@ant-design/icons";
+import { UploadOutlined, DownloadOutlined, InboxOutlined, FileExcelOutlined, CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
 import Cookies from "js-cookie";
 import jwtDecode from "jwt-decode";
@@ -19,6 +19,7 @@ import { RcFile } from "antd/es/upload/interface";
 import ExcelJS from "exceljs";
 
 const { Title } = Typography;
+const { Dragger } = Upload;
 
 interface AddStaffHealthCheckupPageProps {
   onSuccess: () => void;
@@ -485,7 +486,7 @@ noCell.font = { name: "Calibri", size: 10, bold: true };
         });
       });
   
-      // Fallback: If no conclusion mapping and last column has data, assume it’s conclusion
+      // Fallback: If no conclusion mapping and last column has data, assume it's conclusion
       if (!headerMap.has('57') && row.length === 59) {
         const lastValue = row[58]; // Index 58 after slice(1) is index 57
         const conclusionConfig = HEALTH_CHECKUP_HEADERS.find(h => h.key === 'conclusion');
@@ -700,55 +701,94 @@ noCell.font = { name: "Calibri", size: 10, bold: true };
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <Title level={4}>Add Staff Health Checkup via Excel</Title>
+    <div style={{ padding: "24px" }}>
+      <div style={{ marginBottom: "20px" }}>
+        <div className="flex items-center gap-2">
+          <FileExcelOutlined style={{ color: "#1890ff", fontSize: 24 }} />
+          <Title level={4} style={{ margin: 0 }}>Add Staff Health Checkup via Excel</Title>
+        </div>
+        <p className="text-gray-500 mt-2">Upload an Excel file with staff health checkup data to add multiple records at once.</p>
+      </div>
+
       {uploadProgress.isLoading && (
-        <Progress 
-          percent={Math.round((uploadProgress.current / uploadProgress.total) * 100)}
-          status="active"
-          style={{ marginBottom: 16 }}
-        />
+        <div className="mb-6">
+          <Title level={5} style={{ marginBottom: "8px" }}>
+            Processing: {uploadProgress.current} of {uploadProgress.total}
+          </Title>
+          <Progress 
+            percent={Math.round((uploadProgress.current / uploadProgress.total) * 100)}
+            status="active"
+            strokeColor={{
+              '0%': '#52c41a',
+              '100%': '#1890ff',
+            }}
+          />
+        </div>
       )}
+
       <Form form={form} layout="vertical" onFinish={onFinish}>
-        <Form.Item
-          name="file"
-          label="Upload Excel File"
-          rules={[{ required: true, message: "Please upload an Excel file" }]}
-          validateStatus={fileList.length === 0 && form.isFieldTouched("file") ? "error" : "success"}
-          help={fileList.length === 0 && form.isFieldTouched("file") ? "Excel file is required" : ""}
-        >
-          <Upload {...uploadProps}>
-            <Button icon={<UploadOutlined />}>Click to Upload Excel File</Button>
-          </Upload>
-        </Form.Item>
-        <Form.Item>
-          <Space>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              loading={uploadProgress.isLoading}
-              style={{ borderRadius: "8px" }}
+        <div className="grid grid-cols-1 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <Form.Item
+              name="file"
+              label={<span className="font-medium">Upload Excel File</span>}
+              rules={[{ required: true, message: "Please upload an Excel file" }]}
+              validateStatus={fileList.length === 0 && form.isFieldTouched("file") ? "error" : "success"}
+              help={fileList.length === 0 && form.isFieldTouched("file") ? "Excel file is required" : ""}
             >
-              Import Staff Checkups
-            </Button>
-            <Dropdown overlay={templateMenu} trigger={["click"]}>
+              <Dragger {...uploadProps} style={{ padding: '20px 0', background: '#f9fafb' }}>
+                <p className="ant-upload-drag-icon">
+                  <FileExcelOutlined style={{ color: "#1890ff", fontSize: 48 }} />
+                </p>
+                <p className="ant-upload-text font-medium text-lg">Click or drag Excel file to upload</p>
+                <p className="ant-upload-hint text-gray-500">
+                  Support for a single Excel file (XLSX/XLS) up to 5MB
+                </p>
+                {fileList.length > 0 && (
+                  <div className="mt-4 bg-green-50 p-2 rounded text-green-700 text-sm inline-block">
+                    <CheckCircleOutlined /> {fileList[0].name} selected
+                  </div>
+                )}
+              </Dragger>
+            </Form.Item>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
+            <div>
+              <Dropdown overlay={templateMenu} trigger={["click"]}>
+                <Button 
+                  icon={<DownloadOutlined />}
+                  style={{ borderRadius: "8px" }}
+                >
+                  Download Template
+                </Button>
+              </Dropdown>
+            </div>
+
+            <div className="flex gap-3">
+              {uploadProgress.isLoading && (
+                <Button 
+                  danger
+                  onClick={() => abortController.current.abort()}
+                  style={{ borderRadius: "8px" }}
+                  icon={<CloseCircleOutlined />}
+                >
+                  Cancel
+                </Button>
+              )}
               <Button 
-                icon={<DownloadOutlined />}
-                style={{ borderRadius: "8px" }}
+                type="primary" 
+                htmlType="submit" 
+                loading={uploadProgress.isLoading}
+                style={{ borderRadius: "8px", minWidth: "150px" }}
+                disabled={fileList.length === 0}
+                icon={<UploadOutlined />}
               >
-                Download Template
+                Import Checkups
               </Button>
-            </Dropdown>
-            {uploadProgress.isLoading && (
-              <Button 
-                onClick={() => abortController.current.abort()}
-                style={{ borderRadius: "8px" }}
-              >
-                Cancel
-              </Button>
-            )}
-          </Space>
-        </Form.Item>
+            </div>
+          </div>
+        </div>
       </Form>
     </div>
   );

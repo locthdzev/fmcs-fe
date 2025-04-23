@@ -19,15 +19,23 @@ import {
   Modal,
   Form,
   Checkbox,
+  Menu,
+  Dropdown,
+  Timeline,
+  Collapse,
+  InputNumber,
+  message,
 } from "antd";
 import { toast } from "react-toastify";
-import moment from "moment";
+import dayjs from "dayjs";
 import {
   getAllPrescriptionHistories,
   PrescriptionHistoryResponseDTO,
   exportPrescriptionHistoriesToExcelWithConfig,
   PrescriptionHistoryExportConfigDTO,
   PerformedByInfo,
+  getGroupedPrescriptionHistories,
+  GroupedPrescriptionHistoryResponseDTO,
 } from "@/api/prescription";
 import { useRouter } from "next/router";
 import {
@@ -36,27 +44,105 @@ import {
   EyeOutlined,
   FilterOutlined,
   FileExcelOutlined,
+  UndoOutlined,
+  TagOutlined,
+  SettingOutlined,
+  HistoryOutlined,
+  ArrowLeftOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  FormOutlined,
+  PlusOutlined,
+  CaretRightOutlined,
+  LinkOutlined,
+  DeleteOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
+import PageContainer from "../shared/PageContainer";
+import PaginationFooter from "../shared/PaginationFooter";
+import TableControls from "../shared/TableControls";
+import ToolbarCard from "../shared/ToolbarCard";
+import PrescriptionHistoryListFilterModal from "./PrescriptionHistoryListFilterModal";
+import HistoryExportModal from "./HistoryExportModal";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
+const { Panel } = Collapse;
 
 // Helper functions
 const formatDate = (date: string | undefined) => {
   if (!date) return "";
-  return moment(date).format("DD/MM/YYYY");
+  return dayjs(date).format("DD/MM/YYYY");
 };
 
 const formatDateTime = (datetime: string | undefined) => {
   if (!datetime) return "";
-  return moment(datetime).format("DD/MM/YYYY HH:mm:ss");
+  return dayjs(datetime).format("DD/MM/YYYY HH:mm:ss");
+};
+
+const getStatusColor = (status: string | undefined) => {
+  if (!status) return "default";
+  switch (status.toLowerCase()) {
+    case "dispensed":
+      return "processing";
+    case "updated":
+      return "warning";
+    case "used":
+    case "updatedandused":
+      return "success";
+    case "inactive":
+      return "default";
+    case "cancelled":
+      return "error";
+    case "softdeleted":
+      return "default";
+    default:
+      return "default";
+  }
+};
+
+const getActionColor = (action: string | undefined) => {
+  if (!action) return "default";
+  switch (action.toLowerCase()) {
+    case "created":
+      return "green";
+    case "updated":
+      return "blue";
+    case "cancelled":
+      return "orange";
+    case "softdeleted":
+      return "gray";
+    case "restored":
+      return "lime";
+    default:
+      return "default";
+  }
+};
+
+const getActionIcon = (action: string | undefined) => {
+  if (!action) return null;
+  switch (action.toLowerCase()) {
+    case "created":
+      return <PlusOutlined />;
+    case "updated":
+      return <FormOutlined />;
+    case "cancelled":
+      return <CloseCircleOutlined />;
+    case "softdeleted":
+      return <DeleteOutlined />;
+    case "restored":
+      return <UndoOutlined />;
+    default:
+      return <HistoryOutlined />;
+  }
 };
 
 const DEFAULT_EXPORT_CONFIG = {
   exportAllPages: true,
   includePrescriptionCode: true,
   includeHealthCheckCode: true,
+  includeAction: true,
   includeActionDate: true,
   includePerformedBy: true,
   includePreviousStatus: true,
@@ -64,124 +150,484 @@ const DEFAULT_EXPORT_CONFIG = {
   includeChangeDetails: true,
 };
 
+// Interfaces
+interface PrescriptionGroup {
+  code: string;
+  prescriptionId: string;
+  histories: PrescriptionHistoryResponseDTO[];
+  loading: boolean;
+}
+
 export function PrescriptionHistoryList() {
   const router = useRouter();
-  const [histories, setHistories] = useState<PrescriptionHistoryResponseDTO[]>(
-    []
-  );
-  const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [total, setTotal] = useState(0);
-  const [action, setAction] = useState<string | undefined>(undefined);
-  const [performedBySearch, setPerformedBySearch] = useState("");
-  const [previousStatus, setPreviousStatus] = useState<string | undefined>(
-    undefined
-  );
-  const [newStatus, setNewStatus] = useState<string | undefined>(undefined);
-  const [sortBy, setSortBy] = useState("ActionDate");
-  const [ascending, setAscending] = useState(false);
-  const [prescriptionCode, setPrescriptionCode] = useState("");
-  const [healthCheckResultCode, setHealthCheckResultCode] = useState("");
-  const [actionDateRange, setActionDateRange] = useState<
-    [moment.Moment | null, moment.Moment | null]
-  >([null, null]);
-  const [showExportConfigModal, setShowExportConfigModal] = useState(false);
-  const [exportLoading, setExportLoading] = useState(false);
-  const [exportConfig, setExportConfig] =
-    useState<PrescriptionHistoryExportConfigDTO>(DEFAULT_EXPORT_CONFIG);
+  const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm();
 
+  // Data states
+  const [resultGroups, setResultGroups] = useState<PrescriptionGroup[]>([]);
+  const [total, setTotal] = useState(0);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Filter states
+  const [performedBySearch, setPerformedBySearch] = useState<string>("");
+  const [prescriptionCode, setPrescriptionCode] = useState<string>("");
+  const [healthCheckResultCode, setHealthCheckResultCode] = useState<string>("");
+  const [actionDateRange, setActionDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+  const [ascending, setAscending] = useState<boolean>(false);
+  const [sortBy] = useState("ActionDate");
+
+  // UI states
+  const [loading, setLoading] = useState(true);
+  const [showExportConfigModal, setShowExportConfigModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [filtersApplied, setFiltersApplied] = useState(false);
+
+  // Dropdown options
+  const [uniquePrescriptionCodes, setUniquePrescriptionCodes] = useState<string[]>([]);
+  const [uniqueHealthCheckCodes, setUniqueHealthCheckCodes] = useState<string[]>([]);
+  const [uniquePerformers, setUniquePerformers] = useState<{ id: string; fullName: string; email: string }[]>([]);
+
+  // Export config state
+  const [exportConfig, setExportConfig] = useState<PrescriptionHistoryExportConfigDTO>({
+    exportAllPages: true,
+    includePrescriptionCode: true,
+    includeHealthCheckCode: true,
+    includeAction: true,
+    includeActionDate: true,
+    includePerformedBy: true,
+    includePreviousStatus: true,
+    includeNewStatus: true,
+    includeChangeDetails: true,
+  });
+
+  // Filter state
+  const [filterState, setFilterState] = useState({
+    healthCheckResultCode: "",
+    performedBySearch: "",
+    actionDateRange: [null, null] as [dayjs.Dayjs | null, dayjs.Dayjs | null],
+    actionType: "",
+    statusChange: "",
+    ascending: false,
+  });
+
   // Fetch histories
-  const fetchHistories = useCallback(async () => {
+  const fetchGroupedPrescriptionHistories = useCallback(async () => {
+    // Log the current filterState for debugging
+    console.log("Current filterState:", filterState);
+    
+    console.log("Fetching grouped prescription histories with params:", {
+      currentPage,
+      pageSize,
+      prescriptionCode,
+      healthCheckResultCode,
+      actionDateRange,
+      performedBySearch,
+      ascending,
+      actionType: filterState.actionType,
+      statusChange: filterState.statusChange,
+    });
+
     setLoading(true);
     try {
-      const startActionDate = actionDateRange[0]?.format("YYYY-MM-DD");
-      const endActionDate = actionDateRange[1]?.format("YYYY-MM-DD");
+      const actionStartDate = actionDateRange && actionDateRange[0] 
+        ? actionDateRange[0].format("YYYY-MM-DD") 
+        : undefined;
 
-      const response = await getAllPrescriptionHistories(
+      const actionEndDate = actionDateRange && actionDateRange[1]
+        ? actionDateRange[1].format("YYYY-MM-DD")
+        : undefined;
+
+      // Create direct variables for status parameters
+      const actionTypeParam = filterState.actionType || undefined;
+      
+      // Xử lý đặc biệt cho từng loại status
+      let previousStatusParam: string | undefined = undefined;
+      let newStatusParam: string | undefined = undefined;
+      
+      if (filterState.statusChange === "Used") {
+        console.log("Đang tìm kiếm theo status Used...");
+        // Chỉ lọc theo newStatus, vì phần lớn các bản ghi quan trọng sẽ có newStatus là "Used"
+        previousStatusParam = undefined;
+        newStatusParam = "Used";
+      } else if (filterState.statusChange === "Dispensed") {
+        console.log("Đang tìm kiếm theo status Dispensed...");
+        // Tìm kiếm Dispensed - thường là newStatus trong các bản ghi Created
+        previousStatusParam = undefined;
+        newStatusParam = "Dispensed";
+      } else if (filterState.statusChange === "null") {
+        // Khi người dùng chọn "No Previous Status", tìm các bản ghi có previousStatus là null
+        // Vì API không chấp nhận null, chúng ta sẽ xử lý đặc biệt
+        // Sử dụng chuỗi đặc biệt mà API có thể hiểu là tìm kiếm null values
+        previousStatusParam = "NULL_VALUE"; // Giả sử API hiểu đây là tìm kiếm null
+        newStatusParam = undefined; // Không lọc theo newStatus
+      } else if (filterState.statusChange) {
+        // Trường hợp thông thường - có thể lọc theo cả previousStatus hoặc newStatus
+        previousStatusParam = filterState.statusChange;
+        newStatusParam = filterState.statusChange;
+      }
+      
+      // Xử lý trường hợp null/undefined nhưng không gán giá trị null trực tiếp
+      // vì API yêu cầu kiểu string | undefined
+      
+      // Log the exact parameters being sent to the API
+      console.log("API call parameters:", {
         currentPage,
         pageSize,
-        action,
-        startActionDate,
-        endActionDate,
+        action: actionTypeParam,
+        startActionDate: actionStartDate,
+        endActionDate: actionEndDate,
         performedBySearch,
-        previousStatus,
-        newStatus,
+        previousStatus: previousStatusParam,
+        newStatus: newStatusParam,
+        sortBy,
+        ascending,
+        prescriptionCode,
+        healthCheckResultCode
+      });
+
+      const response = await getGroupedPrescriptionHistories(
+        currentPage,
+        pageSize,
+        actionTypeParam,
+        actionStartDate,
+        actionEndDate,
+        performedBySearch,
+        previousStatusParam,
+        newStatusParam,
         sortBy,
         ascending,
         prescriptionCode,
         healthCheckResultCode
       );
 
-      console.log("API Response (history):", response); // Debug
+      console.log("API Response:", response);
 
-      if (response.success) {
-        console.log("Setting histories:", response.data); // Debug
-        setHistories(response.data.items || response.data);
-        setTotal(response.data.totalCount || response.data.length || 0);
+      if (response.success || response.isSuccess) {
+        const groupedData = response.data;
+        console.log("Grouped Data:", groupedData);
+        console.log("Có tổng cộng", groupedData?.length || 0, "nhóm dữ liệu trả về");
+        
+        // Kiểm tra cấu trúc dữ liệu trả về
+        if (!groupedData) {
+          console.error("API trả về dữ liệu undefined hoặc null");
+          messageApi.error({
+            content: "Dữ liệu trả về không hợp lệ",
+            duration: 5,
+          });
+          setResultGroups([]);
+          setTotal(0);
+          setLoading(false);
+          return;
+        }
+        
+        // Phân tích và debug dữ liệu nhận được
+        let totalHistories = 0;
+        let historiesWithPreviousStatus = 0;
+        let historiesWithNewStatus = 0;
+        let uniquePreviousStatuses = new Set();
+        let uniqueNewStatuses = new Set();
+        
+        if (Array.isArray(groupedData)) {
+          groupedData.forEach(group => {
+            if (group.historyDetails && Array.isArray(group.historyDetails)) {
+              totalHistories += group.historyDetails.length;
+              group.historyDetails.forEach((history: PrescriptionHistoryResponseDTO) => {
+                if (history.previousStatus) {
+                  historiesWithPreviousStatus++;
+                  uniquePreviousStatuses.add(history.previousStatus);
+                }
+                if (history.newStatus) {
+                  historiesWithNewStatus++;
+                  uniqueNewStatuses.add(history.newStatus);
+                }
+              });
+            }
+          });
+        }
+        
+        console.log("Thống kê dữ liệu nhận được:");
+        console.log(`- Tổng số bản ghi: ${totalHistories}`);
+        console.log(`- Bản ghi có previousStatus: ${historiesWithPreviousStatus}`);
+        console.log(`- Bản ghi có newStatus: ${historiesWithNewStatus}`);
+        console.log(`- Các giá trị previousStatus: ${Array.from(uniquePreviousStatuses).join(', ')}`);
+        console.log(`- Các giá trị newStatus: ${Array.from(uniqueNewStatuses).join(', ')}`);
+        
+        if (filterState.statusChange) {
+          console.log(`Chi tiết kết quả tìm với filter ${filterState.statusChange}:`);
+          if (Array.isArray(groupedData)) {
+            groupedData.forEach((group, idx) => {
+              console.log(`Nhóm ${idx + 1} có ${group.historyDetails?.length || 0} bản ghi`);
+              if (group.historyDetails && group.historyDetails.length > 0) {
+                group.historyDetails.forEach((history: PrescriptionHistoryResponseDTO, i: number) => {
+                  console.log(`  Record ${i+1}: action=${history.action}, previousStatus=${history.previousStatus}, newStatus=${history.newStatus}`); 
+                });
+              }
+            });
+          }
+        }
+
+        if (!Array.isArray(groupedData)) {
+          console.log("No items found in grouped data");
+          setResultGroups([]);
+          setTotal(0);
+          return;
+        }
+
+        // Create a map to group histories by prescription ID
+        const prescriptionGroupsMap = new Map<string, PrescriptionGroup>();
+        
+        // Process all histories and group them by prescription ID
+        groupedData.forEach(group => {
+          group.historyDetails.forEach((history: PrescriptionHistoryResponseDTO) => {
+            if (!history.prescription) return;
+            
+            const prescriptionId = history.prescription.id;
+            
+            if (!prescriptionGroupsMap.has(prescriptionId)) {
+              prescriptionGroupsMap.set(prescriptionId, {
+                code: history.prescription.prescriptionCode,
+                prescriptionId: prescriptionId,
+                histories: [],
+                loading: false,
+              });
+            }
+            
+            // Add this history to its prescription group
+            const prescriptionGroup = prescriptionGroupsMap.get(prescriptionId);
+            if (prescriptionGroup) {
+              prescriptionGroup.histories.push(history);
+            }
+          });
+        });
+        
+        // Convert map to array and sort by latest action date
+        let groups = Array.from(prescriptionGroupsMap.values());
+        
+        // Sort groups by most recent action
+        groups = groups.sort((a, b) => {
+          const aLatestDate = a.histories.length > 0
+            ? Math.max(...a.histories.map(h => new Date(h.actionDate).getTime()))
+            : 0;
+          const bLatestDate = b.histories.length > 0
+            ? Math.max(...b.histories.map(h => new Date(h.actionDate).getTime()))
+            : 0;
+
+          return ascending ? aLatestDate - bLatestDate : bLatestDate - aLatestDate;
+        });
+
+        setResultGroups(groups);
+        setTotal(response.data.totalRecords || groups.length);
       } else {
-        toast.error("Failed to fetch prescription histories");
+        messageApi.error({
+          content: response.message || "Could not load prescription histories",
+          duration: 5,
+        });
       }
     } catch (error) {
-      console.error("Error fetching prescription histories:", error);
-      toast.error("Failed to fetch prescription histories");
+      console.error("Error fetching grouped histories:", error);
+      messageApi.error({
+        content: "Failed to load prescription histories",
+        duration: 5,
+      });
     } finally {
       setLoading(false);
     }
   }, [
     currentPage,
     pageSize,
-    action,
-    actionDateRange,
-    performedBySearch,
-    previousStatus,
-    newStatus,
-    sortBy,
     ascending,
     prescriptionCode,
     healthCheckResultCode,
+    performedBySearch,
+    actionDateRange,
+    sortBy,
+    messageApi,
+    filterState.actionType,
+    filterState.statusChange,
   ]);
 
-  useEffect(() => {
-    fetchHistories();
-  }, []);
+  // Fetch dropdown values for filters
+  const fetchUniqueValues = useCallback(async () => {
+    try {
+      const response = await getAllPrescriptionHistories(
+        1,
+        1000,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        "ActionDate",
+        false,
+        undefined,
+        undefined
+      );
 
-  useEffect(() => {
-    fetchHistories();
-  }, [currentPage, pageSize, sortBy, ascending]);
+      if (response.success) {
+        const histories = response.data.items || response.data || [];
+
+        const prescriptionCodesSet = new Set<string>();
+        const healthCheckCodesSet = new Set<string>();
+        const performersMap = new Map<string, { id: string; fullName: string; email: string }>();
+
+        histories.forEach((history: PrescriptionHistoryResponseDTO) => {
+          if (history.prescription) {
+            prescriptionCodesSet.add(history.prescription.prescriptionCode);
+            if (history.prescription.healthCheckResult) {
+              // Only add codes that start with HCR- or CHK- to the health check codes set
+              const healthCheckCode = history.prescription.healthCheckResult.healthCheckResultCode;
+              if (healthCheckCode && (healthCheckCode.startsWith('HCR-') || healthCheckCode.startsWith('CHK-'))) {
+                healthCheckCodesSet.add(healthCheckCode);
+              }
+            }
+          }
+
+          if (history.performedBy) {
+            performersMap.set(history.performedBy.id, {
+              id: history.performedBy.id,
+              fullName: history.performedBy.fullName,
+              email: history.performedBy.email,
+            });
+          }
+        });
+
+        setUniquePrescriptionCodes(Array.from(prescriptionCodesSet));
+        setUniqueHealthCheckCodes(Array.from(healthCheckCodesSet));
+        setUniquePerformers(Array.from(performersMap.values()));
+      }
+    } catch (error) {
+      console.error("Error fetching unique values:", error);
+      messageApi.error({
+        content: "Failed to load filter options",
+        duration: 5,
+      });
+    }
+  }, [messageApi]);
 
   // Event handlers
   const handleSearch = () => {
     setCurrentPage(1);
-    fetchHistories();
+    setLoading(true);
   };
 
   const handleReset = () => {
-    setAction(undefined);
+    // Reset individual filter states
     setPerformedBySearch("");
-    setPreviousStatus(undefined);
-    setNewStatus(undefined);
-    setSortBy("ActionDate");
-    setAscending(false);
     setPrescriptionCode("");
     setHealthCheckResultCode("");
     setActionDateRange([null, null]);
     setCurrentPage(1);
-    fetchHistories();
+    setAscending(false);
+
+    // Reset the filter state object that contains actionType and statusChange
+    setFilterState({
+      healthCheckResultCode: "",
+      performedBySearch: "",
+      actionDateRange: [null, null],
+      actionType: "",
+      statusChange: "",
+      ascending: false,
+    });
+
+    // Update UI states
+    setLoading(true);
+    setFiltersApplied(true);
+    
+    // Use setTimeout to ensure all state updates are processed before fetching data
+    setTimeout(() => {
+      fetchGroupedPrescriptionHistories();
+    }, 0);
   };
 
-  const handlePageChange = (page: number, pageSize?: number) => {
+  const handlePageChange = (page: number, newPageSize?: number) => {
     setCurrentPage(page);
-    if (pageSize) setPageSize(pageSize);
+    if (newPageSize) setPageSize(newPageSize);
+    setLoading(true);
   };
 
+  // Filter modal handlers
+  const openFilterModal = () => {
+    console.log("Opening filter modal with current filterState:", filterState);
+    console.log("Current filters - statusChange:", filterState.statusChange, "actionType:", filterState.actionType);
+    
+    // Lưu trữ các giá trị hiện tại từ các state riêng lẻ
+    const updatedFilterState = {
+      healthCheckResultCode: healthCheckResultCode || "",
+      performedBySearch: performedBySearch || "",
+      actionDateRange: actionDateRange || [null, null],
+      actionType: filterState.actionType || "", 
+      statusChange: filterState.statusChange || "",
+      ascending: ascending,
+    };
+    
+    console.log("Setting filter state to:", updatedFilterState);
+    setFilterState(updatedFilterState);
+    setShowFilterModal(true);
+  };
+
+  const closeFilterModal = () => {
+    setShowFilterModal(false);
+  };
+
+  const applyFilters = () => {
+    console.log("Applying filters with filterState:", filterState);
+    console.log("Status Change value:", filterState.statusChange, 
+      "type:", typeof filterState.statusChange,
+      "isEmpty:", filterState.statusChange === "",
+      "isUndefined:", filterState.statusChange === undefined);
+    
+    setHealthCheckResultCode(filterState.healthCheckResultCode);
+    setPerformedBySearch(filterState.performedBySearch);
+    setActionDateRange(filterState.actionDateRange);
+    setAscending(filterState.ascending);
+    setCurrentPage(1);
+    
+    closeFilterModal();
+    setLoading(true);
+    setFiltersApplied(true);
+    
+    // Đặt stateChanged flag để đảm bảo useEffect trigger
+    console.log("Filters applied, now calling fetchGroupedPrescriptionHistories directly");
+    
+    // Gọi trực tiếp fetchGroupedPrescriptionHistories
+    setTimeout(() => {
+      fetchGroupedPrescriptionHistories();
+    }, 0);
+  };
+
+  const resetFilters = () => {
+    setFilterState({
+      healthCheckResultCode: "",
+      performedBySearch: "",
+      actionDateRange: [null, null],
+      actionType: "",
+      statusChange: "",
+      ascending: false,
+    });
+
+    setHealthCheckResultCode("");
+    setPerformedBySearch("");
+    setActionDateRange([null, null]);
+    setAscending(false);
+    setCurrentPage(1);
+    closeFilterModal();
+    setLoading(true);
+    setFiltersApplied(true);
+  };
+
+  // Export modal handlers
   const handleOpenExportConfig = () => {
     setShowExportConfigModal(true);
   };
 
   const closeExportConfigModal = () => {
     setShowExportConfigModal(false);
+    form.resetFields();
   };
 
   const handleExportConfigChange = (changedValues: any) => {
@@ -189,14 +635,15 @@ export function PrescriptionHistoryList() {
   };
 
   const handleExportWithConfig = async () => {
+    setExportLoading(true);
     try {
       const values = await form.validateFields();
-      setExportLoading(true);
 
       const exportConfigData: PrescriptionHistoryExportConfigDTO = {
         exportAllPages: values.exportAllPages,
         includePrescriptionCode: values.includePrescriptionCode,
         includeHealthCheckCode: values.includeHealthCheckCode,
+        includeAction: values.includeAction,
         includeActionDate: values.includeActionDate,
         includePerformedBy: values.includePerformedBy,
         includePreviousStatus: values.includePreviousStatus,
@@ -204,417 +651,454 @@ export function PrescriptionHistoryList() {
         includeChangeDetails: values.includeChangeDetails,
       };
 
-      const startActionDate = actionDateRange[0]?.format("YYYY-MM-DD");
-      const endActionDate = actionDateRange[1]?.format("YYYY-MM-DD");
+      const actionStartDate = actionDateRange && actionDateRange[0]
+        ? actionDateRange[0].format("YYYY-MM-DD")
+        : undefined;
 
-      await exportPrescriptionHistoriesToExcelWithConfig(
+      const actionEndDate = actionDateRange && actionDateRange[1]
+        ? actionDateRange[1].format("YYYY-MM-DD")
+        : undefined;
+
+      const response = await exportPrescriptionHistoriesToExcelWithConfig(
         exportConfigData,
         currentPage,
         pageSize,
-        action,
-        startActionDate,
-        endActionDate,
+        undefined,
+        actionStartDate,
+        actionEndDate,
         performedBySearch,
-        previousStatus,
-        newStatus,
+        undefined,
+        undefined,
         sortBy,
         ascending,
         prescriptionCode,
         healthCheckResultCode
       );
 
-      // The API function already displays success or error messages,
-      // so we only need to update state and close the modal
-      setExportConfig(exportConfigData);
+      if (response.success) {
+        messageApi.success("Export successful");
       closeExportConfigModal();
+      } else {
+        messageApi.error(response.message || "Export failed");
+      }
     } catch (error) {
       console.error("Export error:", error);
-      // Don't show toast error here, as the API function already handles it
+      messageApi.error("Export failed");
     } finally {
       setExportLoading(false);
     }
   };
 
-  // Status and action colors
-  const getStatusColor = (status: string | undefined) => {
-    switch (status) {
-      case "Dispensed":
-        return "processing";
-      case "Updated":
-        return "warning";
-      case "Used":
-        return "success";
-      case "UpdatedAndUsed":
-        return "success";
-      case "Inactive":
-        return "default";
-      case "Cancelled":
-        return "error";
-      case "SoftDeleted":
-        return "default";
-      default:
-        return "default";
+  // useEffect hooks
+  useEffect(() => {
+    if (uniquePrescriptionCodes.length === 0) {
+      fetchUniqueValues();
     }
-  };
 
-  const getActionColor = (action: string): string => {
-    switch (action) {
-      case "Create":
-        return "green";
-      case "Update":
-        return "blue";
-      case "Cancel":
-        return "red";
-      case "StatusChange":
-        return "orange";
-      case "SoftDelete":
-        return "gray";
-      case "Restore":
-        return "green";
-      default:
-        return "blue";
-    }
-  };
-
-  // Column definitions for the table
-  const columns = [
-    {
-      title: "Prescription Code",
-      dataIndex: ["prescription", "prescriptionCode"],
-      key: "prescriptionCode",
-      render: (text: string, record: PrescriptionHistoryResponseDTO) =>
-        record.prescription ? (
-          <Button
-            type="link"
-            onClick={() =>
-              router.push(`/prescription/${record.prescription?.id}`)
-            }
-          >
-            {text}
-          </Button>
-        ) : (
-          "N/A"
-        ),
-    },
-    {
-      title: "Health Check Code",
-      dataIndex: ["prescription", "healthCheckResult", "healthCheckResultCode"],
-      key: "healthCheckResultCode",
-      render: (text: string, record: PrescriptionHistoryResponseDTO) =>
-        record.prescription?.healthCheckResult ? (
-          <Button
-            type="link"
-            onClick={() =>
-              router.push(
-                `/health-check-result/${record.prescription?.healthCheckResult?.id}`
-              )
-            }
-          >
-            {text}
-          </Button>
-        ) : (
-          "N/A"
-        ),
-    },
-    {
-      title: "Action",
-      dataIndex: "action",
-      key: "action",
-      render: (text: string) => <Tag color={getActionColor(text)}>{text}</Tag>,
-    },
-    {
-      title: "Action Date",
-      dataIndex: "actionDate",
-      key: "actionDate",
-      render: (text: string) => formatDateTime(text),
-      sorter: true,
-    },
-    {
-      title: "Performed By",
-      dataIndex: "performedBy",
-      key: "performedBy",
-      render: (performedBy: PerformedByInfo) =>
-        performedBy ? (
-          <>
-            <div>
-              <strong>{performedBy.fullName}</strong>
-            </div>
-            <div>{performedBy.email}</div>
-          </>
-        ) : (
-          "N/A"
-        ),
-    },
-    {
-      title: "Previous Status",
-      dataIndex: "previousStatus",
-      key: "previousStatus",
-      render: (status: string) =>
-        status ? <Tag color={getStatusColor(status)}>{status}</Tag> : "N/A",
-    },
-    {
-      title: "New Status",
-      dataIndex: "newStatus",
-      key: "newStatus",
-      render: (status: string) =>
-        status ? <Tag color={getStatusColor(status)}>{status}</Tag> : "N/A",
-    },
-    {
-      title: "Change Details",
-      dataIndex: "changeDetails",
-      key: "changeDetails",
-      render: (text: string) =>
-        text ? (
-          <Tooltip title={text}>
-            <div className="truncate max-w-md">{text}</div>
-          </Tooltip>
-        ) : (
-          "N/A"
-        ),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_: unknown, record: PrescriptionHistoryResponseDTO) => (
-        <Space>
-          <Button
-            type="text"
-            icon={<EyeOutlined />}
-            onClick={() =>
-              router.push(`/prescription/${record.prescription?.id}`)
-            }
-            title="View Prescription Details"
-          />
-        </Space>
-      ),
-    },
-  ];
-
-  // Export config modal
-  const renderExportConfigModal = () => (
-    <Modal
-      title={
-        <Title level={4} style={{ margin: 0 }}>
-          Export Configuration
-        </Title>
+    // Only fetch if it's not due to filterState changes
+    // or if filters were explicitly applied
+    const timer = setTimeout(() => {
+      if (filtersApplied) {
+        // Reset the flag
+        setFiltersApplied(false);
       }
-      open={showExportConfigModal}
-      onCancel={closeExportConfigModal}
-      footer={[
-        <Button key="back" onClick={closeExportConfigModal}>
-          Cancel
-        </Button>,
-        <Button
-          key="submit"
-          type="primary"
-          loading={exportLoading}
-          onClick={handleExportWithConfig}
-        >
-          Export
-        </Button>,
-      ]}
-    >
-      <Form form={form} layout="vertical" initialValues={exportConfig}>
-        <Form.Item name="exportAllPages" valuePropName="checked">
-          <Checkbox>Export all pages (not just current page)</Checkbox>
-        </Form.Item>
+      fetchGroupedPrescriptionHistories();
+    }, 300);
 
-        <Divider />
-        <Title level={5}>Include Columns</Title>
-
-        <Form.Item name="includePrescriptionCode" valuePropName="checked">
-          <Checkbox>Prescription Code</Checkbox>
-        </Form.Item>
-
-        <Form.Item name="includeHealthCheckCode" valuePropName="checked">
-          <Checkbox>Health Check Code</Checkbox>
-        </Form.Item>
-
-        <Form.Item name="includeActionDate" valuePropName="checked">
-          <Checkbox>Action Date</Checkbox>
-        </Form.Item>
-
-        <Form.Item name="includePerformedBy" valuePropName="checked">
-          <Checkbox>Performed By</Checkbox>
-        </Form.Item>
-
-        <Form.Item name="includePreviousStatus" valuePropName="checked">
-          <Checkbox>Previous Status</Checkbox>
-        </Form.Item>
-
-        <Form.Item name="includeNewStatus" valuePropName="checked">
-          <Checkbox>New Status</Checkbox>
-        </Form.Item>
-
-        <Form.Item name="includeChangeDetails" valuePropName="checked">
-          <Checkbox>Change Details</Checkbox>
-        </Form.Item>
-      </Form>
-    </Modal>
-  );
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [
+    currentPage,
+    pageSize,
+    prescriptionCode,
+    healthCheckResultCode,
+    performedBySearch,
+    actionDateRange,
+    ascending,
+    fetchGroupedPrescriptionHistories,
+    fetchUniqueValues,
+    uniquePrescriptionCodes.length,
+    filtersApplied,  // Add filtersApplied instead of filterState properties
+  ]);
 
   // Main render
   return (
-    <div className="p-4">
-      <Title level={2}>Prescription History</Title>
-
-      {/* Toolbar Section */}
-      <div className="flex flex-wrap justify-between mb-4">
-        <div className="flex flex-wrap gap-2 mb-4">
-          <Button icon={<ExportOutlined />} onClick={handleOpenExportConfig}>
-            Export to Excel
-          </Button>
-        </div>
-      </div>
-
-      {/* Filters Section */}
-      <div className="mb-6 bg-gray-50 p-4 rounded">
-        <Title level={5}>Search & Filters</Title>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Input
-              placeholder="Search by Prescription Code"
-              value={prescriptionCode}
-              onChange={(e) => setPrescriptionCode(e.target.value)}
-              prefix={<SearchOutlined style={{ color: "blue" }} />}
-              allowClear
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Input
-              placeholder="Search by Health Check Code"
-              value={healthCheckResultCode}
-              onChange={(e) => setHealthCheckResultCode(e.target.value)}
-              prefix={<SearchOutlined style={{ color: "blue" }} />}
-              allowClear
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Select
-              placeholder="Filter by Action"
-              value={action}
-              onChange={(value) => setAction(value)}
-              style={{ width: "100%" }}
-              allowClear
+    <PageContainer
+      title="Prescription History"
+      onBack={() => router.back()}
+      icon={<HistoryOutlined style={{ fontSize: "24px", marginRight: "8px" }} />}
+    >
+      {contextHolder}
+      <Card
+        className="shadow mb-4"
+        bodyStyle={{ padding: "16px" }}
+        style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
             >
-              <Option value="Create">Create</Option>
-              <Option value="Update">Update</Option>
-              <Option value="Cancel">Cancel</Option>
-              <Option value="StatusChange">Status Change</Option>
-              <Option value="SoftDelete">Soft Delete</Option>
-              <Option value="Restore">Restore</Option>
-            </Select>
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Input
-              placeholder="Search by Performed By"
-              value={performedBySearch}
-              onChange={(e) => setPerformedBySearch(e.target.value)}
-              prefix={<SearchOutlined style={{ color: "blue" }} />}
-              allowClear
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Select
-              placeholder="Filter by Previous Status"
-              value={previousStatus}
-              onChange={(value) => setPreviousStatus(value)}
-              style={{ width: "100%" }}
-              allowClear
-            >
-              <Option value="Dispensed">Dispensed</Option>
-              <Option value="Updated">Updated</Option>
-              <Option value="Used">Used</Option>
-              <Option value="UpdatedAndUsed">Updated & Used</Option>
-              <Option value="Inactive">Inactive</Option>
-              <Option value="Cancelled">Cancelled</Option>
-              <Option value="SoftDeleted">Soft Deleted</Option>
-            </Select>
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Select
-              placeholder="Filter by New Status"
-              value={newStatus}
-              onChange={(value) => setNewStatus(value)}
-              style={{ width: "100%" }}
-              allowClear
-            >
-              <Option value="Dispensed">Dispensed</Option>
-              <Option value="Updated">Updated</Option>
-              <Option value="Used">Used</Option>
-              <Option value="UpdatedAndUsed">Updated & Used</Option>
-              <Option value="Inactive">Inactive</Option>
-              <Option value="Cancelled">Cancelled</Option>
-              <Option value="SoftDeleted">Soft Deleted</Option>
-            </Select>
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <RangePicker
-              placeholder={["Action Start Date", "Action End Date"]}
-              value={actionDateRange as any}
-              onChange={(dates) =>
-                setActionDateRange(
-                  dates as [moment.Moment | null, moment.Moment | null]
-                )
-              }
-              style={{ width: "100%" }}
-              showTime
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Space>
-              <Button
-                type="primary"
-                onClick={handleSearch}
-                icon={<SearchOutlined />}
-              >
-                Search
-              </Button>
-              <Button onClick={handleReset}>Reset</Button>
-            </Space>
+        <Row align="middle" gutter={[16, 16]}>
+          <Col span={24}>
+            <Title level={4} style={{ margin: 0 }}>
+              <AppstoreOutlined style={{ marginRight: "8px", fontSize: "20px" }} />
+              Toolbar
+            </Title>
           </Col>
         </Row>
+
+        <Divider style={{ margin: "16px 0" }} />
+
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Select
+              showSearch
+              placeholder="Search Prescription Code"
+              value={prescriptionCode || undefined}
+              onChange={(value) => {
+                setPrescriptionCode(value || "");
+                setCurrentPage(1);
+                setLoading(true);
+              }}
+              style={{ width: "320px" }}
+              prefix={<SearchOutlined style={{color: "blue"}}/>}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.value?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={uniquePrescriptionCodes.map((code) => ({
+                value: code,
+                label: code,
+              }))}
+              dropdownStyle={{ minWidth: "320px" }}
+            />
+
+            <Tooltip title="Advanced Filters">
+              <Button
+                icon={<FilterOutlined style={{
+                  color: healthCheckResultCode ||
+                    performedBySearch ||
+                    (actionDateRange && (actionDateRange[0] || actionDateRange[1]))
+                    ? "#1890ff"
+                    : undefined,
+                }} />}
+                onClick={openFilterModal}
+              >
+                Filters
+              </Button>
+            </Tooltip>
+
+            <Tooltip title="Reset All Filters">
+              <Button
+                icon={<UndoOutlined />}
+                onClick={handleReset}
+                disabled={
+                  !(
+                    prescriptionCode ||
+                    healthCheckResultCode ||
+                    performedBySearch ||
+                    filterState.actionType ||
+                    filterState.statusChange ||
+                    actionDateRange[0] ||
+                    actionDateRange[1]
+                  )
+                }
+              />
+            </Tooltip>
+          </div>
+
+          <div>
+            <Button
+              type="primary"
+              icon={<FileExcelOutlined />}
+              onClick={handleOpenExportConfig}
+            >
+              Export to Excel
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: "16px",
+          gap: "8px",
+          alignItems: "center",
+        }}
+      >
+        <Text type="secondary">Groups per page:</Text>
+        <Select
+          value={pageSize}
+          onChange={(value) => {
+            setPageSize(value);
+            setCurrentPage(1);
+            setLoading(true);
+          }}
+          style={{ width: "80px" }}
+        >
+          <Option value={5}>5</Option>
+          <Option value={10}>10</Option>
+          <Option value={15}>15</Option>
+          <Option value={20}>20</Option>
+        </Select>
       </div>
 
-      {/* Table Section */}
-      <div className="mb-4">
-        <Table
-          columns={columns}
-          dataSource={histories}
-          rowKey="id"
-          loading={loading}
-          pagination={false}
-          onChange={(pagination, filters, sorter: any) => {
-            if (sorter.field) {
-              setSortBy(sorter.field);
-              setAscending(sorter.order === "ascend");
-              fetchHistories();
-            }
-          }}
-        />
+      {loading && resultGroups.length === 0 ? (
+        <Card className="shadow mb-4">
+          <Spin tip="Loading..." />
+        </Card>
+      ) : resultGroups.length > 0 ? (
+        <div>
+          {resultGroups.map((group) => (
+            <Card key={group.prescriptionId} className="shadow mb-4">
+              <div className="border-b pb-3 mb-4">
+                <div style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}>
+                  <Space size="large">
+                    <span>
+                      <Text type="secondary">Prescription:</Text>{" "}
+                      <Button
+                        type="link"
+                        onClick={() => router.push(`/prescription/${group.prescriptionId}`)}
+                        style={{ padding: 0 }}
+                      >
+                        {group.code}
+                      </Button>
+                    </span>
 
-        <div className="mt-4 flex justify-end">
-          <Pagination
+                    {/* Find the most recent history entry that has health check info */}
+                    {(() => {
+                      const historyWithHealthCheck = group.histories.find(
+                        h => h.prescription?.healthCheckResult?.healthCheckResultCode
+                      );
+                      
+                      return historyWithHealthCheck && historyWithHealthCheck.prescription && historyWithHealthCheck.prescription.healthCheckResult ? (
+                        <>
+                          <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            color: "#8c8c8c",
+                          }}>
+                            <LinkOutlined style={{ fontSize: "14px" }} />
+                          </div>
+                          <span>
+                            <Text type="secondary">Health Check:</Text>{" "}
+                            <Button
+                              type="link"
+                              onClick={() => {
+                                if (historyWithHealthCheck?.prescription?.healthCheckResult?.id) {
+                                  router.push(`/health-check-result/${historyWithHealthCheck.prescription.healthCheckResult.id}`);
+                                }
+                              }}
+                              style={{ padding: 0 }}
+                            >
+                              {historyWithHealthCheck?.prescription?.healthCheckResult?.healthCheckResultCode}
+                            </Button>
+                          </span>
+                        </>
+                      ) : null;
+                    })()}
+                  </Space>
+                </div>
+              </div>
+
+              {group.loading ? (
+                <Spin />
+              ) : (
+                <Collapse
+                  defaultActiveKey={["1"]}
+                  expandIcon={({ isActive }) => (
+                    <CaretRightOutlined rotate={isActive ? 90 : 0} />
+                  )}
+                >
+                  <Panel header="Action History" key="1">
+                    <Timeline
+                      mode="left"
+                      items={group.histories
+                        .sort((a, b) => {
+                          const comparison = dayjs(a.actionDate).unix() - dayjs(b.actionDate).unix();
+                          return ascending ? comparison : -comparison;
+                        })
+                        .map((history) => {
+                          console.log("Processing history item:", {
+                            id: history.id,
+                            action: history.action,
+                            previousStatus: history.previousStatus,
+                            newStatus: history.newStatus,
+                            hasNewStatus: !!history.newStatus,
+                            hasPreviousStatus: !!history.previousStatus
+                          });
+                          
+                          return {
+                            color: getActionColor(history.action),
+                            dot: getActionIcon(history.action),
+                            children: (
+                              <Card
+                                size="small"
+                                className="mb-2 hover:shadow-md transition-shadow"
+                              >
+                                <div style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: "8px",
+                                }}>
+                                  <div style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                  }}>
+                                    <div style={{ fontWeight: 500 }}>
+                                      {history.action}
+                                    </div>
+                                    <div style={{
+                                      fontSize: "14px",
+                                      color: "#8c8c8c",
+                                    }}>
+                                      {formatDateTime(history.actionDate)}
+                                    </div>
+                                  </div>
+
+                                  <div style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr",
+                                    gap: "4px",
+                                  }}>
+                                    <div style={{ display: "flex" }}>
+                                      <div style={{
+                                        width: "180px",
+                                        color: "#8c8c8c",
+                                      }}>
+                                        Performed by:
+                                      </div>
+                                      <div>
+                                        {"System"}
+                                      </div>
+                                    </div>
+
+                                    {/* Hiển thị status change khi có cả previousStatus và newStatus */}
+                                    {history.previousStatus && history.newStatus && (
+                                      <div style={{ display: "flex" }}>
+                                        <div style={{
+                                          width: "180px",
+                                          color: "#8c8c8c",
+                                        }}>
+                                          Status change:
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                          <Tag color={getStatusColor(history.previousStatus)}>
+                                            {history.previousStatus}
+                                          </Tag>
+                                          <Text type="secondary"> → </Text>
+                                          <Tag color={getStatusColor(history.newStatus)}>
+                                            {history.newStatus}
+                                          </Tag>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Hiển thị status khi chỉ có newStatus */}
+                                    {(!history.previousStatus || history.previousStatus === "null") && history.newStatus && (
+                                      <div style={{ display: "flex" }}>
+                                        <div style={{
+                                          width: "180px",
+                                          color: "#8c8c8c",
+                                        }}>
+                                          Status:
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                          <Tag color={getStatusColor(history.newStatus)}>
+                                            {history.newStatus}
+                                          </Tag>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {history.changeDetails && (
+                                      <div style={{ display: "flex" }}>
+                                        <div style={{
+                                          width: "180px",
+                                          color: "#8c8c8c",
+                                        }}>
+                                          Details:
+                                        </div>
+                                        <div style={{
+                                          flex: 1,
+                                          whiteSpace: "pre-wrap",
+                                        }}>
+                                          {history.changeDetails}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </Card>
+                            ),
+                          };
+                        })}
+                    />
+                  </Panel>
+                </Collapse>
+              )}
+            </Card>
+          ))}
+
+          <PaginationFooter
             current={currentPage}
             pageSize={pageSize}
             total={total}
-            showSizeChanger
             onChange={handlePageChange}
-            onShowSizeChange={handlePageChange}
-            showTotal={(total) => `Total ${total} items`}
+            showGoToPage={true}
+            showTotal={true}
+            useItemsLabel={true}
           />
         </div>
-      </div>
+      ) : (
+        <Card className="shadow mb-4">
+          <Empty description="No prescription histories found" />
+        </Card>
+      )}
 
-      {/* Export Config Modal */}
-      {renderExportConfigModal()}
-    </div>
+      {/* Filter Modal */}
+      <PrescriptionHistoryListFilterModal
+        visible={showFilterModal}
+        filterState={filterState}
+        setFilterState={setFilterState}
+        uniqueHealthCheckCodes={uniqueHealthCheckCodes}
+        uniquePerformers={uniquePerformers}
+        onClose={closeFilterModal}
+        onApply={applyFilters}
+        onReset={resetFilters}
+      />
+
+      {/* Export Modal */}
+      <HistoryExportModal
+        visible={showExportConfigModal}
+        onClose={closeExportConfigModal}
+        config={exportConfig}
+        onChange={handleExportConfigChange}
+        filters={{
+          currentPage,
+          pageSize,
+          action: filterState.actionType,
+          performedBySearch,
+          previousStatus: filterState.statusChange,
+          newStatus: filterState.statusChange,
+          sortBy,
+          ascending,
+          actionDateRange,
+          prescriptionCode,
+          healthCheckResultCode,
+        }}
+        prescriptionCodes={uniquePrescriptionCodes}
+        healthCheckCodes={uniqueHealthCheckCodes}
+        performedByOptions={uniquePerformers}
+        statusOptions={["Dispensed", "Updated", "Used", "Updated and Used", "Cancelled", "Soft Deleted"]}
+        actionOptions={["Created", "Updated", "Cancelled", "Soft Deleted", "Restored"]}
+      />
+    </PageContainer>
   );
 }

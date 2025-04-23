@@ -30,8 +30,8 @@ interface NotificationFilterModalProps {
   onApply: (filters: any) => void;
   onReset: () => void;
   filterState: {
-    recipientTypeFilter: string;
-    createdByFilter: string;
+    recipientTypeFilter: string | undefined;
+    createdByFilter: string | undefined;
     sendEmailFilter: boolean | null;
     dateRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
     sortBy: string;
@@ -108,7 +108,7 @@ const NotificationFilterModal: React.FC<NotificationFilterModalProps> = ({
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="recipientType" label="Recipient Type">
-                <Select placeholder="Select recipient type" allowClear>
+                <Select placeholder="Select recipient type" allowClear defaultValue={undefined}>
                   <Option value="System">System</Option>
                   <Option value="Role">Role</Option>
                 </Select>
@@ -117,7 +117,7 @@ const NotificationFilterModal: React.FC<NotificationFilterModalProps> = ({
 
             <Col span={12}>
               <Form.Item name="sendEmail" label="Email Sent">
-                <Select placeholder="Select email sent status" allowClear>
+                <Select placeholder="Select email sent status" allowClear defaultValue={undefined}>
                   <Option value={true}>Yes</Option>
                   <Option value={false}>No</Option>
                 </Select>
@@ -131,6 +131,7 @@ const NotificationFilterModal: React.FC<NotificationFilterModalProps> = ({
               allowClear
               showSearch
               optionFilterProp="children"
+              defaultValue={undefined}
             >
               <Option value="admin">Admin</Option>
               <Option value="system">System</Option>

@@ -44,7 +44,7 @@ import TableControls, {
   createRestoreBulkAction,
 } from "../shared/TableControls";
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 const { Option } = Select;
 
 interface TreatmentPlanTableProps {
@@ -826,7 +826,11 @@ const TreatmentPlanTable: React.FC<TreatmentPlanTableProps> = ({
 
       {/* Custom Cancel Modal */}
       <Modal
-        title="Cancel Treatment Plan"
+        title={
+          <Title level={4} style={{ margin: 0 }}>
+            Cancel Treatment Plan
+          </Title>
+        }
         open={cancelModalVisible}
         onCancel={() => setCancelModalVisible(false)}
         footer={[

@@ -21,6 +21,8 @@ import {
   Form,
   InputNumber,
   Select,
+  Spin,
+  Tooltip,
 } from "antd";
 import { useRouter } from "next/router";
 import {
@@ -53,6 +55,14 @@ import {
   SaveOutlined,
   DeleteOutlined,
   UndoOutlined,
+  PlusOutlined,
+  PrinterOutlined,
+  UserOutlined,
+  FileOutlined,
+  CalendarOutlined,
+  EnvironmentOutlined,
+  PhoneOutlined,
+  GiftOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
@@ -78,6 +88,13 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
   const [editLoading, setEditLoading] = useState(false);
   const [drugOptions, setDrugOptions] = useState<DrugResponse[]>([]);
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
+
+  // Thêm loading states cho từng action
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   // Check if edit query parameter is present
   useEffect(() => {
@@ -158,17 +175,21 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
   const handleExportPDF = async () => {
     if (!id) return;
     try {
+      setExportLoading(true);
       await exportPrescriptionToPDF(id);
       toast.success("PDF exported successfully");
     } catch (error) {
       console.error("Error exporting PDF:", error);
       toast.error("Failed to export PDF");
+    } finally {
+      setExportLoading(false);
     }
   };
 
   const handleCancel = async (reason: string) => {
     if (!id) return;
     try {
+      setCancelLoading(true);
       const response = await cancelPrescription(id, reason);
       if (response.success) {
         toast.success("Prescription cancelled successfully");
@@ -180,12 +201,15 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
     } catch (error) {
       console.error("Error cancelling prescription:", error);
       toast.error("Failed to cancel prescription");
+    } finally {
+      setCancelLoading(false);
     }
   };
 
   const handleSoftDelete = async () => {
     if (!id) return;
     try {
+      setDeleteLoading(true);
       const response = await softDeletePrescriptions([id]);
       if (response.success) {
         toast.success("Prescription soft deleted successfully");
@@ -197,12 +221,15 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
     } catch (error) {
       console.error("Error soft deleting prescription:", error);
       toast.error("Failed to soft delete prescription");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
   const handleRestore = async () => {
     if (!id) return;
     try {
+      setRestoreLoading(true);
       const response = await restoreSoftDeletedPrescriptions([id]);
       if (response.success) {
         toast.success("Prescription restored successfully");
@@ -214,6 +241,8 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
     } catch (error) {
       console.error("Error restoring prescription:", error);
       toast.error("Failed to restore prescription");
+    } finally {
+      setRestoreLoading(false);
     }
   };
 
@@ -301,26 +330,73 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
     }
   };
 
+  const getActionIcon = (action: string) => {
+    if (!action) return null;
+
+    switch (action.toLowerCase()) {
+      case "create":
+        return <PlusOutlined />;
+      case "update":
+        return <FormOutlined />;
+      case "cancel":
+        return <CloseCircleOutlined />;
+      case "statuschange":
+        return <ClockCircleOutlined />;
+      case "softdelete":
+        return <DeleteOutlined />;
+      case "restore":
+        return <UndoOutlined />;
+      default:
+        return <HistoryOutlined />;
+    }
+  };
+
+  const canEditPrescription = (status: string | undefined) => {
+    return status === "Dispensed";
+  };
+
+  const canCancelPrescription = (status: string | undefined) => {
+    return status === "Dispensed";
+  };
+
+  const canSoftDeletePrescription = (status: string | undefined) => {
+    return (
+      status === "Used" ||
+      status === "UpdatedAndUsed"
+    );
+  };
+
+  const canRestorePrescription = (status: string | undefined) => {
+    return status === "SoftDeleted";
+  };
+
+  const getBatchStatusColor = (status: string | undefined) => {
+    switch (status) {
+      case "Priority":
+        return "primary";
+      case "Active":
+        return "success";
+      case "NearExpiry":
+        return "warning";
+      case "Inactive":
+        return "default";
+      case "Expired":
+        return "error";
+      default:
+        return "default";
+    }
+  };
+
   const renderActionButtons = () => {
     if (!prescription) return null;
 
-    const canEdit = prescription.status === "Dispensed";
-    const canCancel = prescription.status === "Dispensed";
-    const canSoftDelete =
-      prescription.status === "Used" ||
-      prescription.status === "UpdatedAndUsed";
-    const canRestore = prescription.status === "SoftDeleted";
+    const canEdit = canEditPrescription(prescription.status);
+    const canCancel = canCancelPrescription(prescription.status);
+    const canSoftDelete = canSoftDeletePrescription(prescription.status);
+    const canRestore = canRestorePrescription(prescription.status);
 
     return (
       <Space>
-        <Button
-          type="primary"
-          icon={<FilePdfOutlined />}
-          onClick={handleExportPDF}
-        >
-          Export to PDF
-        </Button>
-
         {isEditing ? (
           <Button
             type="primary"
@@ -353,6 +429,7 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
             }
             okText="Yes"
             cancelText="No"
+            okButtonProps={{ loading: cancelLoading }}
             onConfirm={() => {
               const reasonElement = document.getElementById(
                 "cancel-reason"
@@ -364,7 +441,7 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
               }
             }}
           >
-            <Button danger icon={<CloseCircleOutlined />}>
+            <Button danger icon={<CloseCircleOutlined />} loading={cancelLoading}>
               Cancel Prescription
             </Button>
           </Popconfirm>
@@ -376,9 +453,10 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
             description="Are you sure you want to soft delete this prescription?"
             okText="Yes"
             cancelText="No"
+            okButtonProps={{ loading: deleteLoading }}
             onConfirm={handleSoftDelete}
           >
-            <Button danger icon={<DeleteOutlined />}>
+            <Button danger icon={<DeleteOutlined />} loading={deleteLoading}>
               Soft Delete
             </Button>
           </Popconfirm>
@@ -390,17 +468,22 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
             description="Are you sure you want to restore this prescription?"
             okText="Yes"
             cancelText="No"
+            okButtonProps={{ loading: restoreLoading }}
             onConfirm={handleRestore}
           >
-            <Button icon={<UndoOutlined />}>Restore</Button>
+            <Button icon={<UndoOutlined />} loading={restoreLoading}>
+              Restore
+            </Button>
           </Popconfirm>
         )}
 
         <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={() => router.push("/prescription/management")}
+          type="primary"
+          icon={<FilePdfOutlined />}
+          onClick={handleExportPDF}
+          loading={exportLoading}
         >
-          Back to List
+          Export to PDF
         </Button>
       </Space>
     );
@@ -408,24 +491,22 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
 
   if (loading) {
     return (
-      <div className="p-6">
-        <Skeleton active />
-        <Divider />
-        <Skeleton active />
-        <Divider />
-        <Skeleton active />
+      <div className="flex justify-center items-center h-screen">
+        {contextHolder}
+        <Spin size="large" />
       </div>
     );
   }
 
   if (!prescription) {
     return (
-      <div className="p-6">
+      <div className="p-4">
+        {contextHolder}
         <Empty description="Prescription not found" />
         <div className="mt-4 text-center">
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/prescription/management")}
+            onClick={() => router.push("/prescription")}
           >
             Back to List
           </Button>
@@ -552,66 +633,68 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
                 {detail.instructions}
               </Descriptions.Item>
             </Descriptions>
+
+            {detail.batchDetails && detail.batchDetails.length > 0 && (
+              <div className="mt-4">
+                <Divider orientation="left">Batch Information</Divider>
+                <Descriptions bordered column={1}>
+                  <Descriptions.Item label="Batch Number">
+                    <Button 
+                      type="link" 
+                      onClick={() => router.push(`/batch-number/${detail.batchDetails?.[0].batchId}`)}
+                      style={{ padding: 0, margin: 0 }}
+                    >
+                      {detail.batchDetails?.[0].batchCode}
+                    </Button>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Quantity Used">
+                    {detail.batchDetails?.[0].quantityUsed}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Expiry Date">
+                    {formatDate(detail.batchDetails?.[0].expiryDate)}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Batch Status">
+                    <Tag color={getBatchStatusColor(detail.batchDetails?.[0].status)}>
+                      {detail.batchDetails?.[0].status}
+                    </Tag>
+                  </Descriptions.Item>
+                </Descriptions>
+              </div>
+            )}
           </Card>
         ))}
       </div>
     );
   };
 
-  const renderPatientInfo = () => {
-    if (!prescription || !prescription.healthCheckResult) return null;
-
-    const { healthCheckResult } = prescription;
-    const user = healthCheckResult?.user;
-
-    return (
-      <Card title="Patient Information" className="detail-card">
-        <Row gutter={[16, 16]}>
-          <Col span={12}>
-            <Text strong>Patient Name:</Text>{" "}
-            <Text>{user?.fullName || "N/A"}</Text>
-          </Col>
-          <Col span={12}>
-            <Text strong>Gender:</Text> <Text>{user?.gender || "N/A"}</Text>
-          </Col>
-          <Col span={12}>
-            <Text strong>Date of Birth:</Text>{" "}
-            <Text>
-              {user?.dob ? moment(user.dob).format("DD/MM/YYYY") : "N/A"}
-            </Text>
-          </Col>
-          <Col span={12}>
-            <Text strong>Phone:</Text> <Text>{user?.phone || "N/A"}</Text>
-          </Col>
-          <Col span={12}>
-            <Text strong>Address:</Text> <Text>{user?.address || "N/A"}</Text>
-          </Col>
-          <Col span={12}>
-            <Text strong>Email:</Text> <Text>{user?.email || "N/A"}</Text>
-          </Col>
-        </Row>
-      </Card>
-    );
-  };
-
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <Title level={2}>Prescription Details</Title>
-          <div>{renderActionButtons()}</div>
-        </div>
+    <div className="p-4">
+      {contextHolder}
 
-        <Card>
-          <Descriptions
-            title="Basic Information"
-            bordered
-            column={{ xxl: 4, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.back()}
+            style={{ marginRight: "8px" }}
           >
-            <Descriptions.Item label="Prescription Code">
-              {prescription.prescriptionCode}
-            </Descriptions.Item>
-            <Descriptions.Item label="Health Check Code">
+            Back
+          </Button>
+          <MedicineBoxOutlined style={{ fontSize: "24px" }} />
+          <h3 className="text-xl font-bold">Prescription Details</h3>
+        </div>
+        <div>{renderActionButtons()}</div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <Card title={<span style={{ fontWeight: "bold" }}>Basic Information</span>}>
+          <div className="space-y-4">
+            <div>
+              <Text strong>Prescription Code:</Text>
+              <Text className="ml-2">{prescription.prescriptionCode}</Text>
+            </div>
+            <div>
+              <Text strong>Health Check Code:</Text>
               {prescription?.healthCheckResult ? (
                 <Button
                   type="link"
@@ -620,139 +703,123 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
                       `/health-check-result/${prescription?.healthCheckResult?.id}`
                     )
                   }
+                  style={{ paddingLeft: "8px", margin: 0, height: "auto" }}
                 >
                   {prescription?.healthCheckResult?.healthCheckResultCode}
                 </Button>
               ) : (
-                "N/A"
+                <Text className="ml-2">N/A</Text>
               )}
-            </Descriptions.Item>
-            <Descriptions.Item label="Prescription Date">
-              {formatDate(prescription.prescriptionDate)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Status">
-              <Tag color={getStatusColor(prescription.status)}>
+            </div>
+            <div>
+              <Text strong>Patient:</Text>
+              <Text className="ml-2">
+                {prescription?.healthCheckResult?.user?.fullName} ({prescription?.healthCheckResult?.user?.email})
+              </Text>
+            </div>
+            <div>
+              <Text strong>Healthcare Staff:</Text>
+              <Text className="ml-2">
+                {prescription.staff?.fullName} ({prescription.staff?.email})
+              </Text>
+            </div>
+            <div>
+              <Text strong>Prescription Date:</Text>
+              <Text className="ml-2">{formatDate(prescription.prescriptionDate)}</Text>
+            </div>
+            <div>
+              <Text strong>Status:</Text>
+              <Tag color={getStatusColor(prescription.status)} className="ml-2">
                 {prescription.status}
               </Tag>
-            </Descriptions.Item>
+            </div>
+          </div>
+        </Card>
 
-            <Descriptions.Item label="Patient" span={2}>
-              {prescription?.healthCheckResult?.user ? (
-                <>
-                  <div>
-                    <strong>
-                      {prescription?.healthCheckResult?.user.fullName}
-                    </strong>
-                  </div>
-                  <div>{prescription?.healthCheckResult?.user.email}</div>
-                  {prescription?.healthCheckResult?.user.phone && (
-                    <div>
-                      Phone: {prescription?.healthCheckResult?.user.phone}
-                    </div>
-                  )}
-                  {prescription?.healthCheckResult?.user.gender && (
-                    <div>
-                      Gender: {prescription?.healthCheckResult?.user.gender}
-                    </div>
-                  )}
-                </>
-              ) : (
-                "N/A"
-              )}
-            </Descriptions.Item>
-
-            <Descriptions.Item label="Healthcare Staff" span={2}>
-              {prescription.staff ? (
-                <>
-                  <div>
-                    <strong>{prescription.staff.fullName}</strong>
-                  </div>
-                  <div>{prescription.staff.email}</div>
-                </>
-              ) : (
-                "N/A"
-              )}
-            </Descriptions.Item>
-
-            <Descriptions.Item label="Created At">
-              {formatDateTime(prescription.createdAt)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Updated At">
-              {formatDateTime(prescription.updatedAt) || "N/A"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Updated By" span={2}>
-              {prescription.updatedBy ? (
-                <>
-                  <div>
-                    <strong>{prescription.updatedBy.fullName}</strong>
-                  </div>
-                  <div>{prescription.updatedBy.email}</div>
-                </>
-              ) : (
-                "N/A"
-              )}
-            </Descriptions.Item>
-          </Descriptions>
+        <Card title={<span style={{ fontWeight: "bold" }}>Additional Information</span>}>
+          <div className="space-y-4">
+            <div>
+              <Text strong>Created At:</Text>
+              <Text className="ml-2">{formatDateTime(prescription.createdAt)}</Text>
+            </div>
+            <div>
+              <Text strong>Updated At:</Text>
+              <Text className="ml-2">{formatDateTime(prescription.updatedAt) || "N/A"}</Text>
+            </div>
+            <div>
+              <Text strong>Updated By:</Text>
+              <Text className="ml-2">
+                {prescription.updatedBy ? `${prescription.updatedBy.fullName} (${prescription.updatedBy.email})` : "N/A"}
+              </Text>
+            </div>
+          </div>
         </Card>
       </div>
 
-      <Divider orientation="left">Medications</Divider>
+      <Card title={<span style={{ fontWeight: "bold" }}>Medications</span>} className="mb-8">
+        {renderPrescriptionDetails()}
+      </Card>
 
-      <div className="mb-6">{renderPrescriptionDetails()}</div>
-
-      <Divider orientation="left">Prescription History</Divider>
-
-      <div className="mb-6">
+      <Card title={<span style={{ fontWeight: "bold" }}>History Timeline</span>}>
         {historiesLoading ? (
           <Skeleton active />
         ) : histories.length === 0 ? (
           <Empty description="No history records found" />
         ) : (
-          <Timeline mode="left">
-            {histories.map((history) => (
-              <Timeline.Item
-                key={history.id}
-                color={getActionColor(history.action)}
-                label={formatDateTime(history.actionDate)}
-              >
-                <Card size="small">
-                  <div>
-                    <strong>Action:</strong> {history.action}
+          <Timeline
+            mode="left"
+            items={histories.map((history) => ({
+              color: getActionColor(history.action),
+              dot: getActionIcon(history.action),
+              children: (
+                <Card size="small" className="mb-2 hover:shadow-md transition-shadow">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontWeight: 500 }}>{history.action}</div>
+                      <div style={{ fontSize: "14px", color: "#8c8c8c" }}>
+                        {formatDateTime(history.actionDate)}
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "4px" }}>
+                      <div style={{ display: "flex" }}>
+                        <div style={{ width: "180px", color: "#8c8c8c" }}>Performed by:</div>
+                        <div>
+                          {history.performedBy ? `${history.performedBy.fullName} (${history.performedBy.email})` : "N/A"}
+                        </div>
+                      </div>
+
+                      {history.previousStatus && history.newStatus && (
+                        <div style={{ display: "flex" }}>
+                          <div style={{ width: "180px", color: "#8c8c8c" }}>Status:</div>
+                          <div style={{ flex: 1 }}>
+                            <Tag color={getStatusColor(history.previousStatus)}>
+                              {history.previousStatus}
+                            </Tag>
+                            <Text type="secondary"> → </Text>
+                            <Tag color={getStatusColor(history.newStatus)}>
+                              {history.newStatus}
+                            </Tag>
+                          </div>
+                        </div>
+                      )}
+
+                      {history.changeDetails && (
+                        <div style={{ display: "flex" }}>
+                          <div style={{ width: "180px", color: "#8c8c8c" }}>Details:</div>
+                          <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>
+                            {history.changeDetails}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {history.performedBy && (
-                    <div>
-                      <strong>Performed By:</strong>{" "}
-                      {history.performedBy.fullName} (
-                      {history.performedBy.email})
-                    </div>
-                  )}
-                  {history.previousStatus && (
-                    <div>
-                      <strong>Previous Status:</strong>{" "}
-                      <Tag color={getStatusColor(history.previousStatus)}>
-                        {history.previousStatus}
-                      </Tag>
-                    </div>
-                  )}
-                  {history.newStatus && (
-                    <div>
-                      <strong>New Status:</strong>{" "}
-                      <Tag color={getStatusColor(history.newStatus)}>
-                        {history.newStatus}
-                      </Tag>
-                    </div>
-                  )}
-                  {history.changeDetails && (
-                    <div>
-                      <strong>Change Details:</strong> {history.changeDetails}
-                    </div>
-                  )}
                 </Card>
-              </Timeline.Item>
-            ))}
-          </Timeline>
+              ),
+            }))}
+          />
         )}
-      </div>
+      </Card>
     </div>
   );
 };

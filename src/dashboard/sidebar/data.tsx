@@ -30,6 +30,11 @@ import { SurveyForUserIcon } from "./icons/SurveyForUserIcon";
 import { SurveyStatisticsIcon } from "./icons/SurveyStatisticsIcon";
 import { StatisticsofalldrugsIcon } from "./icons/Statisticsofalldrugs";
 import { SurveyForStaffIcon } from "./icons/SurveyForStaffIcon";
+import { PrescriptionStatisticsIcon } from "./icons/PrescriptionStatisticsIcon";
+import CanteenOrderStatisticsIcon from "./icons/CanteenOrderStatisticsIcon";
+import InventoryRecordStatictisIcon from "./icons/InventoryRecordStatictisIcon";
+import HealthInsuranceStatictisIcon from "./icons/HealthInsuranceStatictisIcon";
+import AppointmentStatisticsIcon from "./icons/AppointmentStatisticsIcon";
 
 export const data = [
   {
@@ -62,9 +67,34 @@ export const data = [
             link: "/statistics/survey",
           },
           {
+            title: "Prescription Statistics",
+            icon: <PrescriptionStatisticsIcon />,
+            link: "/statistics/prescription",
+          },
+          {
+            title: "Canteen Order Statistics",
+            icon: <CanteenOrderStatisticsIcon />,
+            link: "/statistics/canteenorder",
+          },
+          {
+            title: "Inventory Record Statistics",
+            icon: <InventoryRecordStatictisIcon />,
+            link: "/statistics/inventoryrecord",
+          },
+          {
             title: "Health Check Result Statistics",
             icon: <StatusIcon />,
             link: "/statistics/health-check-result",
+          },
+          {
+            title: "Health Insurance Statistics",
+            icon: <HealthInsuranceStatictisIcon />,
+            link: "/statistics/healthinsurance",
+          },
+          {
+            title: "Appointment Statistics",
+            icon: <AppointmentStatisticsIcon />,
+            link: "/statistics/appointment",
           },
         ],
       },
@@ -219,39 +249,9 @@ export const data = [
         icon: <HealthInsuranceIcon />,
         submenu: [
           {
-            title: "Insurance List",
+            title: "Manage Insurances",
             icon: <HealthInsuranceIcon />,
             link: "/health-insurance",
-          },
-          {
-            title: "Initial Registration",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/initial",
-          },
-          {
-            title: "Expired Update",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/expired-update",
-          },
-          {
-            title: "Soft Deleted",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/soft-deleted",
-          },
-          {
-            title: "Verification",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/verification",
-          },
-          {
-            title: "Uninsured",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/no-insurance",
-          },
-          {
-            title: "Update Requests",
-            icon: <HealthInsuranceIcon />,
-            link: "/health-insurance/update-requests",
           },
           {
             title: "Insurance History",

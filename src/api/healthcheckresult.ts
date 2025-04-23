@@ -188,6 +188,13 @@ export interface HealthCheckResultExportConfigDTO {
   includeDetails: boolean;
 }
 
+export interface HealthCheckResultInfo {
+  id: string;
+  healthCheckResultCode: string;
+  checkupDate: string;
+  status?: string;
+}
+
 // API Functions
 export const getAllHealthCheckResults = async (
   page: number = 1,
@@ -288,10 +295,16 @@ export const scheduleFollowUp = async (id: string, followUpDate: string) => {
   return response.data;
 };
 
-export const getHealthCheckResultsStatistics = async () => {
+export const getHealthCheckResultsStatistics = async (startDate?: string, endDate?: string) => {
   try {
     const response = await api.get(
-      "/healthcheckresult-management/healthcheckresults/statistics"
+      "/healthcheckresult-management/healthcheckresults/statistics",
+      {
+        params: {
+          startDate,
+          endDate
+        }
+      }
     );
     const data = response.data;
     // Map isSuccess to success

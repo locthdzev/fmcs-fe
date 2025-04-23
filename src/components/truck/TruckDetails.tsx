@@ -27,16 +27,23 @@ interface TruckDetailsProps {
 
 export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
   const router = useRouter();
+  const { refresh } = router.query;
   const [truck, setTruck] = useState<TruckResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [messageApi, contextHolder] = message.useMessage();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  // Add a timestamp to force image refresh
+  const getImageUrl = (url: string | null | undefined) => {
+    if (!url) return "";
+    return `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+  };
+
   useEffect(() => {
     if (id) {
       fetchTruckDetails();
     }
-  }, [id]);
+  }, [id, refresh]); // Add refresh to the dependency array to reload when it changes
 
   const fetchTruckDetails = async () => {
     setLoading(true);
@@ -79,7 +86,7 @@ export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
     return (
       <Button
         type="primary"
-        onClick={() => router.push(`/truck/edit/${id}`)}
+        onClick={() => router.push(`/delivery-truck/edit/${id}`)}
         icon={<FormOutlined />}
       >
         Edit Truck
@@ -103,7 +110,7 @@ export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
         <div className="flex items-center gap-2 mb-4">
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/truck")}
+            onClick={() => router.push("/delivery-truck")}
             style={{ marginRight: "8px" }}
           >
             Back
@@ -131,7 +138,7 @@ export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
         <img
           alt="Truck Preview"
           style={{ width: "100%" }}
-          src={previewImage || ""}
+          src={previewImage ? getImageUrl(previewImage) : ""}
         />
       </Modal>
 
@@ -139,7 +146,7 @@ export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
         <div className="flex items-center gap-2">
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/truck")}
+            onClick={() => router.push("/delivery-truck")}
             style={{ marginRight: "8px" }}
           >
             Back
@@ -224,14 +231,14 @@ export const TruckDetail: React.FC<TruckDetailsProps> = ({ id }) => {
             {truck.truckImage ? (
               <div className="flex justify-center">
                 <Image
-                  src={truck.truckImage}
+                  src={getImageUrl(truck.truckImage)}
                   alt={truck.licensePlate}
                   style={{
                     maxHeight: "300px",
                     objectFit: "contain",
                   }}
                   preview={{
-                    src: truck.truckImage,
+                    src: getImageUrl(truck.truckImage),
                   }}
                 />
               </div>

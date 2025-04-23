@@ -12,6 +12,7 @@ import {
   Space,
   Spin,
   message,
+  AutoComplete,
 } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import moment from "moment";
@@ -20,7 +21,11 @@ import {
   PrescriptionsCreateRequestDTO,
   PrescriptionDetailsCreateRequestDTO,
 } from "@/api/prescription";
-import { DrugResponse } from "@/api/drug";
+import { 
+  DrugResponse, 
+  getAvailableDrugsForPrescription,
+  DrugWithInventoryInfoDTO
+} from "@/api/drug";
 import {
   getAllHealthCheckResults,
   getHealthCheckResultById,
@@ -67,25 +72,14 @@ const CreateModal: React.FC<CreateModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [loadingHealthCheckResults, setLoadingHealthCheckResults] =
     useState(false);
+  const [loadingDrugs, setLoadingDrugs] = useState(false);
   const [selectedHealthCheckResultId, setSelectedHealthCheckResultId] =
     useState<string | null>(null);
   const [healthCheckResultOptions, setHealthCheckResultOptions] = useState<
     HealthCheckResultOption[]
   >([]);
+  const [availableDrugOptions, setAvailableDrugOptions] = useState<DrugWithInventoryInfoDTO[]>([]);
   const [messageApi, contextHolder] = message.useMessage();
-
-  useEffect(() => {
-    if (!visible) {
-      form.resetFields();
-      setSelectedHealthCheckResultId(null);
-    }
-  }, [visible, form]);
-
-  useEffect(() => {
-    if (visible) {
-      fetchHealthCheckResults();
-    }
-  }, [visible]);
 
   const fetchHealthCheckResults = async () => {
     setLoadingHealthCheckResults(true);
@@ -171,6 +165,47 @@ const CreateModal: React.FC<CreateModalProps> = ({
       setLoadingHealthCheckResults(false);
     }
   };
+
+  const fetchAvailableDrugs = async () => {
+    setLoadingDrugs(true);
+    try {
+      const response = await getAvailableDrugsForPrescription();
+      console.log("Available drugs response:", response);
+
+      if (response.success || response.isSuccess) {
+        setAvailableDrugOptions(response.data || []);
+      } else {
+        messageApi.error({
+          content: response.message || "Failed to fetch available drugs",
+          duration: 5,
+        });
+        setAvailableDrugOptions([]);
+      }
+    } catch (error) {
+      console.error("Error fetching available drugs:", error);
+      messageApi.error({
+        content: "Failed to fetch available drugs",
+        duration: 5,
+      });
+      setAvailableDrugOptions([]);
+    } finally {
+      setLoadingDrugs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!visible) {
+      form.resetFields();
+      setSelectedHealthCheckResultId(null);
+    }
+  }, [visible, form]);
+
+  useEffect(() => {
+    if (visible) {
+      fetchHealthCheckResults();
+      fetchAvailableDrugs();
+    }
+  }, [visible]);
 
   const handleSubmit = async () => {
     try {
@@ -352,15 +387,23 @@ const CreateModal: React.FC<CreateModalProps> = ({
                       showSearch
                       placeholder="Select medicine"
                       optionFilterProp="children"
+                      loading={loadingDrugs}
                       filterOption={(input, option) =>
                         (option?.label as string)
                           .toLowerCase()
                           .indexOf(input.toLowerCase()) >= 0
                       }
-                      options={drugOptions.map((drug) => ({
+                      options={availableDrugOptions.map((drug) => ({
                         value: drug.id,
-                        label: `${drug.name} (${drug.drugCode})`,
+                        label: `${drug.name} - ${drug.batchCode} - ${drug.quantityInStock} in stock`,
                       }))}
+                      notFoundContent={
+                        loadingDrugs ? (
+                          <Spin size="small" />
+                        ) : (
+                          "No available medicines found"
+                        )
+                      }
                     />
                   </Form.Item>
 
@@ -370,7 +413,25 @@ const CreateModal: React.FC<CreateModalProps> = ({
                     label="Dosage"
                     rules={[{ required: true, message: "Please enter dosage" }]}
                   >
-                    <Input placeholder="e.g. 1 tablet twice daily" />
+                    <AutoComplete
+                      placeholder="Select or enter dosage instructions"
+                      options={[
+                        { value: '1 tablet once daily' },
+                        { value: '1 tablet twice daily' },
+                        { value: '1 tablet three times daily' },
+                        { value: '2 tablets once daily' },
+                        { value: '2 tablets twice daily' },
+                        { value: '1 tablet every 8 hours' },
+                        { value: '1-2 tablets as needed for pain' },
+                        { value: '5ml three times daily' },
+                        { value: '10ml twice daily' },
+                        { value: 'Apply to affected area twice daily' },
+                        { value: 'Apply 1 patch every 12 hours' },
+                      ]}
+                      filterOption={(inputValue, option) =>
+                        option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                      }
+                    />
                   </Form.Item>
 
                   <Form.Item

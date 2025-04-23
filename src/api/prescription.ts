@@ -40,6 +40,7 @@ export interface HealthCheckResultInfo {
   healthCheckResultCode: string;
   user?: UserInfo;
   checkupDate: string;
+  status?: string;
 }
 
 export interface DrugInfo {
@@ -48,10 +49,28 @@ export interface DrugInfo {
   name: string;
 }
 
+export interface BatchInfo {
+  id: string;
+  batchCode: string;
+  manufacturingDate?: string;
+  expiryDate?: string;
+  status?: string;
+}
+
+export interface BatchDetailInfo {
+  batchId: string;
+  batchCode: string;
+  quantityUsed: number;
+  expiryDate?: string;
+  status?: string;
+}
+
 // Prescription related interfaces
 export interface PrescriptionDetailResponseDTO {
   id: string;
   drug?: DrugInfo;
+  batch?: BatchInfo;
+  batchDetails?: BatchDetailInfo[];
   dosage: string;
   quantity: number;
   instructions: string;
@@ -144,11 +163,24 @@ export interface PrescriptionHistoryExportConfigDTO {
   exportAllPages: boolean;
   includePrescriptionCode: boolean;
   includeHealthCheckCode: boolean;
+  includeAction: boolean;
   includeActionDate: boolean;
   includePerformedBy: boolean;
   includePreviousStatus: boolean;
   includeNewStatus: boolean;
   includeChangeDetails: boolean;
+}
+
+export interface GroupedPrescriptionHistoryResponseDTO {
+  groupKey: string;
+  groupName: string;
+  totalChanges: number;
+  firstChangeDate: string;
+  lastChangeDate: string;
+  affectedPrescriptionCodes: string[];
+  actionTypeCounts: Record<string, number>;
+  statusChangeCounts: Record<string, number>;
+  historyDetails: PrescriptionHistoryResponseDTO[];
 }
 
 // API Functions
@@ -306,9 +338,21 @@ export const restoreSoftDeletedPrescriptions = async (
   }
 };
 
-export const getPrescriptionStatistics = async () => {
+export const getPrescriptionStatistics = async (startDate?: Date, endDate?: Date) => {
   try {
-    const response = await api.get("/prescription-management/prescriptions/statistics");
+    const params: any = {};
+    
+    if (startDate) {
+      params.startDate = startDate.toISOString();
+    }
+    
+    if (endDate) {
+      params.endDate = endDate.toISOString();
+    }
+    
+    const response = await api.get("/prescription-management/prescriptions/statistics", {
+      params
+    });
     const data = response.data;
     // Map isSuccess to success if needed
     if (data.isSuccess !== undefined && data.success === undefined) {
@@ -392,6 +436,49 @@ export const getPrescriptionHistoriesByPrescriptionId = async (
     return data;
   } catch (error) {
     console.error("Error fetching prescription histories:", error);
+    throw error;
+  }
+};
+
+export const getGroupedPrescriptionHistories = async (
+  page: number = 1,
+  pageSize: number = 10,
+  action?: string,
+  startActionDate?: string,
+  endActionDate?: string,
+  performedBySearch?: string,
+  previousStatus?: string,
+  newStatus?: string,
+  sortBy: string = "ActionDate",
+  ascending: boolean = false,
+  prescriptionCode?: string,
+  healthCheckResultCode?: string
+) => {
+  try {
+    const response = await api.get("/prescription-management/prescription-histories/grouped", {
+      params: {
+        page,
+        pageSize,
+        action,
+        startActionDate,
+        endActionDate,
+        performedBySearch,
+        previousStatus,
+        newStatus,
+        sortBy,
+        ascending,
+        prescriptionCode,
+        healthCheckResultCode,
+      },
+    });
+    const data = response.data;
+    // Map isSuccess to success if needed
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching grouped prescription histories:", error);
     throw error;
   }
 };
@@ -554,5 +641,40 @@ export const getDrugsByHealthCheckResultId = async (healthCheckResultId: string)
       message: "Failed to fetch drugs from prescriptions",
       data: []
     };
+  }
+};
+
+/**
+ * Get prescriptions for the currently logged in user
+ */
+export const getCurrentUserPrescriptions = async (
+  page: number = 1,
+  pageSize: number = 10,
+  sortBy: string = "PrescriptionDate",
+  ascending: boolean = false,
+  status?: string
+) => {
+  try {
+    const response = await api.get(
+      "/prescription-management/prescriptions/current-user",
+      {
+        params: {
+          page,
+          pageSize,
+          sortBy,
+          ascending,
+          status,
+        },
+      }
+    );
+    const data = response.data;
+    // Map isSuccess to success for consistency
+    if (data.isSuccess !== undefined && data.success === undefined) {
+      data.success = data.isSuccess;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error fetching current user prescriptions:", error);
+    throw error;
   }
 };

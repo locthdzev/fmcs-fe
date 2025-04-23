@@ -1057,7 +1057,11 @@ export function DrugOrders() {
 
         {showApproveButton && (
           <Button
-            className="bg-success-100 text-primary border-primary"
+            style={{ 
+              backgroundColor: "#e6f7ff", 
+              color: "#1890ff", 
+              borderColor: "#91d5ff" 
+            }}
             onClick={() => showConfirm("approve", handleApprove)}
             disabled={loading}
           >
@@ -1067,7 +1071,11 @@ export function DrugOrders() {
 
         {showRejectButton && (
           <Button
-            className="bg-danger-100 text-danger border-danger"
+            style={{ 
+              backgroundColor: "#fff2f0", 
+              color: "#ff4d4f", 
+              borderColor: "#ffccc7" 
+            }}
             onClick={() => showConfirm("reject", handleReject)}
             disabled={loading}
           >
@@ -1077,7 +1085,11 @@ export function DrugOrders() {
 
         {showCompleteButton && (
           <Button
-            className="bg-success-100 text-success border-success"
+            style={{ 
+              backgroundColor: "#f6ffed", 
+              color: "#52c41a", 
+              borderColor: "#b7eb8f" 
+            }}
             onClick={() => showConfirm("complete", handleComplete)}
             disabled={loading}
           >
@@ -1102,6 +1114,8 @@ export function DrugOrders() {
           <Option value={10}>10</Option>
           <Option value={15}>15</Option>
           <Option value={20}>20</Option>
+          <Option value={50}>50</Option>
+          <Option value={100}>100</Option>
         </Select>
       </div>
     );
@@ -1237,7 +1251,7 @@ export function DrugOrders() {
             supplierName: supplier.supplierName,
           }))
         );
-      } catch (error) {
+    } catch (error) {
         console.error("Error loading export options:", error);
       }
     };
@@ -1401,7 +1415,7 @@ export function DrugOrders() {
                       allowClear
                       placeholder={
                         <div style={{ display: "flex", alignItems: "center" }}>
-                          <SearchOutlined style={{ marginRight: 8 }} />
+                          
                           <span>Search by order code...</span>
                         </div>
                       }
@@ -1461,7 +1475,6 @@ export function DrugOrders() {
                           !hasAdvancedFilters()
                         }
                       >
-                        Reset
                       </Button>
                     </Tooltip>
 

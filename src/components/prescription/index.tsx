@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Button,
   Table,
@@ -25,27 +25,12 @@ import {
   Modal,
   Form,
   Alert,
+  message,
 } from "antd";
-import { toast } from "react-toastify";
 import moment from "moment";
-import { Pie, Bar } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip as ChartTooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title as ChartTitle,
-} from "chart.js";
 import {
   getAllPrescriptions,
-  getPrescriptionStatistics,
   PrescriptionResponseDTO,
-  PrescriptionStatisticsDTO,
   softDeletePrescriptions,
   restoreSoftDeletedPrescriptions,
   cancelPrescription,
@@ -56,6 +41,13 @@ import { getDrugs, DrugResponse } from "@/api/drug";
 import { useRouter } from "next/router";
 import CreateModal from "./CreateModal";
 import ExportConfigModal from "./ExportConfigModal";
+import PageContainer from "../shared/PageContainer";
+import PaginationFooter from "../shared/PaginationFooter";
+import TableControls, {
+  createDeleteBulkAction,
+  createRestoreBulkAction,
+} from "../shared/TableControls";
+import ToolbarCard from "../shared/ToolbarCard";
 import {
   DownOutlined,
   SearchOutlined,
@@ -77,24 +69,18 @@ import {
   BarChartOutlined,
   UndoOutlined,
   MedicineBoxOutlined,
+  MoreOutlined,
+  TagOutlined,
+  AppstoreOutlined,
+  FileExcelOutlined,
+  ArrowLeftOutlined,
 } from "@ant-design/icons";
+import { ColumnType } from "antd/es/table";
+import PrescriptionFilterModal from "./PrescriptionFilterModal";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
-
-// Register ChartJS components
-ChartJS.register(
-  ArcElement,
-  ChartTooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ChartTitle
-);
 
 // Define status constants
 const PRESCRIPTION_STATUS = {
@@ -172,10 +158,7 @@ export function PrescriptionManagement() {
   const [prescriptions, setPrescriptions] = useState<PrescriptionResponseDTO[]>(
     []
   );
-  const [statistics, setStatistics] =
-    useState<PrescriptionStatisticsDTO | null>(null);
   const [loading, setLoading] = useState(false);
-  const [statsLoading, setStatsLoading] = useState(false);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -217,22 +200,83 @@ export function PrescriptionManagement() {
   const [exportConfig, setExportConfig] = useState(DEFAULT_EXPORT_CONFIG);
   const [form] = Form.useForm();
 
+  // States for tracking bulk actions
+  const [deletingItems, setDeletingItems] = useState(false);
+  const [restoringItems, setRestoringItems] = useState(false);
+
+  // State to track what type of items are selected
+  const [selectedItemTypes, setSelectedItemTypes] = useState({
+    hasDeletable: false,
+    hasRestorable: false,
+  });
+
+  // Add these states to the component
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [filterState, setFilterState] = useState({
+    healthCheckResultCodeSearch: healthCheckResultCodeSearch,
+    userSearch: userSearch,
+    staffSearch: staffSearch,
+    drugSearch: drugSearch,
+    updatedBySearch: updatedBySearch,
+    prescriptionDateRange: prescriptionDateRange,
+    createdDateRange: createdDateRange,
+    updatedDateRange: updatedDateRange,
+    sortBy: sortBy,
+    ascending: ascending,
+  });
+
+  // Extract unique health check codes for the filter dropdown
+  const healthCheckCodes = React.useMemo(() => {
+    const codes = prescriptions
+      .map((p) => p.healthCheckResult?.healthCheckResultCode)
+      .filter((code): code is string => Boolean(code)); // Type guard to ensure non-null, non-undefined values
+    return [...new Set(codes)];
+  }, [prescriptions]);
+
+  // Extract unique prescription codes for the filter dropdown
+  const prescriptionCodes = React.useMemo(() => {
+    const codes = prescriptions
+      .map((p) => p.prescriptionCode)
+      .filter((code): code is string => Boolean(code)); // Type guard to ensure non-null, non-undefined values
+    return [...new Set(codes)];
+  }, [prescriptions]);
+
+  // Update selected item types when selectedRowKeys changes
+  useEffect(() => {
+    if (selectedRowKeys.length === 0) {
+      setSelectedItemTypes({
+        hasDeletable: false,
+        hasRestorable: false,
+      });
+      return;
+    }
+
+    const selectedItems = prescriptions.filter((item) =>
+      selectedRowKeys.includes(item.id)
+    );
+
+    const hasDeletable = selectedItems.some(
+      (item) =>
+        item.status === PRESCRIPTION_STATUS.USED ||
+        item.status === PRESCRIPTION_STATUS.UPDATED_AND_USED
+    );
+
+    const hasRestorable = selectedItems.some(
+      (item) => item.status === PRESCRIPTION_STATUS.SOFT_DELETED
+    );
+
+    setSelectedItemTypes({
+      hasDeletable,
+      hasRestorable,
+    });
+  }, [selectedRowKeys, prescriptions]);
+
   // Fetch data
   const fetchPrescriptions = useCallback(async () => {
     setLoading(true);
     try {
-      const prescriptionStartDate =
-        prescriptionDateRange[0]?.format("YYYY-MM-DD");
-      const prescriptionEndDate =
-        prescriptionDateRange[1]?.format("YYYY-MM-DD");
-      const createdStartDate = createdDateRange[0]?.format("YYYY-MM-DD");
-      const createdEndDate = createdDateRange[1]?.format("YYYY-MM-DD");
-      const updatedStartDate = updatedDateRange[0]?.format("YYYY-MM-DD");
-      const updatedEndDate = updatedDateRange[1]?.format("YYYY-MM-DD");
-
-      const response = await getAllPrescriptions(
-        currentPage,
-        pageSize,
+      // Lấy các giá trị hiện tại của state thay vì dựa vào closure
+      const currentFilters = {
         prescriptionCodeSearch,
         healthCheckResultCodeSearch,
         userSearch,
@@ -242,6 +286,34 @@ export function PrescriptionManagement() {
         sortBy,
         ascending,
         statusFilter,
+        prescriptionDateRange,
+        createdDateRange,
+        updatedDateRange
+      };
+
+      console.log("Fetching with filters:", currentFilters);
+
+      const prescriptionStartDate =
+        currentFilters.prescriptionDateRange[0]?.format("YYYY-MM-DD");
+      const prescriptionEndDate =
+        currentFilters.prescriptionDateRange[1]?.format("YYYY-MM-DD");
+      const createdStartDate = currentFilters.createdDateRange[0]?.format("YYYY-MM-DD");
+      const createdEndDate = currentFilters.createdDateRange[1]?.format("YYYY-MM-DD");
+      const updatedStartDate = currentFilters.updatedDateRange[0]?.format("YYYY-MM-DD");
+      const updatedEndDate = currentFilters.updatedDateRange[1]?.format("YYYY-MM-DD");
+
+      const response = await getAllPrescriptions(
+        currentPage,
+        pageSize,
+        currentFilters.prescriptionCodeSearch,
+        currentFilters.healthCheckResultCodeSearch,
+        currentFilters.userSearch,
+        currentFilters.staffSearch,
+        currentFilters.drugSearch,
+        currentFilters.updatedBySearch,
+        currentFilters.sortBy,
+        currentFilters.ascending,
+        currentFilters.statusFilter,
         prescriptionStartDate,
         prescriptionEndDate,
         createdStartDate,
@@ -250,18 +322,18 @@ export function PrescriptionManagement() {
         updatedEndDate
       );
 
-      console.log("API Response:", response); // Debug
+      console.log("API Response:", response);
 
       if (response.success) {
-        console.log("Setting prescriptions:", response.data); // Debug
+        console.log("Setting prescriptions:", response.data);
         setPrescriptions(response.data.items || response.data);
         setTotal(response.data.totalCount || response.data.length || 0);
       } else {
-        toast.error("Failed to fetch prescriptions");
+        message.error("Failed to fetch prescriptions");
       }
     } catch (error) {
       console.error("Error fetching prescriptions:", error);
-      toast.error("Failed to fetch prescriptions");
+      message.error("Failed to fetch prescriptions");
     } finally {
       setLoading(false);
     }
@@ -281,23 +353,6 @@ export function PrescriptionManagement() {
     createdDateRange,
     updatedDateRange,
   ]);
-
-  const fetchStatistics = useCallback(async () => {
-    setStatsLoading(true);
-    try {
-      const response = await getPrescriptionStatistics();
-      if (response.success) {
-        setStatistics(response.data);
-      } else {
-        toast.error("Failed to fetch statistics");
-      }
-    } catch (error) {
-      console.error("Error fetching statistics:", error);
-      toast.error("Failed to fetch statistics");
-    } finally {
-      setStatsLoading(false);
-    }
-  }, []);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -325,7 +380,7 @@ export function PrescriptionManagement() {
       );
     } catch (error) {
       console.error("Error fetching users:", error);
-      toast.error("Failed to fetch users");
+      message.error("Failed to fetch users");
     }
   }, []);
 
@@ -335,7 +390,7 @@ export function PrescriptionManagement() {
       setDrugOptions(drugs);
     } catch (error) {
       console.error("Error fetching drugs:", error);
-      toast.error("Failed to fetch drugs");
+      message.error("Failed to fetch drugs");
     }
   }, []);
 
@@ -343,7 +398,6 @@ export function PrescriptionManagement() {
     fetchPrescriptions();
     fetchUsers();
     fetchDrugs();
-    fetchStatistics();
   }, []);
 
   useEffect(() => {
@@ -357,6 +411,27 @@ export function PrescriptionManagement() {
   };
 
   const handleReset = () => {
+    console.log("Executing reset all filters");
+    
+    // Tạo các giá trị filter mặc định
+    const emptyFilters = {
+      healthCheckResultCodeSearch: "",
+      prescriptionCodeSearch: "",
+      userSearch: "",
+      staffSearch: "",
+      drugSearch: "",
+      updatedBySearch: "",
+      prescriptionDateRange: [null, null] as [moment.Moment | null, moment.Moment | null],
+      createdDateRange: [null, null] as [moment.Moment | null, moment.Moment | null],
+      updatedDateRange: [null, null] as [moment.Moment | null, moment.Moment | null],
+      sortBy: "PrescriptionDate",
+      ascending: false,
+    };
+    
+    // Cập nhật state filterState
+    setFilterState(emptyFilters);
+    
+    // Reset tất cả các trạng thái filter
     setPrescriptionCodeSearch("");
     setHealthCheckResultCodeSearch("");
     setUserSearch("");
@@ -369,25 +444,82 @@ export function PrescriptionManagement() {
     setUpdatedDateRange([null, null]);
     setSortBy("PrescriptionDate");
     setAscending(false);
+    
+    // Reset về trang đầu tiên
     setCurrentPage(1);
-    fetchPrescriptions();
+    
+    // Tải dữ liệu mới
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        console.log("Fetching data after reset");
+        
+        const response = await getAllPrescriptions(
+          1, // Reset về trang đầu
+          pageSize,
+          "", // prescriptionCodeSearch
+          "", // healthCheckResultCodeSearch
+          "", // userSearch
+          "", // staffSearch
+          "", // drugSearch
+          "", // updatedBySearch
+          "PrescriptionDate", // Sắp xếp mặc định
+          false, // Không sắp xếp tăng dần
+          undefined, // Không lọc theo trạng thái
+          undefined, // prescriptionStartDate
+          undefined, // prescriptionEndDate
+          undefined, // createdStartDate
+          undefined, // createdEndDate
+          undefined, // updatedStartDate
+          undefined  // updatedEndDate
+        );
+        
+        if (response.success) {
+          console.log("Reset successful, setting new data");
+          setPrescriptions(response.data.items || response.data);
+          setTotal(response.data.totalCount || response.data.length || 0);
+        } else {
+          message.error("Failed to reset filters");
+        }
+      } catch (error) {
+        console.error("Error resetting filters:", error);
+        message.error("Error resetting filters");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
   };
 
   // Event handlers
-  const handlePageChange = (page: number, pageSize?: number) => {
+  const handlePageChange = (page: number, newPageSize?: number) => {
     setCurrentPage(page);
-    if (pageSize) setPageSize(pageSize);
+    if (newPageSize) setPageSize(newPageSize);
   };
 
   const handleCreateSuccess = () => {
     fetchPrescriptions();
-    fetchStatistics();
   };
 
   const handleColumnVisibilityChange = (key: string) => {
+    // Không cho phép ẩn cả hai cột prescriptionCode và actions
+    if (key === "prescriptionCode" && visibleColumns.length === 2 && visibleColumns.includes("actions")) {
+      return; // Không cho phép ẩn cột prescriptionCode khi chỉ còn 2 cột
+    }
+    if (key === "actions" && visibleColumns.length === 2 && visibleColumns.includes("prescriptionCode")) {
+      return; // Không cho phép ẩn cột actions khi chỉ còn 2 cột
+    }
+    
     const newVisibleColumns = visibleColumns.includes(key)
       ? visibleColumns.filter((k) => k !== key)
       : [...visibleColumns, key];
+    
+    // Đảm bảo ít nhất một cột luôn hiển thị
+    if (newVisibleColumns.length === 0) {
+      return;
+    }
+    
     setVisibleColumns(newVisibleColumns);
   };
 
@@ -395,15 +527,14 @@ export function PrescriptionManagement() {
     try {
       const response = await softDeletePrescriptions([id]);
       if (response.success) {
-        toast.success("Prescription soft deleted successfully");
+        message.success("Prescription soft deleted successfully");
         fetchPrescriptions();
-        fetchStatistics();
       } else {
-        toast.error("Failed to soft delete prescription");
+        message.error("Failed to soft delete prescription");
       }
     } catch (error) {
       console.error("Error soft deleting prescription:", error);
-      toast.error("Failed to soft delete prescription");
+      message.error("Failed to soft delete prescription");
     }
   };
 
@@ -411,15 +542,14 @@ export function PrescriptionManagement() {
     try {
       const response = await restoreSoftDeletedPrescriptions([id]);
       if (response.success) {
-        toast.success("Prescription restored successfully");
+        message.success("Prescription restored successfully");
         fetchPrescriptions();
-        fetchStatistics();
       } else {
-        toast.error("Failed to restore prescription");
+        message.error("Failed to restore prescription");
       }
     } catch (error) {
       console.error("Error restoring prescription:", error);
-      toast.error("Failed to restore prescription");
+      message.error("Failed to restore prescription");
     }
   };
 
@@ -427,53 +557,52 @@ export function PrescriptionManagement() {
     try {
       const response = await cancelPrescription(id, reason);
       if (response.success) {
-        toast.success("Prescription cancelled successfully");
+        message.success("Prescription cancelled successfully");
         fetchPrescriptions();
-        fetchStatistics();
       } else {
-        toast.error("Failed to cancel prescription");
+        message.error("Failed to cancel prescription");
       }
     } catch (error) {
       console.error("Error cancelling prescription:", error);
-      toast.error("Failed to cancel prescription");
+      message.error("Failed to cancel prescription");
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = async (ids: string[]) => {
     try {
-      const response = await softDeletePrescriptions(
-        selectedRowKeys as string[]
-      );
+      setDeletingItems(true);
+      const response = await softDeletePrescriptions(ids);
       if (response.success) {
-        toast.success("Selected prescriptions soft deleted successfully");
+        message.success("Selected prescriptions soft deleted successfully");
         setSelectedRowKeys([]);
         fetchPrescriptions();
-        fetchStatistics();
       } else {
-        toast.error("Failed to soft delete selected prescriptions");
+        message.error("Failed to soft delete selected prescriptions");
       }
     } catch (error) {
       console.error("Error soft deleting prescriptions:", error);
-      toast.error("Failed to soft delete selected prescriptions");
+      message.error("Failed to soft delete selected prescriptions");
+    } finally {
+      setDeletingItems(false);
     }
   };
 
-  const handleBulkRestore = async () => {
+  const handleBulkRestore = async (ids: string[]) => {
     try {
-      const response = await restoreSoftDeletedPrescriptions(
-        selectedRowKeys as string[]
-      );
+      setRestoringItems(true);
+      const response = await restoreSoftDeletedPrescriptions(ids);
       if (response.success) {
-        toast.success("Selected prescriptions restored successfully");
+        message.success("Selected prescriptions restored successfully");
         setSelectedRowKeys([]);
         fetchPrescriptions();
-        fetchStatistics();
       } else {
-        toast.error("Failed to restore selected prescriptions");
+        message.error("Failed to restore selected prescriptions");
       }
     } catch (error) {
       console.error("Error restoring prescriptions:", error);
-      toast.error("Failed to restore selected prescriptions");
+      message.error("Failed to restore selected prescriptions");
+    } finally {
+      setRestoringItems(false);
     }
   };
 
@@ -489,6 +618,7 @@ export function PrescriptionManagement() {
     setExportConfig({ ...exportConfig, ...changedValues });
   };
 
+  // Helper functions
   const canEditPrescription = (status: string | undefined) => {
     return status === PRESCRIPTION_STATUS.DISPENSED;
   };
@@ -541,108 +671,138 @@ export function PrescriptionManagement() {
 
   const renderActionButtons = (record: PrescriptionResponseDTO) => {
     return (
-      <Space size="small">
-        <Button
-          type="text"
-          icon={<EyeOutlined />}
-          onClick={() => router.push(`/prescription/${record.id}`)}
-          title="View Details"
-        />
+      <div style={{ textAlign: "center" }}>
+        <Dropdown
+          overlay={
+            <Menu>
+              <Menu.Item
+                key="view"
+                icon={<EyeOutlined />}
+                onClick={() => router.push(`/prescription/${record.id}`)}
+              >
+                View Details
+              </Menu.Item>
 
         {canEditPrescription(record.status) && (
-          <Button
-            type="text"
-            icon={<FormOutlined />}
-            onClick={() => router.push(`/prescription/${record.id}?edit=true`)}
-            title="Edit Prescription"
-          />
+                <Menu.Item
+                  key="edit"
+                  icon={<FormOutlined />}
+                  onClick={() =>
+                    router.push(`/prescription/${record.id}?edit=true`)
+                  }
+                >
+                  Edit Prescription
+                </Menu.Item>
         )}
 
         {canCancelPrescription(record.status) && (
-          <Popconfirm
-            title="Cancel Prescription"
-            description={
-              <div>
-                <p>Are you sure you want to cancel this prescription?</p>
-                <Input.TextArea
-                  placeholder="Reason for cancellation"
-                  id={`cancel-reason-${record.id}`}
-                  rows={3}
-                />
-              </div>
-            }
-            okText="Yes"
-            cancelText="No"
-            onConfirm={() => {
-              const reasonElement = document.getElementById(
-                `cancel-reason-${record.id}`
-              ) as HTMLTextAreaElement;
-              if (reasonElement && reasonElement.value) {
-                handleCancel(record.id, reasonElement.value);
-              } else {
-                toast.error("Please provide a reason for cancellation");
-              }
-            }}
-          >
-            <Button
-              type="text"
-              danger
-              icon={<CloseCircleOutlined />}
-              title="Cancel Prescription"
-            />
-          </Popconfirm>
+                <Menu.Item
+                  key="cancel"
+                  icon={<CloseCircleOutlined />}
+                  danger
+                  onClick={() => {
+                    Modal.confirm({
+                      title: "Cancel Prescription",
+                      icon: <CloseCircleOutlined />,
+                      content: (
+                        <div>
+                          <p>
+                            Are you sure you want to cancel this prescription?
+                          </p>
+                          <Input.TextArea
+                            placeholder="Reason for cancellation"
+                            id={`cancel-reason-${record.id}`}
+                            rows={3}
+                          />
+                        </div>
+                      ),
+                      onOk() {
+                        const reasonElement = document.getElementById(
+                          `cancel-reason-${record.id}`
+                        ) as HTMLTextAreaElement;
+                        if (reasonElement && reasonElement.value) {
+                          handleCancel(record.id, reasonElement.value);
+                        } else {
+                          message.error(
+                            "Please provide a reason for cancellation"
+                          );
+                          return Promise.reject("No reason provided");
+                        }
+                      },
+                    });
+                  }}
+                >
+                  Cancel Prescription
+                </Menu.Item>
         )}
 
         {canSoftDeletePrescription(record.status) && (
+                <Menu.Item key="delete" icon={<DeleteOutlined />} danger>
           <Popconfirm
             title="Soft Delete Prescription"
             description="Are you sure you want to soft delete this prescription?"
+                    onConfirm={() => handleSoftDelete(record.id)}
             okText="Yes"
             cancelText="No"
-            onConfirm={() => handleSoftDelete(record.id)}
-          >
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              title="Soft Delete"
-            />
+                    placement="topLeft"
+                  >
+                    <div style={{ width: "100%" }}>Soft Delete</div>
           </Popconfirm>
+                </Menu.Item>
         )}
 
         {canRestorePrescription(record.status) && (
+                <Menu.Item key="restore" icon={<UndoOutlined />}>
           <Popconfirm
             title="Restore Prescription"
             description="Are you sure you want to restore this prescription?"
+                    onConfirm={() => handleRestore(record.id)}
             okText="Yes"
             cancelText="No"
-            onConfirm={() => handleRestore(record.id)}
+                    placement="topLeft"
           >
-            <Button type="text" icon={<UndoOutlined />} title="Restore" />
+                    <div style={{ width: "100%" }}>Restore</div>
           </Popconfirm>
-        )}
-      </Space>
+                </Menu.Item>
+              )}
+            </Menu>
+          }
+          placement="bottomCenter"
+        >
+          <Button icon={<MoreOutlined />} size="small" />
+        </Dropdown>
+      </div>
     );
   };
 
   // Column definitions for the table
-  const columns = [
+  const columns: ColumnType<PrescriptionResponseDTO>[] = [
     {
-      title: "Prescription Code",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          PRESCRIPTION CODE
+        </span>
+      ),
       dataIndex: "prescriptionCode",
       key: "prescriptionCode",
+      fixed: "left" as const,
+      width: 180,
       render: (text: string, record: PrescriptionResponseDTO) => (
         <Button
           type="link"
           onClick={() => router.push(`/prescription/${record.id}`)}
+          style={{ padding: 0 }}
         >
           {text}
         </Button>
       ),
-      visible: visibleColumns.includes("prescriptionCode"),
     },
     {
-      title: "Health Check Code",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          HEALTH CHECK CODE
+        </span>
+      ),
       dataIndex: ["healthCheckResult", "healthCheckResultCode"],
       key: "healthCheckResultCode",
       render: (text: string, record: PrescriptionResponseDTO) =>
@@ -654,384 +814,380 @@ export function PrescriptionManagement() {
                 `/health-check-result/${record.healthCheckResult?.id}`
               )
             }
+            style={{ padding: 0 }}
           >
             {text}
           </Button>
         ) : (
           "N/A"
         ),
-      visible: visibleColumns.includes("healthCheckResultCode"),
     },
     {
-      title: "Medicine User",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          MEDICINE USER
+        </span>
+      ),
       dataIndex: ["healthCheckResult", "user"],
       key: "user",
       render: (_: any, record: PrescriptionResponseDTO) =>
         renderMedicineUser(record.healthCheckResult),
-      visible: visibleColumns.includes("user"),
     },
     {
-      title: "Prescription Date",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          PRESCRIPTION DATE
+        </span>
+      ),
       dataIndex: "prescriptionDate",
       key: "prescriptionDate",
       render: (text: string) => formatDate(text),
-      visible: visibleColumns.includes("prescriptionDate"),
     },
     {
-      title: "Healthcare Staff",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          HEALTHCARE STAFF
+        </span>
+      ),
       dataIndex: "staff",
       key: "staff",
       render: (staff: any) => renderStaff(staff),
-      visible: visibleColumns.includes("staff"),
     },
     {
-      title: "Created At",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          CREATED AT
+        </span>
+      ),
       dataIndex: "createdAt",
       key: "createdAt",
       render: (text: string) => formatDateTime(text),
-      visible: visibleColumns.includes("createdAt"),
     },
     {
-      title: "Updated At",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          UPDATED AT
+        </span>
+      ),
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: (text: string) => formatDateTime(text),
-      visible: visibleColumns.includes("updatedAt"),
     },
     {
-      title: "Updated By",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          UPDATED BY
+        </span>
+      ),
       dataIndex: "updatedBy",
       key: "updatedBy",
       render: (updatedBy: any) => (updatedBy ? renderStaff(updatedBy) : "N/A"),
-      visible: visibleColumns.includes("updatedBy"),
     },
     {
-      title: "Status",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          STATUS
+        </span>
+      ),
       dataIndex: "status",
       key: "status",
-      render: (status: string) => renderStatusTag(status),
-      visible: visibleColumns.includes("status"),
+      align: "center" as const,
+      render: (status: string) => (
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          {renderStatusTag(status)}
+        </div>
+      ),
     },
     {
-      title: "Actions",
+      title: (
+        <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          ACTIONS
+        </span>
+      ),
       key: "actions",
+      fixed: "right" as const,
+      width: 100,
+      align: "center" as const,
       render: (_: any, record: PrescriptionResponseDTO) =>
         renderActionButtons(record),
-      visible: visibleColumns.includes("actions"),
     },
-  ].filter((column) => column.visible);
+  ].filter((column) => visibleColumns.includes(column.key as string));
 
-  // Render content for statistics and charts
-  const renderStatistics = () => {
-    if (statsLoading) {
-      return (
-        <div className="text-center p-8">
-          <Spin size="large" />
-        </div>
-      );
-    }
-
-    if (!statistics) {
-      return <Empty description="No statistics available" />;
-    }
-
-    return (
-      <div>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={6}>
-            <Card>
-              <Statistic
-                title="Total Prescriptions"
-                value={statistics.totalPrescriptions}
-                prefix={<MedicineBoxOutlined />}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card>
-              <Statistic
-                title="Total Drugs Prescribed"
-                value={statistics.totalDrugsPrescribed}
-                prefix={<MedicineBoxOutlined />}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card>
-              <Statistic
-                title="Avg. Drugs Per Prescription"
-                value={statistics.averageDrugsPerPrescription}
-                precision={2}
-                prefix={<FieldTimeOutlined />}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card>
-              <Statistic
-                title="Prescriptions Requiring Follow-up"
-                value={statistics.totalPrescriptionsRequiringFollowUp}
-                prefix={<CalendarOutlined />}
-              />
-            </Card>
-          </Col>
-        </Row>
-
-        <Divider />
-
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={12}>
-            <Card title="Prescriptions by Status">
-              <div style={{ height: 300 }}>
-                {statistics.prescriptionsByStatus &&
-                Object.keys(statistics.prescriptionsByStatus).length > 0 ? (
-                  <Pie
-                    data={{
-                      labels: Object.keys(statistics.prescriptionsByStatus),
-                      datasets: [
-                        {
-                          data: Object.values(statistics.prescriptionsByStatus),
-                          backgroundColor: [
-                            "#36A2EB",
-                            "#FFCE56",
-                            "#4BC0C0",
-                            "#FF6384",
-                            "#9966FF",
-                            "#FF9F40",
-                            "#C9CBCF",
-                          ],
-                        },
-                      ],
-                    }}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                    }}
-                  />
-                ) : (
-                  <Empty description="No data available" />
-                )}
-              </div>
-            </Card>
-          </Col>
-          <Col xs={24} md={12}>
-            <Card title="Prescriptions by Month">
-              <div style={{ height: 300 }}>
-                {statistics.prescriptionsByMonth &&
-                Object.keys(statistics.prescriptionsByMonth).length > 0 ? (
-                  <Bar
-                    data={{
-                      labels: Object.keys(statistics.prescriptionsByMonth),
-                      datasets: [
-                        {
-                          label: "Prescriptions",
-                          data: Object.values(statistics.prescriptionsByMonth),
-                          backgroundColor: "#36A2EB",
-                        },
-                      ],
-                    }}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                    }}
-                  />
-                ) : (
-                  <Empty description="No data available" />
-                )}
-              </div>
-            </Card>
-          </Col>
-        </Row>
-      </div>
-    );
+  // Add these functions for filter modal
+  const handleOpenFilterModal = () => {
+    setFilterModalVisible(true);
   };
+
+  const handleApplyFilters = (filters: any) => {
+    console.log("Received filters in parent:", filters);
+    
+    // Cập nhật tất cả các state
+    setHealthCheckResultCodeSearch(filters.healthCheckResultCodeSearch || "");
+    setUserSearch(filters.userSearch || "");
+    setStaffSearch(filters.staffSearch || "");
+    setDrugSearch(filters.drugSearch || "");
+    setUpdatedBySearch(filters.updatedBySearch || "");
+    
+    // Đảm bảo các giá trị ngày tháng được chuyển đúng định dạng
+    setPrescriptionDateRange(filters.prescriptionDateRange || [null, null]);
+    setCreatedDateRange(filters.createdDateRange || [null, null]);
+    setUpdatedDateRange(filters.updatedDateRange || [null, null]);
+    
+    // Cập nhật sorting
+    setSortBy(filters.sortBy || "PrescriptionDate");
+    setAscending(filters.ascending);
+    
+    // Đóng modal và đặt lại trang
+    setFilterModalVisible(false);
+    setCurrentPage(1);
+    
+    // Cập nhật state filterState
+    setFilterState(filters);
+    
+    // Gọi API để lấy dữ liệu mới
+    const fetchData = async () => {
+      try {
+        console.log("Fetching with applied filters:", filters);
+        
+        const prescriptionStartDate = filters.prescriptionDateRange[0]?.format("YYYY-MM-DD");
+        const prescriptionEndDate = filters.prescriptionDateRange[1]?.format("YYYY-MM-DD");
+        const createdStartDate = filters.createdDateRange[0]?.format("YYYY-MM-DD");
+        const createdEndDate = filters.createdDateRange[1]?.format("YYYY-MM-DD");
+        const updatedStartDate = filters.updatedDateRange[0]?.format("YYYY-MM-DD");
+        const updatedEndDate = filters.updatedDateRange[1]?.format("YYYY-MM-DD");
+        
+        setLoading(true);
+        const response = await getAllPrescriptions(
+          1, // currentPage = 1 vì chúng ta reset về trang đầu
+          pageSize,
+          filters.prescriptionCodeSearch || "",
+          filters.healthCheckResultCodeSearch || "",
+          filters.userSearch || "",
+          filters.staffSearch || "",
+          filters.drugSearch || "",
+          filters.updatedBySearch || "",
+          filters.sortBy || "PrescriptionDate",
+          filters.ascending,
+          statusFilter, // Giữ nguyên statusFilter hiện tại
+          prescriptionStartDate,
+          prescriptionEndDate,
+          createdStartDate,
+          createdEndDate,
+          updatedStartDate,
+          updatedEndDate
+        );
+        
+        console.log("Filter apply response:", response);
+        
+        if (response.success) {
+          setPrescriptions(response.data.items || response.data);
+          setTotal(response.data.totalCount || response.data.length || 0);
+        } else {
+          message.error("Failed to fetch prescriptions with filters");
+        }
+      } catch (error) {
+        console.error("Error applying filters:", error);
+        message.error("Error applying filters");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  };
+
+  const handleResetFilters = () => {
+    const emptyFilters = {
+      healthCheckResultCodeSearch: "",
+      userSearch: "",
+      staffSearch: "",
+      drugSearch: "",
+      updatedBySearch: "",
+      prescriptionDateRange: [null, null] as [moment.Moment | null, moment.Moment | null],
+      createdDateRange: [null, null] as [moment.Moment | null, moment.Moment | null],
+      updatedDateRange: [null, null] as [moment.Moment | null, moment.Moment | null],
+      sortBy: "PrescriptionDate",
+      ascending: false,
+    };
+    
+    setFilterState(emptyFilters);
+    
+    // Reset individual filter state variables
+    setHealthCheckResultCodeSearch("");
+    setUserSearch("");
+    setStaffSearch("");
+    setDrugSearch("");
+    setUpdatedBySearch("");
+    setPrescriptionDateRange([null, null]);
+    setCreatedDateRange([null, null]);
+    setUpdatedDateRange([null, null]);
+    setSortBy("PrescriptionDate");
+    setAscending(false);
+    
+    // Close modal and fetch data
+    setFilterModalVisible(false);
+    fetchPrescriptions();
+  };
+
+  // Cập nhật filterState khi các giá trị filter thay đổi
+  useEffect(() => {
+    setFilterState({
+      healthCheckResultCodeSearch: healthCheckResultCodeSearch,
+      userSearch: userSearch,
+      staffSearch: staffSearch,
+      drugSearch: drugSearch,
+      updatedBySearch: updatedBySearch,
+      prescriptionDateRange: prescriptionDateRange,
+      createdDateRange: createdDateRange,
+      updatedDateRange: updatedDateRange,
+      sortBy: sortBy,
+      ascending: ascending,
+    });
+  }, [
+    healthCheckResultCodeSearch,
+    userSearch,
+    staffSearch,
+    drugSearch,
+    updatedBySearch,
+    prescriptionDateRange,
+    createdDateRange,
+    updatedDateRange,
+    sortBy,
+    ascending,
+  ]);
+
+  // Define available columns for customization
+  const availableColumns = [
+    { key: "prescriptionCode", label: "Prescription Code" },
+    { key: "healthCheckResultCode", label: "Health Check Code" },
+    { key: "user", label: "Medicine User" },
+    { key: "prescriptionDate", label: "Prescription Date" },
+    { key: "staff", label: "Healthcare Staff" },
+    { key: "createdAt", label: "Created At" },
+    { key: "updatedAt", label: "Updated At" },
+    { key: "updatedBy", label: "Updated By" },
+    { key: "status", label: "Status" },
+    { key: "actions", label: "Actions" }
+  ];
+
+  // Column Settings menu
+  const renderColumnSettingsMenu = () => (
+    <Menu>
+      {availableColumns.map(column => (
+        <Menu.Item key={column.key}>
+          <Checkbox
+            checked={visibleColumns.includes(column.key)}
+            onChange={() => handleColumnVisibilityChange(column.key)}
+          >
+            {column.label}
+          </Checkbox>
+        </Menu.Item>
+      ))}
+    </Menu>
+  );
 
   // Main render
   return (
-    <div className="p-4">
-      <Title level={2}>Prescription Management</Title>
+    <PageContainer
+      title="Prescription Management"
+      onBack={() => router.back()}
+      icon={
+        <MedicineBoxOutlined style={{ fontSize: "24px", marginRight: "8px" }} />
+      }
+      rightContent={<Space></Space>}
+    >
+      {/* Search Filters */}
+      <ToolbarCard
+        leftContent={
+          <>
+            {/* Prescription Code Search */}
+            <Select
+              showSearch
+              placeholder="Search Prescription Code"
+              value={prescriptionCodeSearch || undefined}
+              onChange={(value) => {
+                setPrescriptionCodeSearch(value || "");
+                setCurrentPage(1);
+              }}
+              style={{ width: "320px" }}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.value?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={prescriptions
+                .map((p) => p.prescriptionCode)
+                .filter(Boolean)
+                .map((code) => ({
+                  value: code,
+                  label: code,
+                }))}
+              dropdownStyle={{ minWidth: "320px" }}
+            />
 
-      {/* Statistics Section */}
-      <div className="mb-8">
-        <Title level={4}>Statistics</Title>
-        {renderStatistics()}
-      </div>
-
-      <Divider />
-
-      {/* Toolbar Section */}
-      <div className="flex flex-wrap justify-between mb-4">
-        <div className="flex flex-wrap gap-2 mb-4">
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsCreateModalVisible(true)}
-          >
-            Create New Prescription
-          </Button>
-
-          {selectedRowKeys.length > 0 && (
-            <>
-              <Popconfirm
-                title="Soft Delete Selected Prescriptions"
-                description={`Are you sure you want to soft delete ${selectedRowKeys.length} selected prescriptions?`}
-                okText="Yes"
-                cancelText="No"
-                onConfirm={handleBulkDelete}
-              >
-                <Button danger icon={<DeleteOutlined />}>
-                  Soft Delete Selected ({selectedRowKeys.length})
-                </Button>
-              </Popconfirm>
-
-              <Popconfirm
-                title="Restore Selected Prescriptions"
-                description={`Are you sure you want to restore ${selectedRowKeys.length} selected prescriptions?`}
-                okText="Yes"
-                cancelText="No"
-                onConfirm={handleBulkRestore}
-              >
-                <Button icon={<UndoOutlined />}>
-                  Restore Selected ({selectedRowKeys.length})
-                </Button>
-              </Popconfirm>
-            </>
-          )}
-
-          <Button icon={<ExportOutlined />} onClick={handleOpenExportConfig}>
-            Export to Excel
-          </Button>
-
-          <Dropdown
-            overlay={
-              <Menu>
-                {[
-                  { key: "prescriptionCode", label: "Prescription Code" },
-                  { key: "healthCheckResultCode", label: "Health Check Code" },
-                  { key: "user", label: "Medicine User" },
-                  { key: "prescriptionDate", label: "Prescription Date" },
-                  { key: "staff", label: "Healthcare Staff" },
-                  { key: "createdAt", label: "Created At" },
-                  { key: "updatedAt", label: "Updated At" },
-                  { key: "updatedBy", label: "Updated By" },
-                  { key: "status", label: "Status" },
-                  { key: "actions", label: "Actions" },
-                ].map((item) => (
-                  <Menu.Item key={item.key}>
-                    <Checkbox
-                      checked={visibleColumns.includes(item.key)}
-                      onChange={() => handleColumnVisibilityChange(item.key)}
-                    >
-                      {item.label}
-                    </Checkbox>
-                  </Menu.Item>
-                ))}
-              </Menu>
-            }
-            trigger={["click"]}
-          >
-            <Button icon={<SettingOutlined />}>
-              Column Settings <DownOutlined />
+            {/* Health Check Result Code */}
+            {/* <Select
+              showSearch
+              placeholder="Health Check Code"
+              value={healthCheckResultCodeSearch || undefined}
+              onChange={(value) => {
+                setHealthCheckResultCodeSearch(value || "");
+                setCurrentPage(1);
+              }}
+              style={{ width: "220px" }}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.value?.toString().toLowerCase() || "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={prescriptions
+                .map((p) => p.healthCheckResult?.healthCheckResultCode)
+                .filter(Boolean)
+                .map((code) => ({
+                  value: code,
+                  label: code,
+              }))}
+            /> */}
+            <Button
+              icon={<FilterOutlined />}
+              onClick={handleOpenFilterModal}
+              style={{
+                color: 
+                  healthCheckResultCodeSearch ||
+                  userSearch ||
+                  staffSearch ||
+                  drugSearch ||
+                  updatedBySearch ||
+                  (prescriptionDateRange && (prescriptionDateRange[0] || prescriptionDateRange[1])) ||
+                  (createdDateRange && (createdDateRange[0] || createdDateRange[1])) ||
+                  (updatedDateRange && (updatedDateRange[0] || updatedDateRange[1])) ||
+                  (sortBy && sortBy !== "PrescriptionDate") ||
+                  ascending
+                    ? "#1890ff"
+                    : undefined,
+              }}
+            >
+              Filters
             </Button>
-          </Dropdown>
-        </div>
-      </div>
-
-      {/* Filters Section */}
-      <div className="mb-6 bg-gray-50 p-4 rounded">
-        <Title level={5}>Search & Filters</Title>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Input
-              placeholder="Search by Prescription Code"
-              value={prescriptionCodeSearch}
-              onChange={(e) => setPrescriptionCodeSearch(e.target.value)}
-              prefix={<SearchOutlined />}
-              allowClear
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Input
-              placeholder="Search by Health Check Code"
-              value={healthCheckResultCodeSearch}
-              onChange={(e) => setHealthCheckResultCodeSearch(e.target.value)}
-              prefix={<SearchOutlined />}
-              allowClear
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
+            {/* Status filter */}
+            <div>
             <Select
-              showSearch
-              placeholder="Search by Medicine User"
-              optionFilterProp="children"
-              value={userSearch || undefined}
-              onChange={(value) => setUserSearch(value)}
-              style={{ width: "100%" }}
+                placeholder={
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <TagOutlined style={{ marginRight: 8 }} />
+                    <span>Status</span>
+                  </div>
+                }
               allowClear
-              options={userOptions.map((user) => ({
-                value: user.id,
-                label: `${user.fullName} (${user.email})`,
-              }))}
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Select
-              showSearch
-              placeholder="Search by Healthcare Staff"
-              optionFilterProp="children"
-              value={staffSearch || undefined}
-              onChange={(value) => setStaffSearch(value)}
-              style={{ width: "100%" }}
-              allowClear
-              options={staffOptions.map((staff) => ({
-                value: staff.id,
-                label: `${staff.fullName} (${staff.email})`,
-              }))}
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Select
-              showSearch
-              placeholder="Search by Drug"
-              optionFilterProp="children"
-              value={drugSearch || undefined}
-              onChange={(value) => setDrugSearch(value)}
-              style={{ width: "100%" }}
-              allowClear
-              options={drugOptions.map((drug) => ({
-                value: drug.id,
-                label: `${drug.name} (${drug.drugCode})`,
-              }))}
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Select
-              showSearch
-              placeholder="Search by Updated By"
-              optionFilterProp="children"
-              value={updatedBySearch || undefined}
-              onChange={(value) => setUpdatedBySearch(value)}
-              style={{ width: "100%" }}
-              allowClear
-              options={staffOptions.map((staff) => ({
-                value: staff.id,
-                label: `${staff.fullName} (${staff.email})`,
-              }))}
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Select
-              placeholder="Filter by Status"
-              value={statusFilter}
-              onChange={(value) => setStatusFilter(value)}
-              style={{ width: "100%" }}
-              allowClear
+                style={{ width: "150px" }}
+                value={statusFilter || undefined}
+                onChange={(value) => {
+                  setStatusFilter(value);
+                  setCurrentPage(1);
+                }}
+                disabled={loading}
             >
               {Object.values(PRESCRIPTION_STATUS).map((status) => (
                 <Option key={status} value={status}>
@@ -1039,66 +1195,101 @@ export function PrescriptionManagement() {
                 </Option>
               ))}
             </Select>
-          </Col>
+            </div>
 
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <RangePicker
-              placeholder={["Prescription Start Date", "Prescription End Date"]}
-              value={prescriptionDateRange as any}
-              onChange={(dates) =>
-                setPrescriptionDateRange(
-                  dates as [moment.Moment | null, moment.Moment | null]
-                )
-              }
-              style={{ width: "100%" }}
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <RangePicker
-              placeholder={["Created Start Date", "Created End Date"]}
-              value={createdDateRange as any}
-              onChange={(dates) =>
-                setCreatedDateRange(
-                  dates as [moment.Moment | null, moment.Moment | null]
-                )
-              }
-              showTime
-              style={{ width: "100%" }}
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <RangePicker
-              placeholder={["Updated Start Date", "Updated End Date"]}
-              value={updatedDateRange as any}
-              onChange={(dates) =>
-                setUpdatedDateRange(
-                  dates as [moment.Moment | null, moment.Moment | null]
-                )
-              }
-              showTime
-              style={{ width: "100%" }}
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Space>
+            {/* Reset Button */}
+            <Tooltip title="Reset all filters">
+              <Button
+                icon={<UndoOutlined />}
+                onClick={handleReset}
+                danger={
+                  prescriptionCodeSearch ||
+                  healthCheckResultCodeSearch ||
+                  userSearch ||
+                  staffSearch ||
+                  drugSearch ||
+                  updatedBySearch ||
+                  statusFilter ||
+                  (prescriptionDateRange && (prescriptionDateRange[0] || prescriptionDateRange[1])) ||
+                  (createdDateRange && (createdDateRange[0] || createdDateRange[1])) ||
+                  (updatedDateRange && (updatedDateRange[0] || updatedDateRange[1]))
+                    ? true
+                    : false
+                }
+                disabled={
+                  !(
+                    prescriptionCodeSearch ||
+                    healthCheckResultCodeSearch ||
+                    userSearch ||
+                    staffSearch ||
+                    drugSearch ||
+                    updatedBySearch ||
+                    statusFilter ||
+                    prescriptionDateRange[0] ||
+                    prescriptionDateRange[1] ||
+                    createdDateRange[0] ||
+                    createdDateRange[1] ||
+                    updatedDateRange[0] ||
+                    updatedDateRange[1]
+                  )
+                }
+              ></Button>
+            </Tooltip>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setIsCreateModalVisible(true)}
+            >
+              Create
+            </Button>
+            <Dropdown
+              overlay={renderColumnSettingsMenu()}
+              trigger={["click"]}
+              placement="bottomRight"
+            >
+              <Button icon={<SettingOutlined />}>
+                Columns 
+              </Button>
+            </Dropdown>
+          </>
+        }
+        rightContent={
               <Button
                 type="primary"
-                onClick={handleSearch}
-                icon={<SearchOutlined />}
+            icon={<FileExcelOutlined />}
+            onClick={handleOpenExportConfig}
               >
-                Search
+            Export to Excel
               </Button>
-              <Button onClick={handleReset}>Reset</Button>
-            </Space>
-          </Col>
-        </Row>
-      </div>
+        }
+      />
 
-      {/* Table Section */}
-      <div className="mb-4">
+      {/* Table Controls for bulk actions */}
+      <TableControls
+        selectedRowKeys={selectedRowKeys}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => handlePageChange(1, newSize)}
+        bulkActions={[
+          createDeleteBulkAction(
+            selectedRowKeys.length,
+            deletingItems,
+            () => handleBulkDelete(selectedRowKeys as string[]),
+            selectedItemTypes.hasDeletable
+          ),
+          createRestoreBulkAction(
+            selectedRowKeys.length,
+            restoringItems,
+            () => handleBulkRestore(selectedRowKeys as string[]),
+            selectedItemTypes.hasRestorable
+          ),
+        ]}
+        maxRowsPerPage={100}
+        pageSizeOptions={[5, 10, 15, 20, 50, 100]}
+      />
+
+      {/* Table */}
+      <Card className="shadow-sm" bodyStyle={{ padding: "16px" }}>
+        <div style={{ overflowX: "auto" }}>
         <Table
           columns={columns}
           dataSource={prescriptions}
@@ -1108,21 +1299,33 @@ export function PrescriptionManagement() {
           rowSelection={{
             selectedRowKeys,
             onChange: (keys) => setSelectedRowKeys(keys),
-          }}
-        />
+              getCheckboxProps: (record: PrescriptionResponseDTO) => ({
+                disabled: !(
+                  canSoftDeletePrescription(record.status) ||
+                  canRestorePrescription(record.status)
+                ),
+                title: !(
+                  canSoftDeletePrescription(record.status) ||
+                  canRestorePrescription(record.status)
+                )
+                  ? "Only prescriptions with status 'Used', 'UpdatedAndUsed', or 'SoftDeleted' can be selected"
+                  : "",
+              }),
+            }}
+            scroll={{ x: "max-content" }}
+            bordered
+          />
+        </div>
 
-        <div className="mt-4 flex justify-end">
-          <Pagination
+        <PaginationFooter
             current={currentPage}
             pageSize={pageSize}
             total={total}
-            showSizeChanger
             onChange={handlePageChange}
-            onShowSizeChange={handlePageChange}
-            showTotal={(total) => `Total ${total} items`}
+          showGoToPage={true}
+          showTotal={true}
           />
-        </div>
-      </div>
+      </Card>
 
       {/* Modals */}
       <CreateModal
@@ -1155,7 +1358,22 @@ export function PrescriptionManagement() {
           updatedDateRange,
         }}
       />
-    </div>
+
+      {/* Filter Modal */}
+      <PrescriptionFilterModal 
+        visible={filterModalVisible}
+        onCancel={() => setFilterModalVisible(false)}
+        onApply={handleApplyFilters}
+        onReset={handleResetFilters}
+        filters={filterState}
+        prescriptionCodes={prescriptionCodes}
+        healthCheckCodes={healthCheckCodes}
+        userOptions={userOptions}
+        staffOptions={staffOptions}
+        drugOptions={drugOptions}
+        updatedByOptions={staffOptions}
+      />
+    </PageContainer>
   );
 }
 

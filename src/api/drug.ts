@@ -100,6 +100,17 @@ export interface DrugExportConfigDTO {
   fileName?: string;
 }
 
+export interface DrugWithInventoryInfoDTO {
+  id: string;
+  drugCode: string;
+  name: string;
+  unit: string;
+  batchCode: string;
+  batchId: string;
+  batchStatus: string;
+  quantityInStock: number;
+}
+
 export const getDrugs = async (filterParams?: DrugFilterParams) => {
   try {
     console.log("Original filter params:", filterParams);
@@ -206,9 +217,19 @@ export const getDrugById = async (id: string) => {
 
 export const getDrugsByDrugGroupId = async (drugGroupId: string) => {
   try {
+    console.log(`Calling API: GET /drug-management/drugs/by-group/${drugGroupId}`);
     const response = await api.get(`/drug-management/drugs/by-group/${drugGroupId}`);
-    return response.data.data;
+    console.log("Response status:", response.status);
+    console.log("Response data preview:", JSON.stringify(response.data).substring(0, 100) + "...");
+    
+    // If API returns an empty array but still a successful response
+    if (response.data && response.data.isSuccess && Array.isArray(response.data.data) && response.data.data.length === 0) {
+      console.log("API returned successful response with empty drugs array");
+    }
+    
+    return response.data;
   } catch (error) {
+    console.error("Error fetching drugs by drug group ID:", error);
     throw error;
   }
 };
@@ -427,5 +448,15 @@ export const exportDrugsToExcel = async (
       console.error("Export failed with direct axios:", directError);
       throw directError;
     }
+  }
+};
+
+export const getAvailableDrugsForPrescription = async () => {
+  try {
+    const response = await api.get("/drug-management/drugs/available-for-prescription");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching available drugs for prescription:", error);
+    throw error;
   }
 };
