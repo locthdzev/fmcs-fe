@@ -394,7 +394,7 @@ const UpdateAppointmentModal: React.FC<{
       if (response.isSuccess) {
         form.resetFields();
         setSuccessModalVisible(true);
-        
+
         // Call update success but don't close modal yet
         setTimeout(() => {
           onUpdateSuccess();
@@ -448,7 +448,10 @@ const UpdateAppointmentModal: React.FC<{
             name="email"
             label="Student/User Email"
             rules={[
-              { required: true, message: "Please enter the student/user Email" },
+              {
+                required: true,
+                message: "Please enter the student/user Email",
+              },
             ]}
           >
             <Input placeholder="Enter student/user Email" disabled />
@@ -494,7 +497,10 @@ const UpdateAppointmentModal: React.FC<{
             label="Reason"
             rules={[{ required: true, message: "Please enter a reason" }]}
           >
-            <Input.TextArea rows={3} placeholder="Enter reason for appointment" />
+            <Input.TextArea
+              rows={3}
+              placeholder="Enter reason for appointment"
+            />
           </Form.Item>
 
           <Form.Item
@@ -953,7 +959,7 @@ const ScheduleAppointmentForStaff: React.FC<{
       if (response.isSuccess) {
         form.resetFields();
         setSuccessModalVisible(true);
-        
+
         // Call the callback to refresh the parent component
         if (onSuccessfulSchedule) {
           setTimeout(() => {
@@ -1164,7 +1170,7 @@ const ScheduleAppointmentForStaff: React.FC<{
             </Button>
           </Form.Item>
         </Form>
-        
+
         <StaffScheduleCalendarModal
           open={calendarModalVisible}
           onClose={() => setCalendarModalVisible(false)}
@@ -1230,7 +1236,8 @@ export function AppointmentManagementForAdmin() {
   >([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-  const [actionSuccessModalVisible, setActionSuccessModalVisible] = useState(false);
+  const [actionSuccessModalVisible, setActionSuccessModalVisible] =
+    useState(false);
   const [actionSuccessMessage, setActionSuccessMessage] = useState("");
   const [actionSuccessTitle, setActionSuccessTitle] = useState("");
 
@@ -1345,9 +1352,11 @@ export function AppointmentManagementForAdmin() {
         if (response.isSuccess) {
           // Set success message and show modal
           setActionSuccessTitle(successMsg);
-          setActionSuccessMessage("The action was completed successfully and notifications have been sent.");
+          setActionSuccessMessage(
+            "The action was completed successfully and notifications have been sent."
+          );
           setActionSuccessModalVisible(true);
-          
+
           const staffId = jwtDecode<any>(token).userid || user?.userId;
           if (staffId) {
             await fetchAppointments(staffId);
@@ -1367,10 +1376,14 @@ export function AppointmentManagementForAdmin() {
           error.response?.status === 401 ||
           error.message === "No authentication token found."
         ) {
-          messageApi.error("Session expired or unauthorized. Please log in again.");
+          messageApi.error(
+            "Session expired or unauthorized. Please log in again."
+          );
           router.push("/");
         } else {
-          messageApi.error(`An error occurred: ${error.message || "Unknown error"}`);
+          messageApi.error(
+            `An error occurred: ${error.message || "Unknown error"}`
+          );
         }
       } finally {
         // Add a small delay to ensure the message is visible
@@ -2025,7 +2038,7 @@ export function AppointmentManagementForAdmin() {
     <div className="sticky-header">
       <Row align="middle" gutter={[8, 8]}>
         <Col xs={24} sm={6}>
-          <Text strong>User</Text>
+          <Text strong>Scheduler</Text>
         </Col>
         <Col xs={24} sm={6}>
           <Text strong>Healthcare Officer</Text>
@@ -2102,9 +2115,18 @@ export function AppointmentManagementForAdmin() {
   };
 
   const renderEmptyState = (status: string) => (
-    <Card style={{ textAlign: "center", padding: "32px 0", borderRadius: "12px", backgroundColor: "#f9f9f9" }}>
-      <Empty 
-        description={`No ${status.toLowerCase() === 'all' ? '' : status.toLowerCase()} appointments found`}
+    <Card
+      style={{
+        textAlign: "center",
+        padding: "32px 0",
+        borderRadius: "12px",
+        backgroundColor: "#f9f9f9",
+      }}
+    >
+      <Empty
+        description={`No ${
+          status.toLowerCase() === "all" ? "" : status.toLowerCase()
+        } appointments found`}
         image={Empty.PRESENTED_IMAGE_SIMPLE}
       />
     </Card>
@@ -2337,7 +2359,7 @@ export function AppointmentManagementForAdmin() {
                   <Row gutter={[16, 16]} align="middle">
                     <Col xs={24} sm={12} md={6} lg={6}>
                       <Space direction="vertical" size="small">
-                        <Text type="secondary">Student:</Text>
+                        <Text type="secondary">Scheduler:</Text>
                         <Text strong>{appointment.studentName}</Text>
                         <Text type="secondary">{appointment.studentEmail}</Text>
                       </Space>
@@ -2394,7 +2416,10 @@ export function AppointmentManagementForAdmin() {
                             type="primary"
                             icon={<CheckCircleOutlined />}
                             loading={actionLoading === appointment.id}
-                            style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
+                            style={{
+                              backgroundColor: "#52c41a",
+                              borderColor: "#52c41a",
+                            }}
                           >
                             Complete
                           </Button>
@@ -2444,10 +2469,10 @@ export function AppointmentManagementForAdmin() {
           className="appointment-tabs"
           size="large"
           type="card"
-          tabBarStyle={{ 
-            marginBottom: "16px", 
+          tabBarStyle={{
+            marginBottom: "16px",
             padding: "0 8px",
-            fontWeight: 500
+            fontWeight: 500,
           }}
           tabBarGutter={8}
           animated={{ inkBar: true, tabPane: true }}
@@ -2487,24 +2512,45 @@ export function AppointmentManagementForAdmin() {
               <TabPane
                 key={status}
                 tab={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 4px' }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "0 4px",
+                    }}
+                  >
                     {renderTabIcon(status)}
                     <span>{status}</span>
-                    <Badge 
-                      count={appointmentCount} 
-                      style={{ 
-                        backgroundColor: getStatusColor(status) === 'blue' ? '#1890ff' :
-                                        getStatusColor(status) === 'green' ? '#52c41a' :
-                                        getStatusColor(status) === 'red' ? '#ff4d4f' :
-                                        getStatusColor(status) === 'gray' ? '#d9d9d9' :
-                                        getStatusColor(status) === 'orange' ? '#fa8c16' : '#1890ff',
-                        color: getStatusColor(status) === 'gray' ? '#666' : '#fff'
+                    <Badge
+                      count={appointmentCount}
+                      style={{
+                        backgroundColor:
+                          getStatusColor(status) === "blue"
+                            ? "#1890ff"
+                            : getStatusColor(status) === "green"
+                            ? "#52c41a"
+                            : getStatusColor(status) === "red"
+                            ? "#ff4d4f"
+                            : getStatusColor(status) === "gray"
+                            ? "#d9d9d9"
+                            : getStatusColor(status) === "orange"
+                            ? "#fa8c16"
+                            : "#1890ff",
+                        color:
+                          getStatusColor(status) === "gray" ? "#666" : "#fff",
                       }}
                     />
                   </div>
                 }
               >
-                <div style={{ height: "70vh", overflowY: "auto", paddingRight: "8px" }}>
+                <div
+                  style={{
+                    height: "70vh",
+                    overflowY: "auto",
+                    paddingRight: "8px",
+                  }}
+                >
                   {statusAppointments.length === 0 ? (
                     renderEmptyState(status)
                   ) : (
@@ -2531,7 +2577,7 @@ export function AppointmentManagementForAdmin() {
             );
           })}
         </Tabs>
-        
+
         <style>
           {`
             .appointment-tabs .ant-tabs-nav {
@@ -2677,19 +2723,19 @@ export function AppointmentManagementForAdmin() {
           </Text>
         </div>
       </Modal>
-      
+
       {/* Action Success Modal */}
       <Modal
         open={actionSuccessModalVisible}
         onCancel={() => setActionSuccessModalVisible(false)}
         footer={[
-          <Button 
-            key="close" 
-            type="primary" 
+          <Button
+            key="close"
+            type="primary"
             onClick={() => setActionSuccessModalVisible(false)}
           >
             Close
-          </Button>
+          </Button>,
         ]}
         width={500}
       >

@@ -277,13 +277,15 @@ const UpdateAppointmentModal: React.FC<{
       if (response.isSuccess) {
         form.resetFields();
         setSuccessModalVisible(true);
-        
+
         // Call update success after a delay
         setTimeout(() => {
           onUpdateSuccess();
         }, 500);
       } else {
-        messageApi.error(`Failed to update: ${response.message || "Unknown error"}`);
+        messageApi.error(
+          `Failed to update: ${response.message || "Unknown error"}`
+        );
       }
     } catch (error: any) {
       console.error("Error updating appointment:", error);
@@ -318,7 +320,10 @@ const UpdateAppointmentModal: React.FC<{
             name="email"
             label="Student/User Email"
             rules={[
-              { required: true, message: "Please enter the student/user Email" },
+              {
+                required: true,
+                message: "Please enter the student/user Email",
+              },
             ]}
           >
             <Input placeholder="Enter student/user Email" disabled />
@@ -364,7 +369,10 @@ const UpdateAppointmentModal: React.FC<{
             label="Reason"
             rules={[{ required: true, message: "Please enter a reason" }]}
           >
-            <Input.TextArea rows={3} placeholder="Enter reason for appointment" />
+            <Input.TextArea
+              rows={3}
+              placeholder="Enter reason for appointment"
+            />
           </Form.Item>
 
           <Form.Item
@@ -424,20 +432,26 @@ const ScheduleAppointmentForStaff: React.FC<{
   const token = Cookies.get("token");
   const [messageApi, contextHolder] = message.useMessage();
   const [successModalVisible, setSuccessModalVisible] = useState(false);
-  const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null);
+  const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(
+    null
+  );
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  
+
   // Staff work schedule related states
   const [calendarModalVisible, setCalendarModalVisible] = useState(false);
   const [staffWorkSchedules, setStaffWorkSchedules] = useState<any[]>([]);
-  const [availableWorkDates, setAvailableWorkDates] = useState<Set<string>>(new Set());
+  const [availableWorkDates, setAvailableWorkDates] = useState<Set<string>>(
+    new Set()
+  );
   const [workScheduleLoading, setWorkScheduleLoading] = useState(false);
-  const [selectedDateSchedule, setSelectedDateSchedule] = useState<any | null>(null);
-  
+  const [selectedDateSchedule, setSelectedDateSchedule] = useState<any | null>(
+    null
+  );
+
   // Max date for scheduling (1 month from now)
-  const maxDate = dayjs().add(30, 'days');
-  
+  const maxDate = dayjs().add(30, "days");
+
   // All possible time slots
   const allPossibleTimeSlots = [
     "08:00 - 08:30",
@@ -457,100 +471,100 @@ const ScheduleAppointmentForStaff: React.FC<{
     "16:00 - 16:30",
     "16:30 - 17:00",
   ];
-  
+
   // Fetch active users for selection
-  const fetchActiveUsers = useCallback(async (searchEmail: string = "") => {
-    if (!token) return;
-    
-    setLoadingUsers(true);
-    try {
-      // Using the actual API to get users for appointment scheduling
-      // This replaces the previous mock implementation
-      const response = await getAllUsers(
-        1, // page
-        1000, // pageSize - large number to get as many as possible
-        undefined, // fullNameSearch
-        undefined, // userNameSearch
-        searchEmail || undefined, // emailSearch - used for search functionality
-        undefined, // phoneSearch
-        undefined, // roleFilter - not filtering by role here
-        undefined, // genderFilter
-        undefined, // dobStartDate
-        undefined, // dobEndDate
-        undefined, // createdStartDate
-        undefined, // createdEndDate
-        undefined, // updatedStartDate
-        undefined, // updatedEndDate
-        "Active", // status - only active users
-        "CreatedAt", // sortBy
-        false // ascending
-      );
-
-      if (response.isSuccess && response.data) {
-        // Filter out users with Canteen Staff role if needed
-        const filteredUsers = response.data.filter(
-          (user: UserResponseDTO) => !user.roles?.includes("Canteen Staff")
-        );
-
-        const options = filteredUsers.map((user: UserResponseDTO) => ({
-          value: user.email,
-          label: `${user.fullName} (${user.email})`,
-        }));
-        setActiveUsers(options);
-      } else {
-        messageApi.error("Failed to load users");
-      }
-    } catch (error: any) {
-      console.error("Failed to fetch users:", error);
-      messageApi.error("Failed to load users");
-    } finally {
-      setLoadingUsers(false);
-    }
-  }, [token, messageApi]);
-  
-  // Fetch staff work schedules
-  const fetchStaffWorkSchedules = useCallback(
-    async () => {
+  const fetchActiveUsers = useCallback(
+    async (searchEmail: string = "") => {
       if (!token) return;
 
-      setWorkScheduleLoading(true);
+      setLoadingUsers(true);
       try {
-        const startDate = dayjs().format("YYYY-MM-DD");
-        const endDate = dayjs().add(30, "days").format("YYYY-MM-DD");
-
-        const response = await getStaffSchedulesByDateRange(
-          staffId,
-          startDate,
-          endDate
+        // Using the actual API to get users for appointment scheduling
+        // This replaces the previous mock implementation
+        const response = await getAllUsers(
+          1, // page
+          1000, // pageSize - large number to get as many as possible
+          undefined, // fullNameSearch
+          undefined, // userNameSearch
+          searchEmail || undefined, // emailSearch - used for search functionality
+          undefined, // phoneSearch
+          undefined, // roleFilter - not filtering by role here
+          undefined, // genderFilter
+          undefined, // dobStartDate
+          undefined, // dobEndDate
+          undefined, // createdStartDate
+          undefined, // createdEndDate
+          undefined, // updatedStartDate
+          undefined, // updatedEndDate
+          "Active", // status - only active users
+          "CreatedAt", // sortBy
+          false // ascending
         );
 
-        if (response.isSuccess && Array.isArray(response.data)) {
-          setStaffWorkSchedules(response.data);
+        if (response.isSuccess && response.data) {
+          // Filter out users with Canteen Staff role if needed
+          const filteredUsers = response.data.filter(
+            (user: UserResponseDTO) => !user.roles?.includes("Canteen Staff")
+          );
 
-          // Extract available work dates
-          const workDates = new Set<string>(
-            response.data.map((schedule: any) =>
-              dayjs(schedule.workDate).format("YYYY-MM-DD")
-            )
-          );
-          setAvailableWorkDates(workDates);
+          const options = filteredUsers.map((user: UserResponseDTO) => ({
+            value: user.email,
+            label: `${user.fullName} (${user.email})`,
+          }));
+          setActiveUsers(options);
         } else {
-          console.error(
-            "Failed to fetch staff work schedules:",
-            response.message
-          );
-          messageApi.error("Failed to load staff work schedule");
+          messageApi.error("Failed to load users");
         }
-      } catch (error) {
-        console.error("Error fetching staff work schedules:", error);
-        messageApi.error("Failed to load staff work schedule");
+      } catch (error: any) {
+        console.error("Failed to fetch users:", error);
+        messageApi.error("Failed to load users");
       } finally {
-        setWorkScheduleLoading(false);
+        setLoadingUsers(false);
       }
     },
-    [staffId, token, messageApi]
+    [token, messageApi]
   );
-  
+
+  // Fetch staff work schedules
+  const fetchStaffWorkSchedules = useCallback(async () => {
+    if (!token) return;
+
+    setWorkScheduleLoading(true);
+    try {
+      const startDate = dayjs().format("YYYY-MM-DD");
+      const endDate = dayjs().add(30, "days").format("YYYY-MM-DD");
+
+      const response = await getStaffSchedulesByDateRange(
+        staffId,
+        startDate,
+        endDate
+      );
+
+      if (response.isSuccess && Array.isArray(response.data)) {
+        setStaffWorkSchedules(response.data);
+
+        // Extract available work dates
+        const workDates = new Set<string>(
+          response.data.map((schedule: any) =>
+            dayjs(schedule.workDate).format("YYYY-MM-DD")
+          )
+        );
+        setAvailableWorkDates(workDates);
+      } else {
+        console.error(
+          "Failed to fetch staff work schedules:",
+          response.message
+        );
+        messageApi.error("Failed to load staff work schedule");
+      }
+    } catch (error) {
+      console.error("Error fetching staff work schedules:", error);
+      messageApi.error("Failed to load staff work schedule");
+    } finally {
+      setWorkScheduleLoading(false);
+    }
+  }, [staffId, token, messageApi]);
+
   // Filter time slots based on staff work schedule
   const filterTimeSlotsByShift = useCallback(
     (date: string) => {
@@ -676,7 +690,7 @@ const ScheduleAppointmentForStaff: React.FC<{
       form.setFieldValue("date", undefined);
     }
   };
-  
+
   const isDateDisabled = (current: dayjs.Dayjs) => {
     // Disable dates before today or after 1 month
     if (current.isBefore(dayjs().startOf("day")) || current.isAfter(maxDate)) {
@@ -732,7 +746,7 @@ const ScheduleAppointmentForStaff: React.FC<{
       if (response.isSuccess) {
         form.resetFields();
         setSuccessModalVisible(true);
-        
+
         // Call the callback to refresh the parent component
         if (onSuccessfulSchedule) {
           setTimeout(() => {
@@ -796,7 +810,11 @@ const ScheduleAppointmentForStaff: React.FC<{
     <>
       {contextHolder}
       <Modal
-        title={<Typography.Title level={4}>Schedule Appointment with Student</Typography.Title>}
+        title={
+          <Typography.Title level={4}>
+            Schedule Appointment with Student
+          </Typography.Title>
+        }
         open={visible}
         onCancel={handleClose}
         footer={null}
@@ -812,7 +830,10 @@ const ScheduleAppointmentForStaff: React.FC<{
             name="email"
             label="Student/User Email"
             rules={[
-              { required: true, message: "Please enter the student/user Email" },
+              {
+                required: true,
+                message: "Please enter the student/user Email",
+              },
             ]}
           >
             <Select
@@ -874,7 +895,13 @@ const ScheduleAppointmentForStaff: React.FC<{
                 border: "1px solid #d6e4ff",
               }}
             >
-              <div style={{ fontSize: "12px", color: "#1890ff", fontWeight: "500" }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "#1890ff",
+                  fontWeight: "500",
+                }}
+              >
                 Work Schedule:
               </div>
               <div style={{ fontSize: "14px", marginTop: "4px" }}>
@@ -919,7 +946,10 @@ const ScheduleAppointmentForStaff: React.FC<{
             label="Reason"
             rules={[{ required: true, message: "Please enter a reason" }]}
           >
-            <Input.TextArea rows={3} placeholder="Enter reason for appointment" />
+            <Input.TextArea
+              rows={3}
+              placeholder="Enter reason for appointment"
+            />
           </Form.Item>
 
           <Form.Item>
@@ -928,7 +958,7 @@ const ScheduleAppointmentForStaff: React.FC<{
             </Button>
           </Form.Item>
         </Form>
-        
+
         <StaffScheduleCalendarModal
           open={calendarModalVisible}
           onClose={() => setCalendarModalVisible(false)}
@@ -983,22 +1013,27 @@ export function AppointmentManagementForStaff() {
   const [selectedAppointment, setSelectedAppointment] =
     useState<AppointmentResponseDTO | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [resetStatusUserId, setResetStatusUserId] = useState<string | null>(null);
+  const [resetStatusUserId, setResetStatusUserId] = useState<string | null>(
+    null
+  );
   const [resetUserModalVisible, setResetUserModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("Scheduled");
   const [messageApi, contextHolder] = message.useMessage({
     maxCount: 3,
-    duration: 3
+    duration: 3,
   });
-  const [userOptions, setUserOptions] = useState<{ value: string; label: string }[]>([]);
+  const [userOptions, setUserOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  const [actionSuccessModalVisible, setActionSuccessModalVisible] = useState(false);
+  const [actionSuccessModalVisible, setActionSuccessModalVisible] =
+    useState(false);
   const [actionSuccessMessage, setActionSuccessMessage] = useState("");
   const [actionSuccessTitle, setActionSuccessTitle] = useState("");
 
   // Add custom message styles to make them more visible
   useEffect(() => {
-    const styleElement = document.createElement('style');
+    const styleElement = document.createElement("style");
     styleElement.innerHTML = `
       .ant-message {
         z-index: 2000 !important;
@@ -1016,7 +1051,7 @@ export function AppointmentManagementForStaff() {
       document.head.removeChild(styleElement);
     };
   }, []);
-  
+
   // Add style element to document head
   useEffect(() => {
     // Create style element
@@ -1213,9 +1248,11 @@ export function AppointmentManagementForStaff() {
       if (response.isSuccess) {
         // Set success message and show modal
         setActionSuccessTitle(successMsg);
-        setActionSuccessMessage("The action was completed successfully and notifications have been sent.");
+        setActionSuccessMessage(
+          "The action was completed successfully and notifications have been sent."
+        );
         setActionSuccessModalVisible(true);
-        
+
         const staffId = jwtDecode<any>(token).userid || user?.userId;
         if (staffId) {
           await fetchAppointments(staffId);
@@ -1235,10 +1272,14 @@ export function AppointmentManagementForStaff() {
         error.response?.status === 401 ||
         error.message === "No authentication token found."
       ) {
-        messageApi.error("Session expired or unauthorized. Please log in again.");
+        messageApi.error(
+          "Session expired or unauthorized. Please log in again."
+        );
         router.push("/");
       } else {
-        messageApi.error(`An error occurred: ${error.message || "Unknown error"}`);
+        messageApi.error(
+          `An error occurred: ${error.message || "Unknown error"}`
+        );
       }
     } finally {
       // Add a small delay to ensure the message is visible
@@ -1441,36 +1482,61 @@ export function AppointmentManagementForStaff() {
   ).map((status) => ({
     key: status,
     label: (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 4px' }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "0 4px",
+        }}
+      >
         {getStatusIcon(status)}
         <span>{status}</span>
-        <Badge 
-          count={filteredAppointments.filter((a) =>
-            status === "Cancelled"
-              ? a.status === "Cancelled" || a.status === "CancelledAfterConfirm"
-              : a.status === status
-          ).length} 
-          style={{ 
-            backgroundColor: getStatusColor(status) === 'blue' ? '#1890ff' :
-                            getStatusColor(status) === 'green' ? '#52c41a' :
-                            getStatusColor(status) === 'red' ? '#ff4d4f' :
-                            getStatusColor(status) === 'gray' ? '#d9d9d9' :
-                            getStatusColor(status) === 'orange' ? '#fa8c16' : '#1890ff',
-            color: getStatusColor(status) === 'gray' ? '#666' : '#fff'
+        <Badge
+          count={
+            filteredAppointments.filter((a) =>
+              status === "Cancelled"
+                ? a.status === "Cancelled" ||
+                  a.status === "CancelledAfterConfirm"
+                : a.status === status
+            ).length
+          }
+          style={{
+            backgroundColor:
+              getStatusColor(status) === "blue"
+                ? "#1890ff"
+                : getStatusColor(status) === "green"
+                ? "#52c41a"
+                : getStatusColor(status) === "red"
+                ? "#ff4d4f"
+                : getStatusColor(status) === "gray"
+                ? "#d9d9d9"
+                : getStatusColor(status) === "orange"
+                ? "#fa8c16"
+                : "#1890ff",
+            color: getStatusColor(status) === "gray" ? "#666" : "#fff",
           }}
         />
       </div>
     ),
     children: (
-      <div style={{ maxHeight: "70vh", overflowY: "auto", paddingRight: "8px" }}>
+      <div
+        style={{ maxHeight: "70vh", overflowY: "auto", paddingRight: "8px" }}
+      >
         {filteredAppointments.filter((a) =>
           status === "Cancelled"
-            ? a.status === "Cancelled" ||
-              a.status === "CancelledAfterConfirm"
+            ? a.status === "Cancelled" || a.status === "CancelledAfterConfirm"
             : a.status === status
         ).length === 0 ? (
-          <Card style={{ textAlign: "center", padding: "32px 0", borderRadius: "12px", backgroundColor: "#f9f9f9" }}>
-            <Empty 
+          <Card
+            style={{
+              textAlign: "center",
+              padding: "32px 0",
+              borderRadius: "12px",
+              backgroundColor: "#f9f9f9",
+            }}
+          >
+            <Empty
               description={`No ${status.toLowerCase()} appointments`}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
@@ -1487,17 +1553,24 @@ export function AppointmentManagementForStaff() {
               <Collapse
                 key={appointment.id}
                 style={{
-                  marginBottom: "12px", 
-                  borderRadius: "12px", 
+                  marginBottom: "12px",
+                  borderRadius: "12px",
                   overflow: "hidden",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                  border: "1px solid #f0f0f0"
+                  border: "1px solid #f0f0f0",
                 }}
                 items={[
                   {
                     key: appointment.id,
                     label: (
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          width: "100%",
+                        }}
+                      >
                         <Space size="small">
                           <Text
                             strong
@@ -1515,7 +1588,11 @@ export function AppointmentManagementForStaff() {
                             <Tag
                               color={getStatusColor(appointment.status)}
                               icon={getStatusIcon(appointment.status)}
-                              style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
                             >
                               {appointment.status === "CancelledAfterConfirm"
                                 ? "Cancelled"
@@ -1574,7 +1651,7 @@ export function AppointmentManagementForStaff() {
                           padding: "12px",
                           cursor: "pointer",
                           transition: "background-color 0.3s",
-                          backgroundColor: "#fafafa"
+                          backgroundColor: "#fafafa",
                         }}
                         onClick={() => handleBlockClick(appointment.id)}
                       >
@@ -1729,7 +1806,11 @@ export function AppointmentManagementForStaff() {
           title={
             <div style={{ display: "flex", alignItems: "center" }}>
               <PlayCircleOutlined
-                style={{ color: "#fa8c16", marginRight: "8px", fontSize: "20px" }}
+                style={{
+                  color: "#fa8c16",
+                  marginRight: "8px",
+                  fontSize: "20px",
+                }}
               />
               <span style={{ fontWeight: 500 }}>Currently Happening</span>
             </div>
@@ -1749,16 +1830,16 @@ export function AppointmentManagementForStaff() {
                 <Card
                   className="appointment-card"
                   bordered
-                  style={{ 
+                  style={{
                     marginBottom: "10px",
                     borderRadius: "8px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
                   }}
                 >
                   <Row gutter={[16, 16]} align="middle">
                     <Col xs={24} sm={12} md={6} lg={6}>
                       <Space direction="vertical" size="small">
-                        <Text type="secondary">Student:</Text>
+                        <Text type="secondary">Scheduler:</Text>
                         <Text strong>{appointment.studentName}</Text>
                         <Text type="secondary">{appointment.studentEmail}</Text>
                       </Space>
@@ -1772,7 +1853,10 @@ export function AppointmentManagementForStaff() {
                         </Space>
                         <Space size="small">
                           <ClockCircleOutlined />
-                          <Text>{formatTime(appointment.appointmentDate)} - {formatTime(appointment.endTime)}</Text>
+                          <Text>
+                            {formatTime(appointment.appointmentDate)} -{" "}
+                            {formatTime(appointment.endTime)}
+                          </Text>
                         </Space>
                       </Space>
                     </Col>
@@ -1812,7 +1896,10 @@ export function AppointmentManagementForStaff() {
                             type="primary"
                             icon={<CheckCircleOutlined />}
                             loading={actionLoading === appointment.id}
-                            style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
+                            style={{
+                              backgroundColor: "#52c41a",
+                              borderColor: "#52c41a",
+                            }}
                           >
                             Complete
                           </Button>
@@ -1859,10 +1946,10 @@ export function AppointmentManagementForStaff() {
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
-          tabBarStyle={{ 
-            marginBottom: "16px", 
+          tabBarStyle={{
+            marginBottom: "16px",
             padding: "0 8px",
-            fontWeight: 500
+            fontWeight: 500,
           }}
           type="card"
           size="large"
@@ -1951,10 +2038,13 @@ export function AppointmentManagementForStaff() {
           setResetStatusUserId(null);
         }}
         footer={[
-          <Button key="cancel" onClick={() => {
-            setResetUserModalVisible(false);
-            setResetStatusUserId(null);
-          }}>
+          <Button
+            key="cancel"
+            onClick={() => {
+              setResetUserModalVisible(false);
+              setResetStatusUserId(null);
+            }}
+          >
             Cancel
           </Button>,
           <Button
@@ -1969,11 +2059,12 @@ export function AppointmentManagementForStaff() {
         width={500}
         destroyOnClose
       >
-        <div style={{ padding: '16px 0' }}>
+        <div style={{ padding: "16px 0" }}>
           <Text>
-            Please select the User Email to reset their appointment status to Normal:
+            Please select the User Email to reset their appointment status to
+            Normal:
           </Text>
-          <div style={{ margin: '16px 0' }}>
+          <div style={{ margin: "16px 0" }}>
             <Select
               showSearch
               placeholder="Search and select a user"
@@ -1984,7 +2075,9 @@ export function AppointmentManagementForStaff() {
               style={{ width: "100%" }}
               notFoundContent={loadingUsers ? <Spin size="small" /> : null}
               filterOption={(input, option) =>
-                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
               }
               options={userOptions}
               loading={loadingUsers}
@@ -2005,7 +2098,8 @@ export function AppointmentManagementForStaff() {
             )}
           </div>
           <Text type="secondary">
-            Resetting the status will allow the user to schedule appointments again if they were previously blocked.
+            Resetting the status will allow the user to schedule appointments
+            again if they were previously blocked.
           </Text>
         </div>
       </Modal>
@@ -2015,13 +2109,13 @@ export function AppointmentManagementForStaff() {
         open={actionSuccessModalVisible}
         onCancel={() => setActionSuccessModalVisible(false)}
         footer={[
-          <Button 
-            key="close" 
-            type="primary" 
+          <Button
+            key="close"
+            type="primary"
             onClick={() => setActionSuccessModalVisible(false)}
           >
             Close
-          </Button>
+          </Button>,
         ]}
         width={500}
       >
