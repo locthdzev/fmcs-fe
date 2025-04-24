@@ -56,6 +56,7 @@ import DrugGroupFilterModal, {
 import ExportConfigModal, {
   DrugGroupExportConfigWithUI,
 } from "./ExportConfigModal";
+import DrugGroupToolbar from "./Toolbar";
 
 // Extend dayjs with the plugins
 dayjs.extend(isSameOrBefore);
@@ -248,7 +249,6 @@ export function DrugGroups() {
       advFilters: DrugGroupAdvancedFilters
     ) => {
       setLoading(true);
-      setLoadingMessage(`Loading page ${page}...`);
 
       try {
         // Xây dựng filter với các giá trị hiện tại
@@ -740,7 +740,6 @@ export function DrugGroups() {
 
     // Đặt loading trong khi chờ dữ liệu
     setLoading(true);
-    setLoadingMessage(`Loading page ${page}...`);
 
     // Cập nhật state kích thước trang trước nếu cần
     if (newPageSize && newPageSize !== pageSize) {
@@ -1268,265 +1267,293 @@ export function DrugGroups() {
       </div>
 
       {initialLoading ? (
-        <div style={{ textAlign: "center", padding: "50px" }}>
-          <Spin size="large" tip="Loading groups..." />
+        <div>
+          <Card
+            className="shadow mb-4"
+            bodyStyle={{ padding: "16px" }}
+            style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+          >
+            <DrugGroupToolbar />
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Select
+                    showSearch
+                    allowClear
+                    placeholder={
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <span>Search by group name...</span>
+                      </div>
+                    }
+                    prefix={<SearchOutlined style={{ color: "blue" }} />}
+                    loading={true}
+                    style={{ width: "300px" }}
+                    disabled={true}
+                  />
+                  {/* Các phần tử khác với disabled={true} */}
+                </div>
+              </div>
+            </div>
+          </Card>
+          
+          <Card
+            className="mt-4 shadow-sm"
+            bodyStyle={{ padding: "8px 16px" }}
+          >
+            <div style={{ overflowX: "auto" }}>
+              <Table<DrugGroupResponse>
+                rowKey="id"
+                columns={columns}
+                dataSource={[]}
+                loading={true}
+                pagination={false}
+                scroll={{ x: "max-content" }}
+                bordered
+              />
+            </div>
+          </Card>
         </div>
       ) : (
         <div>
-          <Spin spinning={loading} tip={loadingMessage}>
+          <Spin spinning={loading}>
             <Card
               className="shadow mb-4"
               bodyStyle={{ padding: "16px" }}
-              title={
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "16px 0 0 0",
-                  }}
-                >
-                  <AppstoreOutlined />
-                  <span>Toolbar</span>
-                </div>
-              }
+              style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
             >
-              <div className="flex flex-col gap-4">
-                <div className="flex justify-between items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Select
-                      showSearch
-                      allowClear
-                      placeholder={
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                          <span>Search by group name...</span>
-                        </div>
-                      }
-                      prefix={<SearchOutlined style={{ color: "blue" }} />}
-                      value={filterValue || undefined}
-                      onChange={handleSearchSelectChange}
-                      style={{ width: "300px" }}
-                      filterOption={(input, option) =>
-                        (
-                          option?.label?.toString().toLowerCase() ?? ""
-                        ).includes(input.toLowerCase())
-                      }
-                      options={allGroupNames}
-                    />
+              <DrugGroupToolbar />
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Select
+                    showSearch
+                    allowClear
+                    placeholder={
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <span>Search by group name...</span>
+                      </div>
+                    }
+                    prefix={<SearchOutlined style={{ color: "blue" }} />}
+                    value={filterValue || undefined}
+                    onChange={handleSearchSelectChange}
+                    style={{ width: "300px" }}
+                    filterOption={(input, option) =>
+                      (
+                        option?.label?.toString().toLowerCase() ?? ""
+                      ).includes(input.toLowerCase())
+                    }
+                    options={allGroupNames}
+                  />
 
-                    <Tooltip title="Advanced Filters">
-                      <Button
-                        icon={
-                          <FilterOutlined
-                            style={{
-                              color:
-                                advancedFilters.createdDateRange[0] ||
-                                advancedFilters.createdDateRange[1] ||
-                                advancedFilters.updatedDateRange[0] ||
-                                advancedFilters.updatedDateRange[1] ||
-                                advancedFilters.ascending !== false
-                                  ? "#1890ff"
-                                  : undefined,
-                            }}
-                          />
-                        }
-                        onClick={handleOpenFilterModal}
-                      >
-                        Filters
-                      </Button>
-                    </Tooltip>
-
-                    <Select
-                      mode="multiple"
-                      allowClear
-                      style={{ width: "120px" }}
-                      placeholder={
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                          <TagOutlined style={{ marginRight: 8 }} />
-                          <span>Status</span>
-                        </div>
-                      }
-                      value={statusFilter}
-                      onChange={handleStatusFilterChange}
-                      options={statusOptions}
-                      maxTagCount="responsive"
-                    />
-
-                    <Tooltip title="Reset All Filters">
-                      <Button
-                        icon={<UndoOutlined />}
-                        onClick={handleResetFilters}
-                        disabled={
-                          !filterValue &&
-                          statusFilter.length === 0 &&
-                          !sorter &&
-                          advancedFilters === initialAdvancedFilters
-                        }
-                      ></Button>
-                    </Tooltip>
-
-                    <Dropdown
-                      overlay={
-                        <Menu>
-                          <Menu.Item key="selectAll">
-                            <Checkbox
-                              checked={areAllColumnsVisible()}
-                              onChange={(e) =>
-                                toggleAllColumns(e.target.checked)
-                              }
-                            >
-                              <strong>Toggle All</strong>
-                            </Checkbox>
-                          </Menu.Item>
-                          <Menu.Divider />
-                          {staticColumns
-                            .filter((col) => col.key !== "actions")
-                            .map((column) => (
-                              <Menu.Item key={column.key}>
-                                <Checkbox
-                                  checked={
-                                    !!columnVisibility[column.key as string]
-                                  }
-                                  onChange={() =>
-                                    handleColumnVisibilityChange(
-                                      column.key as string
-                                    )
-                                  }
-                                >
-                                  <span
-                                    style={{
-                                      color: "dimgray",
-                                      fontWeight: "normal",
-                                    }}
-                                  >
-                                    {React.isValidElement(column.title)
-                                      ? (
-                                          column.title as React.ReactElement<{
-                                            children: React.ReactNode;
-                                          }>
-                                        ).props.children
-                                      : column.title}
-                                  </span>
-                                </Checkbox>
-                              </Menu.Item>
-                            ))}
-                          <Menu.Item key="actions">
-                            <Checkbox
-                              checked={!!columnVisibility.actions}
-                              onChange={() =>
-                                handleColumnVisibilityChange("actions")
-                              }
-                            >
-                              <span
-                                style={{
-                                  color: "dimgray",
-                                  fontWeight: "normal",
-                                }}
-                              >
-                                Actions
-                              </span>
-                            </Checkbox>
-                          </Menu.Item>
-                        </Menu>
-                      }
-                      trigger={["click"]}
-                      open={dropdownOpen}
-                      onOpenChange={handleDropdownVisibleChange}
-                    >
-                      <Tooltip title="Column Settings">
-                        <Button icon={<SettingOutlined />}>Columns</Button>
-                      </Tooltip>
-                    </Dropdown>
-
+                  <Tooltip title="Advanced Filters">
                     <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={() => setIsModalOpen(true)}
-                      disabled={loading}
+                      icon={
+                        <FilterOutlined
+                          style={{
+                            color:
+                              advancedFilters.createdDateRange[0] ||
+                              advancedFilters.createdDateRange[1] ||
+                              advancedFilters.updatedDateRange[0] ||
+                              advancedFilters.updatedDateRange[1] ||
+                              advancedFilters.ascending !== false
+                                ? "#1890ff"
+                                : undefined,
+                          }}
+                        />
+                      }
+                      onClick={handleOpenFilterModal}
                     >
-                      Create
-                    </Button>
-                  </div>
-
-                  <Tooltip title="Export to Excel">
-                    <Button
-                      type="primary"
-                      icon={<FileExcelOutlined />}
-                      onClick={() => setExportModalVisible(true)}
-                      size="middle"
-                    >
-                      Export To Excel
+                      Filters
                     </Button>
                   </Tooltip>
-                </div>
-              </div>
-            </Card>
 
-            {/* Container cho cả selected info và rows per page */}
-            <div className="mb-4 py-2 flex justify-between items-center">
-              <div>{renderSelectedInfo()}</div>
-              <div>{renderRowsPerPage()}</div>
-            </div>
+                  <Select
+                    allowClear
+                    style={{ width: "120px" }}
+                    placeholder={
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <TagOutlined style={{ marginRight: 8 }} />
+                        <span>Status</span>
+                      </div>
+                    }
+                    value={statusFilter.length > 0 ? statusFilter[0] : undefined}
+                    onChange={(value) => handleStatusFilterChange(value ? [value] : [])}
+                    options={statusOptions}
+                  />
 
-            <Card
-              className="mt-4 shadow-sm"
-              bodyStyle={{ padding: "8px 16px" }}
-            >
-              <div style={{ overflowX: "auto" }}>
-                <Table<DrugGroupResponse>
-                  rowKey="id"
-                  columns={columns}
-                  dataSource={paginatedGroups}
-                  loading={loading}
-                  rowSelection={rowSelection}
-                  pagination={false}
-                  onChange={handleTableChange}
-                  scroll={{ x: "max-content" }}
-                  bordered
-                />
-              </div>
-              <Card className="mt-4 shadow-sm">
-                <Row justify="center" align="middle">
-                  <Space size="large" align="center">
-                    <Text type="secondary">
-                      Total {totalAvailableItems} items
-                    </Text>
-                    <Space align="center" size="large">
-                      <Pagination
-                        current={currentPage}
-                        pageSize={pageSize}
-                        total={totalAvailableItems}
-                        onChange={onPageChange}
-                        showSizeChanger={false}
-                        showTotal={() => ""}
-                      />
-                      <Space align="center">
-                        <Text type="secondary">Go to page:</Text>
-                        <InputNumber
-                          min={1}
-                          max={Math.max(
-                            1,
-                            Math.ceil(totalAvailableItems / pageSize)
-                          )}
-                          value={currentPage}
-                          onChange={(value: number | null) => {
-                            if (
-                              value &&
-                              value > 0 &&
-                              value <= Math.ceil(totalAvailableItems / pageSize)
-                            ) {
-                              onPageChange(value, pageSize);
+                  <Tooltip title="Reset All Filters">
+                    <Button
+                      icon={<UndoOutlined />}
+                      onClick={handleResetFilters}
+                      disabled={
+                        !filterValue &&
+                        statusFilter.length === 0 &&
+                        !sorter &&
+                        advancedFilters === initialAdvancedFilters
+                      }
+                    ></Button>
+                  </Tooltip>
+
+                  <Dropdown
+                    overlay={
+                      <Menu>
+                        <Menu.Item key="selectAll">
+                          <Checkbox
+                            checked={areAllColumnsVisible()}
+                            onChange={(e) =>
+                              toggleAllColumns(e.target.checked)
                             }
-                          }}
-                          style={{ width: "60px" }}
-                        />
-                      </Space>
-                    </Space>
-                  </Space>
-                </Row>
-              </Card>
+                          >
+                            <strong>Toggle All</strong>
+                          </Checkbox>
+                        </Menu.Item>
+                        <Menu.Divider />
+                        {staticColumns
+                          .filter((col) => col.key !== "actions")
+                          .map((column) => (
+                            <Menu.Item key={column.key}>
+                              <Checkbox
+                                checked={
+                                  !!columnVisibility[column.key as string]
+                                }
+                                onChange={() =>
+                                  handleColumnVisibilityChange(
+                                    column.key as string
+                                  )
+                                }
+                              >
+                                <span
+                                  style={{
+                                    color: "dimgray",
+                                    fontWeight: "normal",
+                                  }}
+                                >
+                                  {React.isValidElement(column.title)
+                                    ? (
+                                        column.title as React.ReactElement<{
+                                          children: React.ReactNode;
+                                        }>
+                                      ).props.children
+                                    : column.title}
+                                </span>
+                              </Checkbox>
+                            </Menu.Item>
+                          ))}
+                        <Menu.Item key="actions">
+                          <Checkbox
+                            checked={!!columnVisibility.actions}
+                            onChange={() =>
+                              handleColumnVisibilityChange("actions")
+                            }
+                          >
+                            <span
+                              style={{
+                                color: "dimgray",
+                                fontWeight: "normal",
+                              }}
+                            >
+                              Actions
+                            </span>
+                          </Checkbox>
+                        </Menu.Item>
+                      </Menu>
+                    }
+                    trigger={["click"]}
+                    open={dropdownOpen}
+                    onOpenChange={handleDropdownVisibleChange}
+                  >
+                    <Tooltip title="Column Settings">
+                      <Button icon={<SettingOutlined />}>Columns</Button>
+                    </Tooltip>
+                  </Dropdown>
+
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => setIsModalOpen(true)}
+                    disabled={loading}
+                  >
+                    Create
+                  </Button>
+                </div>
+
+                <Tooltip title="Export to Excel">
+                  <Button
+                    type="primary"
+                    icon={<FileExcelOutlined />}
+                    onClick={() => setExportModalVisible(true)}
+                    size="middle"
+                  >
+                    Export To Excel
+                  </Button>
+                </Tooltip>
+              </div>
             </Card>
           </Spin>
+
+          {/* Container cho cả selected info và rows per page */}
+          <div className="mb-4 py-2 flex justify-between items-center">
+            <div>{renderSelectedInfo()}</div>
+            <div>{renderRowsPerPage()}</div>
+          </div>
+
+          <Card
+            className="mt-4 shadow-sm"
+            bodyStyle={{ padding: "8px 16px" }}
+          >
+            <div style={{ overflowX: "auto" }}>
+              <Table<DrugGroupResponse>
+                rowKey="id"
+                columns={columns}
+                dataSource={paginatedGroups}
+                loading={loading}
+                rowSelection={rowSelection}
+                pagination={false}
+                onChange={handleTableChange}
+                scroll={{ x: "max-content" }}
+                bordered
+              />
+            </div>
+            <Card className="mt-4 shadow-sm">
+              <Row justify="center" align="middle">
+                <Space size="large" align="center">
+                  <Text type="secondary">
+                    Total {totalAvailableItems} items
+                  </Text>
+                  <Space align="center" size="large">
+                    <Pagination
+                      current={currentPage}
+                      pageSize={pageSize}
+                      total={totalAvailableItems}
+                      onChange={onPageChange}
+                      showSizeChanger={false}
+                      showTotal={() => ""}
+                    />
+                    <Space align="center">
+                      <Text type="secondary">Go to page:</Text>
+                      <InputNumber
+                        min={1}
+                        max={Math.max(
+                          1,
+                          Math.ceil(totalAvailableItems / pageSize)
+                        )}
+                        value={currentPage}
+                        onChange={(value: number | null) => {
+                          if (
+                            value &&
+                            value > 0 &&
+                            value <= Math.ceil(totalAvailableItems / pageSize)
+                          ) {
+                            onPageChange(value, pageSize);
+                          }
+                        }}
+                        style={{ width: "60px" }}
+                      />
+                    </Space>
+                  </Space>
+                </Space>
+              </Row>
+            </Card>
+          </Card>
         </div>
       )}
 
