@@ -828,7 +828,7 @@ const ScheduleAppointmentForStaff: React.FC<{
         >
           <Form.Item
             name="email"
-            label="Student/User Email"
+            label="User"
             rules={[
               {
                 required: true,
