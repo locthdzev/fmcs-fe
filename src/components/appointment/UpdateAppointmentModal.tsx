@@ -161,7 +161,7 @@ const UpdateAppointmentModal: React.FC<UpdateAppointmentModalProps> = ({
       >
         <Form.Item
           name="email"
-          label="Student/User Email"
+          label="User"
           rules={[
             { required: true, message: "Please enter the student/user Email" },
           ]}
