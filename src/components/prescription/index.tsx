@@ -41,6 +41,7 @@ import { getDrugs, DrugResponse } from "@/api/drug";
 import { useRouter } from "next/router";
 import CreateModal from "./CreateModal";
 import ExportConfigModal from "./ExportConfigModal";
+import ConfirmCancelPrescriptionModal from "./ConfirmCancelPrescriptionModal";
 import PageContainer from "../shared/PageContainer";
 import PaginationFooter from "../shared/PaginationFooter";
 import TableControls, {
@@ -555,16 +556,19 @@ export function PrescriptionManagement() {
 
   const handleCancel = async (id: string, reason: string) => {
     try {
+      setLoading(true);
       const response = await cancelPrescription(id, reason);
       if (response.success) {
         message.success("Prescription cancelled successfully");
         fetchPrescriptions();
       } else {
-        message.error("Failed to cancel prescription");
+        message.error(response.message || "Failed to cancel prescription");
       }
     } catch (error) {
       console.error("Error cancelling prescription:", error);
       message.error("Failed to cancel prescription");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -669,6 +673,19 @@ export function PrescriptionManagement() {
     );
   };
 
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [selectedPrescription, setSelectedPrescription] = useState<string | null>(null);
+
+  const showCancelModal = (record: PrescriptionResponseDTO) => {
+    setSelectedPrescription(record.id);
+    setCancelModalVisible(true);
+  };
+
+  const hideCancelModal = () => {
+    setSelectedPrescription(null);
+    setCancelModalVisible(false);
+  };
+
   const renderActionButtons = (record: PrescriptionResponseDTO) => {
     return (
       <div style={{ textAlign: "center" }}>
@@ -700,37 +717,7 @@ export function PrescriptionManagement() {
                   key="cancel"
                   icon={<CloseCircleOutlined />}
                   danger
-                  onClick={() => {
-                    Modal.confirm({
-                      title: "Cancel Prescription",
-                      icon: <CloseCircleOutlined />,
-                      content: (
-                        <div>
-                          <p>
-                            Are you sure you want to cancel this prescription?
-                          </p>
-                          <Input.TextArea
-                            placeholder="Reason for cancellation"
-                            id={`cancel-reason-${record.id}`}
-                            rows={3}
-                          />
-                        </div>
-                      ),
-                      onOk() {
-                        const reasonElement = document.getElementById(
-                          `cancel-reason-${record.id}`
-                        ) as HTMLTextAreaElement;
-                        if (reasonElement && reasonElement.value) {
-                          handleCancel(record.id, reasonElement.value);
-                        } else {
-                          message.error(
-                            "Please provide a reason for cancellation"
-                          );
-                          return Promise.reject("No reason provided");
-                        }
-                      },
-                    });
-                  }}
+                  onClick={() => showCancelModal(record)}
                 >
                   Cancel Prescription
                 </Menu.Item>
@@ -1357,6 +1344,13 @@ export function PrescriptionManagement() {
           createdDateRange,
           updatedDateRange,
         }}
+      />
+
+      <ConfirmCancelPrescriptionModal
+        visible={cancelModalVisible}
+        prescriptionId={selectedPrescription || ""}
+        onCancel={hideCancelModal}
+        onConfirm={handleCancel}
       />
 
       {/* Filter Modal */}

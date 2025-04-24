@@ -45,6 +45,7 @@ import {
   InboxOutlined,
   FileSearchOutlined,
   QuestionCircleOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import moment from "moment";
@@ -134,7 +135,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 placeholder="Search by patient"
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
+                
                 allowClear
                 style={{ width: "100%" }}
               />
@@ -151,7 +152,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 placeholder="Search by doctor/nurse"
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
+                
                 allowClear
                 style={{ width: "100%" }}
               />
@@ -239,6 +240,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
   const [checkupDateRange, setCheckupDateRange] = useState<
     [moment.Moment | null, moment.Moment | null]
   >([null, null]);
+  const [healthCheckCodes, setHealthCheckCodes] = useState<string[]>([]);
 
   // Column visibility state
   const [columnVisibility, setColumnVisibility] = useState<
@@ -251,6 +253,34 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
     actions: true,
   });
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Add this new function to fetch health check result codes
+  const fetchHealthCheckCodes = useCallback(async () => {
+    try {
+      const response = await getSoftDeletedHealthCheckResults(
+        1,
+        1000, // Get a large number to fetch all codes
+        undefined,
+        undefined,
+        "CheckupDate",
+        false
+      );
+
+      if (response.isSuccess) {
+        // Get unique result codes
+        const uniqueCodes = Array.from(
+          new Set(
+            response.data.map(
+              (result: HealthCheckResultsResponseDTO) => result.healthCheckResultCode
+            )
+          )
+        );
+        setHealthCheckCodes(uniqueCodes as string[]);
+      }
+    } catch (error) {
+      console.error("Error fetching health check codes:", error);
+    }
+  }, []);
 
   const fetchSoftDeletedHealthCheckResults = useCallback(async () => {
     setLoading(true);
@@ -337,7 +367,8 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
 
   useEffect(() => {
     fetchSoftDeletedHealthCheckResults();
-  }, [fetchSoftDeletedHealthCheckResults]);
+    fetchHealthCheckCodes(); // Call fetchHealthCheckCodes when component mounts
+  }, [fetchSoftDeletedHealthCheckResults, fetchHealthCheckCodes]);
 
   const handleRestore = async (ids: string[]) => {
     try {
@@ -434,7 +465,11 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
         </span>
       ),
       dataIndex: "healthCheckResultCode",
-      render: (code: string) => <Text copyable>{code}</Text>,
+      render: (text: string, record: HealthCheckResultsResponseDTO) => (
+        <Typography.Link onClick={() => router.push(`/health-check-result/${record.id}`)}>
+          {text}
+        </Typography.Link>
+      ),
       visible: columnVisibility.code,
     },
     {
@@ -462,13 +497,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Tooltip title="Click to view details">
-          <Typography.Link
-            onClick={() => router.push(`/health-check-result/${record.id}`)}
-          >
-            {formatDate(record.checkupDate)}
-          </Typography.Link>
-        </Tooltip>
+        <span>{formatDate(record.checkupDate)}</span>
       ),
       visible: columnVisibility.checkupDate,
     },
@@ -497,23 +526,32 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Space>
-          <Tooltip title="View details">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => router.push(`/health-check-result/${record.id}`)}
-            />
-          </Tooltip>
-          <Tooltip title="Restore">
-            <Button
-              type="text"
-              icon={<UndoOutlined />}
-              className="text-green-600"
-              onClick={() => handleRestore([record.id])}
-            />
-          </Tooltip>
-        </Space>
+        <div style={{ textAlign: "center" }}>
+          <Dropdown
+            overlay={
+              <Menu>
+                <Menu.Item
+                  key="view"
+                  icon={<EyeOutlined />}
+                  onClick={() => router.push(`/health-check-result/${record.id}`)}
+                >
+                  View Details
+                </Menu.Item>
+                
+                <Menu.Item
+                  key="restore"
+                  icon={<UndoOutlined style={{ color: "green" }} />}
+                  onClick={() => handleRestore([record.id])}
+                >
+                  <span style={{ color: "green" }}>Restore</span>
+                </Menu.Item>
+              </Menu>
+            }
+            placement="bottomCenter"
+          >
+            <Button icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </div>
       ),
       visible: columnVisibility.actions,
     },
@@ -570,14 +608,22 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex flex-wrap items-center gap-4">
-            {/* Code Filter */}
-            <Input
+            {/* Replace Input with Select for result code search */}
+            <Select
               placeholder="Search by result code"
-              value={codeSearch}
-              onChange={(e) => setCodeSearch(e.target.value)}
-              prefix={<SearchOutlined style={{ color: "blue" }} />}
-              style={{ width: 200 }}
+              value={codeSearch || undefined}
+              onChange={(value) => setCodeSearch(value)}
               allowClear
+              showSearch
+              style={{ width: 250 }}
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={healthCheckCodes.map(code => ({
+                value: code,
+                label: code
+              }))}
             />
 
             {/* Filter Button */}
@@ -595,7 +641,6 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
                 Filters
                 {isFilterApplied && (
                   <Badge
-                    count="!"
                     size="small"
                     offset={[2, -2]}
                     style={{ backgroundColor: "#1890ff" }}
@@ -727,46 +772,6 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
             </Dropdown>
           </div>
         </div>
-
-        {/* Applied Filter Tags */}
-        {isFilterApplied && (
-          <div className="mt-2">
-            <Space wrap>
-              <Text type="secondary">Applied filters:</Text>
-              {userSearch && (
-                <Tag closable onClose={() => setUserSearch("")}>
-                  Patient: {userSearch}
-                </Tag>
-              )}
-              {staffSearch && (
-                <Tag closable onClose={() => setStaffSearch("")}>
-                  Doctor/Nurse: {staffSearch}
-                </Tag>
-              )}
-              {sortBy !== "CheckupDate" && (
-                <Tag closable onClose={() => setSortBy("CheckupDate")}>
-                  Sort by:{" "}
-                  {sortBy === "CreatedAt" ? "Created Date" : "Updated Date"}
-                </Tag>
-              )}
-              {ascending !== false && (
-                <Tag closable onClose={() => setAscending(false)}>
-                  Order: Ascending
-                </Tag>
-              )}
-              {checkupDateRange[0] && (
-                <Tag closable onClose={() => setCheckupDateRange([null, null])}>
-                  Checkup Date:{" "}
-                  {formatDate(checkupDateRange[0].format("YYYY-MM-DD"))}
-                  {checkupDateRange[1] &&
-                    ` to ${formatDate(
-                      checkupDateRange[1].format("YYYY-MM-DD")
-                    )}`}
-                </Tag>
-              )}
-            </Space>
-          </div>
-        )}
       </Card>
 
       {/* Rows Per Page Control */}
@@ -795,16 +800,20 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
           {selectedRowKeys.length > 0 && (
             <Space>
               <Typography.Text>
-                {selectedRowKeys.length} mục đã chọn
+                {selectedRowKeys.length} items selected
               </Typography.Text>
               <Popconfirm
-                title="Bạn có chắc chắn muốn khôi phục các kết quả khám đã chọn?"
+                title="Are you sure you want to restore the selected examination results?"
                 onConfirm={() => handleRestore(selectedRowKeys as string[])}
-                okText="Xác nhận"
-                cancelText="Hủy"
+                okText="Confirm"
+                cancelText="Cancel"
               >
-                <Button type="primary" icon={<UndoOutlined />}>
-                  Khôi phục
+                <Button 
+                  type="default" 
+                  icon={<UndoOutlined style={{ color: "green" }} />}
+                  style={{ color: "green", borderColor: "green" }}
+                >
+                 Restore
                 </Button>
               </Popconfirm>
             </Space>

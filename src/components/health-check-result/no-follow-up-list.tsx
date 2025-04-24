@@ -42,6 +42,7 @@ import {
   FilterOutlined,
   UndoOutlined,
   AppstoreOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -154,7 +155,7 @@ const FilterModal: React.FC<{
                 allowClear
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
+                
               />
             </div>
           </Col>
@@ -170,7 +171,7 @@ const FilterModal: React.FC<{
                 allowClear
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
+                
               />
             </div>
           </Col>
@@ -255,6 +256,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
   const [sortBy, setSortBy] = useState("CheckupDate");
   const [ascending, setAscending] = useState(false);
   const [codeSearch, setCodeSearch] = useState("");
+  const [healthCheckCodes, setHealthCheckCodes] = useState<string[]>([]);
 
   // Filter modal state
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -272,6 +274,9 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
     actions: true,
   });
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Thêm state cho selectedRowKeys
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const fetchHealthCheckResults = useCallback(async () => {
     setLoading(true);
@@ -324,9 +329,43 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
     checkupDateRange,
   ]);
 
+  // Thêm hàm để lấy danh sách các mã kết quả khám
+  const fetchHealthCheckCodes = useCallback(async () => {
+    try {
+      const response = await getAllHealthCheckResults(
+        1,
+        1000, // Lấy số lượng lớn để có thể lấy hết mã
+        undefined,
+        undefined,
+        undefined,
+        "CheckupDate",
+        false,
+        "NoFollowUpRequired",
+        undefined,
+        undefined,
+        false
+      );
+
+      if (response.success) {
+        // Lấy danh sách mã không trùng lặp
+        const uniqueCodes = Array.from(
+          new Set(
+            response.data.map(
+              (result: HealthCheckResultsResponseDTO) => result.healthCheckResultCode
+            )
+          )
+        );
+        setHealthCheckCodes(uniqueCodes as string[]);
+      }
+    } catch (error) {
+      console.error("Error fetching health check codes:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchHealthCheckResults();
-  }, [fetchHealthCheckResults]);
+    fetchHealthCheckCodes(); // Gọi hàm lấy mã khi component mount
+  }, [fetchHealthCheckResults, fetchHealthCheckCodes]);
 
   const handleComplete = async (id: string) => {
     try {
@@ -435,7 +474,9 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Text copyable>{record.healthCheckResultCode}</Text>
+        <Typography.Link onClick={() => router.push(`/health-check-result/${record.id}`)}>
+          {record.healthCheckResultCode}
+        </Typography.Link>
       ),
       visible: columnVisibility.code,
     },
@@ -466,13 +507,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Tooltip title="Click to view details">
-          <Typography.Link
-            onClick={() => router.push(`/health-check-result/${record.id}`)}
-          >
-            {formatDate(record.checkupDate)}
-          </Typography.Link>
-        </Tooltip>
+        <span>{formatDate(record.checkupDate)}</span>
       ),
       visible: columnVisibility.checkupDate,
     },
@@ -529,52 +564,32 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Space>
-          <Tooltip title="View details">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => router.push(`/health-check-result/${record.id}`)}
-            />
-          </Tooltip>
-
-          <Tooltip title="Complete">
-            <Button
-              type="text"
-              icon={<CheckCircleOutlined />}
-              onClick={() => handleComplete(record.id)}
-              className="text-green-600"
-            />
-          </Tooltip>
-
-          <Tooltip title="Cancel">
-            <Popconfirm
-              title="Enter cancellation reason"
-              description={
-                <Input.TextArea
-                  placeholder="Cancellation reason"
-                  onChange={(e) => {
-                    (e.target as any).reason = e.target.value;
-                  }}
-                  rows={3}
-                />
-              }
-              onConfirm={(e) => {
-                const target = e?.target as any;
-                const reason = target?.reason || "Cancelled by user";
-                handleCancel(record.id, reason);
-              }}
-              okText="Confirm"
-              cancelText="Cancel"
-            >
-              <Button
-                type="text"
-                icon={<CloseCircleOutlined />}
-                className="text-red-600"
-              />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
+        <div style={{ textAlign: "center" }}>
+          <Dropdown
+            overlay={
+              <Menu>
+                <Menu.Item
+                  key="view"
+                  icon={<EyeOutlined />}
+                  onClick={() => router.push(`/health-check-result/${record.id}`)}
+                >
+                  View Details
+                </Menu.Item>
+                
+                <Menu.Item
+                  key="complete"
+                  icon={<CheckCircleOutlined style={{ color: "green" }} />}
+                  onClick={() => handleComplete(record.id)}
+                >
+                  <span style={{ color: "green" }}>Complete</span>
+                </Menu.Item>
+              </Menu>
+            }
+            placement="bottomCenter"
+          >
+            <Button icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </div>
       ),
       visible: columnVisibility.actions,
     },
@@ -592,6 +607,46 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       sortBy !== "CheckupDate" ||
       ascending !== false
     );
+  };
+
+  // Thêm hàm xử lý bulk complete
+  const handleBulkComplete = async () => {
+    setLoading(true);
+    try {
+      let successCount = 0;
+      let failureCount = 0;
+      
+      // Process each selected item
+      for (const id of selectedRowKeys) {
+        try {
+          const response = await completeHealthCheckResult(id as string);
+          if (response.isSuccess) {
+            successCount++;
+          } else {
+            failureCount++;
+          }
+        } catch (error) {
+          failureCount++;
+        }
+      }
+      
+      // Show appropriate notifications
+      if (successCount > 0) {
+        toast.success(`Successfully completed ${successCount} health check result(s)!`);
+      }
+      
+      if (failureCount > 0) {
+        toast.error(`Failed to complete ${failureCount} health check result(s). Some results may not be eligible for completion.`);
+      }
+      
+      // Clear selection and refetch data
+      setSelectedRowKeys([]);
+      fetchHealthCheckResults();
+    } catch (error) {
+      toast.error("An error occurred while processing the bulk operation");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -631,17 +686,53 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
       >
         <div className="mb-3 flex items-center justify-between flex-wrap">
           <div className="flex flex-wrap items-center gap-4 mb-3">
-            {/* Code Search - Keep this outside of filter modal */}
-            <Input
+            {/* Thay thế Input bằng Select */}
+            <Select
               placeholder="Search by result code"
-              value={codeSearch}
-              onChange={(e) => setCodeSearch(e.target.value)}
-              prefix={<SearchOutlined />}
-              style={{ width: 200 }}
+              
+              value={codeSearch || undefined}
+              onChange={(value) => setCodeSearch(value)}
               allowClear
+              showSearch
+              style={{ width: 250 }}
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={healthCheckCodes.map(code => ({
+                value: code,
+                label: code
+              }))}
             />
 
-            {/* Column Settings - Moved to the left */}
+            {/* Advanced Filter Button */}
+            <Tooltip title="Advanced Filters">
+              <Button
+                icon={
+                  <FilterOutlined
+                    style={{
+                      color: hasActiveFilters() ? "#1890ff" : undefined,
+                    }}
+                  />
+                }
+                onClick={handleOpenFilterModal}
+              >
+                Filters
+              </Button>
+            </Tooltip>
+
+            {/* Reset Button */}
+            <Tooltip title="Reset filters">
+              <Button
+                icon={<UndoOutlined />}
+                onClick={handleReset}
+                disabled={!hasActiveFilters()}
+              >
+                Reset
+              </Button>
+            </Tooltip>
+            
+            {/* Column Settings - Moved next to Reset button */}
             <Dropdown
               menu={{
                 items: [
@@ -781,33 +872,6 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                 <Button icon={<SettingOutlined />}>Columns</Button>
               </Tooltip>
             </Dropdown>
-
-            {/* Filter Button */}
-            <Tooltip title="Advanced Filters">
-              <Button
-                icon={
-                  <FilterOutlined
-                    style={{
-                      color: hasActiveFilters() ? "#1890ff" : undefined,
-                    }}
-                  />
-                }
-                onClick={handleOpenFilterModal}
-              >
-                Filters
-              </Button>
-            </Tooltip>
-
-            {/* Reset Button - Always visible now */}
-            <Tooltip title="Reset filters">
-              <Button
-                icon={<UndoOutlined />}
-                onClick={handleReset}
-                disabled={!hasActiveFilters()}
-              >
-                Reset
-              </Button>
-            </Tooltip>
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
@@ -818,7 +882,32 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
 
       {/* Page Size Selection */}
       <div className="flex justify-between items-center mb-4">
-        <div></div>
+        <div>
+          {selectedRowKeys.length > 0 && (
+            <Space>
+              <Typography.Text>{selectedRowKeys.length} items selected</Typography.Text>
+              <Popconfirm
+                title="Are you sure you want to complete all selected results?"
+                onConfirm={handleBulkComplete}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Button 
+                  type="default"
+                  icon={<CheckCircleOutlined style={{ color: "#52c41a" }} />}
+                  loading={loading}
+                  style={{ 
+                    color: "#52c41a", 
+                    borderColor: "#52c41a",
+                    backgroundColor: "white" 
+                  }}
+                >
+                  Complete Selected
+                </Button>
+              </Popconfirm>
+            </Space>
+          )}
+        </div>
         <div>
           <Typography.Text type="secondary">
             Rows per page:
@@ -848,6 +937,10 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
           loading={loading}
           pagination={false}
           rowKey="id"
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys),
+          }}
           locale={{
             emptyText: (
               <Empty description="No health check results without follow-up required found" />
