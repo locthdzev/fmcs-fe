@@ -119,7 +119,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({ appointment, on
         <div className="header-row">
           <div>
             <img
-              src={appointment.imageURL || "/doctor-image.png"}
+              src={appointment.imageURL || "/images/placeholder.jpg"}
               alt={appointment.staffName}
               className="staff-image"
             />

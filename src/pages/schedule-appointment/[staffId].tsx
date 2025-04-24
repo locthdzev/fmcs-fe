@@ -21,7 +21,7 @@ import {
   cancelPresentLockedAppointment,
   cancelExpiredLockedAppointment,
 } from "@/api/appointment-api-fix-signalr";
-import { Button, Spin, Typography, Row, Col, Input, message } from "antd";
+import { Button, Spin, Typography, Row, Col, Input, message, Tag } from "antd";
 import {
   setupScheduleAppointmentLockedRealtime,
   setupCancelAppointmentRealtime,
@@ -139,9 +139,13 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
           token
         );
         const slotData = response.data?.availableSlots || [];
-        updateSlotsFromResponse(slotData);
+        
+        // Filter time slots based on staff work schedule for the selected date
+        const filteredSlotData = filterTimeSlotsByShift(date, slotData);
+        
+        updateSlotsFromResponse(filteredSlotData);
 
-        const userLockedSlot = slotData.find(
+        const userLockedSlot = filteredSlotData.find(
           (slot) => slot.lockedByCurrentUser
         );
         if (userLockedSlot) {
@@ -156,7 +160,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
           setIsConfirming(false);
         } else if (
           selectedTimeSlot &&
-          !slotData.some(
+          !filteredSlotData.some(
             (s) =>
               s.timeSlot === selectedTimeSlot &&
               (s.isAvailable || s.lockedByCurrentUser)
@@ -172,6 +176,71 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
       }
     }, 50),
     [staff.staffId, token, userId, schedulingInProgress, selectedTimeSlot, messageApi]
+  );
+
+  // Add a function to filter time slots based on staff work schedule
+  const filterTimeSlotsByShift = useCallback(
+    (date: string, slots: TimeSlotDTO[]): TimeSlotDTO[] => {
+      // Find the work schedule for the selected date
+      const dateSchedule = staffWorkSchedules.find(
+        (schedule) => moment(schedule.workDate).format("YYYY-MM-DD") === date
+      );
+
+      // If no schedule found, return all slots (or empty array)
+      if (!dateSchedule || !dateSchedule.startTime || !dateSchedule.endTime) {
+        return slots;
+      }
+
+      // Convert AM/PM time to minutes for easier comparison
+      const convertTimeToMinutes = (timeStr: string) => {
+        // Handle formats like "9:00 AM" or "1:00 PM"
+        const [timePart, ampm] = timeStr.split(" ");
+        let [hours, minutes] = timePart.split(":").map(Number);
+
+        // Convert 12h to 24h format
+        if (ampm.toUpperCase() === "PM" && hours < 12) {
+          hours += 12;
+        } else if (ampm.toUpperCase() === "AM" && hours === 12) {
+          hours = 0;
+        }
+
+        return hours * 60 + minutes;
+      };
+
+      // Parse time slots to minutes for comparison
+      const parseTimeToMinutes = (timeStr: string) => {
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours * 60 + minutes;
+      };
+
+      // Calculate shift start and end times in minutes
+      const shiftStartMinutes = convertTimeToMinutes(dateSchedule.startTime);
+      const shiftEndMinutes = convertTimeToMinutes(dateSchedule.endTime);
+
+      console.log(`Staff shift time: ${dateSchedule.startTime} - ${dateSchedule.endTime}`);
+      console.log(`Converted shift time (minutes): ${shiftStartMinutes} - ${shiftEndMinutes}`);
+
+      // Filter slots that are within the staff's work schedule
+      return slots.filter(slot => {
+        const [slotStart] = slot.timeSlot.split(" - ");
+        const [slotEnd] = slot.timeSlot.split(" - ")[1].split(" ");
+        
+        const slotStartMinutes = parseTimeToMinutes(slotStart);
+        const slotEndMinutes = parseTimeToMinutes(slotEnd);
+        
+        // Only return slots that fall within the work schedule
+        const isWithinShift = slotStartMinutes >= shiftStartMinutes && 
+                             slotEndMinutes <= shiftEndMinutes;
+        
+        // If this slot is not within shift times, mark it as unavailable
+        if (!isWithinShift) {
+          slot.isAvailable = false;
+        }
+        
+        return true; // Return all slots but mark unavailable ones
+      });
+    },
+    [staffWorkSchedules]
   );
 
   // Fetch slot counts
@@ -731,6 +800,14 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
         
         // Log the available dates for debugging
         console.log("Available work dates:", Array.from(workDates));
+        console.log("Staff work schedules loaded successfully");
+        
+        // If we already have a selected date, refresh the time slots
+        // to apply the work schedule filtering
+        const currentSelectedDate = selectedDateRef.current;
+        if (currentSelectedDate) {
+          fetchAvailableSlots(currentSelectedDate);
+        }
       } else {
         console.error("Failed to fetch staff work schedules:", response.message);
       }
@@ -740,7 +817,12 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
     } finally {
       setWorkScheduleLoading(false);
     }
-  }, [staff.staffId, token, messageApi]);
+  }, [staff.staffId, token, messageApi, fetchAvailableSlots]);
+
+  // Update selectedDate ref whenever it changes
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
 
   // Load staff work schedules on component mount
   useEffect(() => {
@@ -1219,12 +1301,19 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
       const isHovered = hoveredIndex === index;
       const isDisabled = !isAvailable && !(lockedByCurrentUser && isSelected);
 
+      // Check if this slot is outside staff work hours
+      const isOutsideWorkHours = workScheduleLoading 
+        ? false 
+        : !isAvailable && staffWorkSchedules.length > 0 && selectedDate;
+
       const buttonStyle = {
         width: "100%",
         height: "48px", // Larger height for better usability
         borderRadius: "12px", // Consistent with date buttons
         backgroundColor:
-          isLocked && !lockedByCurrentUser && !isConfirmed
+          isOutsideWorkHours
+          ? "#f9f9f9" // Very light gray for outside work hours
+          : isLocked && !lockedByCurrentUser && !isConfirmed
             ? "#ffbb33" // Warm yellow for locked by others
             : lockedByCurrentUser
             ? "#b7eb8f" // Soft green for current user
@@ -1244,7 +1333,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
           : "1px solid #d9d9d9", // Default gray border
         boxShadow:
           isHovered && !isDisabled ? "0 4px 8px rgba(0, 0, 0, 0.1)" : "none",
-        color: "#333", // High-contrast text
+        color: isOutsideWorkHours ? "#999" : "#333", // Lighter text for outside work hours
         fontSize: "14px", // Larger text
         fontWeight: "500",
         cursor: isDisabled ? "not-allowed" : "pointer",
@@ -1263,13 +1352,24 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
             onMouseEnter={() => !isDisabled && setHoveredIndex(index)}
             onMouseLeave={() => setHoveredIndex(null)}
             style={buttonStyle}
+            title={isOutsideWorkHours ? "Outside staff working hours" : ""}
           >
             {loading && isSelected ? <Spin size="small" /> : timeSlot}
           </Button>
+          {isOutsideWorkHours && (
+            <div style={{ 
+              fontSize: '10px', 
+              color: '#999', 
+              textAlign: 'center', 
+              marginTop: '2px'
+            }}>
+              Unavailable
+            </div>
+          )}
         </Col>
       );
     },
-    [selectedTimeSlot, loading, hoveredIndex]
+    [selectedTimeSlot, loading, hoveredIndex, workScheduleLoading, staffWorkSchedules, selectedDate]
   );
 
   if (!token || !userId) return null;
@@ -1297,7 +1397,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
                 }}
               >
                 <img
-                  src={staff.imageURL || "/default-doctor-image.png"}
+                  src={staff.imageURL || "/images/placeholder.jpg"}
                   alt={staff.fullName}
                   style={{
                     width: "100%",
@@ -1306,7 +1406,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
                     borderRadius: "4px",
                   }}
                   onError={(e) =>
-                    (e.currentTarget.src = "/default-doctor-image.png")
+                    (e.currentTarget.src = "/images/placeholder.jpg")
                   }
                 />
               </div>
@@ -1473,92 +1573,134 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
             })()}
           </Row>
 
-          {selectedDate && (
+          {/* Show staff work schedule for selected date */}
+          {selectedDate && !fetchingSlots && (
             <>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: "16px",
-                }}
-              >
-                <span style={{ marginRight: "8px" }}>🌞 Morning</span>
-                <div style={{ flex: 1, borderBottom: "2px solid #d9d9d9" }} />
-              </div>
-              <Row gutter={[8, 8]}>
-                {fetchingSlots ? (
-                  <Col span={24}>
-                    <div style={{ textAlign: "center", padding: "20px" }}>
-                      <Spin tip="Loading slots..." />
+              {(() => {
+                // Find the work schedule for the selected date
+                const dateSchedule = staffWorkSchedules.find(
+                  (schedule) => moment(schedule.workDate).format("YYYY-MM-DD") === selectedDate
+                );
+                
+                if (dateSchedule && dateSchedule.startTime && dateSchedule.endTime) {
+                  return (
+                    <div 
+                      style={{
+                        marginBottom: "20px",
+                        padding: "12px",
+                        borderRadius: "8px",
+                        backgroundColor: "#f0f7ff",
+                        border: "1px solid #bae0ff"
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <Text strong>Healthcare Staff Working Hours:</Text>
+                          {dateSchedule.shiftName && (
+                            <Tag color="blue" style={{ marginLeft: "8px" }}>{dateSchedule.shiftName}</Tag>
+                          )}
+                        </div>
+                        <Text>
+                          {dateSchedule.startTime} - {dateSchedule.endTime}
+                        </Text>
+                      </div>
+                      <Text type="secondary" style={{ fontSize: "12px", display: "block", marginTop: "4px" }}>
+                        You can only schedule appointments during the healthcare staff's working hours
+                      </Text>
                     </div>
-                  </Col>
-                ) : (
-                  availableSlots
-                    .filter((slot) => slot.timeSlot < "12:00")
-                    .map((slot, index) =>
-                      renderTimeSlotButton(slot, `morning-${index}`)
-                    )
-                )}
-              </Row>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: "16px",
-                }}
-              >
-                <span style={{ marginRight: "8px" }}>🌅 Afternoon</span>
-                <div style={{ flex: 1, borderBottom: "2px solid #d9d9d9" }} />
-              </div>
-              <Row gutter={[8, 8]}>
-                {fetchingSlots ? (
-                  <Col span={24}>
-                    <div style={{ textAlign: "center", padding: "20px" }}>
-                      <Spin tip="Loading slots..." />
-                    </div>
-                  </Col>
-                ) : (
-                  availableSlots
-                    .filter((slot) => slot.timeSlot >= "13:00")
-                    .map((slot, index) =>
-                      renderTimeSlotButton(slot, `afternoon-${index}`)
-                    )
-                )}
-              </Row>
-
-              <div style={{ marginBottom: "16px" }}>
-                <Text>Reason for Appointment:</Text>
-                <TextArea
-                  value={appointmentReason}
-                  onChange={(e) => setAppointmentReason(e.target.value)}
-                  placeholder="Enter the reason for your appointment"
-                  rows={3}
-                  style={{ marginTop: "8px" }}
-                />
-              </div>
-
-              {appointmentId && lockedUntil && !isConfirmed && (
-                <div style={{ marginTop: "16px", textAlign: "center" }}>
-                  <Text>
-                    Confirm within{" "}
-                    {timeLeft !== null
-                      ? `2:00`
-                      : "expired"}
-                  </Text>
-                  <br />
-                  <Button
-                    type="primary"
-                    onClick={handleConfirmAppointment}
-                    disabled={loading || isConfirming || timeLeft === null}
-                    style={{ marginTop: "8px", borderRadius: "8px" }}
-                  >
-                    {loading || isConfirming ? <Spin /> : "Confirm Appointment"}
-                  </Button>
-                </div>
-              )}
+                  );
+                }
+                return null;
+              })()}
             </>
           )}
+          
+          {selectedDate && fetchingSlots && (
+            <div 
+              style={{
+                marginBottom: "20px",
+                padding: "12px",
+                borderRadius: "8px",
+                backgroundColor: "#f9f9f9",
+                textAlign: "center"
+              }}
+            >
+              <Spin size="small" style={{ marginRight: "8px" }} />
+              <Text type="secondary">Loading available time slots...</Text>
+            </div>
+          )}
+
+          <div
+            style={{
+              marginBottom: "24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+            }}
+          >
+            <Row gutter={[12, 12]}>
+              {fetchingSlots ? (
+                <Col span={24}>
+                  <div style={{ textAlign: "center", padding: "20px" }}>
+                    <Spin tip="Loading slots..." />
+                  </div>
+                </Col>
+              ) : (
+                availableSlots
+                  .filter((slot) => slot.timeSlot < "12:00")
+                  .map((slot, index) =>
+                    renderTimeSlotButton(slot, `morning-${index}`)
+                  )
+              )}
+            </Row>
+
+            <Row gutter={[12, 12]}>
+              {fetchingSlots ? (
+                <Col span={24}>
+                  <div style={{ textAlign: "center", padding: "20px" }}>
+                    <Spin tip="Loading slots..." />
+                  </div>
+                </Col>
+              ) : (
+                availableSlots
+                  .filter((slot) => slot.timeSlot >= "13:00")
+                  .map((slot, index) =>
+                    renderTimeSlotButton(slot, `afternoon-${index}`)
+                  )
+              )}
+            </Row>
+
+            <div style={{ marginBottom: "16px" }}>
+              <Text>Reason for Appointment:</Text>
+              <TextArea
+                value={appointmentReason}
+                onChange={(e) => setAppointmentReason(e.target.value)}
+                placeholder="Enter the reason for your appointment"
+                rows={3}
+                style={{ marginTop: "8px" }}
+              />
+            </div>
+
+            {appointmentId && lockedUntil && !isConfirmed && (
+              <div style={{ marginTop: "16px", textAlign: "center" }}>
+                <Text>
+                  Confirm within{" "}
+                  {timeLeft !== null
+                    ? `2:00`
+                    : "expired"}
+                </Text>
+                <br />
+                <Button
+                  type="primary"
+                  onClick={handleConfirmAppointment}
+                  disabled={loading || isConfirming || timeLeft === null}
+                  style={{ marginTop: "8px", borderRadius: "8px" }}
+                >
+                  {loading || isConfirming ? <Spin /> : "Confirm Appointment"}
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       <ConflictModal
