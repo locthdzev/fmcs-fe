@@ -806,7 +806,7 @@ export function AppointmentManagementForStudent() {
                       margin: "0 auto",
                       aspectRatio: "1 / 1",
                       backgroundImage: `url(${
-                        appointment.imageURL || "/doctor-image.png"
+                        appointment.imageURL || "/images/placeholder.jpg"
                       })`,
                       border: "2px solid #E6F0FA",
                     }}

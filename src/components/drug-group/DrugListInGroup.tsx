@@ -94,7 +94,6 @@ const DrugListInGroup: React.FC<DrugListInGroupProps> = ({ drugGroupId }) => {
       if (!drugGroupId) {
         console.error("Missing drug group ID");
         setError("Missing drug group ID");
-        messageApi.error("Missing drug group ID");
         setLoading(false);
         return;
       }
@@ -108,33 +107,31 @@ const DrugListInGroup: React.FC<DrugListInGroupProps> = ({ drugGroupId }) => {
           console.log("Successfully loaded", response.data.length, "drugs");
           setDrugs(response.data);
           setFilteredDrugs(response.data);
-
-          // Show a friendly message if no drugs are found
-          if (response.data.length === 0) {
-            messageApi.info("No drugs found for this drug group");
-          }
+          // Even if data is empty, don't set an error
+          setError(null);
         } else {
           console.error(
             "Expected an array of drugs but got:",
             typeof response.data
           );
           setError("Invalid data format received from server");
-          messageApi.error("Failed to load drugs: Invalid data format");
         }
+      } else if (response && response.message === "No drugs found for the given Drug Group ID.") {
+        // Handle the specific "No drugs found" response without showing an error
+        console.log("No drugs found for this group - setting empty arrays");
+        setDrugs([]);
+        setFilteredDrugs([]);
+        setError(null);
       } else {
         console.error(
           "Unexpected API response structure:",
           JSON.stringify(response)
         );
         setError("Invalid response format received from server");
-        messageApi.error("Failed to load drugs: Invalid response format");
       }
     } catch (error: any) {
       console.error("Error fetching drugs:", error);
       setError(error?.message || "Unknown error occurred");
-      messageApi.error(
-        `Failed to load drugs: ${error?.message || "Unknown error"}`
-      );
     } finally {
       setLoading(false);
     }
@@ -235,8 +232,10 @@ const DrugListInGroup: React.FC<DrugListInGroupProps> = ({ drugGroupId }) => {
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={
             <div className="text-center">
-              <Text type="danger">Failed to load drugs</Text>
-              <p className="text-gray-500 mt-2">{error}</p>
+              <p className="text-gray-500">No drugs found in this group</p>
+              <p className="text-gray-400 text-sm mt-2">
+                You can add drugs to this group from the drug management page
+              </p>
             </div>
           }
         />
@@ -381,9 +380,13 @@ const DrugListInGroup: React.FC<DrugListInGroupProps> = ({ drugGroupId }) => {
                 }
               >
                 <Link href={`/drug/${drug.id}`}>
-                  <Title level={5} className="text-blue-600 cursor-pointer">
+                  <Button
+                    type="link"
+                    style={{ padding: 0 }}
+                    className="text-blue-600"
+                  >
                     {drug.drugCode}
-                  </Title>
+                  </Button>
                 </Link>
 
                 <Text strong className="block mb-1">

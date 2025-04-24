@@ -94,14 +94,14 @@ export function capitalize(s: string) {
 }
 
 const columns = [
-  { name: "DRUG CODE", uid: "drugCode", sortable: true },
-  { name: "NAME", uid: "name", sortable: true },
-  { name: "DRUG GROUP", uid: "drugGroup", sortable: true },
+  { name: "DRUG CODE", uid: "drugCode" },
+  { name: "NAME", uid: "name" },
+  { name: "DRUG GROUP", uid: "drugGroup" },
   { name: "UNIT", uid: "unit" },
   { name: "DESCRIPTION", uid: "description" },
-  { name: "PRICE", uid: "price", sortable: true },
-  { name: "MANUFACTURER", uid: "manufacturer", sortable: true },
-  { name: "CREATED AT", uid: "createdAt", sortable: true },
+  { name: "PRICE", uid: "price" },
+  { name: "MANUFACTURER", uid: "manufacturer" },
+  { name: "CREATED AT", uid: "createdAt" },
   { name: "STATUS", uid: "status" },
   { name: "ACTIONS", uid: "actions" },
 ];
@@ -130,17 +130,11 @@ const INITIAL_VISIBLE_COLUMNS = [
 export function Drugs() {
   const [isReady, setIsReady] = useState(false);
   const router = useRouter();
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deletingDrug, setDeletingDrug] = useState<DrugResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterValue, setFilterValue] = useState("");
   const [selectedDrugs, setSelectedDrugs] = useState<DrugResponse[]>([]);
   const [showActivate, setShowActivate] = useState(false);
   const [showDeactivate, setShowDeactivate] = useState(false);
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<
-    "activate" | "deactivate" | null
-  >(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isLoadingAllItems, setIsLoadingAllItems] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -506,34 +500,10 @@ export function Drugs() {
     router.push(`/drug/${id}`);
   };
 
-  const handleOpenDeleteModal = async (id: string) => {
-    try {
-      const drug = await getDrugById(id);
-      setDeletingDrug(drug);
-      setIsDeleteModalOpen(true);
-    } catch (error) {
-      messageApi.error("Failed to load drug details for deletion", 5);
-    }
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deletingDrug) return;
-    try {
-      await deleteDrug(deletingDrug.id);
-      messageApi.success("Drug deleted successfully", 5);
-      await fetchDrugs();
-      setSelectedKeys(new Set());
-      setIsDeleteModalOpen(false);
-      setDeletingDrug(null);
-    } catch (error) {
-      messageApi.error("Failed to delete drug", 5);
-    }
-  };
-
-  const handleActivate = async () => {
-    const ids = selectedDrugs
-      .filter((d) => d.status === "Inactive")
-      .map((d) => d.id);
+  const handleActivate = async (drug?: DrugResponse | null) => {
+    const ids = drug
+      ? [drug.id]
+      : selectedDrugs.filter((d) => d.status === "Inactive").map((d) => d.id);
     if (ids.length === 0) return;
 
     setLoading(true);
@@ -551,10 +521,10 @@ export function Drugs() {
     }
   };
 
-  const handleDeactivate = async () => {
-    const ids = selectedDrugs
-      .filter((d) => d.status === "Active")
-      .map((d) => d.id);
+  const handleDeactivate = async (drug?: DrugResponse | null) => {
+    const ids = drug
+      ? [drug.id]
+      : selectedDrugs.filter((d) => d.status === "Active").map((d) => d.id);
     if (ids.length === 0) return;
 
     setLoading(true);
@@ -572,24 +542,8 @@ export function Drugs() {
     }
   };
 
-  const handleConfirmActivate = () => {
-    setConfirmAction("activate");
-    setIsConfirmModalOpen(true);
-  };
-
-  const handleConfirmDeactivate = () => {
-    setConfirmAction("deactivate");
-    setIsConfirmModalOpen(true);
-  };
-
-  const handleConfirmAction = async () => {
-    if (confirmAction === "activate") {
-      await handleActivate();
-    } else if (confirmAction === "deactivate") {
-      await handleDeactivate();
-    }
-    setIsConfirmModalOpen(false);
-    setConfirmAction(null);
+  const handleOpenEditModal = (id: string) => {
+    router.push(`/drug/${id}?edit=true`);
   };
 
   const formatDate = (dateString: string | number | undefined) => {
@@ -609,10 +563,6 @@ export function Drugs() {
       maximumFractionDigits: 0,
       currencyDisplay: "code",
     }).format(numPrice);
-  };
-
-  const handleOpenEditModal = (id: string) => {
-    router.push(`/drug/${id}?edit=true`);
   };
 
   const handleBack = () => {
@@ -705,13 +655,6 @@ export function Drugs() {
                     onClick={() => handleOpenEditModal(drug.id)}
                   >
                     Edit
-                  </DropdownItem>
-                  <DropdownItem
-                    key="delete"
-                    className="text-danger"
-                    onClick={() => handleOpenDeleteModal(drug.id)}
-                  >
-                    Delete
                   </DropdownItem>
                 </DropdownMenu>
               </HeroDropdown>
@@ -1522,7 +1465,6 @@ export function Drugs() {
         ),
         dataIndex: "drugCode",
         key: "drugCode",
-        sorter: (a, b) => a.drugCode.localeCompare(b.drugCode),
         render: (text: string, record: DrugResponse) => (
           <Button
             type="link"
@@ -1543,7 +1485,6 @@ export function Drugs() {
         ),
         dataIndex: "name",
         key: "name",
-        sorter: (a, b) => a.name.localeCompare(b.name),
         ellipsis: true,
         render: (text: string, record: DrugResponse) => (
           <Space>
@@ -1590,12 +1531,18 @@ export function Drugs() {
         ),
         dataIndex: "drugGroup",
         key: "drugGroup",
-        render: (drugGroup: any) => drugGroup?.groupName || "-",
-        sorter: (a, b) => {
-          const groupA = a.drugGroup?.groupName || "";
-          const groupB = b.drugGroup?.groupName || "";
-          return groupA.localeCompare(groupB);
-        },
+        render: (drugGroup: any) =>
+          drugGroup ? (
+            <Button
+              type="link"
+              onClick={() => router.push(`/drug-group/${drugGroup.id}`)}
+              style={{ padding: 0 }}
+            >
+              {drugGroup.groupName || "-"}
+            </Button>
+          ) : (
+            "-"
+          ),
       },
       {
         title: (
@@ -1626,7 +1573,6 @@ export function Drugs() {
         dataIndex: "price",
         key: "price",
         render: (price: number) => formatPrice(price),
-        sorter: (a, b) => a.price - b.price,
       },
       {
         title: (
@@ -1636,11 +1582,6 @@ export function Drugs() {
         ),
         dataIndex: "manufacturer",
         key: "manufacturer",
-        sorter: (a, b) => {
-          const mfrA = a.manufacturer || "";
-          const mfrB = b.manufacturer || "";
-          return mfrA.localeCompare(mfrB);
-        },
       },
       {
         title: (
@@ -1651,11 +1592,6 @@ export function Drugs() {
         dataIndex: "createdAt",
         key: "createdAt",
         render: (date: string) => formatDate(date),
-        sorter: (a, b) => {
-          const dateA = dayjs(a.createdAt).unix();
-          const dateB = dayjs(b.createdAt).unix();
-          return dateA - dateB;
-        },
       },
       {
         title: (
@@ -1672,7 +1608,14 @@ export function Drugs() {
       },
       {
         title: (
-          <span style={{ textTransform: "uppercase", fontWeight: "bold" }}>
+          <span
+            style={{
+              textTransform: "uppercase",
+              fontWeight: "bold",
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
             ACTIONS
           </span>
         ),
@@ -1696,41 +1639,37 @@ export function Drugs() {
                     Edit
                   </Menu.Item>
                   {record.status === "Active" ? (
-                    <Menu.Item
-                      key="deactivate"
-                      style={{ color: "red" }}
-                      icon={<StopOutlined />}
-                      onClick={() => {
-                        setSelectedDrugs([record]);
-                        setConfirmAction("deactivate");
-                        setIsConfirmModalOpen(true);
-                      }}
-                      danger
+                    <Popconfirm
+                      title="Are you sure you want to deactivate this drug?"
+                      onConfirm={() => handleDeactivate(record)}
+                      okText="Yes"
+                      cancelText="No"
                     >
-                      Deactivate
-                    </Menu.Item>
+                      <Menu.Item
+                        key="deactivate"
+                        style={{ color: "red" }}
+                        icon={<StopOutlined />}
+                        danger
+                      >
+                        Deactivate
+                      </Menu.Item>
+                    </Popconfirm>
                   ) : (
-                    <Menu.Item
-                      key="activate"
-                      icon={<CheckCircleOutlined />}
-                      style={{ color: "green" }}
-                      onClick={() => {
-                        setSelectedDrugs([record]);
-                        setConfirmAction("activate");
-                        setIsConfirmModalOpen(true);
-                      }}
+                    <Popconfirm
+                      title="Are you sure you want to activate this drug?"
+                      onConfirm={() => handleActivate(record)}
+                      okText="Yes"
+                      cancelText="No"
                     >
-                      Activate
-                    </Menu.Item>
+                      <Menu.Item
+                        key="activate"
+                        icon={<CheckCircleOutlined />}
+                        style={{ color: "green" }}
+                      >
+                        Activate
+                      </Menu.Item>
+                    </Popconfirm>
                   )}
-                  <Menu.Item
-                    key="delete"
-                    icon={<DeleteOutlined />}
-                    danger
-                    onClick={() => handleOpenDeleteModal(record.id)}
-                  >
-                    Delete
-                  </Menu.Item>
                 </Menu>
               }
               placement="bottomRight"
@@ -2009,33 +1948,6 @@ export function Drugs() {
         </Modal>
       )}
 
-      <Modal
-        title={`Confirm ${
-          confirmAction === "activate" ? "Activation" : "Deactivation"
-        }`}
-        open={isConfirmModalOpen}
-        onCancel={() => setIsConfirmModalOpen(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setIsConfirmModalOpen(false)}>
-            Cancel
-          </Button>,
-          <Button
-            key="confirm"
-            type={confirmAction === "activate" ? "primary" : "primary"}
-            danger={confirmAction === "deactivate"}
-            onClick={handleConfirmAction}
-          >
-            Confirm
-          </Button>,
-        ]}
-      >
-        <p>
-          Are you sure you want to{" "}
-          {confirmAction === "activate" ? "activate" : "deactivate"} the
-          selected drugs?
-        </p>
-      </Modal>
-
       <DrugFilterModal
         visible={isFilterModalOpen}
         onCancel={() => setIsFilterModalOpen(false)}
@@ -2073,31 +1985,6 @@ export function Drugs() {
         pageSize={pageSize}
         onPageSizeChange={(newSize) => onPageChange(page, newSize)}
         bulkActions={[
-          // Delete action
-          createDeleteBulkAction(
-            selectedRowKeys.length,
-            deletingItems,
-            async () => {
-              setDeletingItems(true);
-              try {
-                // Gọi API xóa nhiều items
-                const ids = selectedRowKeys as string[];
-                await Promise.all(ids.map((id) => deleteDrug(id)));
-                messageApi.success(
-                  `${ids.length} drugs deleted successfully`,
-                  5
-                );
-                setSelectedRowKeys([]);
-                fetchDrugs();
-              } catch (error) {
-                messageApi.error("Failed to delete drugs", 5);
-                console.error("Error deleting drugs:", error);
-              } finally {
-                setDeletingItems(false);
-              }
-            },
-            true
-          ),
           // Activate action
           createActivateBulkAction(
             selectedRowKeys.length,
@@ -2105,9 +1992,22 @@ export function Drugs() {
             async () => {
               setActivatingItems(true);
               try {
-                await activateDrugs(selectedRowKeys as string[]);
+                // Count inactive drugs before activation
+                const inactiveDrugs = drugs.filter(
+                  (drug) =>
+                    selectedRowKeys.includes(drug.id) &&
+                    drug.status === "Inactive"
+                );
+
+                if (inactiveDrugs.length === 0) {
+                  messageApi.info("No inactive drugs selected to activate", 5);
+                  setActivatingItems(false);
+                  return;
+                }
+
+                await activateDrugs(inactiveDrugs.map((drug) => drug.id));
                 messageApi.success(
-                  `Successfully activated ${selectedRowKeys.length} drugs`,
+                  `Successfully activated ${inactiveDrugs.length} drugs`,
                   5
                 );
                 setSelectedRowKeys([]);
@@ -2128,9 +2028,22 @@ export function Drugs() {
             async () => {
               setDeactivatingItems(true);
               try {
-                await deactivateDrugs(selectedRowKeys as string[]);
+                // Count active drugs before deactivation
+                const activeDrugs = drugs.filter(
+                  (drug) =>
+                    selectedRowKeys.includes(drug.id) &&
+                    drug.status === "Active"
+                );
+
+                if (activeDrugs.length === 0) {
+                  messageApi.info("No active drugs selected to deactivate", 5);
+                  setDeactivatingItems(false);
+                  return;
+                }
+
+                await deactivateDrugs(activeDrugs.map((drug) => drug.id));
                 messageApi.success(
-                  `Successfully deactivated ${selectedRowKeys.length} drugs`,
+                  `Successfully deactivated ${activeDrugs.length} drugs`,
                   5
                 );
                 setSelectedRowKeys([]);
@@ -2167,6 +2080,7 @@ export function Drugs() {
               dataSource={paginatedItems}
               columns={renderColumns()}
               pagination={false}
+              sortDirections={[]}
               rowSelection={{
                 selectedRowKeys,
                 onChange: (selectedKeys) => {
