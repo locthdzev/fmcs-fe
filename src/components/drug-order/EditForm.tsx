@@ -29,6 +29,13 @@ interface DrugOrderDetail {
   status?: string;
   isActive?: boolean;
   searchDrug?: string;
+  drugInfo?: {
+    id: string;
+    name: string;
+    drugCode: string;
+    imageUrl?: string;
+    price: number;
+  };
 }
 
 const initialFormState = {
@@ -95,6 +102,14 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
                 price: detail.pricePerUnit,
                 status: detail.status,
                 isActive: detail.isActive,
+                // Store the drug information for display
+                drugInfo: {
+                  id: detail.drug.id,
+                  name: detail.drug.name,
+                  drugCode: detail.drug.drugCode,
+                  imageUrl: detail.drug.imageUrl,
+                  price: detail.drug.price,
+                },
               })),
             totalQuantity: orderData.totalQuantity,
             totalPrice: orderData.totalPrice,
@@ -147,6 +162,13 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
           ...newDetails[index],
           [field]: value as string,
           price: selectedDrug?.price || 0,
+          drugInfo: selectedDrug ? {
+            id: selectedDrug.id,
+            name: selectedDrug.name,
+            drugCode: selectedDrug.drugCode,
+            imageUrl: selectedDrug.imageUrl,
+            price: selectedDrug.price,
+          } : undefined,
         };
       } else {
         newDetails[index] = {
@@ -272,6 +294,27 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
       label: supplier.supplierName,
     }));
 
+  // Create custom label component for selected drugs
+  const renderDrugOption = (drug: DrugResponse) => ({
+    value: drug.id,
+    label: (
+      <div className="flex items-center gap-4">
+        <img
+          src={drug.imageUrl || "/placeholder.png"}
+          alt={drug.name}
+          className="w-12 h-12 object-cover rounded-md"
+        />
+        <div className="flex flex-col flex-1">
+          <span>{`${drug.drugCode} - ${drug.name}`}</span>
+        </div>
+        <div className="text-right">
+          <span>{`${drug.price} VND`}</span>
+        </div>
+      </div>
+    ),
+    disabled: selectedDrugIds.has(drug.id),
+  });
+
   return (
     <>
       {contextHolder}
@@ -325,29 +368,75 @@ export const EditDrugOrderForm: React.FC<EditDrugOrderFormProps> = ({
                             }
                             onSearch={(value) => handleDrugSearch(index, value)}
                             filterOption={false}
-                            options={getFilteredDrugs(detail.searchDrug).map(
-                              (drug) => ({
-                                value: drug.id,
-                                label: (
-                                  <div className="flex items-center gap-4">
-                                    <img
-                                      src={drug.imageUrl || "/placeholder.png"}
-                                      alt={drug.name}
-                                      className="w-12 h-12 object-cover rounded-md"
-                                    />
-                                    <div className="flex flex-col flex-1">
-                                      <span>{`${drug.drugCode} - ${drug.name}`}</span>
-                                    </div>
-                                    <div className="text-right">
-                                      <span>{`${drug.price} VND`}</span>
-                                    </div>
-                                  </div>
-                                ),
-                                disabled:
-                                  selectedDrugIds.has(drug.id) &&
-                                  detail.drugId !== drug.id,
-                              })
-                            )}
+                            labelInValue={false}
+                            options={
+                              detail.drugId && detail.drugInfo
+                                ? [
+                                    {
+                                      value: detail.drugId,
+                                      label: (
+                                        <div className="flex items-center gap-4">
+                                          <img
+                                            src={detail.drugInfo.imageUrl || "/placeholder.png"}
+                                            alt={detail.drugInfo.name}
+                                            className="w-12 h-12 object-cover rounded-md"
+                                          />
+                                          <div className="flex flex-col flex-1">
+                                            <span>{`${detail.drugInfo.drugCode} - ${detail.drugInfo.name}`}</span>
+                                          </div>
+                                          <div className="text-right">
+                                            <span>{`${detail.drugInfo.price} VND`}</span>
+                                          </div>
+                                        </div>
+                                      ),
+                                      disabled: false,
+                                    },
+                                    ...getFilteredDrugs(detail.searchDrug || "")
+                                      .filter(drug => drug.id !== detail.drugId)
+                                      .map(drug => ({
+                                        value: drug.id,
+                                        label: (
+                                          <div className="flex items-center gap-4">
+                                            <img
+                                              src={drug.imageUrl || "/placeholder.png"}
+                                              alt={drug.name}
+                                              className="w-12 h-12 object-cover rounded-md"
+                                            />
+                                            <div className="flex flex-col flex-1">
+                                              <span>{`${drug.drugCode} - ${drug.name}`}</span>
+                                            </div>
+                                            <div className="text-right">
+                                              <span>{`${drug.price} VND`}</span>
+                                            </div>
+                                          </div>
+                                        ),
+                                        disabled: selectedDrugIds.has(drug.id) && detail.drugId !== drug.id,
+                                      }))
+                                  ]
+                                : getFilteredDrugs(detail.searchDrug || "").map(
+                                    (drug) => ({
+                                      value: drug.id,
+                                      label: (
+                                        <div className="flex items-center gap-4">
+                                          <img
+                                            src={drug.imageUrl || "/placeholder.png"}
+                                            alt={drug.name}
+                                            className="w-12 h-12 object-cover rounded-md"
+                                          />
+                                          <div className="flex flex-col flex-1">
+                                            <span>{`${drug.drugCode} - ${drug.name}`}</span>
+                                          </div>
+                                          <div className="text-right">
+                                            <span>{`${drug.price} VND`}</span>
+                                          </div>
+                                        </div>
+                                      ),
+                                      disabled:
+                                        selectedDrugIds.has(drug.id) &&
+                                        detail.drugId !== drug.id,
+                                    })
+                                  )
+                            }
                             getPopupContainer={(trigger) =>
                               trigger.parentElement!
                             }
