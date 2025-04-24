@@ -46,6 +46,7 @@ import {
   AppstoreOutlined,
   TagOutlined,
   PlusOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import { getUsers, UserProfile } from "@/api/user";
@@ -346,11 +347,15 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
 
   // Check if any filters are applied
   const isFilterApplied = () => {
-    return (
+    return !!(
+      codeSearch ||
+      userSearch ||
+      staffSearch ||
       checkupDateRange[0] ||
       checkupDateRange[1] ||
       followUpDateRange[0] ||
       followUpDateRange[1] ||
+      followUpStatus ||
       sortBy !== "CheckupDate"
     );
   };
@@ -392,7 +397,11 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
         </span>
       ),
       dataIndex: "healthCheckResultCode",
-      render: (code: string) => <Text copyable>{code}</Text>,
+      render: (code: string, record: HealthCheckResultsResponseDTO) => (
+        <Typography.Link onClick={() => router.push(`/health-check-result/${record.id}`)}>
+          {code}
+        </Typography.Link>
+      ),
       visible: columnVisibility.healthCheckResultCode,
     },
     {
@@ -466,39 +475,48 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Space>
-          <Tooltip title="View Details">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => router.push(`/health-check-result/${record.id}`)}
-            />
-          </Tooltip>
-
-          <Tooltip title="Complete">
-            <Button
-              type="text"
-              icon={<CheckCircleOutlined />}
-              onClick={() => handleComplete(record.id)}
-              className="text-green-600"
-            />
-          </Tooltip>
-
-          <Tooltip title="Cancel Follow-up">
-            <Popconfirm
-              title="Are you sure you want to cancel this follow-up?"
-              onConfirm={() => handleCancelFollowUp(record.id)}
-              okText="Confirm"
-              cancelText="Cancel"
-            >
-              <Button
-                type="text"
-                icon={<CloseCircleOutlined />}
-                className="text-red-600"
-              />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
+        <div style={{ textAlign: "center" }}>
+          <Dropdown
+            overlay={
+              <Menu>
+                <Menu.Item
+                  key="view"
+                  icon={<EyeOutlined />}
+                  onClick={() => router.push(`/health-check-result/${record.id}`)}
+                >
+                  View Details
+                </Menu.Item>
+                
+                <Menu.Item
+                  key="complete"
+                  icon={<CheckCircleOutlined style={{ color: "green" }} />}
+                  onClick={() => handleComplete(record.id)}
+                >
+                  <span style={{ color: "green" }}>Complete</span>
+                </Menu.Item>
+                
+                <Menu.Item
+                  key="cancel"
+                  icon={<CloseCircleOutlined style={{ color: "red" }} />}
+                  danger
+                >
+                  <Popconfirm
+                    title="Are you sure you want to cancel this follow-up?"
+                    onConfirm={() => handleCancelFollowUp(record.id)}
+                    okText="Confirm"
+                    cancelText="Cancel"
+                    placement="topLeft"
+                  >
+                    <div style={{ width: "100%" }}>Cancel Follow-up</div>
+                  </Popconfirm>
+                </Menu.Item>
+              </Menu>
+            }
+            placement="bottomCenter"
+          >
+            <Button icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </div>
       ),
       visible: columnVisibility.actions,
     },
@@ -598,16 +616,7 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
               <Button
                 icon={<UndoOutlined />}
                 onClick={handleReset}
-                disabled={
-                  !(
-                    codeSearch ||
-                    followUpStatus ||
-                    checkupDateRange[0] ||
-                    checkupDateRange[1] ||
-                    followUpDateRange[0] ||
-                    followUpDateRange[1]
-                  )
-                }
+                disabled={!isFilterApplied()}
               >
                 Reset
               </Button>
