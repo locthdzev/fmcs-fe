@@ -812,7 +812,7 @@ const ScheduleAppointmentForStaff: React.FC<{
       <Modal
         title={
           <Typography.Title level={4}>
-            Schedule Appointment with Student
+            Schedule Appointment with User
           </Typography.Title>
         }
         open={visible}
