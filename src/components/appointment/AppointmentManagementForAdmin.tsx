@@ -33,6 +33,7 @@ import {
   Progress,
   Empty,
   Radio,
+  Result,
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
@@ -219,85 +220,6 @@ const styles = `
     transform: translateY(-1px);
   }
   
-  /* Redesigned tabs */
-  .appointment-tabs .ant-tabs-nav {
-    background: #fff;
-    padding: 8px 16px 0;
-    margin-bottom: 0;
-    border-radius: 8px 8px 0 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-  
-  .appointment-tabs .ant-tabs-content-holder {
-    background: #fff;
-    border-radius: 0 0 8px 8px;
-    padding: 0 16px 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  }
-  
-  .appointment-tabs .ant-tabs-tab {
-    padding: 12px 16px;
-    transition: all 0.3s ease;
-    border-radius: 8px 8px 0 0;
-    position: relative;
-  }
-  
-  .appointment-tabs .ant-tabs-tab:hover {
-    background: #f0f7ff;
-  }
-  
-  .appointment-tabs .ant-tabs-tab-active {
-    font-weight: 500;
-  }
-  
-  .appointment-tabs .ant-tabs-tab-active:before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: #1890ff;
-    border-radius: 3px 3px 0 0;
-  }
-  
-  .appointment-tabs .status-count {
-    margin-left: 8px;
-    background: #f5f5f5;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 12px;
-    color: #666;
-  }
-  
-  .appointment-tabs .ant-tabs-tab-active .status-count {
-    background: #e6f7ff;
-    color: #1890ff;
-  }
-  
-  .tab-content-container {
-    height: 70vh;
-    padding: 16px 4px;
-    overflow-x: hidden;
-  }
-  
-  .empty-state-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 200px;
-    background: #f9f9f9;
-    border-radius: 12px;
-    border: 1px dashed #d9d9d9;
-  }
-  
-  .empty-state-icon {
-    font-size: 36px;
-    margin-bottom: 16px;
-    color: #bfbfbf;
-  }
-  
   .tab-icon {
     margin-right: 8px;
   }
@@ -383,6 +305,7 @@ const UpdateAppointmentModal: React.FC<{
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const token = Cookies.get("token");
   const [messageApi, contextHolder] = message.useMessage();
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
 
   const fetchAvailableSlots = useCallback(
     async (date: string) => {
@@ -469,10 +392,13 @@ const UpdateAppointmentModal: React.FC<{
         request
       );
       if (response.isSuccess) {
-        messageApi.success("Appointment updated successfully!");
         form.resetFields();
-        onUpdateSuccess();
-        onClose();
+        setSuccessModalVisible(true);
+        
+        // Call update success but don't close modal yet
+        setTimeout(() => {
+          onUpdateSuccess();
+        }, 500);
       } else {
         messageApi.error(
           `Failed to update: ${response.message || "Unknown error"}`
@@ -486,6 +412,11 @@ const UpdateAppointmentModal: React.FC<{
     }
   };
 
+  const handleSuccessModalClose = () => {
+    setSuccessModalVisible(false);
+    onClose();
+  };
+
   const handleClose = () => {
     setSelectedDate(null);
     setAvailableSlots([]);
@@ -494,95 +425,114 @@ const UpdateAppointmentModal: React.FC<{
   };
 
   return (
-    <Modal
-      title={
-        <Title level={4} style={{ margin: 0 }}>
-          Update Appointment
-        </Title>
-      }
-      open={visible}
-      onCancel={handleClose}
-      footer={null}
-      width={600}
-    >
-      {contextHolder}
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={onFinish}
-        initialValues={{ status: "Scheduled" }}
-      >
-        <Form.Item
-          name="email"
-          label="Student/User Email"
-          rules={[
-            { required: true, message: "Please enter the student/user Email" },
-          ]}
-        >
-          <Input placeholder="Enter student/user Email" disabled />
-        </Form.Item>
-
-        <Form.Item
-          name="appointmentDate"
-          label="Date"
-          rules={[{ required: true, message: "Please select a date" }]}
-        >
-          <DatePicker
-            format="YYYY-MM-DD"
-            onChange={onDateChange}
-            disabledDate={(current) =>
-              current && current.isBefore(dayjs().startOf("day"))
-            }
-            style={{ width: "100%" }}
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="timeSlot"
-          label="Time Slot"
-          rules={[{ required: true, message: "Please select a time slot" }]}
-        >
-          <Select
-            placeholder="Select a time slot"
-            disabled={!selectedDate || loading}
-            loading={loading}
-          >
-            {availableSlots
-              .filter((slot) => slot.isAvailable && !slot.isLocked)
-              .map((slot) => (
-                <Option key={slot.timeSlot} value={slot.timeSlot}>
-                  {slot.timeSlot}
-                </Option>
-              ))}
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          name="reason"
-          label="Reason"
-          rules={[{ required: true, message: "Please enter a reason" }]}
-        >
-          <Input.TextArea rows={3} placeholder="Enter reason for appointment" />
-        </Form.Item>
-
-        <Form.Item
-          name="status"
-          label="Status"
-          rules={[{ required: true, message: "Please select a status" }]}
-        >
-          <Select placeholder="Select appointment status">
-            <Option value="Scheduled">Scheduled</Option>
-          </Select>
-        </Form.Item>
-
-        <Form.Item>
-          <Button type="primary" htmlType="submit" loading={loading} block>
+    <>
+      <Modal
+        title={
+          <Title level={4} style={{ margin: 0 }}>
             Update Appointment
-          </Button>
-        </Form.Item>
-      </Form>
-      {loading && <Spin />}
-    </Modal>
+          </Title>
+        }
+        open={visible}
+        onCancel={handleClose}
+        footer={null}
+        width={600}
+      >
+        {contextHolder}
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onFinish}
+          initialValues={{ status: "Scheduled" }}
+        >
+          <Form.Item
+            name="email"
+            label="Student/User Email"
+            rules={[
+              { required: true, message: "Please enter the student/user Email" },
+            ]}
+          >
+            <Input placeholder="Enter student/user Email" disabled />
+          </Form.Item>
+
+          <Form.Item
+            name="appointmentDate"
+            label="Date"
+            rules={[{ required: true, message: "Please select a date" }]}
+          >
+            <DatePicker
+              format="YYYY-MM-DD"
+              onChange={onDateChange}
+              disabledDate={(current) =>
+                current && current.isBefore(dayjs().startOf("day"))
+              }
+              style={{ width: "100%" }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="timeSlot"
+            label="Time Slot"
+            rules={[{ required: true, message: "Please select a time slot" }]}
+          >
+            <Select
+              placeholder="Select a time slot"
+              disabled={!selectedDate || loading}
+              loading={loading}
+            >
+              {availableSlots
+                .filter((slot) => slot.isAvailable && !slot.isLocked)
+                .map((slot) => (
+                  <Option key={slot.timeSlot} value={slot.timeSlot}>
+                    {slot.timeSlot}
+                  </Option>
+                ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="reason"
+            label="Reason"
+            rules={[{ required: true, message: "Please enter a reason" }]}
+          >
+            <Input.TextArea rows={3} placeholder="Enter reason for appointment" />
+          </Form.Item>
+
+          <Form.Item
+            name="status"
+            label="Status"
+            rules={[{ required: true, message: "Please select a status" }]}
+          >
+            <Select placeholder="Select appointment status">
+              <Option value="Scheduled">Scheduled</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={loading} block>
+              Update Appointment
+            </Button>
+          </Form.Item>
+        </Form>
+        {loading && <Spin />}
+      </Modal>
+
+      <Modal
+        open={successModalVisible}
+        onCancel={handleSuccessModalClose}
+        footer={[
+          <Button key="close" type="primary" onClick={handleSuccessModalClose}>
+            Close
+          </Button>,
+        ]}
+        width={500}
+      >
+        <Result
+          status="success"
+          title="Appointment Updated Successfully!"
+          subTitle="The appointment has been updated and notifications have been sent."
+        />
+      </Modal>
+    </>
   );
 };
 
@@ -603,6 +553,7 @@ const ScheduleAppointmentForStaff: React.FC<{
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const token = Cookies.get("token");
   const [messageApi, contextHolder] = message.useMessage();
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [staffWorkSchedules, setStaffWorkSchedules] = useState<any[]>([]);
   const [availableWorkDates, setAvailableWorkDates] = useState<Set<string>>(
     new Set()
@@ -1000,16 +951,15 @@ const ScheduleAppointmentForStaff: React.FC<{
         token
       );
       if (response.isSuccess) {
-        messageApi.success("Appointment scheduled successfully!");
-        // Add a small delay to make sure the message is seen before closing the modal
-        setTimeout(() => {
-          form.resetFields();
-          onClose();
-          // Call the callback to refresh the parent component only when successfully scheduled
-          if (onSuccessfulSchedule) {
+        form.resetFields();
+        setSuccessModalVisible(true);
+        
+        // Call the callback to refresh the parent component
+        if (onSuccessfulSchedule) {
+          setTimeout(() => {
             onSuccessfulSchedule();
-          }
-        }, 1000);
+          }, 500);
+        }
       } else {
         messageApi.error(
           `Failed to schedule: ${response.message || "Unknown error"}`
@@ -1021,6 +971,11 @@ const ScheduleAppointmentForStaff: React.FC<{
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSuccessModalClose = () => {
+    setSuccessModalVisible(false);
+    handleClose();
   };
 
   const handleClose = () => {
@@ -1044,6 +999,14 @@ const ScheduleAppointmentForStaff: React.FC<{
   // Filter user options when searching
   const handleUserSearch = (input: string, option: any) => {
     return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+  };
+
+  const handleCalendarDateSelect = (date: Date) => {
+    const selectedDateStr = dayjs(date).format("YYYY-MM-DD");
+    setSelectedDate(selectedDateStr);
+    form.setFieldValue("date", selectedDateStr);
+    fetchAvailableSlots(selectedDateStr);
+    setCalendarModalVisible(false);
   };
 
   return (
@@ -1201,20 +1164,33 @@ const ScheduleAppointmentForStaff: React.FC<{
             </Button>
           </Form.Item>
         </Form>
-        {/* Removed the redundant Spin component here */}
+        
+        <StaffScheduleCalendarModal
+          open={calendarModalVisible}
+          onClose={() => setCalendarModalVisible(false)}
+          staffId={selectedStaffId || ""}
+          availableWorkDates={availableWorkDates}
+          onDateSelect={handleCalendarDateSelect}
+          isDateDisabled={isDateDisabled}
+        />
       </Modal>
 
-      <StaffScheduleCalendarModal
-        open={calendarModalVisible}
-        onClose={() => setCalendarModalVisible(false)}
-        staffId={selectedStaffId}
-        availableWorkDates={availableWorkDates}
-        onDateSelect={(date) => {
-          onDateChange(moment(date));
-          setCalendarModalVisible(false);
-        }}
-        isDateDisabled={isDateDisabled}
-      />
+      <Modal
+        open={successModalVisible}
+        onCancel={handleSuccessModalClose}
+        footer={[
+          <Button key="close" type="primary" onClick={handleSuccessModalClose}>
+            Close
+          </Button>,
+        ]}
+        width={500}
+      >
+        <Result
+          status="success"
+          title="Appointment Scheduled Successfully!"
+          subTitle="The appointment has been scheduled and notifications have been sent."
+        />
+      </Modal>
     </>
   );
 };
@@ -1254,6 +1230,9 @@ export function AppointmentManagementForAdmin() {
   >([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
+  const [actionSuccessModalVisible, setActionSuccessModalVisible] = useState(false);
+  const [actionSuccessMessage, setActionSuccessMessage] = useState("");
+  const [actionSuccessTitle, setActionSuccessTitle] = useState("");
 
   const fetchAppointments = useCallback(
     async (userId: string) => {
@@ -1363,9 +1342,12 @@ export function AppointmentManagementForAdmin() {
         const response = userId
           ? await action(userId, token)
           : await action(id, token);
-        console.log("Action response:", response);
         if (response.isSuccess) {
-          messageApi.success(successMsg);
+          // Set success message and show modal
+          setActionSuccessTitle(successMsg);
+          setActionSuccessMessage("The action was completed successfully and notifications have been sent.");
+          setActionSuccessModalVisible(true);
+          
           const staffId = jwtDecode<any>(token).userid || user?.userId;
           if (staffId) {
             await fetchAppointments(staffId);
@@ -1381,26 +1363,24 @@ export function AppointmentManagementForAdmin() {
           );
         }
       } catch (error: any) {
-        console.error("Action error:", error);
         if (
           error.response?.status === 401 ||
           error.message === "No authentication token found."
         ) {
-          messageApi.error(
-            "Session expired or unauthorized. Please log in again."
-          );
+          messageApi.error("Session expired or unauthorized. Please log in again.");
           router.push("/");
         } else {
-          messageApi.error(
-            `An error occurred: ${error.message || "Unknown error"}`
-          );
+          messageApi.error(`An error occurred: ${error.message || "Unknown error"}`);
         }
       } finally {
-        setActionLoading(null);
-        setResetStatusUserId(null);
+        // Add a small delay to ensure the message is visible
+        setTimeout(() => {
+          setActionLoading(null);
+          setResetStatusUserId(null);
+        }, 500);
       }
     },
-    [fetchAppointments, router, user?.userId, messageApi]
+    [router, messageApi, fetchAppointments, user?.userId]
   );
 
   const handleEditClick = useCallback((appointment: AppointmentResponseDTO) => {
@@ -1493,45 +1473,6 @@ export function AppointmentManagementForAdmin() {
 
       if (appointment.status === "Scheduled") {
         items.push(
-          {
-            key: "complete",
-            icon: <CheckCircleOutlined style={{ color: "#389e0d" }} />,
-            disabled: isAnyActionLoading,
-            label: (
-              <Tooltip title="Mark the appointment as fully completed">
-                <Popconfirm
-                  title={`Are you sure you want to mark "${
-                    appointment.studentName ?? "N/A"
-                  }"'s appointment as fully completed?`}
-                  description="This will indicate the appointment has concluded successfully."
-                  onConfirm={() =>
-                    handleAction(
-                      confirmCompletion,
-                      appointment.id,
-                      "Appointment marked as completed!",
-                      undefined,
-                      "Finished"
-                    )
-                  }
-                  onCancel={(e) => e?.stopPropagation()}
-                  okText="Yes"
-                  cancelText="No"
-                  placement="left"
-                  disabled={isAnyActionLoading}
-                  overlayStyle={{ zIndex: 2000 }}
-                >
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                    }}
-                  >
-                    Mark as Completed
-                  </span>
-                </Popconfirm>
-              </Tooltip>
-            ),
-          },
           {
             key: "attended",
             icon: <CheckCircleOutlined style={{ color: "#13c2c2" }} />,
@@ -1964,8 +1905,7 @@ export function AppointmentManagementForAdmin() {
                           />
                         </Tooltip>
                         {(appointment.status === "Scheduled" ||
-                          appointment.status === "Happening" ||
-                          appointment.status === "Missed") && (
+                          appointment.status === "Happening") && (
                           <Dropdown
                             menu={{
                               items: data.getActionMenuItems(
@@ -1990,7 +1930,6 @@ export function AppointmentManagementForAdmin() {
                             overlayStyle={{ zIndex: 1000 }}
                           >
                             <Button
-                              type="link"
                               icon={<EllipsisOutlined />}
                               onClick={(e) => e.stopPropagation()}
                               aria-label="More actions"
@@ -2163,29 +2102,12 @@ export function AppointmentManagementForAdmin() {
   };
 
   const renderEmptyState = (status: string) => (
-    <div className="empty-state-card">
-      {renderTabIcon(status)}
-      <Text className="text-gray-500" strong>
-        No{" "}
-        {status === "All"
-          ? "appointments"
-          : status.toLowerCase() + " appointments"}{" "}
-        found
-      </Text>
-      <Text type="secondary" style={{ marginTop: 8 }}>
-        {status === "All"
-          ? "There are no appointments matching your filters."
-          : `There are no ${status.toLowerCase()} appointments at this time.`}
-      </Text>
-      <Button
-        type="link"
-        onClick={resetFilters}
-        icon={<ReloadOutlined />}
-        style={{ marginTop: 12 }}
-      >
-        Reset filters
-      </Button>
-    </div>
+    <Card style={{ textAlign: "center", padding: "32px 0", borderRadius: "12px", backgroundColor: "#f9f9f9" }}>
+      <Empty 
+        description={`No ${status.toLowerCase() === 'all' ? '' : status.toLowerCase()} appointments found`}
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+      />
+    </Card>
   );
 
   const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
@@ -2332,7 +2254,6 @@ export function AppointmentManagementForAdmin() {
               format="DD/MM/YYYY"
               style={{ width: "280px" }}
               presets={rangePresets}
-              prefix={<CalendarOutlined />}
               aria-label="Select date range for appointments"
             />
 
@@ -2377,6 +2298,141 @@ export function AppointmentManagementForAdmin() {
         </div>
       </Card>
 
+      {happeningAppointments.length > 0 && (
+        <Card
+          className="blinking-border shadow mb-4"
+          title={
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <PlayCircleOutlined
+                style={{
+                  color: "#fa8c16",
+                  marginRight: "8px",
+                  fontSize: "20px",
+                }}
+              />
+              <span style={{ fontWeight: 500 }}>Currently Happening</span>
+            </div>
+          }
+          bordered={false}
+          bodyStyle={{ padding: "16px" }}
+          style={{
+            backgroundColor: "#fff7e6",
+            borderColor: "#ffa940",
+            borderRadius: "8px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          }}
+        >
+          <Row gutter={[16, 16]}>
+            {happeningAppointments.map((appointment) => (
+              <Col span={24} key={appointment.id}>
+                <Card
+                  className="appointment-card"
+                  bordered
+                  style={{
+                    marginBottom: "10px",
+                    borderRadius: "8px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                  }}
+                >
+                  <Row gutter={[16, 16]} align="middle">
+                    <Col xs={24} sm={12} md={6} lg={6}>
+                      <Space direction="vertical" size="small">
+                        <Text type="secondary">Student:</Text>
+                        <Text strong>{appointment.studentName}</Text>
+                        <Text type="secondary">{appointment.studentEmail}</Text>
+                      </Space>
+                    </Col>
+                    <Col xs={24} sm={12} md={6} lg={6}>
+                      <Space direction="vertical" size="small">
+                        <Text type="secondary">Date & Time:</Text>
+                        <Space size="small">
+                          <CalendarOutlined />
+                          <Text>{formatDate(appointment.appointmentDate)}</Text>
+                        </Space>
+                        <Space size="small">
+                          <ClockCircleOutlined />
+                          <Text>
+                            {formatTime(appointment.appointmentDate)} -{" "}
+                            {formatTime(appointment.endTime)}
+                          </Text>
+                        </Space>
+                      </Space>
+                    </Col>
+                    <Col xs={24} sm={12} md={6} lg={6}>
+                      <Space direction="vertical" size="small">
+                        <Text type="secondary">Status:</Text>
+                        <Tag
+                          icon={getStatusIcon(appointment.status)}
+                          color={getStatusColor(appointment.status)}
+                        >
+                          {appointment.status}
+                        </Tag>
+                        <Text type="secondary">
+                          {getStatusTooltip(appointment.status)}
+                        </Text>
+                      </Space>
+                    </Col>
+                    <Col xs={24} sm={12} md={6} lg={6}>
+                      <Space wrap>
+                        <Popconfirm
+                          title={`Are you sure you want to mark "${appointment.studentName}"'s appointment as fully completed?`}
+                          description="This will indicate the appointment has concluded successfully."
+                          onConfirm={() =>
+                            handleAction(
+                              confirmCompletion,
+                              appointment.id,
+                              "Appointment marked as completed!",
+                              undefined,
+                              "Finished"
+                            )
+                          }
+                          okText="Yes"
+                          cancelText="No"
+                          placement="top"
+                        >
+                          <Button
+                            type="primary"
+                            icon={<CheckCircleOutlined />}
+                            loading={actionLoading === appointment.id}
+                            style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
+                          >
+                            Complete
+                          </Button>
+                        </Popconfirm>
+                        <Popconfirm
+                          title={`Did "${appointment.studentName}" miss this appointment?`}
+                          description="This will mark the appointment as missed and may update the user's status to Warning."
+                          onConfirm={() =>
+                            handleAction(
+                              confirmAbsence,
+                              appointment.id,
+                              "Appointment marked as missed!",
+                              undefined,
+                              "Missed"
+                            )
+                          }
+                          okText="Yes"
+                          cancelText="No"
+                          placement="top"
+                        >
+                          <Button
+                            danger
+                            icon={<CloseCircleOutlined />}
+                            loading={actionLoading === appointment.id}
+                          >
+                            Report Absence
+                          </Button>
+                        </Popconfirm>
+                      </Space>
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        </Card>
+      )}
+
       <Card
         className="shadow mb-4"
         bodyStyle={{ padding: "16px" }}
@@ -2388,24 +2444,13 @@ export function AppointmentManagementForAdmin() {
           className="appointment-tabs"
           size="large"
           type="card"
+          tabBarStyle={{ 
+            marginBottom: "16px", 
+            padding: "0 8px",
+            fontWeight: 500
+          }}
+          tabBarGutter={8}
           animated={{ inkBar: true, tabPane: true }}
-          tabBarExtraContent={
-            <Badge
-              count={happeningAppointments.length}
-              style={{ backgroundColor: "#ff4d4f" }}
-              offset={[-5, 5]}
-            >
-              <Button
-                type="primary"
-                onClick={handleHappeningClick}
-                icon={<VideoCameraOutlined />}
-                danger={happeningAppointments.length > 0}
-                ghost={happeningAppointments.length > 0}
-              >
-                Live Sessions ({happeningAppointments.length})
-              </Button>
-            </Badge>
-          }
         >
           {[
             "All",
@@ -2442,14 +2487,24 @@ export function AppointmentManagementForAdmin() {
               <TabPane
                 key={status}
                 tab={
-                  <span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 4px' }}>
                     {renderTabIcon(status)}
-                    {status}
-                    <span className="status-count">{appointmentCount}</span>
-                  </span>
+                    <span>{status}</span>
+                    <Badge 
+                      count={appointmentCount} 
+                      style={{ 
+                        backgroundColor: getStatusColor(status) === 'blue' ? '#1890ff' :
+                                        getStatusColor(status) === 'green' ? '#52c41a' :
+                                        getStatusColor(status) === 'red' ? '#ff4d4f' :
+                                        getStatusColor(status) === 'gray' ? '#d9d9d9' :
+                                        getStatusColor(status) === 'orange' ? '#fa8c16' : '#1890ff',
+                        color: getStatusColor(status) === 'gray' ? '#666' : '#fff'
+                      }}
+                    />
+                  </div>
                 }
               >
-                <div className="tab-content-container">
+                <div style={{ height: "70vh", overflowY: "auto", paddingRight: "8px" }}>
                   {statusAppointments.length === 0 ? (
                     renderEmptyState(status)
                   ) : (
@@ -2476,6 +2531,35 @@ export function AppointmentManagementForAdmin() {
             );
           })}
         </Tabs>
+        
+        <style>
+          {`
+            .appointment-tabs .ant-tabs-nav {
+              margin-bottom: 16px;
+            }
+            .appointment-tabs .ant-tabs-nav::before {
+              border-bottom: none;
+            }
+            .appointment-tabs .ant-tabs-tab {
+              border-radius: 8px 8px 0 0 !important;
+              transition: all 0.3s;
+              border: 1px solid #f0f0f0 !important;
+              padding: 8px 16px !important;
+            }
+            .appointment-tabs .ant-tabs-tab-active {
+              background-color: #fff !important;
+              border-bottom-color: #fff !important;
+              border-top: 2px solid #1890ff !important;
+            }
+            .appointment-tabs .ant-tabs-content-holder {
+              border-radius: 0 8px 8px 8px;
+              border: 1px solid #f0f0f0;
+              padding: 16px;
+              margin-top: -17px;
+              background-color: #fff;
+            }
+          `}
+        </style>
       </Card>
 
       <Modal
@@ -2592,6 +2676,28 @@ export function AppointmentManagementForAdmin() {
             again if they were previously blocked.
           </Text>
         </div>
+      </Modal>
+      
+      {/* Action Success Modal */}
+      <Modal
+        open={actionSuccessModalVisible}
+        onCancel={() => setActionSuccessModalVisible(false)}
+        footer={[
+          <Button 
+            key="close" 
+            type="primary" 
+            onClick={() => setActionSuccessModalVisible(false)}
+          >
+            Close
+          </Button>
+        ]}
+        width={500}
+      >
+        <Result
+          status="success"
+          title={actionSuccessTitle}
+          subTitle={actionSuccessMessage}
+        />
       </Modal>
     </div>
   );
