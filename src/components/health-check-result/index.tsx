@@ -81,6 +81,7 @@ import {
   TagOutlined,
   UndoOutlined,
   FileExcelOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { getUsers, UserProfile } from "@/api/user";
 import { useRouter } from "next/router";
@@ -401,13 +402,9 @@ export function HealthCheckResultManagement() {
   const [codeSearch, setCodeSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(
-    undefined
-  );
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<
-    string | undefined
-  >(undefined);
-  const [showDefaultFilter, setShowDefaultFilter] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | undefined>("ALL");
+  const [showDefaultFilter, setShowDefaultFilter] = useState(false);
   const [sortBy, setSortBy] = useState("CheckupDate");
   const [ascending, setAscending] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -644,18 +641,9 @@ export function HealthCheckResultManagement() {
       );
 
       if (response.success) {
-        if (showDefaultFilter && !statusFilter) {
-          const filteredResults = response.data.filter(
-            (result: HealthCheckResultsResponseDTO) =>
-              result.status === "Completed" ||
-              result.status === "CancelledCompletely"
-          );
-          setHealthCheckResults(filteredResults);
-          setTotal(filteredResults.length);
-        } else {
-          setHealthCheckResults(response.data);
-          setTotal(response.totalRecords);
-        }
+        // Sử dụng dữ liệu trực tiếp từ API không qua lọc
+        setHealthCheckResults(response.data);
+        setTotal(response.totalRecords);
       } else {
         toast.error(
           response.message || "Unable to load health check results list"
@@ -676,12 +664,59 @@ export function HealthCheckResultManagement() {
     checkupDateRange,
     followUpRequired,
     followUpDateRange,
-    showDefaultFilter,
   ]);
 
+  // Thêm hàm mới để lấy tất cả dữ liệu
+  const fetchAllHealthCheckResults = async () => {
+    setLoading(true);
+    try {
+      const response = await getAllHealthCheckResults(
+        currentPage,
+        pageSize,
+        codeSearch || undefined,
+        undefined,
+        undefined,
+        sortBy,
+        ascending,
+        undefined, // Không lọc theo trạng thái
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
+      );
+
+      if (response.success) {
+        setHealthCheckResults(response.data);
+        setTotal(response.totalRecords);
+        console.log("Tất cả dữ liệu:", response.data.length, "total:", response.totalRecords);
+      } else {
+        toast.error(response.message || "Không thể tải danh sách kết quả khám");
+      }
+    } catch (error) {
+      toast.error("Không thể tải danh sách kết quả khám");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchHealthCheckResults();
-  }, [fetchHealthCheckResults]);
+    // Sử dụng hàm mới nếu không có lọc
+    if (!statusFilter && !codeSearch && !followUpRequired && 
+        !checkupDateRange[0] && !checkupDateRange[1] && 
+        !followUpDateRange[0] && !followUpDateRange[1]) {
+      fetchAllHealthCheckResults();
+    } else {
+      fetchHealthCheckResults();
+    }
+  }, [fetchHealthCheckResults, statusFilter, codeSearch, followUpRequired, 
+      checkupDateRange, followUpDateRange]);
+
+  // Thêm hook mới để đảm bảo hiển thị đúng dữ liệu
+  useEffect(() => {
+    // Log và kiểm tra dữ liệu hiển thị
+    console.log("Health Check Results:", healthCheckResults.length, "Total:", total);
+  }, [healthCheckResults, total]);
 
   // New column visibility functions
   const handleColumnVisibilityChange = (key: string) => {
@@ -738,8 +773,8 @@ export function HealthCheckResultManagement() {
   // Thêm hàm xử lý reset bộ lọc
   const handleResetFilters = () => {
     setStatusFilter(undefined);
-    setSelectedStatusFilter(undefined);
-    setShowDefaultFilter(true);
+    setSelectedStatusFilter("ALL");
+    setShowDefaultFilter(false);
     setCheckupDateRange([null, null]);
     setFollowUpRequired(undefined);
     setFollowUpDateRange([null, null]);
@@ -1065,14 +1100,17 @@ export function HealthCheckResultManagement() {
   const handleReset = () => {
     setCodeSearch("");
     setStatusFilter(undefined);
-    setSelectedStatusFilter(undefined);
-    setShowDefaultFilter(true);
+    setSelectedStatusFilter("ALL");
+    setShowDefaultFilter(false);
     setSortBy("CheckupDate");
     setAscending(false);
     setCurrentPage(1);
     setCheckupDateRange([null, null]);
     setFollowUpRequired(undefined);
     setFollowUpDateRange([null, null]);
+    
+    // Lấy lại dữ liệu để hiển thị đúng theo API
+    fetchHealthCheckResults();
   };
 
   // Handle back navigation
@@ -1090,7 +1128,9 @@ export function HealthCheckResultManagement() {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <span>{record.healthCheckResultCode}</span>
+        <Typography.Link onClick={() => router.push(`/health-check-result/${record.id}`)}>
+          {record.healthCheckResultCode}
+        </Typography.Link>
       ),
       visible: columnVisibility.code,
     },
@@ -1191,123 +1231,131 @@ export function HealthCheckResultManagement() {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Space>
-          <Tooltip title="View details">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => router.push(`/health-check-result/${record.id}`)}
-            />
-          </Tooltip>
+        <div style={{ textAlign: "center" }}>
+          <Dropdown
+            overlay={
+              <Menu>
+                <Menu.Item
+                  key="view"
+                  icon={<EyeOutlined />}
+                  onClick={() => router.push(`/health-check-result/${record.id}`)}
+                >
+                  View Details
+                </Menu.Item>
+                
+                {record.status === "Pending" && (
+                  <Menu.Item
+                    key="approve"
+                    icon={<CheckCircleOutlined style={{ color: "green" }} />}
+                    onClick={() => handleApprove(record.id)}
+                  >
+                    <span style={{ color: "green" }}>Approve</span>
+                  </Menu.Item>
+                )}
+                
+                {record.status === "Approved" && (
+                  <Menu.Item
+                    key="complete"
+                    icon={<CheckSquareOutlined style={{ color: "green" }} />}
+                    onClick={() => handleComplete(record.id)}
+                  >
+                    <span style={{ color: "green" }}>Complete</span>
+                  </Menu.Item>
+                )}
+                
+                {(record.status === "Pending" || record.status === "Approved") && (
+                  <Menu.Item
+                    key="cancel"
+                    icon={<CloseCircleOutlined style={{ color: "red" }} />}
+                    danger
+                  >
+                    <Popconfirm
+                      title="Enter reason for cancellation"
+                      description={
+                        <Input.TextArea
+                          placeholder="Cancellation reason"
+                          onChange={(e) => {
+                            (e.target as any).reason = e.target.value;
+                          }}
+                          rows={3}
+                        />
+                      }
+                      onConfirm={(e) => {
+                        const target = e?.target as any;
+                        const reason = target?.reason || "No reason provided";
+                        handleCancel(record.id, reason);
+                      }}
+                      okText="Confirm"
+                      cancelText="Cancel"
+                      placement="topLeft"
+                    >
+                      <div style={{ width: "100%" }}>Cancel</div>
+                    </Popconfirm>
+                  </Menu.Item>
+                )}
+                
+                {(record.status === "Pending" || record.status === "Approved") && (
+                  <Menu.Item
+                    key="cancelForAdjustment"
+                    icon={<CloseSquareOutlined style={{ color: "#d4b106" }} />}
+                  >
+                    <Popconfirm
+                      title="Enter reason for cancellation for adjustment"
+                      description={
+                        <Input.TextArea
+                          placeholder="Reason for cancellation for adjustment"
+                          onChange={(e) => {
+                            (e.target as any).reason = e.target.value;
+                          }}
+                          rows={3}
+                        />
+                      }
+                      onConfirm={(e) => {
+                        const target = e?.target as any;
+                        const reason = target?.reason || "No reason provided";
+                        handleCancelForAdjustment(record.id, reason);
+                      }}
+                      okText="Confirm"
+                      cancelText="Cancel"
+                      placement="topLeft"
+                    >
+                      <div style={{ width: "100%", color: "#d4b106" }}>Cancel for Adjustment</div>
+                    </Popconfirm>
+                  </Menu.Item>
+                )}
 
-          {record.status === "Pending" && (
-            <Tooltip title="Approve">
-              <Button
-                type="text"
-                icon={<CheckCircleOutlined />}
-                className="text-green-600"
-                onClick={() => handleApprove(record.id)}
-              />
-            </Tooltip>
-          )}
-
-          {record.status === "Approved" && (
-            <Tooltip title="Complete">
-              <Button
-                type="text"
-                icon={<CheckSquareOutlined />}
-                className="text-green-600"
-                onClick={() => handleComplete(record.id)}
-              />
-            </Tooltip>
-          )}
-
-          {(record.status === "Pending" || record.status === "Approved") && (
-            <Tooltip title="Cancel">
-              <Popconfirm
-                title="Enter reason for cancellation"
-                description={
-                  <Input.TextArea
-                    placeholder="Cancellation reason"
-                    onChange={(e) => {
-                      (e.target as any).reason = e.target.value;
-                    }}
-                    rows={3}
-                  />
-                }
-                onConfirm={(e) => {
-                  const target = e?.target as any;
-                  const reason = target?.reason || "No reason provided";
-                  handleCancel(record.id, reason);
-                }}
-                okText="Confirm"
-                cancelText="Cancel"
-              >
-                <Button
-                  type="text"
-                  icon={<CloseCircleOutlined />}
-                  className="text-red-600"
-                />
-              </Popconfirm>
-            </Tooltip>
-          )}
-
-          {(record.status === "Pending" || record.status === "Approved") && (
-            <Tooltip title="Cancel for adjustment">
-              <Popconfirm
-                title="Enter reason for cancellation for adjustment"
-                description={
-                  <Input.TextArea
-                    placeholder="Reason for cancellation for adjustment"
-                    onChange={(e) => {
-                      (e.target as any).reason = e.target.value;
-                    }}
-                    rows={3}
-                  />
-                }
-                onConfirm={(e) => {
-                  const target = e?.target as any;
-                  const reason = target?.reason || "No reason provided";
-                  handleCancelForAdjustment(record.id, reason);
-                }}
-                okText="Confirm"
-                cancelText="Cancel"
-              >
-                <Button
-                  type="text"
-                  icon={<CloseSquareOutlined />}
-                  className="text-orange-600"
-                />
-              </Popconfirm>
-            </Tooltip>
-          )}
-
-          {record.status !== "SoftDeleted" ? (
-            <Tooltip title="Temporarily delete">
-              <Popconfirm
-                title="Are you sure you want to temporarily delete this health check result?"
-                onConfirm={() => handleSoftDelete(record.id)}
-                okText="Confirm"
-                cancelText="Cancel"
-              >
-                <Button
-                  type="text"
-                  icon={<DeleteOutlined />}
-                  className="text-red-600"
-                />
-              </Popconfirm>
-            </Tooltip>
-          ) : (
-            <Tooltip title="Restore">
-              <Button
-                type="text"
-                icon={<CheckCircleOutlined />}
-                className="text-green-600"
-                onClick={() => handleRestore(record.id)}
-              />
-            </Tooltip>
-          )}
-        </Space>
+                {record.status !== "SoftDeleted" ? (
+                  <Menu.Item
+                    key="delete"
+                    icon={<DeleteOutlined style={{ color: "red" }} />}
+                    danger
+                  >
+                    <Popconfirm
+                      title="Are you sure you want to temporarily delete this health check result?"
+                      onConfirm={() => handleSoftDelete(record.id)}
+                      okText="Confirm"
+                      cancelText="Cancel"
+                      placement="topLeft"
+                    >
+                      <div style={{ width: "100%" }}>Temporarily Delete</div>
+                    </Popconfirm>
+                  </Menu.Item>
+                ) : (
+                  <Menu.Item
+                    key="restore"
+                    icon={<UndoOutlined style={{ color: "green" }} />}
+                    onClick={() => handleRestore(record.id)}
+                  >
+                    <span style={{ color: "green" }}>Restore</span>
+                  </Menu.Item>
+                )}
+              </Menu>
+            }
+            placement="bottomCenter"
+          >
+            <Button icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </div>
       ),
       visible: columnVisibility.actions,
     },
@@ -1329,12 +1377,21 @@ export function HealthCheckResultManagement() {
           </Typography.Title>
         </Col>
         <Col xs={24} sm={12} md={8} lg={6}>
-          <Input
-            placeholder="Tìm theo mã kết quả khám"
-            value={codeSearch}
-            onChange={(e) => setCodeSearch(e.target.value)}
-            prefix={<SearchOutlined />}
+          <Select
+            placeholder="Search by result code"
+            value={codeSearch || undefined}
+            onChange={(value) => setCodeSearch(value)}
             allowClear
+            showSearch
+            style={{ width: 200 }}
+            optionFilterProp="children"
+            filterOption={(input, option) =>
+              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+            }
+            options={healthCheckCodes.map(code => ({
+              value: code,
+              label: code
+            }))}
           />
         </Col>
         <Col xs={24} sm={12} md={8} lg={6}>
@@ -1377,8 +1434,8 @@ export function HealthCheckResultManagement() {
               value={selectedStatusFilter}
               onClear={() => {
                 setStatusFilter(undefined);
-                setShowDefaultFilter(true);
-                setSelectedStatusFilter(undefined);
+                setShowDefaultFilter(false);
+                setSelectedStatusFilter("ALL");
               }}
               suffixIcon={<FilterOutlined />}
             >
@@ -1591,13 +1648,21 @@ export function HealthCheckResultManagement() {
           <div className="mb-3 flex items-center justify-between">
             <div className="flex flex-wrap items-center gap-4">
               {/* Code Filter */}
-              <Input
+              <Select
                 placeholder="Search by result code"
-                value={codeSearch}
-                onChange={(e) => setCodeSearch(e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
-                style={{ width: 200 }}
+                value={codeSearch || undefined}
+                onChange={(value) => setCodeSearch(value)}
                 allowClear
+                showSearch
+                style={{ width: 200 }}
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+                options={healthCheckCodes.map(code => ({
+                  value: code,
+                  label: code
+                }))}
               />
 
               {/* Advanced Filters Button */}
@@ -1856,8 +1921,6 @@ export function HealthCheckResultManagement() {
                 <Option value={10}>10</Option>
                 <Option value={15}>15</Option>
                 <Option value={20}>20</Option>
-                <Option value={50}>50</Option>
-                <Option value={100}>100</Option>
               </Select>
             </Typography.Text>
           </div>
@@ -1875,6 +1938,8 @@ export function HealthCheckResultManagement() {
               onChange: (keys) => setSelectedRowKeys(keys),
             }}
             className="border rounded-lg"
+            sortDirections={[]}
+            onChange={() => {}} // Vô hiệu hóa sắp xếp nội bộ của Table
           />
           <Card className="mt-4 shadow-sm">
             <Row justify="center" align="middle">
@@ -1985,7 +2050,7 @@ export function HealthCheckResultManagement() {
                     placeholder="Search by result code"
                     allowClear
                     showSearch
-                    prefix={<SearchOutlined style={{ color: "blue" }} />}
+                    
                     defaultValue={codeSearch || undefined}
                     style={{ width: "100%" }}
                     filterOption={(input, option) =>
@@ -2014,7 +2079,7 @@ export function HealthCheckResultManagement() {
                     showSearch
                     defaultValue={userSearch || undefined}
                     style={{ width: "100%" }}
-                    prefix={<SearchOutlined style={{ color: "blue" }} />}
+                    
                     filterOption={(input, option) =>
                       (option?.children as unknown as string)
                         ?.toLowerCase()
@@ -2045,7 +2110,7 @@ export function HealthCheckResultManagement() {
                     showSearch
                     defaultValue={staffSearch || undefined}
                     style={{ width: "100%" }}
-                    prefix={<SearchOutlined style={{ color: "blue" }} />}
+                    
                     filterOption={(input, option) =>
                       (option?.children as unknown as string)
                         ?.toLowerCase()

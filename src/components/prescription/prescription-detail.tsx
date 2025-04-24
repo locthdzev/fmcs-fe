@@ -64,6 +64,7 @@ import {
   PhoneOutlined,
   GiftOutlined,
 } from "@ant-design/icons";
+import ConfirmCancelPrescriptionModal from "./ConfirmCancelPrescriptionModal";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -95,6 +96,9 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+
+  // Thêm state cho modal hủy đơn thuốc
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
 
   // Check if edit query parameter is present
   useEffect(() => {
@@ -415,36 +419,14 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
         )}
 
         {canCancel && (
-          <Popconfirm
-            title="Cancel Prescription"
-            description={
-              <div>
-                <p>Are you sure you want to cancel this prescription?</p>
-                <TextArea
-                  placeholder="Reason for cancellation"
-                  id="cancel-reason"
-                  rows={3}
-                />
-              </div>
-            }
-            okText="Yes"
-            cancelText="No"
-            okButtonProps={{ loading: cancelLoading }}
-            onConfirm={() => {
-              const reasonElement = document.getElementById(
-                "cancel-reason"
-              ) as HTMLTextAreaElement;
-              if (reasonElement && reasonElement.value) {
-                handleCancel(reasonElement.value);
-              } else {
-                toast.error("Please provide a reason for cancellation");
-              }
-            }}
+          <Button 
+            danger 
+            icon={<CloseCircleOutlined />} 
+            loading={cancelLoading}
+            onClick={() => setCancelModalVisible(true)}
           >
-            <Button danger icon={<CloseCircleOutlined />} loading={cancelLoading}>
-              Cancel Prescription
-            </Button>
-          </Popconfirm>
+            Cancel Prescription
+          </Button>
         )}
 
         {canSoftDelete && (
@@ -820,6 +802,14 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
           />
         )}
       </Card>
+
+      {/* Modal hủy đơn thuốc */}
+      <ConfirmCancelPrescriptionModal
+        visible={cancelModalVisible}
+        prescriptionId={id}
+        onCancel={() => setCancelModalVisible(false)}
+        onConfirm={handleCancel}
+      />
     </div>
   );
 };

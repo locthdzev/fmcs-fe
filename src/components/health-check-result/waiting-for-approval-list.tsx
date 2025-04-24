@@ -47,6 +47,7 @@ import {
   AppstoreOutlined,
   TagOutlined,
   FileExcelOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -138,7 +139,7 @@ const HealthCheckFilterModal: React.FC<HealthCheckFilterModalProps> = ({
                 placeholder="Search by patient"
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
+               
                 style={{ width: "100%" }}
                 allowClear
               />
@@ -155,7 +156,7 @@ const HealthCheckFilterModal: React.FC<HealthCheckFilterModalProps> = ({
                 placeholder="Search by medical staff"
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
+               
                 style={{ width: "100%" }}
                 allowClear
               />
@@ -306,6 +307,7 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
   const [sortBy, setSortBy] = useState("CheckupDate");
   const [ascending, setAscending] = useState(false);
   const [codeSearch, setCodeSearch] = useState("");
+  const [healthCheckCodes, setHealthCheckCodes] = useState<string[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [messageApi, contextHolder] = message.useMessage();
@@ -385,9 +387,43 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
     messageApi,
   ]);
 
+  const fetchHealthCheckCodes = useCallback(async () => {
+    try {
+      const response = await getAllHealthCheckResults(
+        1,
+        1000,
+        undefined,
+        undefined,
+        undefined,
+        "CheckupDate",
+        false,
+        "Waiting for Approval",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
+      );
+
+      if (response.isSuccess) {
+        const uniqueCodes = Array.from(
+          new Set(
+            response.data.map(
+              (result: HealthCheckResultsResponseDTO) => result.healthCheckResultCode
+            )
+          )
+        );
+        setHealthCheckCodes(uniqueCodes as string[]);
+      }
+    } catch (error) {
+      console.error("Error fetching health check codes:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchHealthCheckResults();
-  }, [fetchHealthCheckResults]);
+    fetchHealthCheckCodes();
+  }, [fetchHealthCheckResults, fetchHealthCheckCodes]);
 
   const handleApprove = async (id: string) => {
     try {
@@ -525,7 +561,11 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
         </span>
       ),
       dataIndex: "healthCheckResultCode",
-      render: (code: string) => <Text copyable>{code}</Text>,
+      render: (code: string, record: HealthCheckResultsResponseDTO) => (
+        <Typography.Link onClick={() => router.push(`/health-check-result/${record.id}`)}>
+          {code}
+        </Typography.Link>
+      ),
       visible: columnVisibility.healthCheckResultCode,
     },
     {
@@ -613,80 +653,89 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Space>
-          <Tooltip title="View Details">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => router.push(`/health-check-result/${record.id}`)}
-            />
-          </Tooltip>
-
-          <Tooltip title="Approve">
-            <Button
-              type="text"
-              icon={<CheckCircleOutlined />}
-              onClick={() => handleApprove(record.id)}
-              className="text-green-600"
-            />
-          </Tooltip>
-
-          <Tooltip title="Cancel">
-            <Popconfirm
-              title="Enter reason for cancellation"
-              description={
-                <TextArea
-                  placeholder="Reason for cancellation"
-                  onChange={(e) => {
-                    (e.target as any).reason = e.target.value;
-                  }}
-                  rows={3}
-                />
-              }
-              onConfirm={(e) => {
-                const target = e?.target as any;
-                const reason = target?.reason || "No reason provided";
-                handleCancel(record.id, reason);
-              }}
-              okText="Confirm"
-              cancelText="Cancel"
-            >
-              <Button
-                type="text"
-                icon={<CloseCircleOutlined />}
-                className="text-red-600"
-              />
-            </Popconfirm>
-          </Tooltip>
-
-          <Tooltip title="Cancel for Adjustment">
-            <Popconfirm
-              title="Enter reason for adjustment"
-              description={
-                <TextArea
-                  placeholder="Reason for adjustment"
-                  onChange={(e) => {
-                    (e.target as any).reason = e.target.value;
-                  }}
-                  rows={3}
-                />
-              }
-              onConfirm={(e) => {
-                const target = e?.target as any;
-                const reason = target?.reason || "No reason provided";
-                handleCancelForAdjustment(record.id, reason);
-              }}
-              okText="Confirm"
-              cancelText="Cancel"
-            >
-              <Button
-                type="text"
-                icon={<CloseSquareOutlined />}
-                className="text-yellow-600"
-              />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
+        <div style={{ textAlign: "center" }}>
+          <Dropdown
+            overlay={
+              <Menu>
+                <Menu.Item
+                  key="view"
+                  icon={<EyeOutlined />}
+                  onClick={() => router.push(`/health-check-result/${record.id}`)}
+                >
+                  View Details
+                </Menu.Item>
+                
+                <Menu.Item
+                  key="approve"
+                  icon={<CheckCircleOutlined style={{ color: "green" }} />}
+                  onClick={() => handleApprove(record.id)}
+                >
+                  <span style={{ color: "green" }}>Approve</span>
+                </Menu.Item>
+                
+                <Menu.Item
+                  key="cancel"
+                  icon={<CloseCircleOutlined style={{ color: "red" }} />}
+                  danger
+                >
+                  <Popconfirm
+                    title="Enter reason for cancellation"
+                    description={
+                      <TextArea
+                        placeholder="Reason for cancellation"
+                        onChange={(e) => {
+                          (e.target as any).reason = e.target.value;
+                        }}
+                        rows={3}
+                      />
+                    }
+                    onConfirm={(e) => {
+                      const target = e?.target as any;
+                      const reason = target?.reason || "No reason provided";
+                      handleCancel(record.id, reason);
+                    }}
+                    okText="Confirm"
+                    cancelText="Cancel"
+                    placement="topLeft"
+                  >
+                    <div style={{ width: "100%" }}>Cancel</div>
+                  </Popconfirm>
+                </Menu.Item>
+                
+                <Menu.Item
+                  key="cancelForAdjustment"
+                  icon={<CloseSquareOutlined style={{ color: "#d4b106" }} />}
+                >
+                  <Popconfirm
+                    title="Enter reason for adjustment"
+                    description={
+                      <TextArea
+                        placeholder="Reason for adjustment"
+                        onChange={(e) => {
+                          (e.target as any).reason = e.target.value;
+                        }}
+                        rows={3}
+                      />
+                    }
+                    onConfirm={(e) => {
+                      const target = e?.target as any;
+                      const reason = target?.reason || "No reason provided";
+                      handleCancelForAdjustment(record.id, reason);
+                    }}
+                    okText="Confirm"
+                    cancelText="Cancel"
+                    placement="topLeft"
+                  >
+                    <div style={{ width: "100%", color: "#d4b106" }}>Cancel for Adjustment</div>
+                  </Popconfirm>
+                </Menu.Item>
+              </Menu>
+            }
+            placement="bottomCenter"
+          >
+            <Button icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </div>
       ),
       visible: columnVisibility.actions,
     },
@@ -735,14 +784,22 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Code Search */}
-            <Input
+            {/* Thay thế Input bằng Select */}
+            <Select
               placeholder="Search by result code"
-              value={codeSearch}
-              onChange={(e) => setCodeSearch(e.target.value)}
-              prefix={<SearchOutlined style={{ color: "blue" }} />}
-              style={{ width: 200 }}
+              value={codeSearch || undefined}
+              onChange={(value) => setCodeSearch(value)}
               allowClear
+              showSearch
+              style={{ width: 250 }}
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={healthCheckCodes.map(code => ({
+                value: code,
+                label: code
+              }))}
             />
 
             {/* Advanced Filters Button */}
