@@ -504,7 +504,7 @@ export const HealthCheckResultDetail: React.FC<
               <Descriptions.Item label="Checkup Date">
                 {formatDate(healthCheckResult.checkupDate)}
               </Descriptions.Item>
-              <Descriptions.Item label="Doctor/Nurse In Charge">
+              <Descriptions.Item label="Healthcare Staff In Charge">
                 {healthCheckResult.staff.fullName}
               </Descriptions.Item>
               <Descriptions.Item label="Follow-Up">
@@ -561,7 +561,7 @@ export const HealthCheckResultDetail: React.FC<
                       column={{ xs: 1, sm: 2 }}
                       size="small"
                     >
-                      <Descriptions.Item label="Result Summary" span={2}>
+                      <Descriptions.Item label="Symptom" span={2}>
                         {detail.resultSummary}
                       </Descriptions.Item>
                       <Descriptions.Item label="Diagnosis" span={2}>
