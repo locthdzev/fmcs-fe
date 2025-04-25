@@ -671,6 +671,35 @@ export const getAvailableSlotCount = async (
   }
 };
 
+export const getAvailableSlotCountWithSchedule = async (
+  staffId: string,
+  date: string,
+  token?: string
+): Promise<ResultDTO<number>> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/appointments/available-slot-count-with-schedule/${staffId}/${date}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      httpsAgent: new https.Agent({
+        rejectUnauthorized: false,
+      }),
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      console.error('Error response:', error.response);
+      throw new Error(error.response?.data?.message || `Error: ${error.response?.statusText || 'Unknown error'}`);
+    } else if (error.request) {
+      console.error('Error request:', error.request);
+      throw new Error('No response received from the server.');
+    } else {
+      console.error('Error:', error.message);
+      throw new Error(`Failed to fetch available slot count with schedule: ${error.message}`);
+    }
+  }
+};
+
 export const updateAppointmentByUser = async (
   id: string,
   data: AppointmentUpdateRequestDTO
@@ -1102,6 +1131,4 @@ export const getHealthcareStaffById = async (
     console.error("getHealthcareStaffById error:", error.response?.data || error.message);
     throw new Error(error.response?.data?.message || "Failed to fetch healthcare staff");
   }
-
-  
 };

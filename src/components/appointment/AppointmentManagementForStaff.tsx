@@ -190,17 +190,309 @@ const UpdateAppointmentModal: React.FC<{
   const [messageApi, contextHolder] = message.useMessage();
   const [successModalVisible, setSuccessModalVisible] = useState(false);
 
+  // Staff work schedule related states
+  const [calendarModalVisible, setCalendarModalVisible] = useState(false);
+  const [staffWorkSchedules, setStaffWorkSchedules] = useState<any[]>([]);
+  const [availableWorkDates, setAvailableWorkDates] = useState<Set<string>>(
+    new Set()
+  );
+  const [workScheduleLoading, setWorkScheduleLoading] = useState(false);
+  const [selectedDateSchedule, setSelectedDateSchedule] = useState<any | null>(
+    null
+  );
+  // Add a ref to track initialization
+  const initializedRef = React.useRef(false);
+
+  // Max date for scheduling (1 month from now)
+  const maxDate = dayjs().add(30, "days");
+
+  // All possible time slots
+  const allPossibleTimeSlots = [
+    "08:00 - 08:30",
+    "08:30 - 09:00",
+    "09:00 - 09:30",
+    "09:30 - 10:00",
+    "10:00 - 10:30",
+    "10:30 - 11:00",
+    "11:00 - 11:30",
+    "11:30 - 12:00",
+    "13:00 - 13:30",
+    "13:30 - 14:00",
+    "14:00 - 14:30",
+    "14:30 - 15:00",
+    "15:00 - 15:30",
+    "15:30 - 16:00",
+    "16:00 - 16:30",
+    "16:30 - 17:00",
+  ];
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!visible) {
+      initializedRef.current = false;
+    }
+  }, [visible]);
+
+  // Fetch staff work schedules
+  const fetchStaffWorkSchedules = useCallback(async () => {
+    if (!token || !appointment?.staffId) return;
+
+    setWorkScheduleLoading(true);
+    try {
+      const startDate = dayjs().format("YYYY-MM-DD");
+      const endDate = dayjs().add(30, "days").format("YYYY-MM-DD");
+
+      console.log(
+        `Fetching staff schedule for ${appointment.staffId} from ${startDate} to ${endDate}`
+      );
+
+      const response = await getStaffSchedulesByDateRange(
+        appointment.staffId,
+        startDate,
+        endDate
+      );
+
+      if (response.isSuccess && Array.isArray(response.data)) {
+        console.log(`Found ${response.data.length} work schedules for staff`);
+        setStaffWorkSchedules(response.data);
+
+        // Extract available work dates
+        const workDates = new Set<string>(
+          response.data.map((schedule: any) =>
+            dayjs(schedule.workDate).format("YYYY-MM-DD")
+          )
+        );
+        setAvailableWorkDates(workDates);
+
+        // Check if the appointment date is in the staff's work schedule
+        const appointmentDateStr = dayjs(appointment.appointmentDate).format(
+          "YYYY-MM-DD"
+        );
+        if (!workDates.has(appointmentDateStr)) {
+          console.log(
+            `Warning: Current appointment date (${appointmentDateStr}) is not in staff work schedule`
+          );
+          messageApi.warning(
+            "Current appointment date is not in staff work schedule. You may need to select a new date."
+          );
+        }
+
+        // After loading work schedule, proceed with loading available slots if needed
+        if (selectedDate && !initializedRef.current) {
+          initializedRef.current = true;
+
+          // Even if date is not in work dates, we still want to load it for the current appointment
+          if (
+            selectedDate === appointmentDateStr ||
+            workDates.has(selectedDate)
+          ) {
+            fetchAvailableSlots(selectedDate);
+          }
+        }
+      } else {
+        console.error(
+          "Failed to fetch staff work schedules:",
+          response.message
+        );
+        messageApi.error("Failed to load staff work schedule");
+      }
+    } catch (error) {
+      console.error("Error fetching staff work schedules:", error);
+      messageApi.error("Failed to load staff work schedule");
+    } finally {
+      setWorkScheduleLoading(false);
+    }
+  }, [appointment, token, messageApi, selectedDate]);
+
+  // Filter time slots based on staff work schedule
+  const filterTimeSlotsByShift = useCallback(
+    (date: string) => {
+      if (!staffWorkSchedules.length) {
+        console.log("No staff work schedules found to filter time slots");
+        return [];
+      }
+
+      // Find the work schedule for the selected date
+      const dateSchedule = staffWorkSchedules.find(
+        (schedule) => dayjs(schedule.workDate).format("YYYY-MM-DD") === date
+      );
+
+      // Special case: if this is the current appointment date but no schedule found,
+      // we want to handle it differently to allow the current time slot
+      const isCurrentAppointmentDate =
+        appointment &&
+        date === dayjs(appointment.appointmentDate).format("YYYY-MM-DD");
+
+      if (!dateSchedule) {
+        console.log(
+          `No work schedule found for date ${date}${
+            isCurrentAppointmentDate ? " (current appointment date)" : ""
+          }`
+        );
+
+        // If this is the current appointment date, return all slots to ensure the current one is available
+        if (isCurrentAppointmentDate) {
+          console.log("Allowing all time slots for current appointment date");
+          return allPossibleTimeSlots;
+        }
+
+        return [];
+      }
+
+      setSelectedDateSchedule(dateSchedule);
+
+      // Get shift start and end times
+      const shiftStartTime = dateSchedule.startTime; // Format: "9:00 AM"
+      const shiftEndTime = dateSchedule.endTime; // Format: "1:00 PM"
+
+      if (!shiftStartTime || !shiftEndTime) {
+        console.log("Missing shift start or end time");
+        return [];
+      }
+
+      // Convert time from AM/PM format to minutes for comparison
+      const convertTimeToMinutes = (timeStr: string) => {
+        const [timePart, ampm] = timeStr.split(" ");
+        let [hours, minutes] = timePart.split(":").map(Number);
+
+        if (ampm.toUpperCase() === "PM" && hours < 12) {
+          hours += 12;
+        } else if (ampm.toUpperCase() === "AM" && hours === 12) {
+          hours = 0;
+        }
+
+        return hours * 60 + minutes;
+      };
+
+      const shiftStartMinutes = convertTimeToMinutes(shiftStartTime);
+      const shiftEndMinutes = convertTimeToMinutes(shiftEndTime);
+
+      console.log(`Shift time: ${shiftStartTime} - ${shiftEndTime}`);
+      console.log(`Shift minutes: ${shiftStartMinutes} - ${shiftEndMinutes}`);
+
+      // Filter time slots that fall within the staff's shift
+      const filteredSlots = allPossibleTimeSlots.filter((slot) => {
+        const [slotStart] = slot.split(" - ");
+        const [slotEnd] = slot.split(" - ")[1].split(" ");
+
+        const parseTimeToMinutes = (timeStr: string) => {
+          const [hours, minutes] = timeStr.split(":").map(Number);
+          return hours * 60 + minutes;
+        };
+
+        const slotStartMinutes = parseTimeToMinutes(slotStart);
+        const slotEndMinutes = parseTimeToMinutes(slotEnd);
+
+        // Be a bit more lenient with the end time (allow slots ending exactly at shift end)
+        const isWithinShift =
+          slotStartMinutes >= shiftStartMinutes &&
+          slotEndMinutes <= shiftEndMinutes;
+
+        return isWithinShift;
+      });
+
+      console.log(
+        `Filtered ${allPossibleTimeSlots.length} slots down to ${filteredSlots.length} slots`
+      );
+
+      // Special case: For current appointment date, make sure we're not filtering too strictly
+      if (isCurrentAppointmentDate && filteredSlots.length === 0) {
+        console.log(
+          "No slots available within shift for current appointment date, returning all possible slots"
+        );
+        return allPossibleTimeSlots;
+      }
+
+      return filteredSlots;
+    },
+    [staffWorkSchedules, appointment]
+  );
+
   const fetchAvailableSlots = useCallback(
     async (date: string) => {
       if (!token || !appointment?.staffId) return;
       setLoading(true);
       try {
+        // Fetch available time slots from the API
         const response = await getAvailableTimeSlots(
           appointment.staffId,
           date,
           token
         );
-        setAvailableSlots(response.data?.availableSlots || []);
+
+        console.log(
+          "API returned available slots:",
+          response.data?.availableSlots
+        );
+
+        // Get time slots based on staff work schedule
+        const shiftsTimeSlots = filterTimeSlotsByShift(date);
+        console.log("Slots within staff shift:", shiftsTimeSlots);
+
+        // Get the current appointment time slot to ensure it's available for selection
+        let currentAppointmentTimeSlot = null;
+        if (
+          appointment &&
+          date === dayjs(appointment.appointmentDate).format("YYYY-MM-DD")
+        ) {
+          currentAppointmentTimeSlot = `${moment(
+            appointment.appointmentDate
+          ).format("HH:mm")} - ${moment(appointment.endTime).format("HH:mm")}`;
+          console.log(
+            `Current appointment slot: ${currentAppointmentTimeSlot}`
+          );
+        }
+
+        // Filter API slots based on staff work schedule
+        let filteredSlots =
+          response.data?.availableSlots.filter((slot) =>
+            shiftsTimeSlots.includes(slot.timeSlot)
+          ) || [];
+
+        // Add the current appointment's time slot if it's not already included
+        // This ensures the current slot is always available for selection when editing
+        if (
+          currentAppointmentTimeSlot &&
+          !filteredSlots.some(
+            (slot) => slot.timeSlot === currentAppointmentTimeSlot
+          )
+        ) {
+          console.log(
+            "Adding current appointment slot back to available slots"
+          );
+
+          const existingSlot = response.data?.availableSlots.find(
+            (slot) => slot.timeSlot === currentAppointmentTimeSlot
+          );
+
+          if (existingSlot) {
+            filteredSlots.push(existingSlot);
+          } else {
+            // If not found in API response, create a pseudo-slot for the current appointment
+            filteredSlots.push({
+              timeSlot: currentAppointmentTimeSlot,
+              isAvailable: true,
+              isLocked: false,
+            } as TimeSlotDTO);
+          }
+        }
+
+        console.log(
+          `Final filtered slots: ${filteredSlots.length} slots available`
+        );
+        setAvailableSlots(filteredSlots);
+
+        if (filteredSlots.length === 0) {
+          if (shiftsTimeSlots.length > 0) {
+            messageApi.warning(
+              "No available time slots within staff working hours for this date. Consider choosing another date."
+            );
+          } else {
+            messageApi.warning(
+              "Staff is not scheduled to work on this date. Please select a different date."
+            );
+          }
+        }
       } catch (error: any) {
         console.error("Failed to fetch slots:", error);
         messageApi.error("Failed to load available slots.");
@@ -208,35 +500,92 @@ const UpdateAppointmentModal: React.FC<{
         setLoading(false);
       }
     },
-    [appointment?.staffId, token, messageApi]
+    [appointment, token, messageApi, filterTimeSlotsByShift]
   );
 
+  // Load initial data when modal opens
   useEffect(() => {
-    if (appointment && visible) {
+    if (appointment && visible && !initializedRef.current) {
+      // Set initial date from appointment
       const appointmentDate = moment(appointment.appointmentDate);
-      setSelectedDate(appointmentDate.format("YYYY-MM-DD"));
-      fetchAvailableSlots(appointmentDate.format("YYYY-MM-DD"));
+      const dateStr = appointmentDate.format("YYYY-MM-DD");
+      setSelectedDate(dateStr);
+
+      // Set form values with existing appointment data
+      const timeSlot = `${moment(appointment.appointmentDate).format(
+        "HH:mm"
+      )} - ${moment(appointment.endTime).format("HH:mm")}`;
 
       form.setFieldsValue({
         email: appointment.studentEmail,
-        appointmentDate: appointmentDate,
-        timeSlot: `${moment(appointment.appointmentDate).format(
-          "HH:mm"
-        )} - ${moment(appointment.endTime).format("HH:mm")}`,
+        date: dateStr,
+        timeSlot: timeSlot,
         reason: appointment.reason,
         status: appointment.status,
       });
+
+      console.log(`Initial appointment time slot: ${timeSlot}`);
+
+      // Load staff work schedules - slots will be loaded after this completes
+      fetchStaffWorkSchedules();
     }
-  }, [appointment, visible, form, fetchAvailableSlots]);
+  }, [appointment, visible, form, fetchStaffWorkSchedules]);
+
+  const isDateDisabled = (current: dayjs.Dayjs) => {
+    // Disable dates before today or after 1 month
+    if (current.isBefore(dayjs().startOf("day")) || current.isAfter(maxDate)) {
+      return true;
+    }
+
+    // If still loading work schedule, disable all dates
+    if (workScheduleLoading) {
+      return true;
+    }
+
+    // Check if the date is in the staff's work schedule
+    const dateStr = current.format("YYYY-MM-DD");
+    return !availableWorkDates.has(dateStr);
+  };
+
+  const openCalendarModal = () => {
+    setCalendarModalVisible(true);
+  };
+
+  const handleCalendarDateSelect = (date: Date) => {
+    const selectedDateStr = dayjs(date).format("YYYY-MM-DD");
+
+    // Only fetch if the date actually changed
+    if (selectedDateStr !== selectedDate) {
+      setSelectedDate(selectedDateStr);
+      form.setFieldValue("date", selectedDateStr);
+      fetchAvailableSlots(selectedDateStr);
+    }
+
+    setCalendarModalVisible(false);
+  };
 
   const onDateChange = (date: moment.Moment | null) => {
     if (date) {
       const dateStr = date.format("YYYY-MM-DD");
-      setSelectedDate(dateStr);
-      fetchAvailableSlots(dateStr);
+
+      // Check if this is a work day for the staff
+      if (!availableWorkDates.has(dateStr)) {
+        messageApi.warning(
+          `Staff is not scheduled to work on ${date.format("DD/MM/YYYY")}.`
+        );
+        return;
+      }
+
+      // Only fetch if the date actually changed
+      if (dateStr !== selectedDate) {
+        setSelectedDate(dateStr);
+        form.setFieldValue("date", dateStr);
+        fetchAvailableSlots(dateStr);
+      }
     } else {
       setSelectedDate(null);
       setAvailableSlots([]);
+      setSelectedDateSchedule(null);
     }
   };
 
@@ -275,13 +624,21 @@ const UpdateAppointmentModal: React.FC<{
         request
       );
       if (response.isSuccess) {
-        form.resetFields();
+        // Close the main modal first
+        onClose();
+
+        // Show a success message in addition to the modal
+        messageApi.success({
+          content: "Appointment updated successfully!",
+          duration: 5,
+          style: { marginTop: "50px" },
+        });
+
+        // Then show the success modal
         setSuccessModalVisible(true);
 
-        // Call update success after a delay
-        setTimeout(() => {
-          onUpdateSuccess();
-        }, 500);
+        // Refresh parent data
+        onUpdateSuccess();
       } else {
         messageApi.error(
           `Failed to update: ${response.message || "Unknown error"}`
@@ -297,17 +654,18 @@ const UpdateAppointmentModal: React.FC<{
 
   const handleSuccessModalClose = () => {
     setSuccessModalVisible(false);
-    onClose();
   };
 
   return (
     <>
+      {/* Main Form Modal */}
       <Modal
         title={<Title level={4}>Update Appointment</Title>}
         open={visible}
         onCancel={onClose}
         footer={null}
         width={600}
+        destroyOnClose={true}
       >
         {contextHolder}
         <Form
@@ -318,7 +676,7 @@ const UpdateAppointmentModal: React.FC<{
         >
           <Form.Item
             name="email"
-            label="Student/User Email"
+            label="User"
             rules={[
               {
                 required: true,
@@ -330,19 +688,58 @@ const UpdateAppointmentModal: React.FC<{
           </Form.Item>
 
           <Form.Item
-            name="appointmentDate"
             label="Date"
+            required
+            name="date"
             rules={[{ required: true, message: "Please select a date" }]}
           >
-            <DatePicker
-              format="YYYY-MM-DD"
-              onChange={onDateChange}
-              disabledDate={(current) =>
-                current && current.isBefore(dayjs().startOf("day"))
-              }
-              style={{ width: "100%" }}
-            />
+            <Button
+              type="default"
+              onClick={openCalendarModal}
+              disabled={workScheduleLoading}
+              icon={<CalendarOutlined />}
+              style={{
+                width: "100%",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              {selectedDate
+                ? dayjs(selectedDate).format("DD/MM/YYYY")
+                : "Select date"}
+              <div>{workScheduleLoading && <Spin size="small" />}</div>
+            </Button>
           </Form.Item>
+
+          {selectedDateSchedule && (
+            <div
+              style={{
+                marginBottom: "16px",
+                padding: "8px",
+                backgroundColor: "#f0f5ff",
+                borderRadius: "6px",
+                border: "1px solid #d6e4ff",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "#1890ff",
+                  fontWeight: "500",
+                }}
+              >
+                Work Schedule:
+              </div>
+              <div style={{ fontSize: "14px", marginTop: "4px" }}>
+                <strong>Shift:</strong> {selectedDateSchedule.shiftName}
+              </div>
+              <div style={{ fontSize: "14px" }}>
+                <strong>Time:</strong> {selectedDateSchedule.startTime} -{" "}
+                {selectedDateSchedule.endTime}
+              </div>
+            </div>
+          )}
 
           <Form.Item
             name="timeSlot"
@@ -353,6 +750,13 @@ const UpdateAppointmentModal: React.FC<{
               placeholder="Select a time slot"
               disabled={!selectedDate || loading}
               loading={loading}
+              notFoundContent={
+                loading ? (
+                  <Spin size="small" />
+                ) : (
+                  <Empty description="No available time slots" />
+                )
+              }
             >
               {availableSlots
                 .filter((slot) => slot.isAvailable && !slot.isLocked)
@@ -395,9 +799,18 @@ const UpdateAppointmentModal: React.FC<{
             </Button>
           </Form.Item>
         </Form>
-        {loading && <Spin />}
+
+        <StaffScheduleCalendarModal
+          open={calendarModalVisible}
+          onClose={() => setCalendarModalVisible(false)}
+          staffId={appointment?.staffId || ""}
+          availableWorkDates={availableWorkDates}
+          onDateSelect={handleCalendarDateSelect}
+          isDateDisabled={isDateDisabled}
+        />
       </Modal>
 
+      {/* Success Modal - Separate from the main modal */}
       <Modal
         open={successModalVisible}
         onCancel={handleSuccessModalClose}
@@ -407,6 +820,7 @@ const UpdateAppointmentModal: React.FC<{
           </Button>,
         ]}
         width={500}
+        destroyOnClose={true}
       >
         <Result
           status="success"
@@ -534,6 +948,11 @@ const ScheduleAppointmentForStaff: React.FC<{
       const startDate = dayjs().format("YYYY-MM-DD");
       const endDate = dayjs().add(30, "days").format("YYYY-MM-DD");
 
+      console.log(
+        `Fetching staff schedule for ${staffId} from ${startDate} to ${endDate}`
+      );
+      // messageApi.loading("Loading staff work schedule..."); // This line was causing the issue - removed
+
       const response = await getStaffSchedulesByDateRange(
         staffId,
         startDate,
@@ -541,6 +960,7 @@ const ScheduleAppointmentForStaff: React.FC<{
       );
 
       if (response.isSuccess && Array.isArray(response.data)) {
+        console.log(`Found ${response.data.length} work schedules for staff`);
         setStaffWorkSchedules(response.data);
 
         // Extract available work dates
@@ -568,14 +988,20 @@ const ScheduleAppointmentForStaff: React.FC<{
   // Filter time slots based on staff work schedule
   const filterTimeSlotsByShift = useCallback(
     (date: string) => {
-      if (!staffWorkSchedules.length) return [];
+      if (!staffWorkSchedules.length) {
+        console.log("No staff work schedules found to filter time slots");
+        return [];
+      }
 
       // Find the work schedule for the selected date
       const dateSchedule = staffWorkSchedules.find(
         (schedule) => dayjs(schedule.workDate).format("YYYY-MM-DD") === date
       );
 
-      if (!dateSchedule) return [];
+      if (!dateSchedule) {
+        console.log(`No work schedule found for date ${date}`);
+        return [];
+      }
 
       setSelectedDateSchedule(dateSchedule);
 
@@ -583,7 +1009,10 @@ const ScheduleAppointmentForStaff: React.FC<{
       const shiftStartTime = dateSchedule.startTime; // Format: "9:00 AM"
       const shiftEndTime = dateSchedule.endTime; // Format: "1:00 PM"
 
-      if (!shiftStartTime || !shiftEndTime) return [];
+      if (!shiftStartTime || !shiftEndTime) {
+        console.log("Missing shift start or end time");
+        return [];
+      }
 
       // Convert time from AM/PM format to minutes for comparison
       const convertTimeToMinutes = (timeStr: string) => {
@@ -602,8 +1031,11 @@ const ScheduleAppointmentForStaff: React.FC<{
       const shiftStartMinutes = convertTimeToMinutes(shiftStartTime);
       const shiftEndMinutes = convertTimeToMinutes(shiftEndTime);
 
+      console.log(`Shift time: ${shiftStartTime} - ${shiftEndTime}`);
+      console.log(`Shift minutes: ${shiftStartMinutes} - ${shiftEndMinutes}`);
+
       // Filter time slots that fall within the staff's shift
-      return allPossibleTimeSlots.filter((slot) => {
+      const filteredSlots = allPossibleTimeSlots.filter((slot) => {
         const [slotStart] = slot.split(" - ");
         const [slotEnd] = slot.split(" - ")[1].split(" ");
 
@@ -615,11 +1047,18 @@ const ScheduleAppointmentForStaff: React.FC<{
         const slotStartMinutes = parseTimeToMinutes(slotStart);
         const slotEndMinutes = parseTimeToMinutes(slotEnd);
 
-        return (
+        // Be a bit more lenient with the end time (allow slots ending exactly at shift end)
+        const isWithinShift =
           slotStartMinutes >= shiftStartMinutes &&
-          slotEndMinutes <= shiftEndMinutes
-        );
+          slotEndMinutes <= shiftEndMinutes;
+
+        return isWithinShift;
       });
+
+      console.log(
+        `Filtered ${allPossibleTimeSlots.length} slots down to ${filteredSlots.length} slots`
+      );
+      return filteredSlots;
     },
     [staffWorkSchedules]
   );
@@ -632,8 +1071,14 @@ const ScheduleAppointmentForStaff: React.FC<{
         // Fetch available time slots from the API
         const response = await getAvailableTimeSlots(staffId, date, token);
 
+        console.log(
+          "API returned available slots:",
+          response.data?.availableSlots
+        );
+
         // Get time slots based on staff work schedule
         const shiftsTimeSlots = filterTimeSlotsByShift(date);
+        console.log("Slots within staff shift:", shiftsTimeSlots);
 
         // Filter API slots based on staff work schedule
         const filteredSlots =
@@ -641,12 +1086,21 @@ const ScheduleAppointmentForStaff: React.FC<{
             shiftsTimeSlots.includes(slot.timeSlot)
           ) || [];
 
+        console.log(
+          `Final filtered slots: ${filteredSlots.length} slots available`
+        );
         setAvailableSlots(filteredSlots);
 
-        if (filteredSlots.length === 0 && shiftsTimeSlots.length > 0) {
-          messageApi.info(
-            "No available time slots within your working hours for this date"
-          );
+        if (filteredSlots.length === 0) {
+          if (shiftsTimeSlots.length > 0) {
+            messageApi.warning(
+              "No available time slots within your working hours for this date. Consider choosing another date."
+            );
+          } else {
+            messageApi.warning(
+              "Staff is not scheduled to work on this date. Please select a different date."
+            );
+          }
         }
       } catch (error: any) {
         console.error("Failed to fetch slots:", error);
@@ -744,14 +1198,22 @@ const ScheduleAppointmentForStaff: React.FC<{
         token
       );
       if (response.isSuccess) {
-        form.resetFields();
+        // Close the main modal first
+        onClose();
+
+        // Show a success message in addition to the modal
+        messageApi.success({
+          content: "Appointment scheduled successfully!",
+          duration: 5,
+          style: { marginTop: "50px" },
+        });
+
+        // Then show the success modal
         setSuccessModalVisible(true);
 
         // Call the callback to refresh the parent component
         if (onSuccessfulSchedule) {
-          setTimeout(() => {
-            onSuccessfulSchedule();
-          }, 500);
+          onSuccessfulSchedule();
         }
       } else {
         messageApi.error(
@@ -768,7 +1230,6 @@ const ScheduleAppointmentForStaff: React.FC<{
 
   const handleSuccessModalClose = () => {
     setSuccessModalVisible(false);
-    handleClose();
   };
 
   const handleClose = () => {
@@ -809,6 +1270,7 @@ const ScheduleAppointmentForStaff: React.FC<{
   return (
     <>
       {contextHolder}
+      {/* Main Form Modal */}
       <Modal
         title={
           <Typography.Title level={4}>
@@ -819,6 +1281,7 @@ const ScheduleAppointmentForStaff: React.FC<{
         onCancel={handleClose}
         footer={null}
         width={600}
+        destroyOnClose={true}
       >
         <Form
           form={form}
@@ -969,6 +1432,7 @@ const ScheduleAppointmentForStaff: React.FC<{
         />
       </Modal>
 
+      {/* Success Modal - Separate from the main modal */}
       <Modal
         open={successModalVisible}
         onCancel={handleSuccessModalClose}
@@ -978,6 +1442,7 @@ const ScheduleAppointmentForStaff: React.FC<{
           </Button>,
         ]}
         width={500}
+        destroyOnClose={true}
       >
         <Result
           status="success"
@@ -1031,6 +1496,11 @@ export function AppointmentManagementForStaff() {
   const [actionSuccessMessage, setActionSuccessMessage] = useState("");
   const [actionSuccessTitle, setActionSuccessTitle] = useState("");
 
+  // New state for independent success modal
+  const [operationSuccessModalVisible, setOperationSuccessModalVisible] =
+    useState(false);
+  const [operationSuccessMessage, setOperationSuccessMessage] = useState("");
+
   // Add custom message styles to make them more visible
   useEffect(() => {
     const styleElement = document.createElement("style");
@@ -1068,6 +1538,22 @@ export function AppointmentManagementForStaff() {
   // Function to handle opening the schedule appointment modal
   const handleOpenScheduleModal = () => {
     setScheduleModalVisible(true);
+  };
+
+  // Function to handle scheduling success
+  const handleScheduleSuccess = () => {
+    handleRefresh();
+    setOperationSuccessModalVisible(true);
+    setOperationSuccessMessage(
+      "The appointment has been scheduled successfully and notifications have been sent."
+    );
+
+    // Show a more visible success message as well
+    messageApi.success({
+      content: "Appointment scheduled successfully!",
+      duration: 5,
+      style: { marginTop: "50px", fontSize: "16px", fontWeight: "bold" },
+    });
   };
 
   // Function to handle opening the reset user status modal
@@ -1294,6 +1780,22 @@ export function AppointmentManagementForStaff() {
   const handleEditClick = (appointment: AppointmentResponseDTO) => {
     setSelectedAppointment(appointment);
     setEditModalVisible(true);
+  };
+
+  // Function to handle update success
+  const handleUpdateSuccess = () => {
+    handleRefresh();
+    setOperationSuccessModalVisible(true);
+    setOperationSuccessMessage(
+      "The appointment has been updated successfully and notifications have been sent."
+    );
+
+    // Show a more visible success message as well
+    messageApi.success({
+      content: "Appointment updated successfully!",
+      duration: 5,
+      style: { marginTop: "50px", fontSize: "16px", fontWeight: "bold" },
+    });
   };
 
   const debouncedSetSearchText = useMemo(
@@ -2012,7 +2514,7 @@ export function AppointmentManagementForStaff() {
         visible={scheduleModalVisible}
         onClose={() => setScheduleModalVisible(false)}
         staffId={user?.userId || ""}
-        onSuccessfulSchedule={handleRefresh}
+        onSuccessfulSchedule={handleScheduleSuccess}
       />
 
       <UpdateAppointmentModal
@@ -2022,7 +2524,7 @@ export function AppointmentManagementForStaff() {
           setSelectedAppointment(null);
         }}
         appointment={selectedAppointment}
-        onUpdateSuccess={handleRefresh}
+        onUpdateSuccess={handleUpdateSuccess}
       />
 
       <Modal
@@ -2123,6 +2625,29 @@ export function AppointmentManagementForStaff() {
           status="success"
           title={actionSuccessTitle}
           subTitle={actionSuccessMessage}
+        />
+      </Modal>
+
+      {/* Independent success modal */}
+      <Modal
+        open={operationSuccessModalVisible}
+        onCancel={() => setOperationSuccessModalVisible(false)}
+        footer={[
+          <Button
+            key="close"
+            type="primary"
+            onClick={() => setOperationSuccessModalVisible(false)}
+          >
+            Close
+          </Button>,
+        ]}
+        width={500}
+        destroyOnClose={true}
+      >
+        <Result
+          status="success"
+          title="Operation Completed Successfully!"
+          subTitle={operationSuccessMessage}
         />
       </Modal>
     </div>
