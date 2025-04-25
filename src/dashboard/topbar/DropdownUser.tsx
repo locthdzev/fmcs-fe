@@ -369,6 +369,7 @@ const DropdownUser = () => {
               >
                 <img
                   key={`small-${userContext.user.imageURL}`}
+                  alt="User Avatar"
                   src={userContext.user.imageURL}
                   className="w-3 h-3 rounded-full object-cover"
                 />

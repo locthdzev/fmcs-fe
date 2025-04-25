@@ -425,6 +425,7 @@ export default function UserProfilePage() {
               {userProfile.imageURL && (
                 <Image
                   src={userProfile.imageURL}
+                  alt="Preview"
                   style={{ display: "none" }}
                   preview={{
                     visible: previewVisible,

@@ -13,10 +13,10 @@ import {
   PeriodicHealthCheckupRequestDTO,
   createPeriodicHealthCheckup,
 } from "@/api/periodic-health-checkup-api";
-import * as XLSX from "xlsx";
 import dayjs from "dayjs";
 import { RcFile } from "antd/es/upload/interface";
 import ExcelJS from "exceljs";
+import { Workbook } from "exceljs";
 
 const { Title } = Typography;
 const { Dragger } = Upload;
@@ -186,14 +186,21 @@ const AddStudentHealthCheckupPage: React.FC<AddStudentHealthCheckupPageProps> = 
 
   const parseExcel = async (file: File): Promise<(PeriodicHealthCheckupsDetailsStudentRequestDTO & { mssv: string })[]> => {
     const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheetName = workbook.SheetNames[0];
-    if (!sheetName) throw new Error("No sheets found in Excel file");
+    
+    const workbook = new Workbook();
+    await workbook.xlsx.load(data);
+    
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) throw new Error("No sheets found in Excel file");
 
-    const sheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    const jsonData: any[] = [];
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      const rowValues = row.values as any[];
+      jsonData.push(Array.isArray(rowValues) ? rowValues.slice(1) : []);
+    });
+
     if (jsonData.length <= 3) throw new Error("No data rows found in Excel file");
-
+    
     const rows = jsonData.slice(3) as any[];
     const mappedData: (PeriodicHealthCheckupsDetailsStudentRequestDTO & { mssv: string })[] = [];
     const errors: string[] = [];
