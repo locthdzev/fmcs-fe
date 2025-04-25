@@ -23,8 +23,8 @@ import {
   InputNumber,
   Form,
   Modal,
+  message,
 } from "antd";
-import { toast } from "react-toastify";
 import moment from "moment";
 import {
   getAllHealthCheckResults,
@@ -155,7 +155,6 @@ const FilterModal: React.FC<{
                 allowClear
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
-                
               />
             </div>
           </Col>
@@ -171,7 +170,6 @@ const FilterModal: React.FC<{
                 allowClear
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
-                
               />
             </div>
           </Col>
@@ -241,6 +239,7 @@ const FilterModal: React.FC<{
 
 export const HealthCheckResultNoFollowUpList: React.FC = () => {
   const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
   const [healthCheckResults, setHealthCheckResults] = useState<
     HealthCheckResultsResponseDTO[]
   >([]);
@@ -306,13 +305,13 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
         setHealthCheckResults(response.data);
         setTotal(response.totalRecords);
       } else {
-        toast.error(
+        messageApi.error(
           response.message ||
             "Failed to load health check results with no follow-up required"
         );
       }
     } catch (error) {
-      toast.error(
+      messageApi.error(
         "Failed to load health check results with no follow-up required"
       );
     } finally {
@@ -327,6 +326,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
     sortBy,
     ascending,
     checkupDateRange,
+    messageApi,
   ]);
 
   // Thêm hàm để lấy danh sách các mã kết quả khám
@@ -351,7 +351,8 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
         const uniqueCodes = Array.from(
           new Set(
             response.data.map(
-              (result: HealthCheckResultsResponseDTO) => result.healthCheckResultCode
+              (result: HealthCheckResultsResponseDTO) =>
+                result.healthCheckResultCode
             )
           )
         );
@@ -371,15 +372,15 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
     try {
       const response = await completeHealthCheckResult(id);
       if (response.isSuccess) {
-        toast.success("Health check result has been completed!");
+        messageApi.success("Health check result has been completed!");
         fetchHealthCheckResults();
       } else {
-        toast.error(
+        messageApi.error(
           response.message || "Failed to complete health check result"
         );
       }
     } catch (error) {
-      toast.error("Failed to complete health check result");
+      messageApi.error("Failed to complete health check result");
     }
   };
 
@@ -390,13 +391,15 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
     try {
       const response = await cancelCompletelyHealthCheckResult(id, reason);
       if (response.isSuccess) {
-        toast.success("Health check result has been cancelled!");
+        messageApi.success("Health check result has been cancelled!");
         fetchHealthCheckResults();
       } else {
-        toast.error(response.message || "Failed to cancel health check result");
+        messageApi.error(
+          response.message || "Failed to cancel health check result"
+        );
       }
     } catch (error) {
-      toast.error("Failed to cancel health check result");
+      messageApi.error("Failed to cancel health check result");
     }
   };
 
@@ -474,7 +477,9 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Typography.Link onClick={() => router.push(`/health-check-result/${record.id}`)}>
+        <Typography.Link
+          onClick={() => router.push(`/health-check-result/${record.id}`)}
+        >
           {record.healthCheckResultCode}
         </Typography.Link>
       ),
@@ -571,11 +576,13 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
                 <Menu.Item
                   key="view"
                   icon={<EyeOutlined />}
-                  onClick={() => router.push(`/health-check-result/${record.id}`)}
+                  onClick={() =>
+                    router.push(`/health-check-result/${record.id}`)
+                  }
                 >
                   View Details
                 </Menu.Item>
-                
+
                 <Menu.Item
                   key="complete"
                   icon={<CheckCircleOutlined style={{ color: "green" }} />}
@@ -615,7 +622,7 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
     try {
       let successCount = 0;
       let failureCount = 0;
-      
+
       // Process each selected item
       for (const id of selectedRowKeys) {
         try {
@@ -629,384 +636,398 @@ export const HealthCheckResultNoFollowUpList: React.FC = () => {
           failureCount++;
         }
       }
-      
+
       // Show appropriate notifications
       if (successCount > 0) {
-        toast.success(`Successfully completed ${successCount} health check result(s)!`);
+        messageApi.success(
+          `Successfully completed ${successCount} health check result(s)!`
+        );
       }
-      
+
       if (failureCount > 0) {
-        toast.error(`Failed to complete ${failureCount} health check result(s). Some results may not be eligible for completion.`);
+        messageApi.error(
+          `Failed to complete ${failureCount} health check result(s). Some results may not be eligible for completion.`
+        );
       }
-      
+
       // Clear selection and refetch data
       setSelectedRowKeys([]);
       fetchHealthCheckResults();
     } catch (error) {
-      toast.error("An error occurred while processing the bulk operation");
+      messageApi.error("An error occurred while processing the bulk operation");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={handleBack}
-            style={{ marginRight: "8px" }}
-          >
-            Back
-          </Button>
-          <h3 className="text-xl font-bold">
-            Health Check Results - No Follow-up Required
-          </h3>
-        </div>
-      </div>
-
-      {/* Toolbar Card */}
-      <Card
-        className="shadow mb-4"
-        bodyStyle={{ padding: "16px" }}
-        title={
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "16px",
-            }}
-          >
-            <AppstoreOutlined />
-            <span>Toolbar</span>
+    <>
+      {contextHolder}
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={handleBack}
+              style={{ marginRight: "8px" }}
+            >
+              Back
+            </Button>
+            <h3 className="text-xl font-bold">
+              Health Check Results - No Follow-up Required
+            </h3>
           </div>
-        }
-      >
-        <div className="mb-3 flex items-center justify-between flex-wrap">
-          <div className="flex flex-wrap items-center gap-4 mb-3">
-            {/* Thay thế Input bằng Select */}
-            <Select
-              placeholder="Search by result code"
-              
-              value={codeSearch || undefined}
-              onChange={(value) => setCodeSearch(value)}
-              allowClear
-              showSearch
-              style={{ width: 250 }}
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-              }
-              options={healthCheckCodes.map(code => ({
-                value: code,
-                label: code
-              }))}
-            />
+        </div>
 
-            {/* Advanced Filter Button */}
-            <Tooltip title="Advanced Filters">
-              <Button
-                icon={
-                  <FilterOutlined
-                    style={{
-                      color: hasActiveFilters() ? "#1890ff" : undefined,
-                    }}
-                  />
+        {/* Toolbar Card */}
+        <Card
+          className="shadow mb-4"
+          bodyStyle={{ padding: "16px" }}
+          title={
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "16px",
+              }}
+            >
+              <AppstoreOutlined />
+              <span>Toolbar</span>
+            </div>
+          }
+        >
+          <div className="mb-3 flex items-center justify-between flex-wrap">
+            <div className="flex flex-wrap items-center gap-4 mb-3">
+              {/* Thay thế Input bằng Select */}
+              <Select
+                placeholder="Search by result code"
+                value={codeSearch || undefined}
+                onChange={(value) => setCodeSearch(value)}
+                allowClear
+                showSearch
+                style={{ width: 250 }}
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
                 }
-                onClick={handleOpenFilterModal}
-              >
-                Filters
-              </Button>
-            </Tooltip>
+                options={healthCheckCodes.map((code) => ({
+                  value: code,
+                  label: code,
+                }))}
+              />
 
-            {/* Reset Button */}
-            <Tooltip title="Reset filters">
-              <Button
-                icon={<UndoOutlined />}
-                onClick={handleReset}
-                disabled={!hasActiveFilters()}
-              >
-                Reset
-              </Button>
-            </Tooltip>
-            
-            {/* Column Settings - Moved next to Reset button */}
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: "selectAll",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={areAllColumnsVisible()}
-                          onChange={(e) => toggleAllColumns(e.target.checked)}
-                        >
-                          <strong>Show all columns</strong>
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "divider",
-                    type: "divider",
-                  },
-                  {
-                    key: "code",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={columnVisibility.code}
-                          onChange={() => handleColumnVisibilityChange("code")}
-                        >
-                          Result Code
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "patient",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={columnVisibility.patient}
-                          onChange={() =>
-                            handleColumnVisibilityChange("patient")
-                          }
-                        >
-                          Patient
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "checkupDate",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={columnVisibility.checkupDate}
-                          onChange={() =>
-                            handleColumnVisibilityChange("checkupDate")
-                          }
-                        >
-                          Checkup Date
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "staff",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={columnVisibility.staff}
-                          onChange={() => handleColumnVisibilityChange("staff")}
-                        >
-                          Doctor / Nurse
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "approvedDate",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={columnVisibility.approvedDate}
-                          onChange={() =>
-                            handleColumnVisibilityChange("approvedDate")
-                          }
-                        >
-                          Approval Date
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "status",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={columnVisibility.status}
-                          onChange={() =>
-                            handleColumnVisibilityChange("status")
-                          }
-                        >
-                          Status
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "actions",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={columnVisibility.actions}
-                          onChange={() =>
-                            handleColumnVisibilityChange("actions")
-                          }
-                        >
-                          Actions
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                ],
-                onClick: (e) => {
-                  // Prevent dropdown from closing
-                  e.domEvent.stopPropagation();
-                },
-              }}
-              trigger={["hover", "click"]}
-              placement="bottomRight"
-              arrow
-              open={dropdownOpen}
-              onOpenChange={handleDropdownVisibleChange}
-              mouseEnterDelay={0.1}
-              mouseLeaveDelay={0.3}
-            >
-              <Tooltip title="Column settings">
-                <Button icon={<SettingOutlined />}>Columns</Button>
-              </Tooltip>
-            </Dropdown>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Empty div for spacing - Column settings moved to the left */}
-          </div>
-        </div>
-      </Card>
-
-      {/* Page Size Selection */}
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          {selectedRowKeys.length > 0 && (
-            <Space>
-              <Typography.Text>{selectedRowKeys.length} items selected</Typography.Text>
-              <Popconfirm
-                title="Are you sure you want to complete all selected results?"
-                onConfirm={handleBulkComplete}
-                okText="Yes"
-                cancelText="No"
-              >
-                <Button 
-                  type="default"
-                  icon={<CheckCircleOutlined style={{ color: "#52c41a" }} />}
-                  loading={loading}
-                  style={{ 
-                    color: "#52c41a", 
-                    borderColor: "#52c41a",
-                    backgroundColor: "white" 
-                  }}
+              {/* Advanced Filter Button */}
+              <Tooltip title="Advanced Filters">
+                <Button
+                  icon={
+                    <FilterOutlined
+                      style={{
+                        color: hasActiveFilters() ? "#1890ff" : undefined,
+                      }}
+                    />
+                  }
+                  onClick={handleOpenFilterModal}
                 >
-                  Complete Selected
+                  Filters
                 </Button>
-              </Popconfirm>
-            </Space>
-          )}
-        </div>
-        <div>
-          <Typography.Text type="secondary">
-            Rows per page:
-            <Select
-              value={pageSize}
-              onChange={(value) => {
-                setPageSize(value);
-                setCurrentPage(1);
-              }}
-              style={{ marginLeft: 8, width: 70 }}
-            >
-              <Option value={5}>5</Option>
-              <Option value={10}>10</Option>
-              <Option value={15}>15</Option>
-              <Option value={20}>20</Option>
-            </Select>
-          </Typography.Text>
-        </div>
-      </div>
+              </Tooltip>
 
-      {/* Results Table */}
-      <Card className="shadow-sm">
-        <Table
-          bordered
-          columns={columns}
-          dataSource={healthCheckResults}
-          loading={loading}
-          pagination={false}
-          rowKey="id"
-          rowSelection={{
-            selectedRowKeys,
-            onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys),
-          }}
-          locale={{
-            emptyText: (
-              <Empty description="No health check results without follow-up required found" />
-            ),
-          }}
-          className="border rounded-lg"
-        />
+              {/* Reset Button */}
+              <Tooltip title="Reset filters">
+                <Button
+                  icon={<UndoOutlined />}
+                  onClick={handleReset}
+                  disabled={!hasActiveFilters()}
+                >
+                  Reset
+                </Button>
+              </Tooltip>
 
-        {/* Pagination */}
-        <Card className="mt-4 shadow-sm">
-          <Row justify="center" align="middle">
-            <Space size="large" align="center">
-              <Typography.Text type="secondary">
-                Total {total} health check results without follow-up required
-              </Typography.Text>
-              <Space align="center" size="large">
-                <Pagination
-                  current={currentPage}
-                  pageSize={pageSize}
-                  total={total}
-                  onChange={(page) => {
-                    setCurrentPage(page);
-                  }}
-                  showSizeChanger={false}
-                  showTotal={() => ""}
-                />
-                <Space align="center">
-                  <Typography.Text type="secondary">
-                    Go to page:
-                  </Typography.Text>
-                  <InputNumber
-                    min={1}
-                    max={Math.ceil(total / pageSize)}
-                    value={currentPage}
-                    onChange={(value: number | null) => {
-                      if (
-                        value &&
-                        Number(value) > 0 &&
-                        Number(value) <= Math.ceil(total / pageSize)
-                      ) {
-                        setCurrentPage(Number(value));
-                      }
+              {/* Column Settings - Moved next to Reset button */}
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: "selectAll",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={areAllColumnsVisible()}
+                            onChange={(e) => toggleAllColumns(e.target.checked)}
+                          >
+                            <strong>Show all columns</strong>
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "divider",
+                      type: "divider",
+                    },
+                    {
+                      key: "code",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.code}
+                            onChange={() =>
+                              handleColumnVisibilityChange("code")
+                            }
+                          >
+                            Result Code
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "patient",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.patient}
+                            onChange={() =>
+                              handleColumnVisibilityChange("patient")
+                            }
+                          >
+                            User
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "checkupDate",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.checkupDate}
+                            onChange={() =>
+                              handleColumnVisibilityChange("checkupDate")
+                            }
+                          >
+                            Checkup Date
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "staff",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.staff}
+                            onChange={() =>
+                              handleColumnVisibilityChange("staff")
+                            }
+                          >
+                            Doctor / Nurse
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "approvedDate",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.approvedDate}
+                            onChange={() =>
+                              handleColumnVisibilityChange("approvedDate")
+                            }
+                          >
+                            Approval Date
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "status",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.status}
+                            onChange={() =>
+                              handleColumnVisibilityChange("status")
+                            }
+                          >
+                            Status
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "actions",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.actions}
+                            onChange={() =>
+                              handleColumnVisibilityChange("actions")
+                            }
+                          >
+                            Actions
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                  ],
+                  onClick: (e) => {
+                    // Prevent dropdown from closing
+                    e.domEvent.stopPropagation();
+                  },
+                }}
+                trigger={["hover", "click"]}
+                placement="bottomRight"
+                arrow
+                open={dropdownOpen}
+                onOpenChange={handleDropdownVisibleChange}
+                mouseEnterDelay={0.1}
+                mouseLeaveDelay={0.3}
+              >
+                <Tooltip title="Column settings">
+                  <Button icon={<SettingOutlined />}>Columns</Button>
+                </Tooltip>
+              </Dropdown>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Empty div for spacing - Column settings moved to the left */}
+            </div>
+          </div>
+        </Card>
+
+        {/* Page Size Selection */}
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            {selectedRowKeys.length > 0 && (
+              <Space>
+                <Typography.Text>
+                  {selectedRowKeys.length} items selected
+                </Typography.Text>
+                <Popconfirm
+                  title="Are you sure you want to complete all selected results?"
+                  onConfirm={handleBulkComplete}
+                  okText="Yes"
+                  cancelText="No"
+                >
+                  <Button
+                    type="default"
+                    icon={<CheckCircleOutlined style={{ color: "#52c41a" }} />}
+                    loading={loading}
+                    style={{
+                      color: "#52c41a",
+                      borderColor: "#52c41a",
+                      backgroundColor: "white",
                     }}
-                    style={{ width: "60px" }}
+                  >
+                    Complete Selected
+                  </Button>
+                </Popconfirm>
+              </Space>
+            )}
+          </div>
+          <div>
+            <Typography.Text type="secondary">
+              Rows per page:
+              <Select
+                value={pageSize}
+                onChange={(value) => {
+                  setPageSize(value);
+                  setCurrentPage(1);
+                }}
+                style={{ marginLeft: 8, width: 70 }}
+              >
+                <Option value={5}>5</Option>
+                <Option value={10}>10</Option>
+                <Option value={15}>15</Option>
+                <Option value={20}>20</Option>
+              </Select>
+            </Typography.Text>
+          </div>
+        </div>
+
+        {/* Results Table */}
+        <Card className="shadow-sm">
+          <Table
+            bordered
+            columns={columns}
+            dataSource={healthCheckResults}
+            loading={loading}
+            pagination={false}
+            rowKey="id"
+            rowSelection={{
+              selectedRowKeys,
+              onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys),
+            }}
+            locale={{
+              emptyText: (
+                <Empty description="No health check results without follow-up required found" />
+              ),
+            }}
+            className="border rounded-lg"
+          />
+
+          {/* Pagination */}
+          <Card className="mt-4 shadow-sm">
+            <Row justify="center" align="middle">
+              <Space size="large" align="center">
+                <Typography.Text type="secondary">
+                  Total {total} health check results without follow-up required
+                </Typography.Text>
+                <Space align="center" size="large">
+                  <Pagination
+                    current={currentPage}
+                    pageSize={pageSize}
+                    total={total}
+                    onChange={(page) => {
+                      setCurrentPage(page);
+                    }}
+                    showSizeChanger={false}
+                    showTotal={() => ""}
                   />
+                  <Space align="center">
+                    <Typography.Text type="secondary">
+                      Go to page:
+                    </Typography.Text>
+                    <InputNumber
+                      min={1}
+                      max={Math.ceil(total / pageSize)}
+                      value={currentPage}
+                      onChange={(value: number | null) => {
+                        if (
+                          value &&
+                          Number(value) > 0 &&
+                          Number(value) <= Math.ceil(total / pageSize)
+                        ) {
+                          setCurrentPage(Number(value));
+                        }
+                      }}
+                      style={{ width: "60px" }}
+                    />
+                  </Space>
                 </Space>
               </Space>
-            </Space>
-          </Row>
+            </Row>
+          </Card>
         </Card>
-      </Card>
 
-      {/* Filter Modal */}
-      <FilterModal
-        visible={filterModalVisible}
-        onCancel={() => setFilterModalVisible(false)}
-        onApply={handleApplyFilters}
-        onReset={handleReset}
-        filters={{
-          userSearch,
-          staffSearch,
-          checkupDateRange,
-          sortBy,
-          ascending,
-        }}
-      />
-    </div>
+        {/* Filter Modal */}
+        <FilterModal
+          visible={filterModalVisible}
+          onCancel={() => setFilterModalVisible(false)}
+          onApply={handleApplyFilters}
+          onReset={handleReset}
+          filters={{
+            userSearch,
+            staffSearch,
+            checkupDateRange,
+            sortBy,
+            ascending,
+          }}
+        />
+      </div>
+    </>
   );
 };

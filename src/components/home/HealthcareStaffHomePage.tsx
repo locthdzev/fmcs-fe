@@ -94,38 +94,32 @@ const HealthcareStaffHomePage: React.FC = () => {
     {
       title: "Appointments",
       icon: <CalendarOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/appointments",
+      path: "/appointment",
       description: "View and manage patient appointments",
     },
     {
       title: "Health Checkups",
       icon: <MedicineBoxOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/health-checkups",
-      description: "Manage periodic health checkups",
+      path: "/health-check-result",
+      description: "Manage patient health checkups",
     },
     {
       title: "Prescriptions",
       icon: <FileTextOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/prescriptions",
+      path: "/prescription",
       description: "Create and manage prescriptions",
     },
     {
       title: "Treatment Plans",
       icon: <SolutionOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/treatment-plans",
-      description: "Manage patient treatment plans",
+      path: "/treatment-plan",
+      description: "Create and manage treatment plans",
     },
     {
-      title: "Schedule",
+      title: "My Schedule",
       icon: <ScheduleOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/schedule",
+      path: "/my-schedule",
       description: "View your work schedule",
-    },
-    {
-      title: "Notifications",
-      icon: <BellOutlined style={{ fontSize: "24px" }} />,
-      path: "/notification",
-      description: "View notifications",
     },
   ];
 
@@ -374,7 +368,11 @@ const HealthcareStaffHomePage: React.FC = () => {
                     padding: "12px 16px",
                     borderRadius: "6px",
                     boxShadow: "0 2px 0 rgba(0,0,0,0.02)",
+                    transition: "all 0.3s",
+                    background: "#f9f9f9",
+                    border: "1px solid #f0f0f0",
                   }}
+                  className="quick-access-button"
                 >
                   <div style={{ textAlign: "left", marginLeft: "10px" }}>
                     <div style={{ fontWeight: "bold" }}>{item.title}</div>
@@ -387,46 +385,6 @@ const HealthcareStaffHomePage: React.FC = () => {
                 </Button>
               ))}
             </div>
-          </Card>
-        </Col>
-      </Row>
-
-      <Row style={{ marginTop: "24px" }}>
-        <Col span={24}>
-          <Card
-            title={
-              <Title level={4}>
-                <CalendarOutlined /> Today's Appointments
-              </Title>
-            }
-            style={{ borderRadius: "8px" }}
-          >
-            <Row gutter={16}>
-              <Col span={8}>
-                <Card style={{ textAlign: "center", borderRadius: "6px" }}>
-                  <Title level={2} style={{ margin: 0, color: "#1890ff" }}>
-                    12
-                  </Title>
-                  <Text>Total Appointments</Text>
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card style={{ textAlign: "center", borderRadius: "6px" }}>
-                  <Title level={2} style={{ margin: 0, color: "#52c41a" }}>
-                    7
-                  </Title>
-                  <Text>Completed</Text>
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card style={{ textAlign: "center", borderRadius: "6px" }}>
-                  <Title level={2} style={{ margin: 0, color: "#fa8c16" }}>
-                    5
-                  </Title>
-                  <Text>Upcoming</Text>
-                </Card>
-              </Col>
-            </Row>
           </Card>
         </Col>
       </Row>

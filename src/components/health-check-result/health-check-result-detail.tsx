@@ -20,6 +20,9 @@ import {
   List,
   Timeline,
   Modal,
+  Spin,
+  Tooltip,
+  DatePicker,
 } from "antd";
 import { useRouter } from "next/router";
 import {
@@ -37,7 +40,6 @@ import {
   HealthCheckResultHistoryResponseDTO,
   exportHealthCheckResultHistoriesByResultIdToExcel,
 } from "@/api/healthcheckresult";
-import { toast } from "react-toastify";
 import moment from "moment";
 import {
   ArrowLeftOutlined,
@@ -68,6 +70,7 @@ export const HealthCheckResultDetail: React.FC<
   HealthCheckResultDetailProps
 > = ({ id }) => {
   const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
   const [healthCheckResult, setHealthCheckResult] =
     useState<HealthCheckResultsIdResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,12 +89,12 @@ export const HealthCheckResultDetail: React.FC<
       if (response.isSuccess) {
         setHealthCheckResult(response.data);
       } else {
-        toast.error(
+        message.error(
           response.message || "Unable to load health check result information"
         );
       }
     } catch (error) {
-      toast.error("Unable to load health check result information");
+      message.error("Unable to load health check result information");
     } finally {
       setLoading(false);
     }
@@ -127,9 +130,9 @@ export const HealthCheckResultDetail: React.FC<
     if (!id) return;
     try {
       await exportHealthCheckResultToPDF(id);
-      toast.success("PDF export successful!");
+      message.success("PDF export successful!");
     } catch (error) {
-      toast.error("Unable to export PDF file");
+      message.error("Unable to export PDF file");
     }
   };
 
@@ -138,16 +141,16 @@ export const HealthCheckResultDetail: React.FC<
     try {
       const response = await approveHealthCheckResult(id);
       if (response.isSuccess) {
-        toast.success("Health check result approved successfully!");
+        message.success("Health check result approved successfully!");
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(
+        message.error(
           response.message || "Unable to approve health check result"
         );
       }
     } catch (error) {
-      toast.error("Unable to approve health check result");
+      message.error("Unable to approve health check result");
     }
   };
 
@@ -156,16 +159,16 @@ export const HealthCheckResultDetail: React.FC<
     try {
       const response = await completeHealthCheckResult(id);
       if (response.isSuccess) {
-        toast.success("Health check result completed successfully!");
+        message.success("Health check result completed successfully!");
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(
+        message.error(
           response.message || "Unable to complete health check result"
         );
       }
     } catch (error) {
-      toast.error("Unable to complete health check result");
+      message.error("Unable to complete health check result");
     }
   };
 
@@ -174,14 +177,14 @@ export const HealthCheckResultDetail: React.FC<
     try {
       const response = await cancelCompletelyHealthCheckResult(id, reason);
       if (response.isSuccess) {
-        toast.success("Health check result cancelled successfully!");
+        message.success("Health check result cancelled successfully!");
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(response.message || "Unable to cancel health check result");
+        message.error(response.message || "Unable to cancel health check result");
       }
     } catch (error) {
-      toast.error("Unable to cancel health check result");
+      message.error("Unable to cancel health check result");
     }
   };
 
@@ -190,19 +193,19 @@ export const HealthCheckResultDetail: React.FC<
     try {
       const response = await cancelForAdjustmentHealthCheckResult(id, reason);
       if (response.isSuccess) {
-        toast.success(
+        message.success(
           "Health check result cancelled for adjustment successfully!"
         );
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(
+        message.error(
           response.message ||
             "Unable to cancel health check result for adjustment"
         );
       }
     } catch (error) {
-      toast.error("Unable to cancel health check result for adjustment");
+      message.error("Unable to cancel health check result for adjustment");
     }
   };
 
@@ -212,15 +215,15 @@ export const HealthCheckResultDetail: React.FC<
       const dateStr = moment(followUpDate).format("YYYY-MM-DD");
       const response = await scheduleFollowUp(id, dateStr);
       if (response.isSuccess) {
-        toast.success("Follow-up scheduled successfully!");
+        message.success("Follow-up scheduled successfully!");
         setShowFollowUpModal(false);
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(response.message || "Unable to schedule follow-up");
+        message.error(response.message || "Unable to schedule follow-up");
       }
     } catch (error) {
-      toast.error("Unable to schedule follow-up");
+      message.error("Unable to schedule follow-up");
     }
   };
 
@@ -229,14 +232,14 @@ export const HealthCheckResultDetail: React.FC<
     try {
       const response = await cancelFollowUp(id);
       if (response.isSuccess) {
-        toast.success("Follow-up cancelled successfully!");
+        message.success("Follow-up cancelled successfully!");
         fetchHealthCheckResult();
         fetchHistories();
       } else {
-        toast.error(response.message || "Unable to cancel follow-up");
+        message.error(response.message || "Unable to cancel follow-up");
       }
     } catch (error) {
-      toast.error("Unable to cancel follow-up");
+      message.error("Unable to cancel follow-up");
     }
   };
 
@@ -244,11 +247,11 @@ export const HealthCheckResultDetail: React.FC<
     if (!id) return;
     try {
       await exportHealthCheckResultHistoriesByResultIdToExcel(id);
-      toast.success(
+      messageApi.success(
         "Health check result history exported to Excel successfully!"
       );
     } catch (error) {
-      toast.error("Unable to export history to Excel file");
+      messageApi.error("Unable to export history to Excel file");
     }
   };
 
@@ -410,6 +413,7 @@ export const HealthCheckResultDetail: React.FC<
   if (loading) {
     return (
       <div className="p-6">
+        {contextHolder}
         <Card>
           <Skeleton active paragraph={{ rows: 10 }} />
         </Card>
@@ -420,6 +424,7 @@ export const HealthCheckResultDetail: React.FC<
   if (!healthCheckResult) {
     return (
       <div className="p-6">
+        {contextHolder}
         <Card>
           <Empty description="Health check result not found">
             <Button
@@ -437,6 +442,7 @@ export const HealthCheckResultDetail: React.FC<
 
   return (
     <div className="p-6">
+      {contextHolder}
       <Card className="mb-4">
         <Row gutter={[16, 16]}>
           <Col span={24}>
@@ -504,7 +510,7 @@ export const HealthCheckResultDetail: React.FC<
               <Descriptions.Item label="Checkup Date">
                 {formatDate(healthCheckResult.checkupDate)}
               </Descriptions.Item>
-              <Descriptions.Item label="Doctor/Nurse In Charge">
+              <Descriptions.Item label="Healthcare Staff In Charge">
                 {healthCheckResult.staff.fullName}
               </Descriptions.Item>
               <Descriptions.Item label="Follow-Up">
@@ -561,7 +567,7 @@ export const HealthCheckResultDetail: React.FC<
                       column={{ xs: 1, sm: 2 }}
                       size="small"
                     >
-                      <Descriptions.Item label="Result Summary" span={2}>
+                      <Descriptions.Item label="Symptom" span={2}>
                         {detail.resultSummary}
                       </Descriptions.Item>
                       <Descriptions.Item label="Diagnosis" span={2}>
@@ -609,7 +615,7 @@ export const HealthCheckResultDetail: React.FC<
                         key="view"
                         type="link"
                         onClick={() =>
-                          message.info("This feature is not yet implemented")
+                          messageApi.info("This feature is not yet implemented")
                         }
                       >
                         View Details
@@ -661,7 +667,7 @@ export const HealthCheckResultDetail: React.FC<
                         key="view"
                         type="link"
                         onClick={() =>
-                          message.info("This feature is not yet implemented")
+                          messageApi.info("This feature is not yet implemented")
                         }
                       >
                         View Details

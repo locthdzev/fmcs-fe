@@ -31,6 +31,7 @@ import {
   UserOutlined,
   NotificationOutlined,
   DownloadOutlined,
+  CarOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -92,40 +93,34 @@ const CanteenStaffHomePage: React.FC = () => {
 
   const quickAccessItems = [
     {
-      title: "Orders",
+      title: "Canteen Orders",
       icon: <ShoppingCartOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/canteen-orders",
+      path: "/canteen-order",
       description: "View and manage food orders",
     },
     {
       title: "Canteen Items",
       icon: <AppstoreOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/canteen-items",
+      path: "/canteen-item",
       description: "Manage menu items and inventory",
     },
     {
-      title: "Order Reports",
+      title: "Order Statistics",
       icon: <BarChartOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/order-reports",
+      path: "/statistics/canteenorder",
       description: "View sales and order analytics",
     },
     {
-      title: "Work Schedule",
-      icon: <ScheduleOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/schedule",
-      description: "View your work schedule",
+      title: "Delivery Management",
+      icon: <CarOutlined style={{ fontSize: "24px" }} />,
+      path: "/delivery-truck",
+      description: "Manage food deliveries",
     },
     {
-      title: "Inventory",
-      icon: <FileTextOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/inventory",
-      description: "Manage food inventory",
-    },
-    {
-      title: "Notifications",
-      icon: <BellOutlined style={{ fontSize: "24px" }} />,
-      path: "/notification",
-      description: "View notifications",
+      title: "My Profile",
+      icon: <UserOutlined style={{ fontSize: "24px" }} />,
+      path: "/my-profile",
+      description: "View and update your profile",
     },
   ];
 
@@ -374,7 +369,11 @@ const CanteenStaffHomePage: React.FC = () => {
                     padding: "12px 16px",
                     borderRadius: "6px",
                     boxShadow: "0 2px 0 rgba(0,0,0,0.02)",
+                    transition: "all 0.3s",
+                    background: "#f9f9f9",
+                    border: "1px solid #f0f0f0",
                   }}
+                  className="quick-access-button"
                 >
                   <div style={{ textAlign: "left", marginLeft: "10px" }}>
                     <div style={{ fontWeight: "bold" }}>{item.title}</div>
@@ -387,46 +386,6 @@ const CanteenStaffHomePage: React.FC = () => {
                 </Button>
               ))}
             </div>
-          </Card>
-        </Col>
-      </Row>
-
-      <Row style={{ marginTop: "24px" }}>
-        <Col span={24}>
-          <Card
-            title={
-              <Title level={4}>
-                <ShoppingCartOutlined /> Order Status
-              </Title>
-            }
-            style={{ borderRadius: "8px" }}
-          >
-            <Row gutter={16}>
-              <Col span={8}>
-                <Card style={{ textAlign: "center", borderRadius: "6px" }}>
-                  <Title level={2} style={{ margin: 0, color: "#1890ff" }}>
-                    18
-                  </Title>
-                  <Text>Total Orders Today</Text>
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card style={{ textAlign: "center", borderRadius: "6px" }}>
-                  <Title level={2} style={{ margin: 0, color: "#fa8c16" }}>
-                    5
-                  </Title>
-                  <Text>Pending Orders</Text>
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card style={{ textAlign: "center", borderRadius: "6px" }}>
-                  <Title level={2} style={{ margin: 0, color: "#52c41a" }}>
-                    13
-                  </Title>
-                  <Text>Completed Orders</Text>
-                </Card>
-              </Col>
-            </Row>
           </Card>
         </Col>
       </Row>

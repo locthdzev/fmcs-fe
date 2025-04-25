@@ -23,7 +23,6 @@ import {
   InputNumber,
   message,
 } from "antd";
-import { toast } from "react-toastify";
 import moment from "moment";
 import dayjs from "dayjs";
 import {
@@ -398,7 +397,9 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
       ),
       dataIndex: "healthCheckResultCode",
       render: (code: string, record: HealthCheckResultsResponseDTO) => (
-        <Typography.Link onClick={() => router.push(`/health-check-result/${record.id}`)}>
+        <Typography.Link
+          onClick={() => router.push(`/health-check-result/${record.id}`)}
+        >
           {code}
         </Typography.Link>
       ),
@@ -482,11 +483,13 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
                 <Menu.Item
                   key="view"
                   icon={<EyeOutlined />}
-                  onClick={() => router.push(`/health-check-result/${record.id}`)}
+                  onClick={() =>
+                    router.push(`/health-check-result/${record.id}`)
+                  }
                 >
                   View Details
                 </Menu.Item>
-                
+
                 <Menu.Item
                   key="complete"
                   icon={<CheckCircleOutlined style={{ color: "green" }} />}
@@ -494,7 +497,7 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
                 >
                   <span style={{ color: "green" }}>Complete</span>
                 </Menu.Item>
-                
+
                 <Menu.Item
                   key="cancel"
                   icon={<CloseCircleOutlined style={{ color: "red" }} />}
@@ -670,7 +673,7 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
                             handleColumnVisibilityChange("patient")
                           }
                         >
-                          Patient
+                          User
                         </Checkbox>
                       </div>
                     ),

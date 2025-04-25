@@ -133,13 +133,12 @@ const HealthCheckFilterModal: React.FC<HealthCheckFilterModalProps> = ({
           <Col span={12}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Patient
+                User
               </div>
               <Input
                 placeholder="Search by patient"
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
-               
                 style={{ width: "100%" }}
                 allowClear
               />
@@ -156,7 +155,6 @@ const HealthCheckFilterModal: React.FC<HealthCheckFilterModalProps> = ({
                 placeholder="Search by medical staff"
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
-               
                 style={{ width: "100%" }}
                 allowClear
               />
@@ -409,7 +407,8 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
         const uniqueCodes = Array.from(
           new Set(
             response.data.map(
-              (result: HealthCheckResultsResponseDTO) => result.healthCheckResultCode
+              (result: HealthCheckResultsResponseDTO) =>
+                result.healthCheckResultCode
             )
           )
         );
@@ -562,7 +561,9 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
       ),
       dataIndex: "healthCheckResultCode",
       render: (code: string, record: HealthCheckResultsResponseDTO) => (
-        <Typography.Link onClick={() => router.push(`/health-check-result/${record.id}`)}>
+        <Typography.Link
+          onClick={() => router.push(`/health-check-result/${record.id}`)}
+        >
           {code}
         </Typography.Link>
       ),
@@ -660,11 +661,13 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
                 <Menu.Item
                   key="view"
                   icon={<EyeOutlined />}
-                  onClick={() => router.push(`/health-check-result/${record.id}`)}
+                  onClick={() =>
+                    router.push(`/health-check-result/${record.id}`)
+                  }
                 >
                   View Details
                 </Menu.Item>
-                
+
                 <Menu.Item
                   key="approve"
                   icon={<CheckCircleOutlined style={{ color: "green" }} />}
@@ -672,7 +675,7 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
                 >
                   <span style={{ color: "green" }}>Approve</span>
                 </Menu.Item>
-                
+
                 <Menu.Item
                   key="cancel"
                   icon={<CloseCircleOutlined style={{ color: "red" }} />}
@@ -701,7 +704,7 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
                     <div style={{ width: "100%" }}>Cancel</div>
                   </Popconfirm>
                 </Menu.Item>
-                
+
                 <Menu.Item
                   key="cancelForAdjustment"
                   icon={<CloseSquareOutlined style={{ color: "#d4b106" }} />}
@@ -726,7 +729,9 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
                     cancelText="Cancel"
                     placement="topLeft"
                   >
-                    <div style={{ width: "100%", color: "#d4b106" }}>Cancel for Adjustment</div>
+                    <div style={{ width: "100%", color: "#d4b106" }}>
+                      Cancel for Adjustment
+                    </div>
                   </Popconfirm>
                 </Menu.Item>
               </Menu>
@@ -794,11 +799,13 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
               style={{ width: 250 }}
               optionFilterProp="children"
               filterOption={(input, option) =>
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
               }
-              options={healthCheckCodes.map(code => ({
+              options={healthCheckCodes.map((code) => ({
                 value: code,
-                label: code
+                label: code,
               }))}
             />
 
@@ -901,7 +908,7 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
                             handleColumnVisibilityChange("patient")
                           }
                         >
-                          Patient
+                          User
                         </Checkbox>
                       </div>
                     ),

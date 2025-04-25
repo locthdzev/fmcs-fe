@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useContext, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useContext,
+  useRef,
+} from "react";
 import {
   Button,
   Input,
@@ -15,7 +21,7 @@ import {
   Tooltip,
   Spin,
   Modal,
-  message
+  message,
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
@@ -43,6 +49,8 @@ import {
   StopOutlined,
   DownloadOutlined,
   CalendarOutlined,
+  ReloadOutlined,
+  TagOutlined,
 } from "@ant-design/icons";
 import { UserContext } from "@/context/UserContext";
 import AppointmentDetails from "./AppointmentDetails";
@@ -231,7 +239,9 @@ export function AppointmentManagementForStudent() {
           (error: Error) => {
             console.error("SignalR error:", error);
             if (isMounted) {
-              messageApi.error("Real-time updates failed. Please refresh the page.");
+              messageApi.error(
+                "Real-time updates failed. Please refresh the page."
+              );
             }
           }
         );
@@ -336,7 +346,9 @@ export function AppointmentManagementForStudent() {
       fetchAppointments();
     } catch (error: any) {
       console.error("Error bulk cancelling appointments:", error);
-      messageApi.error(error.message || "Unable to cancel selected appointments.");
+      messageApi.error(
+        error.message || "Unable to cancel selected appointments."
+      );
       if (error.message?.includes("token")) {
         router.push("/");
       }
@@ -379,31 +391,36 @@ export function AppointmentManagementForStudent() {
     <Card
       className="mb-6 shadow-lg transition-all duration-300 hover:shadow-xl"
       bordered={false}
-      style={{ borderRadius: "12px" }}
+      style={{
+        borderRadius: "16px",
+        background: "linear-gradient(to right, #f9fafb, #f3f4f6)",
+      }}
     >
-      <Row gutter={[16, 16]}>
+      <Row gutter={[24, 24]}>
         <Col span={24}>
           <Typography.Title
-            level={4}
-            className="mb-4 transition-colors duration-200 hover:text-teal-600"
+            level={3}
+            className="mb-2 transition-colors duration-200 flex items-center"
+            style={{ color: "#2c3e76", fontWeight: 700 }}
           >
+            <CalendarOutlined style={{ marginRight: 12, color: "#4b6cb7" }} />
             My Appointments
           </Typography.Title>
+          <Typography.Text className="text-gray-600">
+            Manage your healthcare appointments and schedules
+          </Typography.Text>
         </Col>
         <Col span={24}>
           <Space
             size="middle"
             wrap
             direction={direction}
-            style={{ width: "100%", justifyContent: "center" }}
+            style={{
+              width: "100%",
+              justifyContent:
+                direction === "horizontal" ? "flex-start" : "center",
+            }}
           >
-            <Button
-              icon={<CloseCircleOutlined />}
-              onClick={resetFilters}
-              className="transition-all duration-200 hover:bg-teal-50 hover:text-teal-600"
-            >
-              Reset Filters
-            </Button>
             <Input.Search
               placeholder="Search by staff"
               value={searchText}
@@ -412,20 +429,25 @@ export function AppointmentManagementForStudent() {
               style={{ width: "100%", maxWidth: 250 }}
               allowClear
               enterButton={<SearchOutlined />}
-              className="hover:border-teal-400 transition-colors duration-200"
+              className="search-input"
+            />
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={resetFilters}
+              className="filter-button"
             />
             <Select
-              placeholder="Filter by status"
+              prefix={<TagOutlined />}
+              placeholder="Status"
               value={statusFilter}
               onChange={(value) => setStatusFilter(value)}
               onClear={() => setStatusFilter(undefined)}
-              style={{ width: "100%", maxWidth: 150 }}
+              style={{ width: "100%", maxWidth: 200 }}
               allowClear
-              suffixIcon={<FilterOutlined />}
-              className="hover:border-teal-400 transition-colors duration-200"
+              className="status-filter"
             >
               <Option value="Scheduled">
-                <Badge status="processing" text="Scheduled" />
+                <Badge status="processing" color="#1890ff" text="Scheduled" />
               </Option>
               <Option value="Happening">
                 <Space>
@@ -460,27 +482,28 @@ export function AppointmentManagementForStudent() {
               format="DD/MM/YYYY"
               placeholder={["From Date", "To Date"]}
               style={{ width: "100%", maxWidth: 250 }}
-              className="hover:border-teal-400 transition-colors duration-200"
+              className="date-picker"
             />
             <Button
               icon={<DownloadOutlined />}
               onClick={handleExport}
-              className="transition-all duration-200 hover:bg-teal-50 hover:text-teal-600 export-button"
+              className="export-button"
             >
-              Export Appointments
+              Export Data
             </Button>
             <Button
               type="primary"
               icon={<CalendarOutlined />}
               onClick={redirectToStaffSchedule}
-              className="transition-all duration-200 hover:scale-105 export-button schedule-button"
+              className="schedule-button"
             >
-              Healthcare Officer
+              Schedule Appointment
             </Button>
           </Space>
           {dateRange && (
             <Typography.Text className="mt-2 text-gray-600">
-              {/* Showing appointments from {dateRange[0].format("DD/MM/YYYY")} to {dateRange[1].format("DD/MM/YYYY")} */}
+              Showing appointments from {dateRange[0].format("DD/MM/YYYY")} to{" "}
+              {dateRange[1].format("DD/MM/YYYY")}
             </Typography.Text>
           )}
         </Col>
@@ -497,7 +520,7 @@ export function AppointmentManagementForStudent() {
                       danger
                       type="primary"
                       icon={<DeleteOutlined />}
-                      className="hover:opacity-90 transition-all duration-200"
+                      className="bulk-cancel-button"
                     >
                       Cancel Selected ({selectedRowKeys.length})
                     </Button>
@@ -513,9 +536,20 @@ export function AppointmentManagementForStudent() {
 
   if (!user?.auth || !token) {
     return (
-      <Typography.Text className="text-lg text-gray-600">
-        Please log in to view your appointments.
-      </Typography.Text>
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <Card
+          className="shadow-lg p-8 max-w-md text-center"
+          bordered={false}
+          style={{ borderRadius: "16px" }}
+        >
+          <Typography.Title level={4} className="mb-4">
+            Please log in to view your appointments
+          </Typography.Title>
+          <Button type="primary" onClick={() => router.push("/")} size="large">
+            Go to Login
+          </Button>
+        </Card>
+      </div>
     );
   }
 
@@ -526,46 +560,112 @@ export function AppointmentManagementForStudent() {
         .appointment-block {
           transition: all 0.3s ease;
           transform: translateY(0);
+          border: 2px solid transparent;
+          position: relative;
+          overflow: hidden;
         }
-        .appointment-block:hover .appointment-info-container {
-          border-color: rgb(206, 225, 241) !important;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        .appointment-block::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            to right,
+            rgba(240, 249, 255, 0),
+            rgba(240, 249, 255, 0.3)
+          );
+          transform: translateX(-100%);
+          transition: transform 0.8s ease;
+          pointer-events: none;
+          z-index: 1;
+        }
+        .appointment-block:hover::before {
+          transform: translateX(100%);
+        }
+        .appointment-block:hover {
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+          transform: translateY(-5px);
+          border-color: rgba(79, 209, 197, 0.3);
         }
         .appointment-image-container {
+          position: relative;
+          overflow: hidden;
           background-color: #e6f0fa !important;
-          transition: all 0.3s ease;
+          transition: all 0.4s ease;
           background-size: cover !important;
           background-position: center !important;
           background-repeat: no-repeat !important;
           cursor: pointer;
+          border: 2px solid #e6f0fa;
         }
-        .appointment-block:hover {
-          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-          transform: translateY(-4px);
-          border-color: rgb(173, 235, 228);
+        .appointment-image-container::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0);
+          transition: all 0.3s ease;
+        }
+        .appointment-image-container:hover {
+          transform: scale(1.03);
+          border-color: #4fd1c5;
+          box-shadow: 0 5px 15px rgba(79, 209, 197, 0.3);
+        }
+        .appointment-image-container:hover::after {
+          background: rgba(0, 0, 0, 0.1);
         }
         .appointment-info-container {
+          transition: all 0.3s ease;
+          border: 1px solid #e5e7eb;
+          position: relative;
+          overflow: hidden;
           cursor: pointer;
         }
+        .appointment-info-container::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 4px;
+          background: linear-gradient(to right, #4fd1c5, #4299e1);
+          transform: scaleX(0);
+          transition: transform 0.3s ease;
+          transform-origin: left;
+          opacity: 0;
+        }
+        .appointment-info-container:hover::before {
+          transform: scaleX(1);
+          opacity: 1;
+        }
         .action-button {
-          background-color: #f5f5f5;
-          color: #000;
-          border: 1px solid #d9d9d9;
-          border-radius: 6px;
+          background-color: #f9fafb;
+          color: #374151;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
           padding: 4px 12px;
-          height: 32px;
-          width: 120px;
+          height: 36px;
+          font-weight: 500;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.3s ease;
+          transition: all 0.25s ease;
         }
         .action-button:hover {
-          background-color: rgb(169, 240, 133);
+          background-color: #1b98e0;
           color: white;
-          border-color: rgb(153, 238, 111);
+          border-color: #1b98e0;
           transform: translateY(-2px);
-          box-shadow: 0 2px 4px rgba(82, 196, 26, 0.3);
+          box-shadow: 0 4px 12px rgba(27, 152, 224, 0.3);
+        }
+        .action-button:nth-child(2):hover {
+          background-color: #e53e3e;
+          border-color: #e53e3e;
+          box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
         }
         .blinking-dot {
           width: 7px;
@@ -598,55 +698,87 @@ export function AppointmentManagementForStudent() {
         }
         @keyframes pulseBackground {
           0% {
-            background-color: #ff4500;
+            background-color: rgba(255, 69, 0, 0.05);
           }
           50% {
-            background-color: #ff8c00;
+            background-color: rgba(255, 69, 0, 0.2);
           }
           100% {
-            background-color: #ff4500;
+            background-color: rgba(255, 69, 0, 0.05);
           }
         }
-        .appointment-details {
-          display: grid;
-          grid-template-columns: 60px 1fr;
-          gap: 4px 8px;
-          align-items: center;
-        }
-        @media (max-width: 1024px) and (min-width: 801px) {
-          .appointment-block {
-            max-width: 100% !important;
-            padding: 16px !important;
-          }
-          .appointment-image-container {
-            max-width: 150px !important;
-            max-height: 150px !important;
-          }
-          .appointment-info-container {
-            min-height: 150px !important;
-            padding: 12px !important;
-          }
-          .appointment-info-header {
-            grid-template-columns: 200px auto !important;
-          }
-          .appointment-details {
-            grid-template-columns: 50px 1fr !important;
-            font-size: 13px !important;
-          }
 
-          .action-button {
-            width: 100px !important;
-            height: 28px !important;
-            font-size: 12px !important;
-            padding: 2px 8px !important;
-          }
-          .flex-col {
-            gap: 1rem !important;
-          }
+        .filter-button,
+        .search-input,
+        .status-filter,
+        .date-picker {
+          transition: all 0.3s ease;
+          border-radius: 8px;
         }
-        @media (max-width: 800px) {
+
+        .filter-button:hover,
+        .search-input:hover,
+        .status-filter:hover,
+        .date-picker:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          border-color: #4fd1c5;
+        }
+
+        .export-button {
+          background-color: #f9fafb;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          padding: 6px 16px;
+          height: 38px;
+          font-weight: 500;
+          color: #374151;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+        }
+
+        .export-button:hover {
+          background-color: #38b2ac;
+          border-color: #38b2ac;
+          color: white;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(56, 178, 172, 0.3);
+        }
+
+        .schedule-button {
+          border-radius: 8px;
+          padding: 6px 16px;
+          height: 38px;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+          background: linear-gradient(135deg, #4299e1, #3182ce);
+          border: none;
+        }
+
+        .schedule-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+          background: linear-gradient(135deg, #3182ce, #2c5282);
+        }
+
+        .bulk-cancel-button {
+          transition: all 0.3s ease;
+          border-radius: 8px;
+        }
+
+        .bulk-cancel-button:hover {
+          transform: translateY(-2px);
+          opacity: 0.9;
+          box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+        }
+
+        @media (max-width: 768px) {
           .appointment-block {
-            max-width: 100% !important;
             padding: 12px !important;
           }
           .appointment-image-container {
@@ -667,9 +799,9 @@ export function AppointmentManagementForStudent() {
             font-size: 12px !important;
           }
           .action-button {
-            width: 90px !important;
-            height: 26px !important;
-            font-size: 11px !important;
+            width: 110px !important;
+            height: 32px !important;
+            font-size: 12px !important;
             padding: 2px 8px !important;
           }
           .flex-col {
@@ -684,65 +816,20 @@ export function AppointmentManagementForStudent() {
         }
         @media (max-width: 480px) {
           .appointment-block {
-            padding: 8px !important;
+            padding: 10px !important;
           }
           .appointment-info-container {
-            padding: 8px !important;
+            padding: 10px !important;
           }
           .appointment-details {
             grid-template-columns: 40px 1fr !important;
-            font-size: 10px !important;
+            font-size: 11px !important;
           }
           .action-button {
-            width: 80px !important;
-            height: 24px !important;
-            font-size: 10px !important;
+            width: 100px !important;
+            height: 30px !important;
+            font-size: 11px !important;
           }
-        }
-
-        .export-button {
-          background-color: #f9fafb;
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          padding: 6px 16px;
-          height: 38px;
-          font-weight: 500;
-          color: #374151;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.3s ease;
-        }
-        .export-button:hover {
-          background-color: rgb(76, 223, 174);
-          border-color: rgb(65, 218, 167);
-          color: white;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-        }
-        .schedule-button {
-          border-radius: 8px;
-          padding: 6px 16px;
-          height: 38px;
-          font-weight: 500;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.3s ease;
-          background: linear-gradient(
-            135deg,
-            rgb(123, 219, 236),
-            rgb(122, 171, 252)
-          );
-        }
-        .schedule-button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(130, 229, 247, 0.4);
-          background: linear-gradient(
-            135deg,
-            rgb(99, 201, 226),
-            rgb(136, 171, 245)
-          );
         }
       `}</style>
 
@@ -750,12 +837,12 @@ export function AppointmentManagementForStudent() {
       <Card
         bordered={false}
         className="shadow-md"
-        style={{ borderRadius: "12px", overflow: "hidden" }}
+        style={{ borderRadius: "16px", overflow: "hidden" }}
       >
         {loading ? (
-          <div className="text-center py-8">
+          <div className="text-center py-16">
             <Spin size="large" />
-            <Typography.Text className="block mt-4 text-gray-600">
+            <Typography.Text className="block mt-6 text-gray-600">
               Loading your appointments...
             </Typography.Text>
           </div>
@@ -767,18 +854,18 @@ export function AppointmentManagementForStudent() {
               onMouseEnter={() => setHoveredAppointment(appointment.id)}
               onMouseLeave={() => setHoveredAppointment(null)}
               style={{
-                padding: "20px",
+                padding: "22px",
                 marginBottom: "24px",
-                maxWidth: "80%",
+                maxWidth: "90%",
                 width: "100%",
                 marginLeft: "auto",
                 marginRight: "auto",
-                borderRadius: "12px",
+                borderRadius: "16px",
                 backgroundColor: "#FFFFFF",
-                border: "1px solid #F0F0F0",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
               }}
             >
-              <Row gutter={[16, 16]} justify="center">
+              <Row gutter={[20, 20]} align="middle">
                 <Col
                   xs={24}
                   sm={24}
@@ -789,16 +876,8 @@ export function AppointmentManagementForStudent() {
                 >
                   <div
                     className="appointment-image-container"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(
-                        `http://localhost:3333/appointment/schedule/${
-                          appointment.staffId || "default"
-                        }`
-                      );
-                    }}
                     style={{
-                      borderRadius: "10px",
+                      borderRadius: "12px",
                       width: "100%",
                       maxWidth: "180px",
                       height: "auto",
@@ -808,7 +887,6 @@ export function AppointmentManagementForStudent() {
                       backgroundImage: `url(${
                         appointment.imageURL || "/images/placeholder.jpg"
                       })`,
-                      border: "2px solid #E6F0FA",
                     }}
                   />
                 </Col>
@@ -830,12 +908,9 @@ export function AppointmentManagementForStudent() {
                       justifyContent: "space-between",
                       alignItems: "stretch",
                       backgroundColor: "#FFFFFF",
-                      border: "1px solid #E5E7EB",
-                      borderRadius: "8px",
-                      transition: "all 0.3s ease",
+                      borderRadius: "12px",
                       ...(hoveredAppointment === appointment.id && {
-                        borderColor: "#4FD1C5",
-                        boxShadow: "0 2px 8px rgba(79, 209, 197, 0.15)",
+                        boxShadow: "0 4px 16px rgba(79, 209, 197, 0.15)",
                       }),
                     }}
                   >
@@ -846,11 +921,11 @@ export function AppointmentManagementForStudent() {
                           display: "grid",
                           gridTemplateColumns: "250px auto",
                           alignItems: "center",
-                          gap: "8px",
+                          gap: "10px",
                         }}
                       >
                         <h2
-                          className="text-lg md:text-xl font-semibold text-gray-800 m-0 transition-colors duration-200 hover:text-teal-600 cursor-pointer"
+                          className="text-xl font-semibold text-gray-800 m-0 transition-colors duration-200 hover:text-teal-600 cursor-pointer"
                           style={{
                             overflow: "hidden",
                             textOverflow: "ellipsis",
@@ -863,7 +938,7 @@ export function AppointmentManagementForStudent() {
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: "6px",
+                            gap: "8px",
                           }}
                         >
                           <Tooltip title={getStatusTooltip(appointment.status)}>
@@ -871,12 +946,17 @@ export function AppointmentManagementForStudent() {
                               color={getStatusColor(appointment.status)}
                               style={{
                                 fontSize: "13px",
-                                padding: "3px 8px",
-                                borderRadius: "10px",
+                                padding: "4px 10px",
+                                borderRadius: "20px",
                                 fontWeight: "500",
                                 display: "flex",
                                 alignItems: "center",
                               }}
+                              className={
+                                appointment.status === "Happening"
+                                  ? "happening-tag"
+                                  : ""
+                              }
                             >
                               {getStatusIcon(appointment.status)}
                               {appointment.status === "CancelledAfterConfirm"
@@ -892,8 +972,17 @@ export function AppointmentManagementForStudent() {
                       <p className="text-gray-500 text-[13px] mt-1 italic">
                         Healthcare Provider
                       </p>
-                      <hr className="border-t border-gray-200 my-2" />
-                      <div className="appointment-details">
+                      <hr className="border-t border-gray-200 my-3" />
+                      <div
+                        className="appointment-details"
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "80px 1fr",
+                          gap: "8px",
+                          alignItems: "center",
+                          marginBottom: "10px",
+                        }}
+                      >
                         <span className="font-medium text-gray-700 text-[14px]">
                           Start:
                         </span>
@@ -917,8 +1006,17 @@ export function AppointmentManagementForStudent() {
                           {formatDateTimeLong(appointment.createdAt)}
                         </span>
                       </div>
+
+                      {appointment.reason && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+                          <p className="text-[13px] text-gray-600 m-0">
+                            <span className="font-semibold">Reason:</span>{" "}
+                            {appointment.reason}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex flex-col justify-end items-end gap-2">
+                    <div className="flex flex-col justify-end items-end gap-3 ml-3">
                       <Button
                         className="action-button"
                         size="middle"
@@ -936,7 +1034,9 @@ export function AppointmentManagementForStudent() {
                           onConfirm={(e) => handleCancel(appointment.id, e)}
                         >
                           <Button
+                            danger
                             className="action-button"
+                            style={{ color: "red" }}
                             size="middle"
                             icon={<CloseCircleOutlined />}
                             onClick={(e) => e.stopPropagation()}
@@ -952,42 +1052,171 @@ export function AppointmentManagementForStudent() {
             </div>
           ))
         ) : (
-          <div className="text-center py-12">
-            <Typography.Text className="text-lg text-gray-500">
-              No appointments to show right now.
-            </Typography.Text>
-            <Button
-              type="link"
-              onClick={redirectToStaffSchedule}
-              className="mt-4"
+          <div className="text-center py-16">
+            <div className="mb-6">
+              <svg
+                width="100"
+                height="100"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="mx-auto text-gray-300"
+              >
+                <path
+                  d="M8 2V5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M16 2V5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M3.5 9H20.5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M15.6947 13.7H15.7037"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M15.6947 16.7H15.7037"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M11.9955 13.7H12.0045"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M11.9955 16.7H12.0045"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M8.29431 13.7H8.30329"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M8.29431 16.7H8.30329"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <Typography.Title
+              level={4}
+              className="text-gray-600 font-medium mb-4"
             >
-              View staff schedules to book an appointment
+              No appointments to show right now
+            </Typography.Title>
+            <Button
+              type="primary"
+              icon={<CalendarOutlined />}
+              onClick={redirectToStaffSchedule}
+              size="large"
+              className="schedule-button mt-2"
+            >
+              Book Your First Appointment
             </Button>
           </div>
         )}
       </Card>
 
       <Modal
-        title={
-          <Title level={4} style={{ margin: 0 }}>
-            Appointment Details
-          </Title>
-        }
+        title={null}
         open={isDetailsModalVisible}
         onCancel={() => {
           setIsDetailsModalVisible(false);
           setSelectedAppointment(null);
         }}
         footer={null}
-        width={600}
+        width={650}
+        className="appointment-detail-modal"
+        style={{ borderRadius: "16px", overflow: "hidden" }}
+        bodyStyle={{ padding: "0" }}
+        closeIcon={
+          <CloseCircleOutlined style={{ color: "#2c3e76", fontSize: "18px" }} />
+        }
       >
-        {selectedAppointment && (
-          <AppointmentDetails
-            appointment={selectedAppointment}
-            onCancel={handleCancel}
-          />
-        )}
+        <div className="p-0">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="bg-gradient-to-r from-blue-50 to-teal-50 absolute top-0 left-0 right-0 h-16 -z-10"></div>
+            <Title
+              level={4}
+              style={{
+                margin: 0,
+                color: "#2c3e76",
+                position: "relative",
+                zIndex: 1,
+              }}
+            >
+              <CalendarOutlined style={{ marginRight: 8 }} /> Appointment
+              Details
+            </Title>
+          </div>
+          <div className="p-6">
+            {selectedAppointment && (
+              <AppointmentDetails
+                appointment={selectedAppointment}
+                onCancel={handleCancel}
+              />
+            )}
+          </div>
+        </div>
       </Modal>
+
+      <style jsx global>{`
+        /* Modal styles */
+        .appointment-detail-modal .ant-modal-content {
+          overflow: hidden;
+          border-radius: 16px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .appointment-detail-modal .ant-modal-close {
+          top: 14px;
+          right: 16px;
+          color: #2c3e76;
+          z-index: 10;
+        }
+
+        .appointment-detail-modal .ant-modal-close:hover {
+          color: #4fd1c5;
+        }
+
+        .appointment-detail-modal .ant-modal-body {
+          padding: 0;
+          position: relative;
+        }
+      `}</style>
     </div>
   );
 }

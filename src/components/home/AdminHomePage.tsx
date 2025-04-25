@@ -31,6 +31,7 @@ import {
   UserOutlined,
   NotificationOutlined,
   DownloadOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -91,38 +92,32 @@ const AdminHomePage: React.FC = () => {
     {
       title: "User Management",
       icon: <UsergroupAddOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/users",
+      path: "/user",
       description: "Manage system users and roles",
     },
     {
-      title: "Dashboard",
+      title: "Statistics & Reports",
       icon: <DashboardOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard",
-      description: "View system statistics and reports",
+      path: "/statistics/user",
+      description: "View system statistics and analytics",
     },
     {
-      title: "Health Services",
+      title: "Drug Management",
       icon: <MedicineBoxOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/health-services",
-      description: "Manage healthcare related services",
+      path: "/drug",
+      description: "Manage drugs and inventory",
     },
     {
-      title: "Schedule Management",
-      icon: <ScheduleOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/schedule",
-      description: "View and manage system schedules",
+      title: "Health Records",
+      icon: <FileTextOutlined style={{ fontSize: "24px" }} />,
+      path: "/health-check-result",
+      description: "View patient health records",
     },
     {
       title: "Notifications",
       icon: <BellOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/notifications",
+      path: "/notification",
       description: "Manage system notifications",
-    },
-    {
-      title: "Applications",
-      icon: <AppstoreOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/applications",
-      description: "Access all system applications",
     },
   ];
 
@@ -369,7 +364,11 @@ const AdminHomePage: React.FC = () => {
                     padding: "12px 16px",
                     borderRadius: "6px",
                     boxShadow: "0 2px 0 rgba(0,0,0,0.02)",
+                    transition: "all 0.3s",
+                    background: "#f9f9f9",
+                    border: "1px solid #f0f0f0",
                   }}
+                  className="quick-access-button"
                 >
                   <div style={{ textAlign: "left", marginLeft: "10px" }}>
                     <div style={{ fontWeight: "bold" }}>{item.title}</div>
@@ -382,46 +381,6 @@ const AdminHomePage: React.FC = () => {
                 </Button>
               ))}
             </div>
-          </Card>
-        </Col>
-      </Row>
-
-      <Row style={{ marginTop: "24px" }}>
-        <Col span={24}>
-          <Card
-            title={
-              <Title level={4}>
-                <DashboardOutlined /> System Status
-              </Title>
-            }
-            style={{ borderRadius: "8px" }}
-          >
-            <Row gutter={16}>
-              <Col span={8}>
-                <Card style={{ textAlign: "center", borderRadius: "6px" }}>
-                  <Title level={2} style={{ margin: 0, color: "#1890ff" }}>
-                    100%
-                  </Title>
-                  <Text>System Uptime</Text>
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card style={{ textAlign: "center", borderRadius: "6px" }}>
-                  <Title level={2} style={{ margin: 0, color: "#52c41a" }}>
-                    Normal
-                  </Title>
-                  <Text>Server Status</Text>
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card style={{ textAlign: "center", borderRadius: "6px" }}>
-                  <Title level={2} style={{ margin: 0, color: "#722ed1" }}>
-                    Optimal
-                  </Title>
-                  <Text>Database Status</Text>
-                </Card>
-              </Col>
-            </Row>
           </Card>
         </Col>
       </Row>

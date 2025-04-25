@@ -27,7 +27,6 @@ import {
   Menu,
   Divider,
 } from "antd";
-import { toast } from "react-toastify";
 import {
   getAllHealthCheckResultHistories,
   exportAllHealthCheckResultHistoriesToExcelWithConfig,
@@ -535,11 +534,11 @@ export const HealthCheckResultHistory: React.FC = () => {
           fetchHistoriesForResult(group.healthCheckResultId);
         }
       } else {
-        toast.error("Không thể tải danh sách mã kết quả khám");
+        messageApi.error("Không thể tải danh sách mã kết quả khám");
         setLoading(false);
       }
     } catch (error) {
-      toast.error("Không thể tải danh sách mã kết quả khám");
+      messageApi.error("Không thể tải danh sách mã kết quả khám");
       setLoading(false);
     }
   }, [
@@ -572,12 +571,12 @@ export const HealthCheckResultHistory: React.FC = () => {
           )
         );
       } else {
-        toast.error(
+        messageApi.error(
           response.message || `Không thể tải lịch sử cho mã kết quả khám`
         );
       }
     } catch (error) {
-      toast.error(`Không thể tải lịch sử cho mã kết quả khám`);
+      messageApi.error(`Không thể tải lịch sử cho mã kết quả khám`);
     } finally {
       // Kiểm tra xem tất cả các nhóm đã tải xong chưa
       setResultGroups((prevGroups) => {
@@ -726,7 +725,7 @@ export const HealthCheckResultHistory: React.FC = () => {
       setShowExportConfigModal(true);
       setExportLoading(false);
     } catch (error) {
-      toast.error("Không thể xuất file Excel");
+      messageApi.error("Không thể xuất file Excel");
       setExportLoading(false);
     }
   };
@@ -783,7 +782,7 @@ export const HealthCheckResultHistory: React.FC = () => {
       closeConfigModal();
     } catch (error: any) {
       console.error("Export error:", error);
-      toast.error(error.response?.data?.message || "Không thể xuất file Excel");
+      messageApi.error(error.response?.data?.message || "Không thể xuất file Excel");
     } finally {
       setExportLoading(false);
     }

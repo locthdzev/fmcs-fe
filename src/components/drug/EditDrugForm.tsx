@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Button, Input, Textarea, Modal, ModalContent, ModalBody } from "@heroui/react";
-import { Select } from "antd";
+import { Select, message } from "antd";
 import { updateDrug, getDrugById, DrugUpdateRequest } from "@/api/drug";
 import { getDrugGroups } from "@/api/druggroup";
-import { toast } from "react-toastify";
 import { FileUpload } from "../ui/file-upload";
 
 interface DrugGroup {
@@ -23,6 +22,7 @@ export const EditDrugForm: React.FC<EditDrugFormProps> = ({
   onClose,
   onUpdate,
 }) => {
+  const [messageApi, contextHolder] = message.useMessage();
   const [drugGroups, setDrugGroups] = useState<DrugGroup[]>([]);
   const [formData, setFormData] = useState<DrugUpdateRequest | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -47,7 +47,7 @@ export const EditDrugForm: React.FC<EditDrugFormProps> = ({
           imageUrl: drugData.imageUrl || "",
         });
       } catch (error) {
-        toast.error("Failed to load drug details");
+        messageApi.error("Failed to load drug details");
       }
     };
 
@@ -56,7 +56,7 @@ export const EditDrugForm: React.FC<EditDrugFormProps> = ({
         const data = await getDrugGroups();
         setDrugGroups(data);
       } catch (error) {
-        toast.error("Failed to load drug groups");
+        messageApi.error("Failed to load drug groups");
       }
     };
 
@@ -89,11 +89,11 @@ export const EditDrugForm: React.FC<EditDrugFormProps> = ({
 
       setLoading(true);
       await updateDrug(drugId, formDataToSend);
-      toast.success("Drug updated successfully");
+      messageApi.success("Drug updated successfully");
       onUpdate();
       onClose();
     } catch (error) {
-      toast.error("Failed to update drug");
+      messageApi.error("Failed to update drug");
     } finally {
       setLoading(false);
     }
@@ -112,6 +112,7 @@ export const EditDrugForm: React.FC<EditDrugFormProps> = ({
 
   return (
     <>
+      {contextHolder}
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-2 gap-4">
           <Select

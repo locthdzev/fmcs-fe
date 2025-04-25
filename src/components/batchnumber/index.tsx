@@ -975,8 +975,7 @@ export function BatchNumberManagement() {
                     disabled={
                       !record.manufacturingDate ||
                       !record.expiryDate ||
-                      record.status === "Expired" ||
-                      (record.status === "Inactive" && inventoryQuantity === 0)
+                      record.status === "Expired"
                     }
                     loading={loadingActions[record.id]}
                     onChange={(checked) => handleToggleStatus(record.id, checked)}

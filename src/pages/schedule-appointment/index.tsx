@@ -5,8 +5,6 @@ import {
   getAllHealthcareStaff,
   ResultDTO,
   setupHealthcareStaffRealTime,
-  getAppointmentStatistics,
-  AppointmentStatisticsDTO,
 } from "@/api/appointment-api";
 import Link from "next/link";
 import { Typography, Spin, message, Card } from "antd";
@@ -27,9 +25,6 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
   const [messageApi, contextHolder] = message.useMessage();
   const [staffList, setStaffList] =
     useState<AvailableOfficersResponseDTO[]>(initialStaffList);
-  const [statistics, setStatistics] = useState<AppointmentStatisticsDTO | null>(
-    null
-  );
   const [loading, setLoading] = useState(false);
   // Use the current date instead of a fixed reference date
   const currentDate = moment();
@@ -48,27 +43,8 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
     }
   }, [messageApi]);
 
-  const fetchStatistics = useCallback(async () => {
-    setLoading(true);
-    const token = Cookies.get("token");
-    if (!token) {
-      messageApi.error("No token found. Please log in.");
-      setLoading(false);
-      return;
-    }
-    try {
-      const result = await getAppointmentStatistics(token);
-      setStatistics(result.data);
-    } catch (error: any) {
-      messageApi.error(error.message || "Unable to load appointment statistics.");
-    } finally {
-      setLoading(false);
-    }
-  }, [messageApi]);
-
   useEffect(() => {
     fetchStaffList(); // Initial fetch
-    fetchStatistics();
 
     console.log("Setting up SignalR...");
     const cleanupSignalR = setupHealthcareStaffRealTime(
@@ -94,7 +70,7 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
         connectionRef.current();
       }
     };
-  }, [fetchStaffList, fetchStatistics]);
+  }, [fetchStaffList]);
 
   if (!token) {
     return null; // Redirect handled in getServerSideProps
@@ -111,12 +87,12 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
           box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
           background: white;
         }
-        
+
         .stats-card:hover {
           transform: translateY(-5px);
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
         }
-        
+
         .stats-number {
           font-size: 2.5rem;
           font-weight: 700;
@@ -125,13 +101,13 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
-        
+
         .stats-label {
           font-size: 1rem;
           font-weight: 500;
           color: #6b7280;
         }
-        
+
         .staff-card {
           transition: all 0.3s ease;
           overflow: hidden;
@@ -139,12 +115,12 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
           display: flex;
           flex-direction: column;
         }
-        
+
         .staff-card:hover {
           transform: translateY(-5px);
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
         }
-        
+
         .staff-image-container {
           height: 220px;
           display: flex;
@@ -154,33 +130,33 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
           border-radius: 16px;
           margin-bottom: 12px;
         }
-        
+
         .staff-image {
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
-        
+
         .staff-name {
           font-weight: 600;
           font-size: 1.1rem;
           line-height: 1.5;
           margin-bottom: 4px;
         }
-        
+
         .staff-position {
           font-size: 0.9rem;
           color: #6b7280;
           margin-bottom: 8px;
         }
-        
+
         .staff-info {
           flex-grow: 1;
           display: flex;
           flex-direction: column;
           align-items: center;
         }
-        
+
         .availability-badge {
           display: inline-flex;
           align-items: center;
@@ -194,14 +170,14 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
           color: #065f46;
           margin-top: auto;
         }
-        
+
         .availability-dot {
           width: 8px;
           height: 8px;
           border-radius: 50%;
           background-color: #10b981;
         }
-        
+
         .page-title {
           background: linear-gradient(135deg, #2c3e76, #3a57b9);
           -webkit-background-clip: text;
@@ -209,13 +185,13 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
           font-weight: 700;
           margin-bottom: 8px;
         }
-        
+
         .page-subtitle {
           color: #6b7280;
           font-weight: 400;
           margin-bottom: 24px;
         }
-        
+
         @media (max-width: 768px) {
           .stats-number {
             font-size: 2rem;
@@ -228,42 +204,33 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
           }
         }
       `}</style>
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
-          <h1 className="text-3xl md:text-4xl page-title">Campus Health Services</h1>
-          <p className="page-subtitle">Schedule an appointment with our healthcare professionals</p>
+          <h1 className="text-3xl md:text-4xl page-title">
+            Campus Health Services
+          </h1>
+          <p className="page-subtitle">
+            Schedule an appointment with our healthcare professionals
+          </p>
         </div>
-        
-        {/* Statistics Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="stats-card p-6">
-            <div className="stats-number">{statistics ? statistics.totalHealthcareOfficers : "-"}</div>
-            <div className="stats-label">Healthcare Officers</div>
-          </div>
-          <div className="stats-card p-6">
-            <div className="stats-number">{statistics ? statistics.studentsCurrentlyReceivingCare : "-"}</div>
-            <div className="stats-label">Students In Care</div>
-          </div>
-          <div className="stats-card p-6">
-            <div className="stats-number">{statistics ? statistics.appointmentsScheduledToday : "-"}</div>
-            <div className="stats-label">Today's Appointments</div>
-          </div>
-        </div>
-        
-        {/* Healthcare Staff Section */}
+
+        {/* Available Healthcare Staff Section */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Available Healthcare Professionals</h2>
-            <Text type="secondary">{currentDate.format('dddd, MMMM D, YYYY')}</Text>
+            <h2 className="text-2xl font-bold">
+              Available Healthcare Professionals
+            </h2>
+            <Text type="secondary">
+              {currentDate.format("dddd, MMMM D, YYYY")}
+            </Text>
           </div>
-          
           {loading ? (
-            <div className="flex items-center justify-center p-16">
-              <Spin size="large" tip="Loading healthcare staff..." />
+            <div className="flex justify-center items-center py-12">
+              <Spin size="large" />
             </div>
-          ) : staffList.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {staffList.map((staff, index) => {
                 const colors = [
                   {
@@ -286,10 +253,10 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
                     text: "text-purple-700",
                     border: "border-purple-200",
                   },
-                  { 
-                    bg: "bg-red-100", 
-                    text: "text-red-700", 
-                    border: "border-red-200" 
+                  {
+                    bg: "bg-red-100",
+                    text: "text-red-700",
+                    border: "border-red-200",
                   },
                   {
                     bg: "bg-cyan-100",
@@ -300,18 +267,29 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
                 const color = colors[index % colors.length];
 
                 return (
-                  <Link key={staff.staffId} href={`/schedule-appointment/${staff.staffId}`} className="block h-full">
-                    <div className={`rounded-2xl shadow-md p-5 ${color.bg} staff-card ${color.border} border`}>
-                      <div className="staff-image-container bg-gray-100">
+                  <Link
+                    key={staff.staffId}
+                    href={`/schedule-appointment/${staff.staffId}`}
+                    className="block h-full"
+                  >
+                    <div
+                      className={`rounded-2xl shadow-md p-5 ${color.bg} staff-card ${color.border} border`}
+                    >
+                      <div
+                        className="staff-image-container bg-gray-100"
+                        style={{ height: "300px" }}
+                      >
                         <img
                           src={staff.imageURL || "/images/placeholder.jpg"}
                           alt={`${staff.fullName}`}
                           className="staff-image"
                         />
                       </div>
-                      
+
                       <div className="staff-info text-center">
-                        <h3 className={`staff-name ${color.text}`}>{staff.fullName}</h3>
+                        <h3 className={`staff-name ${color.text}`}>
+                          {staff.fullName}
+                        </h3>
                         <p className="staff-position">General Physician</p>
                         <div className="availability-badge">
                           <span className="availability-dot"></span>
@@ -323,11 +301,6 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
                 );
               })}
             </div>
-          ) : (
-            <Card className="shadow-md rounded-xl p-8 text-center">
-              <Text type="secondary" className="text-lg">No healthcare staff available at this time.</Text>
-              <p className="mt-2">Please check back later or contact the health center directly.</p>
-            </Card>
           )}
         </div>
       </div>

@@ -31,6 +31,7 @@ import {
   UserOutlined,
   NotificationOutlined,
   DownloadOutlined,
+  SafetyOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -79,40 +80,34 @@ const UserHomePage: React.FC = () => {
 
   const quickAccessItems = [
     {
-      title: "Health Checkups",
-      icon: <MedicineBoxOutlined style={{ fontSize: "24px" }} />,
-      path: "/health-checkups",
-      description: "View your health checkup history and results",
+      title: "My Appointments",
+      icon: <CalendarOutlined style={{ fontSize: "24px" }} />,
+      path: "/my-appointment",
+      description: "Book and manage your appointments",
     },
     {
-      title: "Appointments",
-      icon: <CalendarOutlined style={{ fontSize: "24px" }} />,
-      path: "/appointments",
-      description: "Book and manage your appointments",
+      title: "Health Check Results",
+      icon: <MedicineBoxOutlined style={{ fontSize: "24px" }} />,
+      path: "/my-health-check",
+      description: "View your health checkup results",
+    },
+    {
+      title: "Health Insurance",
+      icon: <SafetyOutlined style={{ fontSize: "24px" }} />,
+      path: "/my-health-insurance",
+      description: "Manage your health insurance",
     },
     {
       title: "Canteen Orders",
       icon: <ShoppingCartOutlined style={{ fontSize: "24px" }} />,
-      path: "/canteen-orders",
+      path: "/canteen-order",
       description: "Order food from the canteen",
     },
     {
-      title: "Treatment Plans",
-      icon: <SolutionOutlined style={{ fontSize: "24px" }} />,
-      path: "/treatment-plans",
-      description: "View your treatment plans",
-    },
-    {
-      title: "Health Records",
-      icon: <FileTextOutlined style={{ fontSize: "24px" }} />,
-      path: "/health-records",
-      description: "Access your health records",
-    },
-    {
-      title: "Notifications",
-      icon: <BellOutlined style={{ fontSize: "24px" }} />,
-      path: "/notification",
-      description: "View all notifications",
+      title: "My Profile",
+      icon: <UserOutlined style={{ fontSize: "24px" }} />,
+      path: "/my-profile",
+      description: "View and update your profile",
     },
   ];
 
@@ -345,7 +340,11 @@ const UserHomePage: React.FC = () => {
                     padding: "12px 16px",
                     borderRadius: "6px",
                     boxShadow: "0 2px 0 rgba(0,0,0,0.02)",
+                    transition: "all 0.3s", 
+                    background: "#f9f9f9",
+                    border: "1px solid #f0f0f0",
                   }}
+                  className="quick-access-button"
                 >
                   <div style={{ textAlign: "left", marginLeft: "10px" }}>
                     <div style={{ fontWeight: "bold" }}>{item.title}</div>
@@ -358,46 +357,6 @@ const UserHomePage: React.FC = () => {
                 </Button>
               ))}
             </div>
-          </Card>
-        </Col>
-      </Row>
-
-      <Row style={{ marginTop: "24px" }}>
-        <Col span={24}>
-          <Card
-            title={
-              <Title level={4}>
-                <CalendarOutlined /> Your Health Status
-              </Title>
-            }
-            style={{ borderRadius: "8px" }}
-          >
-            <Row gutter={16}>
-              <Col span={8}>
-                <Card style={{ textAlign: "center", borderRadius: "6px" }}>
-                  <Title level={2} style={{ margin: 0, color: "#1890ff" }}>
-                    2
-                  </Title>
-                  <Text>Upcoming Appointments</Text>
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card style={{ textAlign: "center", borderRadius: "6px" }}>
-                  <Title level={2} style={{ margin: 0, color: "#52c41a" }}>
-                    Good
-                  </Title>
-                  <Text>Health Status</Text>
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card style={{ textAlign: "center", borderRadius: "6px" }}>
-                  <Title level={2} style={{ margin: 0, color: "#fa8c16" }}>
-                    3
-                  </Title>
-                  <Text>Active Prescriptions</Text>
-                </Card>
-              </Col>
-            </Row>
           </Card>
         </Col>
       </Row>
