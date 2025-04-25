@@ -493,9 +493,16 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
                 <Menu.Item
                   key="complete"
                   icon={<CheckCircleOutlined style={{ color: "green" }} />}
-                  onClick={() => handleComplete(record.id)}
                 >
-                  <span style={{ color: "green" }}>Complete</span>
+                  <Popconfirm
+                    title="Are you sure you want to complete this health check result?"
+                    onConfirm={() => handleComplete(record.id)}
+                    okText="Confirm"
+                    cancelText="Cancel"
+                    placement="topLeft"
+                  >
+                    <div style={{ width: "100%", color: "green" }}>Complete</div>
+                  </Popconfirm>
                 </Menu.Item>
 
                 <Menu.Item
@@ -780,6 +787,8 @@ export const HealthCheckResultFollowUpList: React.FC = () => {
               <Popconfirm
                 title="Are you sure to cancel the selected follow-ups?"
                 onConfirm={handleBulkCancel}
+                okText="Confirm"
+                cancelText="Cancel"
               >
                 <Button danger icon={<CloseCircleOutlined />}>
                   Cancel Selected

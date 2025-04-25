@@ -704,11 +704,17 @@ export function PrescriptionManagement() {
                 <Menu.Item
                   key="edit"
                   icon={<FormOutlined />}
-                  onClick={() =>
-                    router.push(`/prescription/${record.id}?edit=true`)
-                  }
                 >
-                  Edit Prescription
+                  <Popconfirm
+                    title="Edit Prescription"
+                    description="Are you sure you want to edit this prescription?"
+                    onConfirm={() => router.push(`/prescription/${record.id}?edit=true`)}
+                    okText="Yes"
+                    cancelText="No"
+                    placement="topLeft"
+                  >
+                    <div style={{ width: "100%" }}>Edit Prescription</div>
+                  </Popconfirm>
                 </Menu.Item>
         )}
 
@@ -717,9 +723,17 @@ export function PrescriptionManagement() {
                   key="cancel"
                   icon={<CloseCircleOutlined />}
                   danger
-                  onClick={() => showCancelModal(record)}
                 >
-                  Cancel Prescription
+                  <Popconfirm
+                    title="Cancel Prescription"
+                    description="Are you sure you want to cancel this prescription?"
+                    onConfirm={() => showCancelModal(record)}
+                    okText="Yes"
+                    cancelText="No"
+                    placement="topLeft"
+                  >
+                    <div style={{ width: "100%" }}>Cancel Prescription</div>
+                  </Popconfirm>
                 </Menu.Item>
         )}
 

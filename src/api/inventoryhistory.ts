@@ -96,7 +96,7 @@ export const getGroupedInventoryHistories = async (
           endChangeDate,
           userSearch,
           sortBy,
-          ascending,
+          ascending: false,
           batchCodeSearch,
           drugNameSearch,
         },
