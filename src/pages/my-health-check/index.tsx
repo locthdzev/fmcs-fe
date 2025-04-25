@@ -20,6 +20,7 @@ import {
   Avatar,
   Space,
   Button,
+  message,
 } from "antd";
 import {
   getCurrentUserHealthCheckResults,
@@ -48,7 +49,6 @@ import { getCurrentUserPrescriptions, exportPrescriptionToPDF } from "@/api/pres
 import { getCurrentUserTreatmentPlans, exportTreatmentPlanToPDF } from "@/api/treatment-plan";
 import { PrescriptionResponseDTO } from "@/api/prescription";
 import { TreatmentPlanResponseDTO } from "@/api/treatment-plan";
-import { toast } from "react-toastify";
 
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -88,6 +88,7 @@ const getStatusIcon = (status: string) => {
 
 const MyHealthCheckResults: React.FC = () => {
   const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<HealthCheckResultsResponseDTO[]>([]);
   const [detailsMap, setDetailsMap] = useState<
@@ -300,48 +301,53 @@ const MyHealthCheckResults: React.FC = () => {
   };
 
   const handleExportHealthCheckPDF = async (resultId: string) => {
+    setExportLoading((prev) => ({ ...prev, [resultId]: true }));
     try {
-      setExportLoading((prev) => ({ ...prev, [resultId]: true }));
-      await exportHealthCheckResultToPDF(resultId);
-      toast.success("Health check result exported to PDF successfully");
+      const response = await exportHealthCheckResultToPDF(resultId);
+      if (response.success) {
+        messageApi.success("Health check result exported to PDF successfully");
+      } else {
+        messageApi.error("Failed to export health check PDF");
+      }
     } catch (error) {
-      console.error("Error exporting health check PDF:", error);
-      toast.error("Failed to export health check PDF");
+      console.error("Error exporting PDF:", error);
+      messageApi.error("Failed to export health check PDF");
     } finally {
       setExportLoading((prev) => ({ ...prev, [resultId]: false }));
     }
   };
 
   const handleExportPrescriptionPDF = async (prescriptionId: string) => {
+    setExportLoading((prev) => ({ ...prev, [prescriptionId]: true }));
     try {
-      setExportLoading((prev) => ({ ...prev, [prescriptionId]: true }));
-      await exportPrescriptionToPDF(prescriptionId);
-      toast.success("Prescription exported to PDF successfully");
+      const response = await exportPrescriptionToPDF(prescriptionId);
+      if (response.success) {
+        messageApi.success("Prescription exported to PDF successfully");
+      } else {
+        messageApi.error("Failed to export prescription PDF");
+      }
     } catch (error) {
-      console.error("Error exporting prescription PDF:", error);
-      toast.error("Failed to export prescription PDF");
+      console.error("Error exporting PDF:", error);
+      messageApi.error("Failed to export prescription PDF");
     } finally {
       setExportLoading((prev) => ({ ...prev, [prescriptionId]: false }));
     }
   };
 
   const handleExportTreatmentPlanPDF = async (treatmentPlanId: string) => {
+    setExportLoading((prev) => ({ ...prev, [treatmentPlanId]: true }));
     try {
-      setExportLoading((prev) => ({ ...prev, [treatmentPlanId]: true }));
       const response = await exportTreatmentPlanToPDF(treatmentPlanId);
-      
-      if (response.success && response.data && typeof response.data === "string" && response.data.startsWith("http")) {
-        window.open(response.data, "_blank");
-        toast.success("Treatment plan exported to PDF successfully");
+      if (response.success && response.data) {
+        messageApi.success("Treatment plan exported to PDF successfully");
       } else if (response.success) {
-        console.warn("PDF export succeeded but no valid URL returned:", response);
-        toast.warning("PDF generated but download link is unavailable. Please try again.");
+        messageApi.warning("PDF generated but download link is unavailable. Please try again.");
       } else {
-        toast.error(response.message || "Failed to export PDF");
+        messageApi.error(response.message || "Failed to export PDF");
       }
     } catch (error) {
-      console.error("Error exporting treatment plan PDF:", error);
-      toast.error("Failed to export treatment plan PDF");
+      console.error("Error exporting PDF:", error);
+      messageApi.error("Failed to export treatment plan PDF");
     } finally {
       setExportLoading((prev) => ({ ...prev, [treatmentPlanId]: false }));
     }
@@ -532,6 +538,7 @@ const MyHealthCheckResults: React.FC = () => {
       }
       onBack={handleBack}
     >
+      {contextHolder}
       <div className="bg-gray-50">
         {error && (
           <Alert

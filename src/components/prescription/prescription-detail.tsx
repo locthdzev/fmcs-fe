@@ -40,7 +40,6 @@ import {
   PrescriptionUpdateRequestDTO,
 } from "@/api/prescription";
 import { getDrugs, DrugResponse } from "@/api/drug";
-import { toast } from "react-toastify";
 import moment from "moment";
 import {
   ArrowLeftOutlined,
@@ -64,6 +63,7 @@ import {
   PhoneOutlined,
   GiftOutlined,
 } from "@ant-design/icons";
+import ConfirmCancelPrescriptionModal from "./ConfirmCancelPrescriptionModal";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -96,6 +96,9 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
 
+  // Thêm state cho modal hủy đơn thuốc
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+
   // Check if edit query parameter is present
   useEffect(() => {
     if (router.query.edit === "true") {
@@ -126,11 +129,11 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
           });
         }
       } else {
-        toast.error(response.message || "Failed to load prescription details");
+        messageApi.error(response.message || "Failed to load prescription details");
       }
     } catch (error) {
       console.error("Error fetching prescription details:", error);
-      toast.error("Failed to load prescription details");
+      messageApi.error("Failed to load prescription details");
     } finally {
       setLoading(false);
     }
@@ -144,11 +147,11 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
       if (response.success) {
         setHistories(response.data);
       } else {
-        toast.error(response.message || "Failed to load prescription history");
+        messageApi.error(response.message || "Failed to load prescription history");
       }
     } catch (error) {
       console.error("Error fetching prescription history:", error);
-      toast.error("Failed to load prescription history");
+      messageApi.error("Failed to load prescription history");
     } finally {
       setHistoriesLoading(false);
     }
@@ -160,7 +163,7 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
       setDrugOptions(drugs);
     } catch (error) {
       console.error("Error fetching drugs:", error);
-      toast.error("Failed to load drugs");
+      messageApi.error("Failed to load drugs");
     }
   };
 
@@ -177,10 +180,10 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
     try {
       setExportLoading(true);
       await exportPrescriptionToPDF(id);
-      toast.success("PDF exported successfully");
+      messageApi.success("PDF exported successfully");
     } catch (error) {
       console.error("Error exporting PDF:", error);
-      toast.error("Failed to export PDF");
+      messageApi.error("Failed to export PDF");
     } finally {
       setExportLoading(false);
     }
@@ -192,17 +195,18 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
       setCancelLoading(true);
       const response = await cancelPrescription(id, reason);
       if (response.success) {
-        toast.success("Prescription cancelled successfully");
+        messageApi.success("Prescription cancelled successfully");
         fetchPrescription();
         fetchHistories();
       } else {
-        toast.error(response.message || "Failed to cancel prescription");
+        messageApi.error(response.message || "Failed to cancel prescription");
       }
     } catch (error) {
       console.error("Error cancelling prescription:", error);
-      toast.error("Failed to cancel prescription");
+      messageApi.error("Failed to cancel prescription");
     } finally {
       setCancelLoading(false);
+      setCancelModalVisible(false);
     }
   };
 
@@ -212,15 +216,15 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
       setDeleteLoading(true);
       const response = await softDeletePrescriptions([id]);
       if (response.success) {
-        toast.success("Prescription soft deleted successfully");
+        messageApi.success("Prescription soft deleted successfully");
         fetchPrescription();
         fetchHistories();
       } else {
-        toast.error(response.message || "Failed to soft delete prescription");
+        messageApi.error(response.message || "Failed to soft delete prescription");
       }
     } catch (error) {
       console.error("Error soft deleting prescription:", error);
-      toast.error("Failed to soft delete prescription");
+      messageApi.error("Failed to soft delete prescription");
     } finally {
       setDeleteLoading(false);
     }
@@ -232,15 +236,15 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
       setRestoreLoading(true);
       const response = await restoreSoftDeletedPrescriptions([id]);
       if (response.success) {
-        toast.success("Prescription restored successfully");
+        messageApi.success("Prescription restored successfully");
         fetchPrescription();
         fetchHistories();
       } else {
-        toast.error(response.message || "Failed to restore prescription");
+        messageApi.error(response.message || "Failed to restore prescription");
       }
     } catch (error) {
       console.error("Error restoring prescription:", error);
-      toast.error("Failed to restore prescription");
+      messageApi.error("Failed to restore prescription");
     } finally {
       setRestoreLoading(false);
     }
@@ -248,33 +252,41 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
 
   const handleUpdate = async () => {
     try {
-      const values = await form.validateFields();
       setEditLoading(true);
-
-      const requestData: PrescriptionUpdateRequestDTO = {
-        prescriptionDetails: values.prescriptionDetails.map(
-          (detail: any): PrescriptionDetailUpdateRequestDTO => ({
-            id: detail.id,
-            dosage: detail.dosage,
-            quantity: detail.quantity,
-            instructions: detail.instructions,
-          })
-        ),
+      const values = await form.validateFields();
+      
+      // Handle prescription details
+      const details: PrescriptionDetailUpdateRequestDTO[] = values.prescriptionDetails.map(
+        (detail: any) => ({
+          id: detail.id,
+          drugId: detail.drugId,
+          dosage: detail.dosage,
+          quantity: detail.quantity,
+          instructions: detail.instructions,
+        })
+      );
+      
+      const updateData: PrescriptionUpdateRequestDTO = {
+        prescriptionDetails: details,
       };
-
-      const response = await updatePrescription(id, requestData);
-
+      
+      const response = await updatePrescription(id, updateData);
+      
       if (response.success) {
-        toast.success("Prescription updated successfully");
+        messageApi.success("Prescription updated successfully");
         setIsEditing(false);
         fetchPrescription();
         fetchHistories();
       } else {
-        toast.error(response.message || "Failed to update prescription");
+        messageApi.error(response.message || "Failed to update prescription");
       }
-    } catch (error) {
-      console.error("Form validation error:", error);
-      toast.error("Please check the form for errors");
+    } catch (error: any) {
+      if (error.errorFields) {
+        messageApi.error("Please check the form for errors");
+      } else {
+        console.error("Error updating prescription:", error);
+        messageApi.error("Failed to update prescription");
+      }
     } finally {
       setEditLoading(false);
     }
@@ -415,36 +427,14 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
         )}
 
         {canCancel && (
-          <Popconfirm
-            title="Cancel Prescription"
-            description={
-              <div>
-                <p>Are you sure you want to cancel this prescription?</p>
-                <TextArea
-                  placeholder="Reason for cancellation"
-                  id="cancel-reason"
-                  rows={3}
-                />
-              </div>
-            }
-            okText="Yes"
-            cancelText="No"
-            okButtonProps={{ loading: cancelLoading }}
-            onConfirm={() => {
-              const reasonElement = document.getElementById(
-                "cancel-reason"
-              ) as HTMLTextAreaElement;
-              if (reasonElement && reasonElement.value) {
-                handleCancel(reasonElement.value);
-              } else {
-                toast.error("Please provide a reason for cancellation");
-              }
-            }}
+          <Button 
+            danger 
+            icon={<CloseCircleOutlined />} 
+            loading={cancelLoading}
+            onClick={() => setCancelModalVisible(true)}
           >
-            <Button danger icon={<CloseCircleOutlined />} loading={cancelLoading}>
-              Cancel Prescription
-            </Button>
-          </Popconfirm>
+            Cancel Prescription
+          </Button>
         )}
 
         {canSoftDelete && (
@@ -675,7 +665,7 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
         <div className="flex items-center gap-2">
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/prescription")}
+            onClick={() => router.back()}
             style={{ marginRight: "8px" }}
           >
             Back
@@ -820,6 +810,14 @@ export const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({
           />
         )}
       </Card>
+
+      {/* Modal hủy đơn thuốc */}
+      <ConfirmCancelPrescriptionModal
+        visible={cancelModalVisible}
+        prescriptionId={id}
+        onCancel={() => setCancelModalVisible(false)}
+        onConfirm={handleCancel}
+      />
     </div>
   );
 };

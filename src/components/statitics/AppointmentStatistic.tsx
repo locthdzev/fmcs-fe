@@ -1030,60 +1030,7 @@ const AppointmentStatistic: React.FC = () => {
 
         <Title level={5}>Date Range Filter</Title>
         <Row gutter={16} className="mb-3">
-          <Col span={24}>
-            <Space wrap>
-              <Button
-                type={activeDateFilter === "all" ? "primary" : "default"}
-                onClick={() => applyQuickFilter("all")}
-              >
-                All Time
-              </Button>
-              <Button
-                type={activeDateFilter === "last7days" ? "primary" : "default"}
-                onClick={() => applyQuickFilter("last7days")}
-              >
-                Last 7 Days
-              </Button>
-              <Button
-                type={activeDateFilter === "last30days" ? "primary" : "default"}
-                onClick={() => applyQuickFilter("last30days")}
-              >
-                Last 30 Days
-              </Button>
-              <Button
-                type={
-                  activeDateFilter === "last3months" ? "primary" : "default"
-                }
-                onClick={() => applyQuickFilter("last3months")}
-              >
-                Last 3 Months
-              </Button>
-              <Button
-                type={
-                  activeDateFilter === "last6months" ? "primary" : "default"
-                }
-                onClick={() => applyQuickFilter("last6months")}
-              >
-                Last 6 Months
-              </Button>
-              <Button
-                type={activeDateFilter === "thisyear" ? "primary" : "default"}
-                onClick={() => applyQuickFilter("thisyear")}
-              >
-                This Year
-              </Button>
-              <Button
-                type={activeDateFilter === "lastyear" ? "primary" : "default"}
-                onClick={() => applyQuickFilter("lastyear")}
-              >
-                Last Year
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-        <Divider style={{ margin: "12px 0" }} />
-        <Row gutter={16} className="mb-3">
-          <Col xs={24} sm={12} md={8}>
+          <Col xs={24} sm={24} md={12}>
             <Space direction="vertical" style={{ width: '100%' }}>
               <Text>Custom Range:</Text>
               <RangePicker
@@ -1091,42 +1038,6 @@ const AppointmentStatistic: React.FC = () => {
                 value={dateRange}
                 onChange={handleDateRangeChange}
               />
-            </Space>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Text>Healthcare Staff:</Text>
-              <Select
-                style={{ width: '100%' }}
-                placeholder="Select Healthcare Staff"
-                allowClear
-                value={selectedStaffId}
-                onChange={setSelectedStaffId}
-              >
-                {staffOptions.map(staff => (
-                  <Option key={staff.staffId} value={staff.staffId}>
-                    {staff.fullName}
-                  </Option>
-                ))}
-              </Select>
-            </Space>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Text>Status Filter:</Text>
-              <Select
-                mode="multiple"
-                style={{ width: '100%' }}
-                placeholder="Filter by Status"
-                allowClear
-                value={statusFilter}
-                onChange={setStatusFilter}
-              >
-                <Option value="Scheduled">Scheduled</Option>
-                <Option value="Completed">Completed</Option>
-                <Option value="Cancelled">Cancelled</Option>
-                <Option value="Missed">Missed</Option>
-              </Select>
             </Space>
           </Col>
         </Row>

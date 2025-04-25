@@ -5,14 +5,13 @@ import {
   getAllHealthcareStaff,
   ResultDTO,
   setupHealthcareStaffRealTime,
-  getAppointmentStatistics,
-  AppointmentStatisticsDTO,
 } from "@/api/appointment-api";
 import Link from "next/link";
-import { Typography, Spin, message } from "antd";
+import { Typography, Spin, message, Card } from "antd";
 import Cookies from "js-cookie";
+import moment from "moment";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 interface AppointmentIndexPageProps {
   initialStaffList: AvailableOfficersResponseDTO[];
@@ -26,10 +25,9 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
   const [messageApi, contextHolder] = message.useMessage();
   const [staffList, setStaffList] =
     useState<AvailableOfficersResponseDTO[]>(initialStaffList);
-  const [statistics, setStatistics] = useState<AppointmentStatisticsDTO | null>(
-    null
-  );
   const [loading, setLoading] = useState(false);
+  // Use the current date instead of a fixed reference date
+  const currentDate = moment();
 
   const connectionRef = useRef<(() => void) | null>(null);
 
@@ -45,27 +43,8 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
     }
   }, [messageApi]);
 
-  const fetchStatistics = useCallback(async () => {
-    setLoading(true);
-    const token = Cookies.get("token");
-    if (!token) {
-      messageApi.error("No token found. Please log in.");
-      setLoading(false);
-      return;
-    }
-    try {
-      const result = await getAppointmentStatistics(token);
-      setStatistics(result.data);
-    } catch (error: any) {
-      messageApi.error(error.message || "Unable to load appointment statistics.");
-    } finally {
-      setLoading(false);
-    }
-  }, [messageApi]);
-
   useEffect(() => {
     fetchStaffList(); // Initial fetch
-    fetchStatistics();
 
     console.log("Setting up SignalR...");
     const cleanupSignalR = setupHealthcareStaffRealTime(
@@ -91,131 +70,237 @@ const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
         connectionRef.current();
       }
     };
-  }, [fetchStaffList, fetchStatistics]);
+  }, [fetchStaffList]);
 
   if (!token) {
     return null; // Redirect handled in getServerSideProps
   }
 
   return (
-    <div style={{ padding: "24px", width: "100%" }}>
+    <div className="min-h-screen bg-gray-50">
       {contextHolder}
-      <div className="flex flex-wrap w-full justify-center">
-        {/* Healthcare Staff Section */}
-        <div className="w-full rounded-3xl bg-white p-6 shadow-xl" style={{ maxWidth: "1200px" }}>
-          <div className="mb-8 flex items-center justify-between text-black">
-            <Title level={2} style={{ margin: 0 }}>
-              Campus Health Officers
-            </Title>
-            <p>{new Date().toLocaleDateString("en-US")}</p>
-          </div>
+      <style jsx global>{`
+        .stats-card {
+          transition: all 0.3s ease;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+          background: white;
+        }
 
-          <div className="flex flex-wrap items-center justify-between pb-8">
-            <div className="flex flex-wrap text-black">
-              <div className="pr-10">
-                <div className="text-2xl font-bold">
-                  {statistics
-                    ? statistics.totalHealthcareOfficers
-                    : "Loading..."}
-                </div>
-                <div>Total Healthcare Officers</div>
-              </div>
-              <div className="pr-10">
-                <div className="text-2xl font-bold">
-                  {statistics
-                    ? statistics.studentsCurrentlyReceivingCare
-                    : "Loading..."}
-                </div>
-                <div>Students Currently Receiving Care</div>
-              </div>
-              <div className="pr-10">
-                <div className="text-2xl font-bold">
-                  {statistics
-                    ? statistics.appointmentsScheduledToday
-                    : "Loading..."}
-                </div>
-                <div>Appointments Scheduled Today</div>
-              </div>
-            </div>
-          </div>
+        .stats-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
 
+        .stats-number {
+          font-size: 2.5rem;
+          font-weight: 700;
+          line-height: 1.2;
+          background: linear-gradient(135deg, #3551a5, #5073e5);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .stats-label {
+          font-size: 1rem;
+          font-weight: 500;
+          color: #6b7280;
+        }
+
+        .staff-card {
+          transition: all 0.3s ease;
+          overflow: hidden;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .staff-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+        }
+
+        .staff-image-container {
+          height: 220px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          border-radius: 16px;
+          margin-bottom: 12px;
+        }
+
+        .staff-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .staff-name {
+          font-weight: 600;
+          font-size: 1.1rem;
+          line-height: 1.5;
+          margin-bottom: 4px;
+        }
+
+        .staff-position {
+          font-size: 0.9rem;
+          color: #6b7280;
+          margin-bottom: 8px;
+        }
+
+        .staff-info {
+          flex-grow: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .availability-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: 500;
+          background-color: #ecfdf5;
+          color: #065f46;
+          margin-top: auto;
+        }
+
+        .availability-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background-color: #10b981;
+        }
+
+        .page-title {
+          background: linear-gradient(135deg, #2c3e76, #3a57b9);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          font-weight: 700;
+          margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+          color: #6b7280;
+          font-weight: 400;
+          margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+          .stats-number {
+            font-size: 2rem;
+          }
+          .stats-label {
+            font-size: 0.9rem;
+          }
+          .staff-image-container {
+            height: 180px;
+          }
+        }
+      `}</style>
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-12">
+          <h1 className="text-3xl md:text-4xl page-title">
+            Campus Health Services
+          </h1>
+          <p className="page-subtitle">
+            Schedule an appointment with our healthcare professionals
+          </p>
+        </div>
+
+        {/* Available Healthcare Staff Section */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">
+              Available Healthcare Professionals
+            </h2>
+            <Text type="secondary">
+              {currentDate.format("dddd, MMMM D, YYYY")}
+            </Text>
+          </div>
           {loading ? (
-            <div style={{ textAlign: "center", padding: "50px 0" }}>
-              <Spin tip="Loading staff..." />
+            <div className="flex justify-center items-center py-12">
+              <Spin size="large" />
             </div>
-          ) : staffList.length > 0 ? (
-            <div className="flex flex-wrap justify-center">
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {staffList.map((staff, index) => {
                 const colors = [
                   {
                     bg: "bg-blue-100",
                     text: "text-blue-700",
-                    bar: "bg-blue-700",
+                    border: "border-blue-200",
                   },
                   {
                     bg: "bg-yellow-100",
                     text: "text-yellow-700",
-                    bar: "bg-yellow-700",
+                    border: "border-yellow-200",
                   },
                   {
                     bg: "bg-green-100",
                     text: "text-green-700",
-                    bar: "bg-green-700",
+                    border: "border-green-200",
                   },
                   {
                     bg: "bg-purple-100",
                     text: "text-purple-700",
-                    bar: "bg-purple-700",
+                    border: "border-purple-200",
                   },
-                  { bg: "bg-red-100", text: "text-red-700", bar: "bg-red-700" },
+                  {
+                    bg: "bg-red-100",
+                    text: "text-red-700",
+                    border: "border-red-200",
+                  },
                   {
                     bg: "bg-cyan-100",
                     text: "text-cyan-700",
-                    bar: "bg-cyan-700",
+                    border: "border-cyan-200",
                   },
                 ];
                 const color = colors[index % colors.length];
 
                 return (
-                  <div key={staff.staffId} className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/5 p-3">
-                    <Link href={`/schedule-appointment/${staff.staffId}`}>
+                  <Link
+                    key={staff.staffId}
+                    href={`/schedule-appointment/${staff.staffId}`}
+                    className="block h-full"
+                  >
+                    <div
+                      className={`rounded-2xl shadow-md p-5 ${color.bg} staff-card ${color.border} border`}
+                    >
                       <div
-                        className={`rounded-3xl p-3 ${color.bg} cursor-pointer hover:shadow-lg transition-shadow flex flex-col items-center`}
-                        style={{ minHeight: "240px" }}
+                        className="staff-image-container bg-gray-100"
+                        style={{ height: "300px" }}
                       >
-                        <div className="w-36 h-36 flex items-center justify-center bg-gray-100 rounded-2xl overflow-hidden">
-                          <img
-                            src={
-                              staff.imageURL ||
-                              "https://images.unsplash.com/photo-1570295999919-56cebcd28b2b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80"
-                            }
-                            alt={`${staff.fullName}'s image`}
-                            className="w-full h-full object-cover rounded-2xl"
-                          />
-                        </div>
+                        <img
+                          src={staff.imageURL || "/images/placeholder.jpg"}
+                          alt={`${staff.fullName}`}
+                          className="staff-image"
+                        />
+                      </div>
 
-                        <div className="mt-3 flex items-center">
-                          <span className="h-3 w-3 bg-green-500 rounded-full mr-1"></span>
-                          <span className="text-xs font-medium text-green-600">
-                            Available
-                          </span>
-                        </div>
-                        <div className="mt-2 text-center">
-                          <p className="text-base font-bold">
-                            {staff.fullName}
-                          </p>
-                          <p className="mt-1 text-sm opacity-70">
-                            General Physician
-                          </p>
+                      <div className="staff-info text-center">
+                        <h3 className={`staff-name ${color.text}`}>
+                          {staff.fullName}
+                        </h3>
+                        <p className="staff-position">General Physician</p>
+                        <div className="availability-badge">
+                          <span className="availability-dot"></span>
+                          <span>Available</span>
                         </div>
                       </div>
-                    </Link>
-                  </div>
+                    </div>
+                  </Link>
                 );
               })}
             </div>
-          ) : (
-            <p>No healthcare staff available at this time.</p>
           )}
         </div>
       </div>

@@ -26,8 +26,8 @@ import {
   Form,
   Alert,
   InputNumber,
+  message,
 } from "antd";
-import { toast } from "react-toastify";
 import moment from "moment";
 import { Pie, Bar, Line } from "react-chartjs-2";
 import {
@@ -81,8 +81,14 @@ import {
   TagOutlined,
   UndoOutlined,
   FileExcelOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
-import { getUsers, UserProfile } from "@/api/user";
+import {
+  getUsers,
+  getAllUsers,
+  UserProfile,
+  UserResponseDTO,
+} from "@/api/user";
 import { useRouter } from "next/router";
 import { HealthInsuranceIcon } from "@/dashboard/sidebar/icons/HealthInsuranceIcon";
 
@@ -385,6 +391,7 @@ const HealthCheckFilterModal: React.FC<{
 
 export function HealthCheckResultManagement() {
   const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
   const [healthCheckResults, setHealthCheckResults] = useState<
     HealthCheckResultsResponseDTO[]
   >([]);
@@ -406,8 +413,8 @@ export function HealthCheckResultManagement() {
   );
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<
     string | undefined
-  >(undefined);
-  const [showDefaultFilter, setShowDefaultFilter] = useState(true);
+  >("ALL");
+  const [showDefaultFilter, setShowDefaultFilter] = useState(false);
   const [sortBy, setSortBy] = useState("CheckupDate");
   const [ascending, setAscending] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -455,42 +462,65 @@ export function HealthCheckResultManagement() {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const users = await getUsers();
-      // Filter users with 'User' role and remove duplicates
-      const uniqueUserIds = new Set();
-      const userRoleUsers = users
-        .filter(
-          (user: UserProfile) =>
-            user.roles.includes("User") &&
-            !uniqueUserIds.has(user.id) &&
-            (uniqueUserIds.add(user.id) || true)
-        )
-        .map((user: UserProfile) => ({
-          id: user.id,
-          fullName: user.fullName,
-          email: user.email,
-        }));
-      setUserOptions(userRoleUsers);
+      // Sử dụng getAllUsers với pageSize lớn để lấy tất cả users
+      const response = await getAllUsers(
+        1, // page
+        1000, // pageSize - lấy số lượng lớn
+        undefined, // fullNameSearch
+        undefined, // userNameSearch
+        undefined, // emailSearch
+        undefined, // phoneSearch
+        undefined, // roleFilter - không lọc theo vai trò
+        undefined, // genderFilter
+        undefined, // dobStartDate
+        undefined, // dobEndDate
+        undefined, // createdStartDate
+        undefined, // createdEndDate
+        undefined, // updatedStartDate
+        undefined, // updatedEndDate
+        "Active", // status - chỉ lấy người dùng active
+        "CreatedAt", // sortBy
+        false // ascending
+      );
 
-      // Filter users with 'Doctor' or 'Nurse' role and remove duplicates
-      const uniqueStaffIds = new Set();
-      const staffUsers = users
-        .filter(
-          (user: UserProfile) =>
-            (user.roles.includes("Doctor") || user.roles.includes("Nurse")) &&
-            !uniqueStaffIds.has(user.id) &&
-            (uniqueStaffIds.add(user.id) || true)
-        )
-        .map((user: UserProfile) => ({
-          id: user.id,
-          fullName: user.fullName,
-          email: user.email,
-        }));
-      setStaffOptions(staffUsers);
+      if (response.isSuccess && response.data) {
+        // Xử lý và loại bỏ trùng lặp
+        const uniqueUserIds = new Set();
+        const activeUsers = response.data
+          .filter(
+            (user: UserResponseDTO) =>
+              !uniqueUserIds.has(user.id) &&
+              (uniqueUserIds.add(user.id) || true)
+          )
+          .map((user: UserResponseDTO) => ({
+            id: user.id,
+            fullName: user.fullName,
+            email: user.email,
+          }));
+        setUserOptions(activeUsers);
+
+        // Lọc users với vai trò 'Doctor' hoặc 'Nurse'
+        const uniqueStaffIds = new Set();
+        const staffUsers = response.data
+          .filter(
+            (user: UserResponseDTO) =>
+              (user.roles.includes("Doctor") || user.roles.includes("Nurse")) &&
+              !uniqueStaffIds.has(user.id) &&
+              (uniqueStaffIds.add(user.id) || true)
+          )
+          .map((user: UserResponseDTO) => ({
+            id: user.id,
+            fullName: user.fullName,
+            email: user.email,
+          }));
+        setStaffOptions(staffUsers);
+      } else {
+        messageApi.error("Failed to load users");
+      }
     } catch (error) {
-      toast.error("Unable to load user list");
+      messageApi.error("Unable to load user list");
     }
-  }, []);
+  }, [messageApi]);
 
   const fetchStatistics = useCallback(async () => {
     setStatsLoading(true);
@@ -499,7 +529,7 @@ export function HealthCheckResultManagement() {
       if (response.success) {
         setStatistics(response.data);
       } else {
-        toast.error(response.message || "Unable to load statistics");
+        messageApi.error(response.message || "Unable to load statistics");
         // Handle the error case gracefully with default data
         setStatistics({
           totalResults: 0,
@@ -522,7 +552,7 @@ export function HealthCheckResultManagement() {
         });
       }
     } catch (error) {
-      toast.error("Unable to load statistics");
+      messageApi.error("Unable to load statistics");
       // Handle the error case gracefully with default data
       setStatistics({
         totalResults: 0,
@@ -546,7 +576,7 @@ export function HealthCheckResultManagement() {
     } finally {
       setStatsLoading(false);
     }
-  }, []);
+  }, [messageApi]);
 
   const fetchHealthCheckCodesAndStaff = useCallback(async () => {
     try {
@@ -644,25 +674,16 @@ export function HealthCheckResultManagement() {
       );
 
       if (response.success) {
-        if (showDefaultFilter && !statusFilter) {
-          const filteredResults = response.data.filter(
-            (result: HealthCheckResultsResponseDTO) =>
-              result.status === "Completed" ||
-              result.status === "CancelledCompletely"
-          );
-          setHealthCheckResults(filteredResults);
-          setTotal(filteredResults.length);
-        } else {
-          setHealthCheckResults(response.data);
-          setTotal(response.totalRecords);
-        }
+        // Sử dụng dữ liệu trực tiếp từ API không qua lọc
+        setHealthCheckResults(response.data);
+        setTotal(response.totalRecords);
       } else {
-        toast.error(
+        messageApi.error(
           response.message || "Unable to load health check results list"
         );
       }
     } catch (error) {
-      toast.error("Unable to load health check results list");
+      messageApi.error("Unable to load health check results list");
     } finally {
       setLoading(false);
     }
@@ -676,12 +697,84 @@ export function HealthCheckResultManagement() {
     checkupDateRange,
     followUpRequired,
     followUpDateRange,
-    showDefaultFilter,
+    messageApi,
   ]);
 
+  // Thêm hàm mới để lấy tất cả dữ liệu
+  const fetchAllHealthCheckResults = async () => {
+    setLoading(true);
+    try {
+      const response = await getAllHealthCheckResults(
+        currentPage,
+        pageSize,
+        codeSearch || undefined,
+        undefined,
+        undefined,
+        sortBy,
+        ascending,
+        undefined, // Không lọc theo trạng thái
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
+      );
+
+      if (response.success) {
+        setHealthCheckResults(response.data);
+        setTotal(response.totalRecords);
+        console.log(
+          "Tất cả dữ liệu:",
+          response.data.length,
+          "total:",
+          response.totalRecords
+        );
+      } else {
+        messageApi.error(
+          response.message || "Không thể tải danh sách kết quả khám"
+        );
+      }
+    } catch (error) {
+      messageApi.error("Không thể tải danh sách kết quả khám");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchHealthCheckResults();
-  }, [fetchHealthCheckResults]);
+    // Sử dụng hàm mới nếu không có lọc
+    if (
+      !statusFilter &&
+      !codeSearch &&
+      !followUpRequired &&
+      !checkupDateRange[0] &&
+      !checkupDateRange[1] &&
+      !followUpDateRange[0] &&
+      !followUpDateRange[1]
+    ) {
+      fetchAllHealthCheckResults();
+    } else {
+      fetchHealthCheckResults();
+    }
+  }, [
+    fetchHealthCheckResults,
+    statusFilter,
+    codeSearch,
+    followUpRequired,
+    checkupDateRange,
+    followUpDateRange,
+  ]);
+
+  // Thêm hook mới để đảm bảo hiển thị đúng dữ liệu
+  useEffect(() => {
+    // Log và kiểm tra dữ liệu hiển thị
+    console.log(
+      "Health Check Results:",
+      healthCheckResults.length,
+      "Total:",
+      total
+    );
+  }, [healthCheckResults, total]);
 
   // New column visibility functions
   const handleColumnVisibilityChange = (key: string) => {
@@ -738,8 +831,8 @@ export function HealthCheckResultManagement() {
   // Thêm hàm xử lý reset bộ lọc
   const handleResetFilters = () => {
     setStatusFilter(undefined);
-    setSelectedStatusFilter(undefined);
-    setShowDefaultFilter(true);
+    setSelectedStatusFilter("ALL");
+    setShowDefaultFilter(false);
     setCheckupDateRange([null, null]);
     setFollowUpRequired(undefined);
     setFollowUpDateRange([null, null]);
@@ -753,16 +846,15 @@ export function HealthCheckResultManagement() {
     try {
       const response = await softDeleteHealthCheckResults([id]);
       if (response.isSuccess) {
-        toast.success("Health check result has been temporarily deleted!");
-        fetchHealthCheckResults();
-        fetchStatistics();
+        messageApi.success("Health check result has been temporarily deleted!");
+        fetchAllHealthCheckResults();
       } else {
-        toast.error(
+        messageApi.error(
           response.message || "Unable to temporarily delete health check result"
         );
       }
     } catch (error) {
-      toast.error("Unable to temporarily delete health check result");
+      messageApi.error("Unable to temporarily delete health check result");
     }
   };
 
@@ -770,16 +862,15 @@ export function HealthCheckResultManagement() {
     try {
       const response = await restoreSoftDeletedHealthCheckResults([id]);
       if (response.isSuccess) {
-        toast.success("Health check result has been restored!");
-        fetchHealthCheckResults();
-        fetchStatistics();
+        messageApi.success("Health check result has been restored!");
+        fetchAllHealthCheckResults();
       } else {
-        toast.error(
+        messageApi.error(
           response.message || "Unable to restore health check result"
         );
       }
     } catch (error) {
-      toast.error("Unable to restore health check result");
+      messageApi.error("Unable to restore health check result");
     }
   };
 
@@ -787,16 +878,15 @@ export function HealthCheckResultManagement() {
     try {
       const response = await approveHealthCheckResult(id);
       if (response.isSuccess) {
-        toast.success("Health check result has been approved!");
-        fetchHealthCheckResults();
-        fetchStatistics();
+        messageApi.success("Health check result has been approved!");
+        fetchAllHealthCheckResults();
       } else {
-        toast.error(
+        messageApi.error(
           response.message || "Unable to approve health check result"
         );
       }
     } catch (error) {
-      toast.error("Unable to approve health check result");
+      messageApi.error("Unable to approve health check result");
     }
   };
 
@@ -804,16 +894,15 @@ export function HealthCheckResultManagement() {
     try {
       const response = await completeHealthCheckResult(id);
       if (response.isSuccess) {
-        toast.success("Health check result has been completed!");
-        fetchHealthCheckResults();
-        fetchStatistics();
+        messageApi.success("Health check result has been completed!");
+        fetchAllHealthCheckResults();
       } else {
-        toast.error(
+        messageApi.error(
           response.message || "Unable to complete health check result"
         );
       }
     } catch (error) {
-      toast.error("Unable to complete health check result");
+      messageApi.error("Unable to complete health check result");
     }
   };
 
@@ -821,14 +910,15 @@ export function HealthCheckResultManagement() {
     try {
       const response = await cancelCompletelyHealthCheckResult(id, reason);
       if (response.isSuccess) {
-        toast.success("Health check result has been cancelled!");
-        fetchHealthCheckResults();
-        fetchStatistics();
+        messageApi.success("Health check result has been cancelled!");
+        fetchAllHealthCheckResults();
       } else {
-        toast.error(response.message || "Unable to cancel health check result");
+        messageApi.error(
+          response.message || "Unable to cancel health check result"
+        );
       }
     } catch (error) {
-      toast.error("Unable to cancel health check result");
+      messageApi.error("Unable to cancel health check result");
     }
   };
 
@@ -836,100 +926,57 @@ export function HealthCheckResultManagement() {
     try {
       const response = await cancelForAdjustmentHealthCheckResult(id, reason);
       if (response.isSuccess) {
-        toast.success("Health check result has been cancelled for adjustment!");
-        fetchHealthCheckResults();
-        fetchStatistics();
+        messageApi.success(
+          "Health check result has been cancelled for adjustment!"
+        );
+        fetchAllHealthCheckResults();
       } else {
-        toast.error(
+        messageApi.error(
           response.message ||
             "Unable to cancel health check result for adjustment"
         );
       }
     } catch (error) {
-      toast.error("Unable to cancel health check result for adjustment");
+      messageApi.error("Unable to cancel health check result for adjustment");
     }
   };
 
   const handleBulkDelete = async () => {
     try {
+      if (selectedRowKeys.length === 0) return;
+
       const response = await softDeleteHealthCheckResults(
         selectedRowKeys as string[]
       );
-      if (response.isSuccess) {
-        toast.success(
-          "Selected health check results have been temporarily deleted!"
+      if (response.success) {
+        messageApi.success(
+          `Successfully deleted ${selectedRowKeys.length} health check result(s)!`
         );
         setSelectedRowKeys([]);
-        fetchHealthCheckResults();
-        fetchStatistics();
+        fetchAllHealthCheckResults();
       } else {
-        toast.error(
+        messageApi.error(
           response.message ||
             "Unable to temporarily delete selected health check results"
         );
       }
     } catch (error) {
-      toast.error("Unable to temporarily delete selected health check results");
+      messageApi.error(
+        "Unable to temporarily delete selected health check results"
+      );
     }
   };
 
   const handleExport = async () => {
-    setExportLoading(true);
     try {
-      const checkupStartDate = checkupDateRange[0]
-        ? checkupDateRange[0].format("YYYY-MM-DD")
-        : undefined;
-      const checkupEndDate = checkupDateRange[1]
-        ? checkupDateRange[1].format("YYYY-MM-DD")
-        : undefined;
-      const followUpStartDate = followUpDateRange[0]
-        ? followUpDateRange[0].format("YYYY-MM-DD")
-        : undefined;
-      const followUpEndDate = followUpDateRange[1]
-        ? followUpDateRange[1].format("YYYY-MM-DD")
-        : undefined;
-
-      // Ensure data is fully loaded for dropdown
-      if (healthCheckCodes.length === 0 || healthCheckStaff.length === 0) {
-        await fetchHealthCheckCodesAndStaff();
-      }
-
-      // Update initial values for form
-      form.setFieldsValue({
-        exportAllPages: true, // Default to export all
-        includeCode: true,
-        includeUser: true,
-        includeStaff: true,
-        includeCheckupDate: true,
-        includeFollowUp: true,
-        includeStatus: true,
-        includeCreatedAt: true,
-        includeUpdatedAt: true,
-        includeDetails: true,
-        // Filter values
-        filterCodeSearch: codeSearch,
-        filterUserSearch: userSearch,
-        filterStaffSearch: staffSearch,
-        filterStatus: statusFilter,
-        filterCheckupDateRange: checkupDateRange,
-        filterFollowUpRequired: followUpRequired,
-        filterFollowUpDateRange: followUpDateRange,
-        // Sort options
-        sortOption: sortBy,
-        sortDirection: ascending ? "asc" : "desc",
-      });
-
-      // Set default values for exportConfig
+      // Set default export config
       setExportConfig({
         ...DEFAULT_EXPORT_CONFIG,
-        exportAllPages: true, // Ensure export all is selected
+        exportAllPages: true,
       });
-
       setShowExportConfigModal(true);
-      setExportLoading(false);
     } catch (error) {
-      toast.error("Unable to export to Excel");
-      setExportLoading(false);
+      messageApi.error("Unable to export to Excel");
     }
   };
 
@@ -937,7 +984,7 @@ export function HealthCheckResultManagement() {
     // Reset form and export config when closing modal
     form.setFieldsValue({
       ...DEFAULT_EXPORT_CONFIG,
-      exportAllPages: true, // Ensure default is export all
+      exportAllPages: true,
     });
     setExportConfig({
       ...DEFAULT_EXPORT_CONFIG,
@@ -950,57 +997,13 @@ export function HealthCheckResultManagement() {
   const handleExportWithConfig = async () => {
     setExportLoading(true);
     try {
-      const values = form.getFieldsValue();
-
-      // Build export configuration
-      const config = {
-        exportAllPages: values.exportAllPages || false,
-        includeCode: values.includeCode !== false,
-        includeUser: values.includeUser !== false,
-        includeStaff: values.includeStaff !== false,
-        includeCheckupDate: values.includeCheckupDate !== false,
-        includeFollowUp: values.includeFollowUp !== false,
-        includeStatus: values.includeStatus !== false,
-        includeCreatedAt: values.includeCreatedAt !== false,
-        includeUpdatedAt: values.includeUpdatedAt !== false,
-        includeDetails: values.includeDetails !== false,
-      };
-
-      // Process date data
-      const filterCheckupDateRange = values.filterCheckupDateRange;
-      const filterFollowUpDateRange = values.filterFollowUpDateRange;
-
-      const modalCheckupStartDate =
-        filterCheckupDateRange && filterCheckupDateRange[0]
-          ? filterCheckupDateRange[0].format("YYYY-MM-DD")
-          : undefined;
-      const modalCheckupEndDate =
-        filterCheckupDateRange && filterCheckupDateRange[1]
-          ? filterCheckupDateRange[1].format("YYYY-MM-DD")
-          : undefined;
-      const modalFollowUpStartDate =
-        filterFollowUpDateRange && filterFollowUpDateRange[0]
-          ? filterFollowUpDateRange[0].format("YYYY-MM-DD")
-          : undefined;
-      const modalFollowUpEndDate =
-        filterFollowUpDateRange && filterFollowUpDateRange[1]
-          ? filterFollowUpDateRange[1].format("YYYY-MM-DD")
-          : undefined;
-
-      // Determine sort order
-      const modalSortBy = values.sortOption || sortBy;
-      const modalAscending = values.sortDirection === "asc";
-
-      // Update sortBy and ascending values
-      setSortBy(modalSortBy);
-      setAscending(modalAscending);
-
       const checkupStartDate = checkupDateRange[0]
         ? checkupDateRange[0].format("YYYY-MM-DD")
         : undefined;
       const checkupEndDate = checkupDateRange[1]
         ? checkupDateRange[1].format("YYYY-MM-DD")
         : undefined;
+
       const followUpStartDate = followUpDateRange[0]
         ? followUpDateRange[0].format("YYYY-MM-DD")
         : undefined;
@@ -1008,46 +1011,27 @@ export function HealthCheckResultManagement() {
         ? followUpDateRange[1].format("YYYY-MM-DD")
         : undefined;
 
-      // Use values from modal instead of outside values
+      // Call API to export with config
       await exportHealthCheckResultsToExcelWithConfig(
-        config,
-        currentPage,
-        pageSize,
-        values.exportAllPages
-          ? undefined
-          : values.filterCodeSearch || codeSearch || undefined,
-        values.exportAllPages
-          ? undefined
-          : values.filterUserSearch || userSearch || undefined,
-        values.exportAllPages
-          ? undefined
-          : values.filterStaffSearch || staffSearch || undefined,
-        modalSortBy,
-        modalAscending,
-        values.exportAllPages ? undefined : values.filterStatus || statusFilter,
-        values.exportAllPages
-          ? undefined
-          : modalCheckupStartDate || checkupStartDate,
-        values.exportAllPages
-          ? undefined
-          : modalCheckupEndDate || checkupEndDate,
-        values.exportAllPages
-          ? undefined
-          : values.filterFollowUpRequired === undefined
-          ? followUpRequired
-          : values.filterFollowUpRequired,
-        values.exportAllPages
-          ? undefined
-          : modalFollowUpStartDate || followUpStartDate,
-        values.exportAllPages
-          ? undefined
-          : modalFollowUpEndDate || followUpEndDate
+        exportConfig,
+        isExportAllPages() ? 1 : currentPage,
+        isExportAllPages() ? total : pageSize,
+        codeSearch || undefined,
+        userSearch || undefined,
+        staffSearch || undefined,
+        sortBy,
+        ascending,
+        statusFilter,
+        checkupStartDate,
+        checkupEndDate,
+        followUpRequired,
+        followUpStartDate,
+        followUpEndDate
       );
 
-      closeConfigModal();
+      setShowExportConfigModal(false);
     } catch (error) {
-      console.error("Export error:", error);
-      toast.error("Unable to export to Excel");
+      messageApi.error("Unable to export to Excel");
     } finally {
       setExportLoading(false);
     }
@@ -1065,14 +1049,17 @@ export function HealthCheckResultManagement() {
   const handleReset = () => {
     setCodeSearch("");
     setStatusFilter(undefined);
-    setSelectedStatusFilter(undefined);
-    setShowDefaultFilter(true);
+    setSelectedStatusFilter("ALL");
+    setShowDefaultFilter(false);
     setSortBy("CheckupDate");
     setAscending(false);
     setCurrentPage(1);
     setCheckupDateRange([null, null]);
     setFollowUpRequired(undefined);
     setFollowUpDateRange([null, null]);
+
+    // Lấy lại dữ liệu để hiển thị đúng theo API
+    fetchHealthCheckResults();
   };
 
   // Handle back navigation
@@ -1090,7 +1077,11 @@ export function HealthCheckResultManagement() {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <span>{record.healthCheckResultCode}</span>
+        <Typography.Link
+          onClick={() => router.push(`/health-check-result/${record.id}`)}
+        >
+          {record.healthCheckResultCode}
+        </Typography.Link>
       ),
       visible: columnVisibility.code,
     },
@@ -1191,123 +1182,137 @@ export function HealthCheckResultManagement() {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Space>
-          <Tooltip title="View details">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => router.push(`/health-check-result/${record.id}`)}
-            />
-          </Tooltip>
+        <div style={{ textAlign: "center" }}>
+          <Dropdown
+            overlay={
+              <Menu>
+                <Menu.Item
+                  key="view"
+                  icon={<EyeOutlined />}
+                  onClick={() =>
+                    router.push(`/health-check-result/${record.id}`)
+                  }
+                >
+                  View Details
+                </Menu.Item>
 
-          {record.status === "Pending" && (
-            <Tooltip title="Approve">
-              <Button
-                type="text"
-                icon={<CheckCircleOutlined />}
-                className="text-green-600"
-                onClick={() => handleApprove(record.id)}
-              />
-            </Tooltip>
-          )}
+                {record.status === "Pending" && (
+                  <Menu.Item
+                    key="approve"
+                    icon={<CheckCircleOutlined style={{ color: "green" }} />}
+                    onClick={() => handleApprove(record.id)}
+                  >
+                    <span style={{ color: "green" }}>Approve</span>
+                  </Menu.Item>
+                )}
 
-          {record.status === "Approved" && (
-            <Tooltip title="Complete">
-              <Button
-                type="text"
-                icon={<CheckSquareOutlined />}
-                className="text-green-600"
-                onClick={() => handleComplete(record.id)}
-              />
-            </Tooltip>
-          )}
+                {record.status === "Approved" && (
+                  <Menu.Item
+                    key="complete"
+                    icon={<CheckSquareOutlined style={{ color: "green" }} />}
+                    onClick={() => handleComplete(record.id)}
+                  >
+                    <span style={{ color: "green" }}>Complete</span>
+                  </Menu.Item>
+                )}
 
-          {(record.status === "Pending" || record.status === "Approved") && (
-            <Tooltip title="Cancel">
-              <Popconfirm
-                title="Enter reason for cancellation"
-                description={
-                  <Input.TextArea
-                    placeholder="Cancellation reason"
-                    onChange={(e) => {
-                      (e.target as any).reason = e.target.value;
-                    }}
-                    rows={3}
-                  />
-                }
-                onConfirm={(e) => {
-                  const target = e?.target as any;
-                  const reason = target?.reason || "No reason provided";
-                  handleCancel(record.id, reason);
-                }}
-                okText="Confirm"
-                cancelText="Cancel"
-              >
-                <Button
-                  type="text"
-                  icon={<CloseCircleOutlined />}
-                  className="text-red-600"
-                />
-              </Popconfirm>
-            </Tooltip>
-          )}
+                {(record.status === "Pending" ||
+                  record.status === "Approved") && (
+                  <Menu.Item
+                    key="cancel"
+                    icon={<CloseCircleOutlined style={{ color: "red" }} />}
+                    danger
+                  >
+                    <Popconfirm
+                      title="Enter reason for cancellation"
+                      description={
+                        <Input.TextArea
+                          placeholder="Cancellation reason"
+                          onChange={(e) => {
+                            (e.target as any).reason = e.target.value;
+                          }}
+                          rows={3}
+                        />
+                      }
+                      onConfirm={(e) => {
+                        const target = e?.target as any;
+                        const reason = target?.reason || "No reason provided";
+                        handleCancel(record.id, reason);
+                      }}
+                      okText="Confirm"
+                      cancelText="Cancel"
+                      placement="topLeft"
+                    >
+                      <div style={{ width: "100%" }}>Cancel</div>
+                    </Popconfirm>
+                  </Menu.Item>
+                )}
 
-          {(record.status === "Pending" || record.status === "Approved") && (
-            <Tooltip title="Cancel for adjustment">
-              <Popconfirm
-                title="Enter reason for cancellation for adjustment"
-                description={
-                  <Input.TextArea
-                    placeholder="Reason for cancellation for adjustment"
-                    onChange={(e) => {
-                      (e.target as any).reason = e.target.value;
-                    }}
-                    rows={3}
-                  />
-                }
-                onConfirm={(e) => {
-                  const target = e?.target as any;
-                  const reason = target?.reason || "No reason provided";
-                  handleCancelForAdjustment(record.id, reason);
-                }}
-                okText="Confirm"
-                cancelText="Cancel"
-              >
-                <Button
-                  type="text"
-                  icon={<CloseSquareOutlined />}
-                  className="text-orange-600"
-                />
-              </Popconfirm>
-            </Tooltip>
-          )}
+                {(record.status === "Pending" ||
+                  record.status === "Approved") && (
+                  <Menu.Item
+                    key="cancelForAdjustment"
+                    icon={<CloseSquareOutlined style={{ color: "#d4b106" }} />}
+                  >
+                    <Popconfirm
+                      title="Enter reason for cancellation for adjustment"
+                      description={
+                        <Input.TextArea
+                          placeholder="Reason for cancellation for adjustment"
+                          onChange={(e) => {
+                            (e.target as any).reason = e.target.value;
+                          }}
+                          rows={3}
+                        />
+                      }
+                      onConfirm={(e) => {
+                        const target = e?.target as any;
+                        const reason = target?.reason || "No reason provided";
+                        handleCancelForAdjustment(record.id, reason);
+                      }}
+                      okText="Confirm"
+                      cancelText="Cancel"
+                      placement="topLeft"
+                    >
+                      <div style={{ width: "100%", color: "#d4b106" }}>
+                        Cancel for Adjustment
+                      </div>
+                    </Popconfirm>
+                  </Menu.Item>
+                )}
 
-          {record.status !== "SoftDeleted" ? (
-            <Tooltip title="Temporarily delete">
-              <Popconfirm
-                title="Are you sure you want to temporarily delete this health check result?"
-                onConfirm={() => handleSoftDelete(record.id)}
-                okText="Confirm"
-                cancelText="Cancel"
-              >
-                <Button
-                  type="text"
-                  icon={<DeleteOutlined />}
-                  className="text-red-600"
-                />
-              </Popconfirm>
-            </Tooltip>
-          ) : (
-            <Tooltip title="Restore">
-              <Button
-                type="text"
-                icon={<CheckCircleOutlined />}
-                className="text-green-600"
-                onClick={() => handleRestore(record.id)}
-              />
-            </Tooltip>
-          )}
-        </Space>
+                {record.status !== "SoftDeleted" ? (
+                  <Menu.Item
+                    key="delete"
+                    icon={<DeleteOutlined style={{ color: "red" }} />}
+                    danger
+                  >
+                    <Popconfirm
+                      title="Are you sure you want to temporarily delete this health check result?"
+                      onConfirm={() => handleSoftDelete(record.id)}
+                      okText="Confirm"
+                      cancelText="Cancel"
+                      placement="topLeft"
+                    >
+                      <div style={{ width: "100%" }}>Temporarily Delete</div>
+                    </Popconfirm>
+                  </Menu.Item>
+                ) : (
+                  <Menu.Item
+                    key="restore"
+                    icon={<UndoOutlined style={{ color: "green" }} />}
+                    onClick={() => handleRestore(record.id)}
+                  >
+                    <span style={{ color: "green" }}>Restore</span>
+                  </Menu.Item>
+                )}
+              </Menu>
+            }
+            placement="bottomCenter"
+          >
+            <Button icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </div>
       ),
       visible: columnVisibility.actions,
     },
@@ -1329,12 +1334,21 @@ export function HealthCheckResultManagement() {
           </Typography.Title>
         </Col>
         <Col xs={24} sm={12} md={8} lg={6}>
-          <Input
-            placeholder="Tìm theo mã kết quả khám"
-            value={codeSearch}
-            onChange={(e) => setCodeSearch(e.target.value)}
-            prefix={<SearchOutlined />}
+          <Select
+            placeholder="Search by result code"
+            value={codeSearch || undefined}
+            onChange={(value) => setCodeSearch(value)}
             allowClear
+            showSearch
+            style={{ width: 200 }}
+            optionFilterProp="children"
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+            options={healthCheckCodes.map((code) => ({
+              value: code,
+              label: code,
+            }))}
           />
         </Col>
         <Col xs={24} sm={12} md={8} lg={6}>
@@ -1377,8 +1391,8 @@ export function HealthCheckResultManagement() {
               value={selectedStatusFilter}
               onClear={() => {
                 setStatusFilter(undefined);
-                setShowDefaultFilter(true);
-                setSelectedStatusFilter(undefined);
+                setShowDefaultFilter(false);
+                setSelectedStatusFilter("ALL");
               }}
               suffixIcon={<FilterOutlined />}
             >
@@ -1551,7 +1565,8 @@ export function HealthCheckResultManagement() {
   );
 
   return (
-    <Fragment>
+    <>
+      {contextHolder}
       <div className="p-6">
         {/* Commented out statistics cards with charts as they are no longer needed
         {statisticsCards}
@@ -1591,13 +1606,23 @@ export function HealthCheckResultManagement() {
           <div className="mb-3 flex items-center justify-between">
             <div className="flex flex-wrap items-center gap-4">
               {/* Code Filter */}
-              <Input
+              <Select
                 placeholder="Search by result code"
-                value={codeSearch}
-                onChange={(e) => setCodeSearch(e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
-                style={{ width: 200 }}
+                value={codeSearch || undefined}
+                onChange={(value) => setCodeSearch(value)}
                 allowClear
+                showSearch
+                style={{ width: 200 }}
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                options={healthCheckCodes.map((code) => ({
+                  value: code,
+                  label: code,
+                }))}
               />
 
               {/* Advanced Filters Button */}
@@ -1698,7 +1723,7 @@ export function HealthCheckResultManagement() {
                               handleColumnVisibilityChange("patient")
                             }
                           >
-                            Patient
+                            User
                           </Checkbox>
                         </div>
                       ),
@@ -1856,8 +1881,6 @@ export function HealthCheckResultManagement() {
                 <Option value={10}>10</Option>
                 <Option value={15}>15</Option>
                 <Option value={20}>20</Option>
-                <Option value={50}>50</Option>
-                <Option value={100}>100</Option>
               </Select>
             </Typography.Text>
           </div>
@@ -1875,6 +1898,8 @@ export function HealthCheckResultManagement() {
               onChange: (keys) => setSelectedRowKeys(keys),
             }}
             className="border rounded-lg"
+            sortDirections={[]}
+            onChange={() => {}} // Vô hiệu hóa sắp xếp nội bộ của Table
           />
           <Card className="mt-4 shadow-sm">
             <Row justify="center" align="middle">
@@ -1985,7 +2010,6 @@ export function HealthCheckResultManagement() {
                     placeholder="Search by result code"
                     allowClear
                     showSearch
-                    prefix={<SearchOutlined style={{ color: "blue" }} />}
                     defaultValue={codeSearch || undefined}
                     style={{ width: "100%" }}
                     filterOption={(input, option) =>
@@ -2014,7 +2038,6 @@ export function HealthCheckResultManagement() {
                     showSearch
                     defaultValue={userSearch || undefined}
                     style={{ width: "100%" }}
-                    prefix={<SearchOutlined style={{ color: "blue" }} />}
                     filterOption={(input, option) =>
                       (option?.children as unknown as string)
                         ?.toLowerCase()
@@ -2045,7 +2068,6 @@ export function HealthCheckResultManagement() {
                     showSearch
                     defaultValue={staffSearch || undefined}
                     style={{ width: "100%" }}
-                    prefix={<SearchOutlined style={{ color: "blue" }} />}
                     filterOption={(input, option) =>
                       (option?.children as unknown as string)
                         ?.toLowerCase()
@@ -2294,6 +2316,6 @@ export function HealthCheckResultManagement() {
           }}
         />
       </div>
-    </Fragment>
+    </>
   );
 }

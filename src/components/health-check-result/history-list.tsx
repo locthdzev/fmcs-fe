@@ -27,7 +27,6 @@ import {
   Menu,
   Divider,
 } from "antd";
-import { toast } from "react-toastify";
 import {
   getAllHealthCheckResultHistories,
   exportAllHealthCheckResultHistoriesToExcelWithConfig,
@@ -51,12 +50,14 @@ import {
   UndoOutlined,
   DownOutlined,
   AppstoreOutlined,
+  LinkOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import moment from "moment";
 import axios from "axios";
 import { message } from "antd";
 import { HealthInsuranceIcon } from "@/dashboard/sidebar/icons/HealthInsuranceIcon";
+import HealthCheckResultHistoryExportModal from "./HealthCheckResultHistoryExportModal";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -231,7 +232,7 @@ const HistoryFilterModal: React.FC<{
                 filterOption={(input, option) =>
                   (option?.title as string)
                     ?.toLowerCase()
-                    .indexOf(input.toLowerCase()) >= 0
+                    .includes(input.toLowerCase())
                 }
                 optionLabelProp="title"
               >
@@ -533,11 +534,11 @@ export const HealthCheckResultHistory: React.FC = () => {
           fetchHistoriesForResult(group.healthCheckResultId);
         }
       } else {
-        toast.error("Không thể tải danh sách mã kết quả khám");
+        messageApi.error("Không thể tải danh sách mã kết quả khám");
         setLoading(false);
       }
     } catch (error) {
-      toast.error("Không thể tải danh sách mã kết quả khám");
+      messageApi.error("Không thể tải danh sách mã kết quả khám");
       setLoading(false);
     }
   }, [
@@ -570,12 +571,12 @@ export const HealthCheckResultHistory: React.FC = () => {
           )
         );
       } else {
-        toast.error(
+        messageApi.error(
           response.message || `Không thể tải lịch sử cho mã kết quả khám`
         );
       }
     } catch (error) {
-      toast.error(`Không thể tải lịch sử cho mã kết quả khám`);
+      messageApi.error(`Không thể tải lịch sử cho mã kết quả khám`);
     } finally {
       // Kiểm tra xem tất cả các nhóm đã tải xong chưa
       setResultGroups((prevGroups) => {
@@ -724,7 +725,7 @@ export const HealthCheckResultHistory: React.FC = () => {
       setShowExportConfigModal(true);
       setExportLoading(false);
     } catch (error) {
-      toast.error("Không thể xuất file Excel");
+      messageApi.error("Không thể xuất file Excel");
       setExportLoading(false);
     }
   };
@@ -781,7 +782,7 @@ export const HealthCheckResultHistory: React.FC = () => {
       closeConfigModal();
     } catch (error: any) {
       console.error("Export error:", error);
-      toast.error(error.response?.data?.message || "Không thể xuất file Excel");
+      messageApi.error(error.response?.data?.message || "Không thể xuất file Excel");
     } finally {
       setExportLoading(false);
     }
@@ -812,11 +813,38 @@ export const HealthCheckResultHistory: React.FC = () => {
 
   const getActionColor = (action: string | undefined) => {
     if (!action) return "default";
-    if (action.includes("Created")) return "green";
-    if (action.includes("Updated") || action.includes("Approved"))
-      return "blue";
-    if (action.includes("Cancelled") || action.includes("Rejected"))
-      return "red";
+    
+    try {
+      // Convert to lowercase for more reliable matching
+      const actionLower = action.toLowerCase();
+      
+      if (actionLower.includes("created")) return "green";
+      if (actionLower.includes("updated")) return "blue";
+      if (actionLower.includes("approved")) return "cyan";
+      if (actionLower.includes("cancelled")) return "volcano";
+      if (actionLower.includes("rejected")) return "red";
+      if (actionLower.includes("waitingforapproval")) return "gold";
+      if (actionLower.includes("completed")) return "green";
+      if (actionLower.includes("cancelledcompletely")) return "red";
+      if (actionLower.includes("cancelledforadjustment")) return "orange";
+    } catch (error) {
+      console.error("Error in getActionColor:", error);
+    }
+    
+    return "default";
+  };
+
+  const getStatusColor = (status: string | undefined) => {
+    if (!status) return "default";
+    
+    // Convert to lowercase for more reliable matching
+    const statusLower = status.toLowerCase();
+    
+    if (statusLower === "waitingforapproval") return "gold";
+    if (statusLower === "approved") return "cyan";
+    if (statusLower === "completed") return "green";
+    if (statusLower === "cancelledcompletely") return "red";
+    if (statusLower === "cancelledforadjustment") return "orange";
     return "default";
   };
 
@@ -917,309 +945,185 @@ export const HealthCheckResultHistory: React.FC = () => {
   };
 
   return (
-    <Fragment>
+    <div className="history-container" style={{ padding: "20px" }}>
       {contextHolder}
-      <div className="p-6">
-        {/* Header with back button and title */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={handleBack}
-              style={{ marginRight: "8px" }}
-            >
-              Back
-            </Button>
-            <HistoryOutlined />
-            <h3 className="text-xl font-bold">Health Check Result History</h3>
-          </div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.push("/health-check-result/management")}
+            style={{ marginRight: "8px" }}
+          >
+            Back
+          </Button>
+          <HistoryOutlined style={{ fontSize: "24px" }} />
+          <h3 className="text-xl font-bold">Health Check Result History</h3>
         </div>
+      </div>
 
-        {/* Toolbar Card */}
-        <Card
-          className="shadow mb-4"
-          bodyStyle={{ padding: "16px" }}
-          title={
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "16px",
-              }}
-            >
-              <AppstoreOutlined />
-              <span>Toolbar</span>
-            </div>
-          }
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex flex-wrap items-center gap-4">
-              {/* Result Code Filter */}
-              <Input
-                placeholder="Search by result code"
-                value={healthCheckResultCode}
-                onChange={(e) => setHealthCheckResultCode(e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
-                style={{ width: 200 }}
-                allowClear
-              />
+      <Card
+        className="shadow mb-4"
+        bodyStyle={{ padding: "16px" }}
+        style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+      >
+        <Row align="middle" gutter={[16, 16]}>
+          <Col span={24}>
+            <Title level={4} style={{ margin: 0 }}>
+              <AppstoreOutlined style={{ marginRight: "8px", fontSize: "20px" }} />
+              Toolbar
+            </Title>
+          </Col>
+        </Row>
 
-              {/* Performed By Filter */}
-              <Input
-                placeholder="Search by performer"
-                value={performedBySearch}
-                onChange={(e) => setPerformedBySearch(e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
-                style={{ width: 200 }}
-                allowClear
-              />
+        <Divider style={{ margin: "16px 0" }} />
 
-              {/* Advanced Filters Button */}
-              <Tooltip title="Advanced Filters">
-                <Button
-                  icon={
-                    <FilterOutlined
-                      style={{
-                        color:
-                          action ||
-                          actionDateRange ||
-                          previousStatus ||
-                          newStatus ||
-                          rejectionReason ||
-                          sortBy !== "ActionDate" ||
-                          ascending !== false
-                            ? "#1890ff"
-                            : undefined,
-                      }}
-                    />
-                  }
-                  onClick={handleOpenFilterModal}
-                >
-                  Filters
-                </Button>
-              </Tooltip>
-
-              {/* Reset Button */}
-              <Tooltip title="Reset filters">
-                <Button
-                  icon={<UndoOutlined />}
-                  onClick={handleReset}
-                  disabled={
-                    !(
-                      healthCheckResultCode ||
-                      performedBySearch ||
-                      action ||
-                      (actionDateRange && actionDateRange.length > 0) ||
-                      previousStatus ||
-                      newStatus ||
-                      rejectionReason ||
-                      sortBy !== "ActionDate" ||
-                      ascending !== false
-                    )
-                  }
-                >
-                  Reset
-                </Button>
-              </Tooltip>
-
-              {/* Column Settings */}
-              <Dropdown
-                menu={{
-                  items: [
-                    {
-                      key: "selectAll",
-                      label: (
-                        <div onClick={handleMenuClick}>
-                          <Checkbox
-                            checked={areAllColumnsVisible()}
-                            onChange={(e) => toggleAllColumns(e.target.checked)}
-                          >
-                            <strong>Show all columns</strong>
-                          </Checkbox>
-                        </div>
-                      ),
-                    },
-                    {
-                      key: "divider",
-                      type: "divider",
-                    },
-                    {
-                      key: "historyCode",
-                      label: (
-                        <div onClick={handleMenuClick}>
-                          <Checkbox
-                            checked={columnVisibility.historyCode}
-                            onChange={() =>
-                              handleColumnVisibilityChange("historyCode")
-                            }
-                          >
-                            Result Code
-                          </Checkbox>
-                        </div>
-                      ),
-                    },
-                    {
-                      key: "action",
-                      label: (
-                        <div onClick={handleMenuClick}>
-                          <Checkbox
-                            checked={columnVisibility.action}
-                            onChange={() =>
-                              handleColumnVisibilityChange("action")
-                            }
-                          >
-                            Action
-                          </Checkbox>
-                        </div>
-                      ),
-                    },
-                    {
-                      key: "actionDate",
-                      label: (
-                        <div onClick={handleMenuClick}>
-                          <Checkbox
-                            checked={columnVisibility.actionDate}
-                            onChange={() =>
-                              handleColumnVisibilityChange("actionDate")
-                            }
-                          >
-                            Action Time
-                          </Checkbox>
-                        </div>
-                      ),
-                    },
-                    {
-                      key: "performedBy",
-                      label: (
-                        <div onClick={handleMenuClick}>
-                          <Checkbox
-                            checked={columnVisibility.performedBy}
-                            onChange={() =>
-                              handleColumnVisibilityChange("performedBy")
-                            }
-                          >
-                            Performer
-                          </Checkbox>
-                        </div>
-                      ),
-                    },
-                    {
-                      key: "statusChange",
-                      label: (
-                        <div onClick={handleMenuClick}>
-                          <Checkbox
-                            checked={columnVisibility.statusChange}
-                            onChange={() =>
-                              handleColumnVisibilityChange("statusChange")
-                            }
-                          >
-                            Status Change
-                          </Checkbox>
-                        </div>
-                      ),
-                    },
-                    {
-                      key: "details",
-                      label: (
-                        <div onClick={handleMenuClick}>
-                          <Checkbox
-                            checked={columnVisibility.details}
-                            onChange={() =>
-                              handleColumnVisibilityChange("details")
-                            }
-                          >
-                            Details
-                          </Checkbox>
-                        </div>
-                      ),
-                    },
-                  ],
-                  onClick: (e) => {
-                    // Prevent dropdown from closing
-                    e.domEvent.stopPropagation();
-                  },
-                }}
-                trigger={["hover", "click"]}
-                placement="bottomRight"
-                arrow
-                open={dropdownOpen}
-                onOpenChange={handleDropdownVisibleChange}
-                mouseEnterDelay={0.1}
-                mouseLeaveDelay={0.3}
-              >
-                <Tooltip title="Column settings">
-                  <Button icon={<SettingOutlined />}>Columns</Button>
-                </Tooltip>
-              </Dropdown>
-
-              {/* Search Button */}
-              <Button
-                type="primary"
-                icon={<SearchOutlined />}
-                onClick={() => {
-                  setCurrentPage(1);
-                  fetchDistinctHealthCheckResults();
-                }}
-              >
-                Search
-              </Button>
-            </div>
-
-            <div>
-              {/* Export Button */}
-              <Button
-                type="primary"
-                icon={<FileExcelOutlined />}
-                onClick={handleExport}
-                loading={exportLoading}
-              >
-                Export to Excel
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        {/* Pagination Size Selection - Outside of cards */}
-        <div className="flex justify-end items-center mb-4">
-          <Typography.Text type="secondary">
-            Groups per page:
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <Select
-              value={pageSize}
+              showSearch
+              placeholder="Search by result code"
+              value={healthCheckResultCode || undefined}
               onChange={(value) => {
-                setPageSize(value);
+                setHealthCheckResultCode(value || undefined);
                 setCurrentPage(1);
               }}
-              style={{ marginLeft: 8, width: 70 }}
-            >
-              <Option value={5}>5</Option>
-              <Option value={10}>10</Option>
-              <Option value={15}>15</Option>
-              <Option value={20}>20</Option>
-            </Select>
-          </Typography.Text>
-        </div>
+              style={{ width: "320px" }}
+              allowClear
+              filterOption={(input, option) =>
+                (option?.value?.toString().toLowerCase() || "").includes(input.toLowerCase())
+              }
+              options={uniqueHealthCheckCodes.map((code) => ({
+                value: code,
+                label: code,
+              }))}
+              dropdownStyle={{ minWidth: "320px" }}
+            />
 
-        {/* Results Display */}
-        {loading ? (
-          <Card className="shadow-sm">
-            <Skeleton active paragraph={{ rows: 10 }} />
-          </Card>
-        ) : resultGroups.length > 0 ? (
-          resultGroups.map((group) => (
-            <Card key={group.code} className="shadow-sm mb-4">
+            <Tooltip title="Advanced Filters">
+              <Button
+                icon={
+                  <FilterOutlined
+                    style={{
+                      color:
+                        action ||
+                        actionDateRange ||
+                        previousStatus ||
+                        newStatus ||
+                        performedBySearch ||
+                        rejectionReason ||
+                        sortBy !== "ActionDate" ||
+                        ascending !== false
+                          ? "#1890ff"
+                          : undefined,
+                    }}
+                  />
+                }
+                onClick={handleOpenFilterModal}
+              >
+                Filters
+              </Button>
+            </Tooltip>
+
+            <Tooltip title="Reset All Filters">
+              <Button
+                icon={<UndoOutlined />}
+                onClick={handleReset}
+                disabled={
+                  !(
+                    healthCheckResultCode ||
+                    performedBySearch ||
+                    action ||
+                    (actionDateRange && (actionDateRange[0] || actionDateRange[1])) ||
+                    previousStatus ||
+                    newStatus ||
+                    rejectionReason ||
+                    sortBy !== "ActionDate" ||
+                    ascending !== false
+                  )
+                }
+              />
+            </Tooltip>
+
+            <Button
+              type="primary"
+              icon={<SearchOutlined />}
+              onClick={() => {
+                setCurrentPage(1);
+                fetchDistinctHealthCheckResults();
+              }}
+            >
+              Search
+            </Button>
+          </div>
+
+          <div>
+            <Button
+              type="primary"
+              icon={<FileExcelOutlined />}
+              onClick={handleExport}
+              loading={exportLoading}
+            >
+              Export to Excel
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: "16px",
+          gap: "8px",
+          alignItems: "center",
+        }}
+      >
+        <Text type="secondary">Groups per page:</Text>
+        <Select
+          value={pageSize}
+          onChange={(value) => {
+            setPageSize(value);
+            setCurrentPage(1);
+          }}
+          style={{ width: "80px" }}
+        >
+          <Option value={5}>5</Option>
+          <Option value={10}>10</Option>
+          <Option value={15}>15</Option>
+          <Option value={20}>20</Option>
+        </Select>
+      </div>
+
+      {loading && resultGroups.length === 0 ? (
+        <Card className="shadow mb-4">
+          <Spin tip="Loading..." />
+        </Card>
+      ) : resultGroups.length > 0 ? (
+        <div>
+          {resultGroups.map((group) => (
+            <Card 
+              key={group.code} 
+              className="shadow mb-4"
+              style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+            >
               <div className="border-b pb-3 mb-4">
-                <div className="flex justify-between items-center">
-                  <Title level={5} className="m-0">
-                    Health Check Result Code: {group.code}
-                  </Title>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Space size="large">
+                    <span>
+                      <Text type="secondary">Health Check Result Code:</Text>{" "}
+                      <Button
+                        type="link"
+                        onClick={() => router.push(`/health-check-result/${group.healthCheckResultId}`)}
+                        style={{ padding: 0 }}
+                      >
+                        {group.code}
+                      </Button>
+                    </span>
+                  </Space>
+
                   <Button
                     type="primary"
-                    onClick={() =>
-                      router.push(
-                        `/health-check-result/${group.healthCheckResultId}`
-                      )
-                    }
+                    onClick={() => router.push(`/health-check-result/${group.healthCheckResultId}`)}
                   >
                     View Health Check Result
                   </Button>
@@ -1227,120 +1131,93 @@ export const HealthCheckResultHistory: React.FC = () => {
               </div>
 
               {group.loading ? (
-                <Skeleton active paragraph={{ rows: 5 }} />
+                <Spin />
               ) : (
                 <Collapse
                   defaultActiveKey={["1"]}
-                  expandIcon={({ isActive }) => (
-                    <CaretRightOutlined rotate={isActive ? 90 : 0} />
-                  )}
+                  expandIcon={({ isActive }) => <CaretRightOutlined rotate={isActive ? 90 : 0} />}
                 >
                   <Panel header="Action History" key="1">
                     <Timeline
                       mode="left"
-                      items={group.histories.map((history) => ({
-                        color: getActionColor(history.action),
-                        dot: getActionIcon(history.action),
-                        children: (
-                          <Card
-                            size="small"
-                            className="mb-2 hover:shadow-md transition-shadow"
-                          >
-                            <div className="flex flex-col gap-2">
-                              <div className="flex justify-between items-center">
-                                <div className="font-medium">
-                                  {history.action}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  {formatDateTime(history.actionDate)}
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-1 gap-1">
-                                <div className="flex">
-                                  <div className="w-[180px] text-gray-500">
-                                    Performer:
-                                  </div>
-                                  <div>
-                                    {history.performedBy?.fullName} (
-                                    {history.performedBy?.email})
+                      items={group.histories
+                        .sort((a, b) => {
+                          const comparison = moment(a.actionDate).unix() - moment(b.actionDate).unix();
+                          return ascending ? comparison : -comparison;
+                        })
+                        .map((history) => ({
+                          color: getActionColor(history.action),
+                          dot: getActionIcon(history.action),
+                          children: (
+                            <Card
+                              size="small"
+                              className="mb-2 hover:shadow-md transition-shadow"
+                              style={{ borderRadius: "6px" }}
+                            >
+                              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                  <div style={{ fontWeight: 500 }}>{history.action}</div>
+                                  <div style={{ fontSize: "14px", color: "#8c8c8c" }}>
+                                    {formatDateTime(history.actionDate)}
                                   </div>
                                 </div>
 
-                                {history.previousStatus &&
-                                  history.newStatus && (
-                                    <div className="flex">
-                                      <div className="w-[180px] text-gray-500">
-                                        Status:
-                                      </div>
-                                      <div className="flex-1">
-                                        <Tag
-                                          color={getActionColor(
-                                            history.previousStatus
-                                          )}
-                                        >
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "4px" }}>
+                                  <div style={{ display: "flex" }}>
+                                    <div style={{ width: "180px", color: "#8c8c8c" }}>Performed by:</div>
+                                    <div>
+                                      {history.performedBy?.fullName} ({history.performedBy?.email})
+                                    </div>
+                                  </div>
+
+                                  {history.previousStatus && history.newStatus && (
+                                    <div style={{ display: "flex" }}>
+                                      <div style={{ width: "180px", color: "#8c8c8c" }}>Status:</div>
+                                      <div style={{ flex: 1 }}>
+                                        <Tag color={getStatusColor(history.previousStatus)}>
                                           {history.previousStatus}
                                         </Tag>
                                         <Text type="secondary"> → </Text>
-                                        <Tag
-                                          color={getActionColor(
-                                            history.newStatus
-                                          )}
-                                        >
+                                        <Tag color={getStatusColor(history.newStatus)}>
                                           {history.newStatus}
                                         </Tag>
                                       </div>
                                     </div>
                                   )}
 
-                                {history.rejectionReason && (
-                                  <div className="flex">
-                                    <div className="w-[180px] text-gray-500">
-                                      Reason:
+                                  {history.rejectionReason && (
+                                    <div style={{ display: "flex" }}>
+                                      <div style={{ width: "180px", color: "#8c8c8c" }}>Reason:</div>
+                                      <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>
+                                        {history.rejectionReason}
+                                      </div>
                                     </div>
-                                    <div className="flex-1">
-                                      {history.rejectionReason}
-                                    </div>
-                                  </div>
-                                )}
+                                  )}
 
-                                {history.changeDetails && (
-                                  <div className="flex">
-                                    <div className="w-[180px] text-gray-500">
-                                      Details:
+                                  {history.changeDetails && (
+                                    <div style={{ display: "flex" }}>
+                                      <div style={{ width: "180px", color: "#8c8c8c" }}>Details:</div>
+                                      <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>
+                                        {history.changeDetails}
+                                      </div>
                                     </div>
-                                    <div className="flex-1">
-                                      {history.changeDetails}
-                                    </div>
-                                  </div>
-                                )}
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          </Card>
-                        ),
-                      }))}
+                            </Card>
+                          ),
+                        }))}
                     />
                   </Panel>
                 </Collapse>
               )}
             </Card>
-          ))
-        ) : (
-          <Card className="shadow-sm">
-            <Empty description="No health check result history" />
-          </Card>
-        )}
+          ))}
 
-        {/* Pagination Footer */}
-        <Card className="mt-4 shadow-sm">
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Typography.Text type="secondary">
-                Total {total} health check result groups
-              </Typography.Text>
-            </Col>
-            <Col>
-              <Space align="center" size="large">
+          <Card className="mt-4 shadow-sm">
+            <Row justify="center" align="middle">
+              <Space size="large" align="center">
+                <Text type="secondary">Total {total} items</Text>
                 <Pagination
                   current={currentPage}
                   pageSize={pageSize}
@@ -1352,9 +1229,7 @@ export const HealthCheckResultHistory: React.FC = () => {
                   showTotal={() => ""}
                 />
                 <Space align="center">
-                  <Typography.Text type="secondary">
-                    Go to page:
-                  </Typography.Text>
+                  <Text type="secondary">Go to page:</Text>
                   <InputNumber
                     min={1}
                     max={Math.ceil(total / pageSize)}
@@ -1372,69 +1247,55 @@ export const HealthCheckResultHistory: React.FC = () => {
                   />
                 </Space>
               </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        {/* Export Config Modal - Keep existing implementation */}
-        <Modal
-          title={
-            <Title level={4} style={{ margin: 0 }}>
-              Export Configuration
-            </Title>
-          }
-          open={showExportConfigModal}
-          onCancel={closeConfigModal}
-          width={800}
-          footer={[
-            <Button key="cancel" onClick={closeConfigModal}>
-              Cancel
-            </Button>,
-            <Button
-              key="submit"
-              type="primary"
-              loading={exportLoading}
-              onClick={handleExportWithConfig}
-            >
-              Export
-            </Button>,
-          ]}
-        >
-          {/* Keep existing Form implementation */}
-          <Form
-            form={form}
-            layout="vertical"
-            initialValues={exportConfig}
-            onValuesChange={handleExportConfigChange}
-          >
-            {/* Keep existing form content */}
-            <Row gutter={[16, 8]}>
-              {/* Keep export configuration options */}
-              {/* ... existing form fields ... */}
             </Row>
-          </Form>
-        </Modal>
+          </Card>
+        </div>
+      ) : (
+        <Card className="shadow mb-4" style={{ borderRadius: "8px" }}>
+          <Empty description="No health check result history found" />
+        </Card>
+      )}
 
-        {/* Add Filter Modal */}
-        <HistoryFilterModal
-          visible={filterModalVisible}
-          onCancel={() => setFilterModalVisible(false)}
-          onApply={handleApplyFilters}
-          onReset={handleResetFilters}
-          filters={{
-            healthCheckResultCode,
-            action,
-            actionDateRange,
-            performedBySearch,
-            previousStatus,
-            newStatus,
-            sortBy,
-            ascending,
-          }}
-          uniqueHealthCheckCodes={uniqueHealthCheckCodes}
-          uniquePerformers={uniquePerformers}
-        />
-      </div>
-    </Fragment>
+      {/* Replace the old export modal with the new component */}
+      <HealthCheckResultHistoryExportModal
+        visible={showExportConfigModal}
+        exportLoading={exportLoading}
+        exportConfig={exportConfig}
+        form={form}
+        uniqueHealthCheckCodes={uniqueHealthCheckCodes}
+        uniquePerformers={uniquePerformers}
+        healthCheckResultCode={healthCheckResultCode}
+        performedBySearch={performedBySearch}
+        action={action}
+        actionDateRange={actionDateRange}
+        previousStatus={previousStatus}
+        newStatus={newStatus}
+        sortBy={sortBy}
+        ascending={ascending}
+        onClose={closeConfigModal}
+        onExport={handleExportWithConfig}
+        handleExportConfigChange={handleExportConfigChange}
+      />
+
+      {/* Keep Filter Modal */}
+      <HistoryFilterModal
+        visible={filterModalVisible}
+        onCancel={() => setFilterModalVisible(false)}
+        onApply={handleApplyFilters}
+        onReset={handleResetFilters}
+        filters={{
+          healthCheckResultCode,
+          action,
+          actionDateRange,
+          performedBySearch,
+          previousStatus,
+          newStatus,
+          sortBy,
+          ascending,
+        }}
+        uniqueHealthCheckCodes={uniqueHealthCheckCodes}
+        uniquePerformers={uniquePerformers}
+      />
+    </div>
   );
 };

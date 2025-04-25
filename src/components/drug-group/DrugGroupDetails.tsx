@@ -34,8 +34,9 @@ import ExportConfigModal, {
   DrugGroupExportConfigWithUI,
 } from "./ExportConfigModal";
 import { DrugGroupAdvancedFilters } from "./DrugGroupFilterModal";
+import DrugListInGroup from "./DrugListInGroup";
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 const { Option } = Select;
 
 interface DrugGroupDetailsProps {
@@ -80,12 +81,17 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
         fetchData(router.query.id);
       }
     }
-    
+
     // Check if edit mode is requested via URL query parameter
-    if (router.query.edit === 'true') {
+    if (router.query.edit === "true") {
       setIsEditing(true);
     }
   }, [id, router.query.id, router.query.edit, initialData]);
+
+  // Log the drug group ID when it changes
+  useEffect(() => {
+    console.log("Drug Group ID for drugs list:", id || router.query.id);
+  }, [id, router.query.id]);
 
   const fetchData = async (dataId?: string) => {
     const idToUse = dataId || id;
@@ -112,7 +118,7 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
 
       console.log("Processed Drug Group Data:", groupData);
       setDrugGroup(groupData);
-      
+
       // Initialize form with data
       form.setFieldsValue({
         groupName: groupData.groupName,
@@ -138,7 +144,7 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
     if (!dateString) return "-";
     return dayjs(dateString).format("DD/MM/YYYY HH:mm:ss");
   };
-  
+
   const toggleEdit = () => {
     if (!isEditing && drugGroup) {
       // Set form values when entering edit mode
@@ -147,17 +153,28 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
         description: drugGroup.description || "",
         status: drugGroup.status || "Active",
       });
+
+      // Add edit=true to URL when entering edit mode
+      router.push(`/drug-group/${id || router.query.id}?edit=true`, undefined, {
+        shallow: true,
+      });
+    } else {
+      // Remove edit=true from URL when canceling edit mode
+      router.push(`/drug-group/${id || router.query.id}`, undefined, {
+        shallow: true,
+      });
     }
+
     setIsEditing(!isEditing);
   };
-  
+
   const handleSave = async () => {
     if (!drugGroup) return;
-    
+
     try {
       const values = await form.validateFields();
       setSubmitting(true);
-      
+
       const requestData: DrugGroupUpdateRequest = {
         groupName: values.groupName,
         description: values.description || "",
@@ -165,12 +182,14 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
         updatedAt: new Date().toISOString(),
         status: values.status || drugGroup.status || "Active",
       };
-      
+
       const currentId = id || (router.query.id as string);
       const response = await updateDrugGroup(currentId, requestData);
-      
+
       if (response.isSuccess) {
-        messageApi.success(response.message || "Drug group updated successfully");
+        messageApi.success(
+          response.message || "Drug group updated successfully"
+        );
         // Refresh data after update
         fetchData(currentId);
         setIsEditing(false);
@@ -190,7 +209,9 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
       }
     } catch (errorInfo) {
       console.error("Form validation failed:", errorInfo);
-      messageApi.error("Failed to validate form. Please check your input and try again.");
+      messageApi.error(
+        "Failed to validate form. Please check your input and try again."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -236,7 +257,7 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
     <div>
       {contextHolder}
 
-      <div className="flex justify-between items-center p-4 border-b">
+      <div className="flex justify-between items-center p-4">
         <div className="flex items-center gap-2">
           <Button
             icon={<ArrowLeftOutlined />}
@@ -258,7 +279,7 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
               >
                 Save
               </Button>
-              <Button 
+              <Button
                 icon={<CloseOutlined />}
                 onClick={toggleEdit}
                 disabled={submitting}
@@ -267,28 +288,25 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
               </Button>
             </>
           ) : (
-            <Button
-              type="primary"
-              icon={<FormOutlined />}
-              onClick={toggleEdit}
-            >
-              Edit Drug Group
+            <Button type="primary" icon={<FormOutlined />} onClick={toggleEdit}>
+              Edit
             </Button>
           )}
         </div>
       </div>
 
-      <div className="p-6">
-        <Card className="mb-4">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="text-lg font-bold m-0">Group Information</h4>
-            {!isEditing && (
+      <div className="p-4">
+        <Card
+          className="mb-4"
+          title={<Title level={5}>Group Information</Title>}
+          extra={
+            !isEditing && (
               <Tag color={drugGroup.status === "Active" ? "success" : "error"}>
                 {drugGroup.status?.toUpperCase()}
               </Tag>
-            )}
-          </div>
-
+            )
+          }
+        >
           {isEditing ? (
             <Form form={form} layout="vertical">
               <Row gutter={[24, 24]}>
@@ -296,17 +314,16 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
                   <Form.Item
                     name="groupName"
                     label="Group Name"
-                    rules={[{ required: true, message: "Please enter group name" }]}
+                    rules={[
+                      { required: true, message: "Please enter group name" },
+                    ]}
                   >
                     <Input placeholder="Enter group name" />
                   </Form.Item>
                 </Col>
 
                 <Col xs={24} md={12}>
-                  <Form.Item
-                    name="status"
-                    label="Status"
-                  >
+                  <Form.Item name="status" label="Status">
                     <Select>
                       <Option value="Active">Active</Option>
                       <Option value="Inactive">Inactive</Option>
@@ -315,20 +332,14 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
                 </Col>
 
                 <Col xs={24}>
-                  <Form.Item
-                    name="description"
-                    label="Description"
-                  >
-                    <Input.TextArea
-                      rows={4}
-                      placeholder="Enter description"
-                    />
+                  <Form.Item name="description" label="Description">
+                    <Input.TextArea rows={4} placeholder="Enter description" />
                   </Form.Item>
                 </Col>
               </Row>
-              
+
               <Divider style={{ margin: "24px 0" }} />
-              
+
               <Row gutter={[24, 24]}>
                 <Col xs={24} md={12}>
                   <div className="border rounded p-4">
@@ -361,24 +372,17 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
 
                 <Col xs={24} md={12}>
                   <div className="border rounded p-4">
-                    <div className="text-gray-500 text-sm mb-1">Description</div>
+                    <div className="text-gray-500 text-sm mb-1">
+                      Description
+                    </div>
                     <div className="font-medium">
                       {drugGroup.description || "-"}
                     </div>
                   </div>
                 </Col>
-
-                <Col xs={24}>
-                  <div className="border rounded p-4">
-                    <div className="text-gray-500 text-sm mb-1">Address</div>
-                    <div className="font-medium">{"-"}</div>
-                  </div>
-                </Col>
               </Row>
 
-              <Divider style={{ margin: "24px 0" }} />
-
-              <Row gutter={[24, 24]}>
+              <Row gutter={[24, 24]} className="mt-6">
                 <Col xs={24} md={12}>
                   <div className="border rounded p-4">
                     <div className="text-gray-500 text-sm mb-1">Created At</div>
@@ -398,6 +402,22 @@ export const DrugGroupDetails: React.FC<DrugGroupDetailsProps> = ({
                 </Col>
               </Row>
             </>
+          )}
+        </Card>
+
+        <Card
+          className="mb-4"
+          title={<Title level={5}>Drugs in this Group</Title>}
+          extra={<Text type="secondary"></Text>}
+        >
+          {drugGroup && <DrugListInGroup drugGroupId={drugGroup.id} />}
+          {!drugGroup && (
+            <div className="py-4 text-center">
+              <Spin />
+              <p className="mt-2 text-gray-500">
+                Loading drug group details...
+              </p>
+            </div>
           )}
         </Card>
       </div>

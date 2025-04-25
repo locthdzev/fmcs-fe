@@ -24,8 +24,8 @@ import {
   Modal,
   DatePicker,
   Descriptions,
+  message,
 } from "antd";
-import { toast } from "react-toastify";
 import {
   getSoftDeletedHealthCheckResults,
   restoreSoftDeletedHealthCheckResults,
@@ -45,6 +45,7 @@ import {
   InboxOutlined,
   FileSearchOutlined,
   QuestionCircleOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import moment from "moment";
@@ -128,13 +129,12 @@ const FilterModal: React.FC<FilterModalProps> = ({
           <Col span={24}>
             <div className="filter-item" style={filterItemStyle}>
               <div className="filter-label" style={filterLabelStyle}>
-                Patient
+                User
               </div>
               <Input
                 placeholder="Search by patient"
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 allowClear
                 style={{ width: "100%" }}
               />
@@ -151,7 +151,6 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 placeholder="Search by doctor/nurse"
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 allowClear
                 style={{ width: "100%" }}
               />
@@ -222,6 +221,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
 // SoftDeletedHealthCheckResults Component
 export const SoftDeletedHealthCheckResults: React.FC = () => {
   const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
   const [healthCheckResults, setHealthCheckResults] = useState<
     HealthCheckResultsResponseDTO[]
   >([]);
@@ -239,6 +239,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
   const [checkupDateRange, setCheckupDateRange] = useState<
     [moment.Moment | null, moment.Moment | null]
   >([null, null]);
+  const [healthCheckCodes, setHealthCheckCodes] = useState<string[]>([]);
 
   // Column visibility state
   const [columnVisibility, setColumnVisibility] = useState<
@@ -251,6 +252,35 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
     actions: true,
   });
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Add this new function to fetch health check result codes
+  const fetchHealthCheckCodes = useCallback(async () => {
+    try {
+      const response = await getSoftDeletedHealthCheckResults(
+        1,
+        1000, // Get a large number to fetch all codes
+        undefined,
+        undefined,
+        "CheckupDate",
+        false
+      );
+
+      if (response.isSuccess) {
+        // Get unique result codes
+        const uniqueCodes = Array.from(
+          new Set(
+            response.data.map(
+              (result: HealthCheckResultsResponseDTO) =>
+                result.healthCheckResultCode
+            )
+          )
+        );
+        setHealthCheckCodes(uniqueCodes as string[]);
+      }
+    } catch (error) {
+      console.error("Error fetching health check codes:", error);
+    }
+  }, []);
 
   const fetchSoftDeletedHealthCheckResults = useCallback(async () => {
     setLoading(true);
@@ -315,12 +345,12 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
           setTotal(response.totalRecords);
         }
       } else {
-        toast.error(
+        messageApi.error(
           response.message || "Không thể tải danh sách kết quả khám đã xóa"
         );
       }
     } catch (error) {
-      toast.error("Không thể tải danh sách kết quả khám đã xóa");
+      messageApi.error("Không thể tải danh sách kết quả khám đã xóa");
     } finally {
       setLoading(false);
     }
@@ -333,24 +363,28 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
     ascending,
     codeSearch,
     checkupDateRange,
+    messageApi,
   ]);
 
   useEffect(() => {
     fetchSoftDeletedHealthCheckResults();
-  }, [fetchSoftDeletedHealthCheckResults]);
+    fetchHealthCheckCodes(); // Call fetchHealthCheckCodes when component mounts
+  }, [fetchSoftDeletedHealthCheckResults, fetchHealthCheckCodes]);
 
   const handleRestore = async (ids: string[]) => {
     try {
       const response = await restoreSoftDeletedHealthCheckResults(ids);
       if (response.isSuccess) {
-        toast.success("Khôi phục kết quả khám thành công!");
+        messageApi.success("Khôi phục kết quả khám thành công!");
         setSelectedRowKeys([]);
         fetchSoftDeletedHealthCheckResults();
       } else {
-        toast.error(response.message || "Không thể khôi phục kết quả khám");
+        messageApi.error(
+          response.message || "Không thể khôi phục kết quả khám"
+        );
       }
     } catch (error) {
-      toast.error("Không thể khôi phục kết quả khám");
+      messageApi.error("Không thể khôi phục kết quả khám");
     }
   };
 
@@ -434,7 +468,13 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
         </span>
       ),
       dataIndex: "healthCheckResultCode",
-      render: (code: string) => <Text copyable>{code}</Text>,
+      render: (text: string, record: HealthCheckResultsResponseDTO) => (
+        <Typography.Link
+          onClick={() => router.push(`/health-check-result/${record.id}`)}
+        >
+          {text}
+        </Typography.Link>
+      ),
       visible: columnVisibility.code,
     },
     {
@@ -462,13 +502,7 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Tooltip title="Click to view details">
-          <Typography.Link
-            onClick={() => router.push(`/health-check-result/${record.id}`)}
-          >
-            {formatDate(record.checkupDate)}
-          </Typography.Link>
-        </Tooltip>
+        <span>{formatDate(record.checkupDate)}</span>
       ),
       visible: columnVisibility.checkupDate,
     },
@@ -497,23 +531,34 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Space>
-          <Tooltip title="View details">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => router.push(`/health-check-result/${record.id}`)}
-            />
-          </Tooltip>
-          <Tooltip title="Restore">
-            <Button
-              type="text"
-              icon={<UndoOutlined />}
-              className="text-green-600"
-              onClick={() => handleRestore([record.id])}
-            />
-          </Tooltip>
-        </Space>
+        <div style={{ textAlign: "center" }}>
+          <Dropdown
+            overlay={
+              <Menu>
+                <Menu.Item
+                  key="view"
+                  icon={<EyeOutlined />}
+                  onClick={() =>
+                    router.push(`/health-check-result/${record.id}`)
+                  }
+                >
+                  View Details
+                </Menu.Item>
+
+                <Menu.Item
+                  key="restore"
+                  icon={<UndoOutlined style={{ color: "green" }} />}
+                  onClick={() => handleRestore([record.id])}
+                >
+                  <span style={{ color: "green" }}>Restore</span>
+                </Menu.Item>
+              </Menu>
+            }
+            placement="bottomCenter"
+          >
+            <Button icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </div>
       ),
       visible: columnVisibility.actions,
     },
@@ -532,367 +577,349 @@ export const SoftDeletedHealthCheckResults: React.FC = () => {
     checkupDateRange[1];
 
   return (
-    <div className="p-6">
-      {/* Header with Icon */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/health-check-result/management")}
-            style={{ marginRight: "8px" }}
-          >
-            Back
-          </Button>
-          <HealthInsuranceIcon />
-          <h3 className="text-xl font-bold">
-            Temporarily Deleted Health Check Results
-          </h3>
-        </div>
-      </div>
-
-      {/* Toolbar Card */}
-      <Card
-        className="shadow mb-4"
-        bodyStyle={{ padding: "16px" }}
-        title={
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "16px",
-            }}
-          >
-            <AppstoreOutlined />
-            <span>Toolbar</span>
-          </div>
-        }
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Code Filter */}
-            <Input
-              placeholder="Search by result code"
-              value={codeSearch}
-              onChange={(e) => setCodeSearch(e.target.value)}
-              prefix={<SearchOutlined style={{ color: "blue" }} />}
-              style={{ width: 200 }}
-              allowClear
-            />
-
-            {/* Filter Button */}
-            <Tooltip title="Advanced Filters">
-              <Button
-                icon={
-                  <FilterOutlined
-                    style={{
-                      color: isFilterApplied ? "#1890ff" : undefined,
-                    }}
-                  />
-                }
-                onClick={handleOpenFilterModal}
-              >
-                Filters
-                {isFilterApplied && (
-                  <Badge
-                    count="!"
-                    size="small"
-                    offset={[2, -2]}
-                    style={{ backgroundColor: "#1890ff" }}
-                  />
-                )}
-              </Button>
-            </Tooltip>
-
-            {/* Reset Button */}
-            <Tooltip title="Reset all filters">
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={handleReset}
-                disabled={!(codeSearch || isFilterApplied)}
-              >
-                Reset
-              </Button>
-            </Tooltip>
-
-            {/* Column Settings */}
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: "selectAll",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={areAllColumnsVisible()}
-                          onChange={(e) => toggleAllColumns(e.target.checked)}
-                        >
-                          <strong>Show all columns</strong>
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "divider",
-                    type: "divider",
-                  },
-                  {
-                    key: "code",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={columnVisibility.code}
-                          onChange={() => handleColumnVisibilityChange("code")}
-                        >
-                          Result Code
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "patient",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={columnVisibility.patient}
-                          onChange={() =>
-                            handleColumnVisibilityChange("patient")
-                          }
-                        >
-                          Patient
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "checkupDate",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={columnVisibility.checkupDate}
-                          onChange={() =>
-                            handleColumnVisibilityChange("checkupDate")
-                          }
-                        >
-                          Checkup Date
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "staff",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={columnVisibility.staff}
-                          onChange={() => handleColumnVisibilityChange("staff")}
-                        >
-                          Doctor / Nurse
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "actions",
-                    label: (
-                      <div onClick={handleMenuClick}>
-                        <Checkbox
-                          checked={columnVisibility.actions}
-                          onChange={() =>
-                            handleColumnVisibilityChange("actions")
-                          }
-                        >
-                          Actions
-                        </Checkbox>
-                      </div>
-                    ),
-                  },
-                ],
-                onClick: (e) => {
-                  // Prevent dropdown from closing
-                  e.domEvent.stopPropagation();
-                },
-              }}
-              trigger={["hover", "click"]}
-              placement="bottomRight"
-              arrow
-              open={dropdownOpen}
-              onOpenChange={handleDropdownVisibleChange}
-              mouseEnterDelay={0.1}
-              mouseLeaveDelay={0.3}
+    <>
+      {contextHolder}
+      <div className="p-6">
+        {/* Header with Icon */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={() => router.push("/health-check-result/management")}
+              style={{ marginRight: "8px" }}
             >
-              <Tooltip title="Column settings">
-                <Button icon={<SettingOutlined />}>Columns</Button>
-              </Tooltip>
-            </Dropdown>
+              Back
+            </Button>
+            <HealthInsuranceIcon />
+            <h3 className="text-xl font-bold">
+              Temporarily Deleted Health Check Results
+            </h3>
           </div>
         </div>
 
-        {/* Applied Filter Tags */}
-        {isFilterApplied && (
-          <div className="mt-2">
-            <Space wrap>
-              <Text type="secondary">Applied filters:</Text>
-              {userSearch && (
-                <Tag closable onClose={() => setUserSearch("")}>
-                  Patient: {userSearch}
-                </Tag>
-              )}
-              {staffSearch && (
-                <Tag closable onClose={() => setStaffSearch("")}>
-                  Doctor/Nurse: {staffSearch}
-                </Tag>
-              )}
-              {sortBy !== "CheckupDate" && (
-                <Tag closable onClose={() => setSortBy("CheckupDate")}>
-                  Sort by:{" "}
-                  {sortBy === "CreatedAt" ? "Created Date" : "Updated Date"}
-                </Tag>
-              )}
-              {ascending !== false && (
-                <Tag closable onClose={() => setAscending(false)}>
-                  Order: Ascending
-                </Tag>
-              )}
-              {checkupDateRange[0] && (
-                <Tag closable onClose={() => setCheckupDateRange([null, null])}>
-                  Checkup Date:{" "}
-                  {formatDate(checkupDateRange[0].format("YYYY-MM-DD"))}
-                  {checkupDateRange[1] &&
-                    ` to ${formatDate(
-                      checkupDateRange[1].format("YYYY-MM-DD")
-                    )}`}
-                </Tag>
-              )}
-            </Space>
-          </div>
-        )}
-      </Card>
-
-      {/* Rows Per Page Control */}
-      <div className="flex justify-end mb-4">
-        <Space align="center">
-          <Text type="secondary">Dòng mỗi trang:</Text>
-          <Select
-            value={pageSize}
-            onChange={(value) => {
-              setPageSize(value);
-              setCurrentPage(1);
-            }}
-            style={{ width: 70 }}
-          >
-            <Option value={5}>5</Option>
-            <Option value={10}>10</Option>
-            <Option value={15}>15</Option>
-            <Option value={20}>20</Option>
-          </Select>
-        </Space>
-      </div>
-
-      {/* Bulk Action Bar */}
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          {selectedRowKeys.length > 0 && (
-            <Space>
-              <Typography.Text>
-                {selectedRowKeys.length} mục đã chọn
-              </Typography.Text>
-              <Popconfirm
-                title="Bạn có chắc chắn muốn khôi phục các kết quả khám đã chọn?"
-                onConfirm={() => handleRestore(selectedRowKeys as string[])}
-                okText="Xác nhận"
-                cancelText="Hủy"
-              >
-                <Button type="primary" icon={<UndoOutlined />}>
-                  Khôi phục
-                </Button>
-              </Popconfirm>
-            </Space>
-          )}
-        </div>
-      </div>
-
-      {/* Table Card */}
-      <Card className="shadow-sm">
-        <Table
-          columns={columns}
-          dataSource={healthCheckResults}
-          loading={loading}
-          pagination={false}
-          rowKey="id"
-          rowSelection={{
-            selectedRowKeys,
-            onChange: (keys) => setSelectedRowKeys(keys),
-          }}
-          locale={{
-            emptyText: (
-              <div className="flex flex-col items-center p-8">
-                <InboxOutlined style={{ fontSize: 40, marginBottom: 16 }} />
-                <Text strong>No deleted health check results found</Text>
-                <Text type="secondary">
-                  There are no deleted health check results matching your search
-                  criteria
-                </Text>
-              </div>
-            ),
-          }}
-          className="border rounded-lg"
-        />
-      </Card>
-
-      {/* Pagination Card */}
-      <Card className="mt-4 shadow-sm">
-        <Row justify="center" align="middle">
-          <Space size="large" align="center">
-            <Typography.Text type="secondary">
-              Total {total} deleted health check results
-            </Typography.Text>
-            <Space align="center" size="large">
-              <Pagination
-                current={currentPage}
-                total={total}
-                pageSize={pageSize}
-                onChange={setCurrentPage}
-                showSizeChanger={false}
-                showTotal={(totalItems) => `${totalItems} items`}
+        {/* Toolbar Card */}
+        <Card
+          className="shadow mb-4"
+          bodyStyle={{ padding: "16px" }}
+          title={
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "16px",
+              }}
+            >
+              <AppstoreOutlined />
+              <span>Toolbar</span>
+            </div>
+          }
+        >
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Replace Input with Select for result code search */}
+              <Select
+                placeholder="Search by result code"
+                value={codeSearch || undefined}
+                onChange={(value) => setCodeSearch(value)}
+                allowClear
+                showSearch
+                style={{ width: 250 }}
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                options={healthCheckCodes.map((code) => ({
+                  value: code,
+                  label: code,
+                }))}
               />
-              <Space align="center">
-                <Typography.Text type="secondary">Go to page:</Typography.Text>
-                <InputNumber
-                  min={1}
-                  max={Math.ceil(total / pageSize)}
-                  value={currentPage}
-                  onChange={(value: number | null) => {
-                    if (
-                      value &&
-                      Number(value) > 0 &&
-                      Number(value) <= Math.ceil(total / pageSize)
-                    ) {
-                      setCurrentPage(Number(value));
-                    }
-                  }}
-                  style={{ width: "60px" }}
+
+              {/* Filter Button */}
+              <Tooltip title="Advanced Filters">
+                <Button
+                  icon={
+                    <FilterOutlined
+                      style={{
+                        color: isFilterApplied ? "#1890ff" : undefined,
+                      }}
+                    />
+                  }
+                  onClick={handleOpenFilterModal}
+                >
+                  Filters
+                  {isFilterApplied && (
+                    <Badge
+                      size="small"
+                      offset={[2, -2]}
+                      style={{ backgroundColor: "#1890ff" }}
+                    />
+                  )}
+                </Button>
+              </Tooltip>
+
+              {/* Reset Button */}
+              <Tooltip title="Reset all filters">
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={handleReset}
+                  disabled={!(codeSearch || isFilterApplied)}
+                >
+                  Reset
+                </Button>
+              </Tooltip>
+
+              {/* Column Settings */}
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: "selectAll",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={areAllColumnsVisible()}
+                            onChange={(e) => toggleAllColumns(e.target.checked)}
+                          >
+                            <strong>Show all columns</strong>
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "divider",
+                      type: "divider",
+                    },
+                    {
+                      key: "code",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.code}
+                            onChange={() =>
+                              handleColumnVisibilityChange("code")
+                            }
+                          >
+                            Result Code
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "patient",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.patient}
+                            onChange={() =>
+                              handleColumnVisibilityChange("patient")
+                            }
+                          >
+                            User
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "checkupDate",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.checkupDate}
+                            onChange={() =>
+                              handleColumnVisibilityChange("checkupDate")
+                            }
+                          >
+                            Checkup Date
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "staff",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.staff}
+                            onChange={() =>
+                              handleColumnVisibilityChange("staff")
+                            }
+                          >
+                            Doctor / Nurse
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "actions",
+                      label: (
+                        <div onClick={handleMenuClick}>
+                          <Checkbox
+                            checked={columnVisibility.actions}
+                            onChange={() =>
+                              handleColumnVisibilityChange("actions")
+                            }
+                          >
+                            Actions
+                          </Checkbox>
+                        </div>
+                      ),
+                    },
+                  ],
+                  onClick: (e) => {
+                    // Prevent dropdown from closing
+                    e.domEvent.stopPropagation();
+                  },
+                }}
+                trigger={["hover", "click"]}
+                placement="bottomRight"
+                arrow
+                open={dropdownOpen}
+                onOpenChange={handleDropdownVisibleChange}
+                mouseEnterDelay={0.1}
+                mouseLeaveDelay={0.3}
+              >
+                <Tooltip title="Column settings">
+                  <Button icon={<SettingOutlined />}>Columns</Button>
+                </Tooltip>
+              </Dropdown>
+            </div>
+          </div>
+        </Card>
+
+        {/* Rows Per Page Control */}
+        <div className="flex justify-end mb-4">
+          <Space align="center">
+            <Text type="secondary">Dòng mỗi trang:</Text>
+            <Select
+              value={pageSize}
+              onChange={(value) => {
+                setPageSize(value);
+                setCurrentPage(1);
+              }}
+              style={{ width: 70 }}
+            >
+              <Option value={5}>5</Option>
+              <Option value={10}>10</Option>
+              <Option value={15}>15</Option>
+              <Option value={20}>20</Option>
+            </Select>
+          </Space>
+        </div>
+
+        {/* Bulk Action Bar */}
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            {selectedRowKeys.length > 0 && (
+              <Space>
+                <Typography.Text>
+                  {selectedRowKeys.length} items selected
+                </Typography.Text>
+                <Popconfirm
+                  title="Are you sure you want to restore the selected examination results?"
+                  onConfirm={() => handleRestore(selectedRowKeys as string[])}
+                  okText="Confirm"
+                  cancelText="Cancel"
+                >
+                  <Button
+                    type="default"
+                    icon={<UndoOutlined style={{ color: "green" }} />}
+                    style={{ color: "green", borderColor: "green" }}
+                  >
+                    Restore
+                  </Button>
+                </Popconfirm>
+              </Space>
+            )}
+          </div>
+        </div>
+
+        {/* Table Card */}
+        <Card className="shadow-sm">
+          <Table
+            columns={columns}
+            dataSource={healthCheckResults}
+            loading={loading}
+            pagination={false}
+            rowKey="id"
+            rowSelection={{
+              selectedRowKeys,
+              onChange: (keys) => setSelectedRowKeys(keys),
+            }}
+            locale={{
+              emptyText: (
+                <div className="flex flex-col items-center p-8">
+                  <InboxOutlined style={{ fontSize: 40, marginBottom: 16 }} />
+                  <Text strong>No deleted health check results found</Text>
+                  <Text type="secondary">
+                    There are no deleted health check results matching your
+                    search criteria
+                  </Text>
+                </div>
+              ),
+            }}
+            className="border rounded-lg"
+          />
+        </Card>
+
+        {/* Pagination Card */}
+        <Card className="mt-4 shadow-sm">
+          <Row justify="center" align="middle">
+            <Space size="large" align="center">
+              <Typography.Text type="secondary">
+                Total {total} deleted health check results
+              </Typography.Text>
+              <Space align="center" size="large">
+                <Pagination
+                  current={currentPage}
+                  total={total}
+                  pageSize={pageSize}
+                  onChange={setCurrentPage}
+                  showSizeChanger={false}
+                  showTotal={(totalItems) => `${totalItems} items`}
                 />
+                <Space align="center">
+                  <Typography.Text type="secondary">
+                    Go to page:
+                  </Typography.Text>
+                  <InputNumber
+                    min={1}
+                    max={Math.ceil(total / pageSize)}
+                    value={currentPage}
+                    onChange={(value: number | null) => {
+                      if (
+                        value &&
+                        Number(value) > 0 &&
+                        Number(value) <= Math.ceil(total / pageSize)
+                      ) {
+                        setCurrentPage(Number(value));
+                      }
+                    }}
+                    style={{ width: "60px" }}
+                  />
+                </Space>
               </Space>
             </Space>
-          </Space>
-        </Row>
-      </Card>
+          </Row>
+        </Card>
 
-      {/* Filter Modal */}
-      <FilterModal
-        visible={filterModalVisible}
-        onCancel={() => setFilterModalVisible(false)}
-        onApply={handleApplyFilters}
-        onReset={handleResetFilters}
-        filters={{
-          userSearch,
-          staffSearch,
-          sortBy,
-          ascending,
-          checkupDateRange,
-        }}
-      />
-    </div>
+        {/* Filter Modal */}
+        <FilterModal
+          visible={filterModalVisible}
+          onCancel={() => setFilterModalVisible(false)}
+          onApply={handleApplyFilters}
+          onReset={handleResetFilters}
+          filters={{
+            userSearch,
+            staffSearch,
+            sortBy,
+            ascending,
+            checkupDateRange,
+          }}
+        />
+      </div>
+    </>
   );
 };

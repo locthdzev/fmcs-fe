@@ -34,6 +34,7 @@ import {
   getMergeableBatchGroups,
   getAllBatchNumbersWithoutPagination,
 } from "@/api/batchnumber";
+import { getInventoryRecordsByBatchId } from "@/api/inventoryrecord";
 import { exportToExcel } from "@/api/export";
 import EditBatchNumberModal from "./EditBatchNumberModal";
 import MergeBatchNumbersModal from "./MergeBatchNumbersModal";
@@ -110,6 +111,9 @@ export function BatchNumberManagement() {
   
   // Dropdown open state
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // State to store inventory information for each batch number
+  const [batchInventoryMap, setBatchInventoryMap] = useState<{ [key: string]: number }>({});
 
   const fetchBatchNumbers = useCallback(async () => {
     try {
@@ -222,6 +226,39 @@ export function BatchNumberManagement() {
     }
   }, [messageApi]);
 
+  // New function to fetch inventory records for each batch number
+  const fetchInventoryRecords = useCallback(async (batchNumbers: BatchNumberResponseDTO[]) => {
+    try {
+      const inventoryMap: { [key: string]: number } = {};
+      
+      // Use Promise.all to fetch inventory records for all batch numbers in parallel
+      await Promise.all(
+        batchNumbers.map(async (batch) => {
+          try {
+            const inventoryRecord = await getInventoryRecordsByBatchId(batch.id);
+            // If inventory record exists, store the quantityInStock
+            if (inventoryRecord && inventoryRecord.length > 0) {
+              inventoryMap[batch.id] = inventoryRecord[0].quantityInStock;
+            } else {
+              inventoryMap[batch.id] = 0; // Default to 0 if no inventory record found
+            }
+          } catch (error) {
+            console.error(`Error fetching inventory for batch ${batch.id}:`, error);
+            inventoryMap[batch.id] = 0; // Default to 0 on error
+          }
+        })
+      );
+      
+      setBatchInventoryMap(inventoryMap);
+    } catch (error) {
+      console.error("Error fetching inventory records:", error);
+      messageApi.error({
+        content: "Unable to load inventory information.",
+        duration: 5,
+      });
+    }
+  }, [messageApi]);
+
   // Replace the existing extractUniqueOptions with fetchAllFilterOptions
   useEffect(() => {
     // Fetch batch numbers for current page
@@ -246,6 +283,13 @@ export function BatchNumberManagement() {
       connection.stop();
     };
   }, [fetchBatchNumbers, fetchMergeableGroups, fetchAllFilterOptions, fetchAllBatchCodes]);
+
+  // Modified useEffect to fetch inventory records when batch numbers change
+  useEffect(() => {
+    if (batchNumbers.length > 0) {
+      fetchInventoryRecords(batchNumbers);
+    }
+  }, [batchNumbers, fetchInventoryRecords]);
 
   const handleToggleStatus = async (id: string, isActive: boolean) => {
     const batch = batchNumbers.find((b) => b.id === id);
@@ -917,22 +961,27 @@ export function BatchNumberManagement() {
               title="TOGGLE"
               key="toggle"
               align="center"
-              render={(_, record: BatchNumberResponseDTO) => (
-                <Switch
-                  checked={
-                    record.status === "Priority" ||
-                    record.status === "Active" ||
-                    record.status === "NearExpiry"
-                  }
-                  disabled={
-                    !record.manufacturingDate ||
-                    !record.expiryDate ||
-                    record.status === "Expired"
-                  }
-                  loading={loadingActions[record.id]}
-                  onChange={(checked) => handleToggleStatus(record.id, checked)}
-                />
-              )}
+              render={(_, record: BatchNumberResponseDTO) => {
+                // Get the inventory quantity for this batch
+                const inventoryQuantity = batchInventoryMap[record.id] || 0;
+                
+                return (
+                  <Switch
+                    checked={
+                      record.status === "Priority" ||
+                      record.status === "Active" ||
+                      record.status === "NearExpiry"
+                    }
+                    disabled={
+                      !record.manufacturingDate ||
+                      !record.expiryDate ||
+                      record.status === "Expired"
+                    }
+                    loading={loadingActions[record.id]}
+                    onChange={(checked) => handleToggleStatus(record.id, checked)}
+                  />
+                );
+              }}
               hidden={!columnVisibility.toggle}
             />
             <Column

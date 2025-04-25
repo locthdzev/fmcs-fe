@@ -8,8 +8,8 @@ import {
   Button,
   Spin,
   Typography,
+  message,
 } from "antd";
-import { toast } from "react-toastify";
 import moment from "moment-timezone";
 import Cookies from "js-cookie";
 import {
@@ -38,6 +38,7 @@ const UpdateAppointmentModal: React.FC<UpdateAppointmentModalProps> = ({
   onUpdateSuccess,
 }) => {
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<TimeSlotDTO[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -57,7 +58,7 @@ const UpdateAppointmentModal: React.FC<UpdateAppointmentModalProps> = ({
         setAvailableSlots(response.data?.availableSlots || []);
       } catch (error: any) {
         console.error("Failed to fetch slots:", error);
-        toast.error("Failed to load available slots.");
+        messageApi.error("Failed to load available slots.");
       } finally {
         setLoading(false);
       }
@@ -97,7 +98,7 @@ const UpdateAppointmentModal: React.FC<UpdateAppointmentModalProps> = ({
 
   const onFinish = async (values: any) => {
     if (!token || !appointment) {
-      toast.error("Authentication token or appointment data missing.");
+      messageApi.error("Authentication token or appointment data missing.");
       return;
     }
 
@@ -130,16 +131,16 @@ const UpdateAppointmentModal: React.FC<UpdateAppointmentModalProps> = ({
         request
       );
       if (response.isSuccess) {
-        toast.success("Appointment updated successfully!");
+        messageApi.success("Appointment updated successfully!");
         form.resetFields();
         onUpdateSuccess(); // Refresh the appointment list
         onClose();
       } else {
-        toast.error(`Failed to update: ${response.message || "Unknown error"}`);
+        messageApi.error(`Failed to update: ${response.message || "Unknown error"}`);
       }
     } catch (error: any) {
       console.error("Error updating appointment:", error);
-      toast.error("Failed to update appointment.");
+      messageApi.error("Failed to update appointment.");
     } finally {
       setLoading(false);
     }
@@ -153,6 +154,7 @@ const UpdateAppointmentModal: React.FC<UpdateAppointmentModalProps> = ({
       footer={null}
       width={600}
     >
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"
@@ -161,7 +163,7 @@ const UpdateAppointmentModal: React.FC<UpdateAppointmentModalProps> = ({
       >
         <Form.Item
           name="email"
-          label="Student/User Email"
+          label="User"
           rules={[
             { required: true, message: "Please enter the student/user Email" },
           ]}

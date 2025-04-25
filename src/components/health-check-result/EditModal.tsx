@@ -10,8 +10,8 @@ import {
   Divider,
   Space,
   Typography,
+  message,
 } from "antd";
-import { toast } from "react-toastify";
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import {
@@ -48,6 +48,7 @@ const EditModal: React.FC<EditModalProps> = ({
   staffOptions,
 }) => {
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [followUpRequired, setFollowUpRequired] = useState(false);
   const [healthCheckResultDetails, setHealthCheckResultDetails] = useState<
@@ -86,11 +87,11 @@ const EditModal: React.FC<EditModalProps> = ({
               ) || [{}],
             });
           } else {
-            toast.error(response.message || "Không thể tải thông tin chi tiết");
+            messageApi.error(response.message || "Không thể tải thông tin chi tiết");
           }
         } catch (error) {
           console.error("Error fetching health check result details:", error);
-          toast.error("Không thể tải thông tin chi tiết");
+          messageApi.error("Không thể tải thông tin chi tiết");
         } finally {
           setLoading(false);
         }
@@ -107,7 +108,7 @@ const EditModal: React.FC<EditModalProps> = ({
 
       // Đảm bảo có đủ thông tin cần thiết
       if (!healthCheckResult?.id) {
-        toast.error("Thiếu ID kết quả khám");
+        messageApi.error("Thiếu ID kết quả khám");
         setLoading(false);
         return;
       }
@@ -134,16 +135,16 @@ const EditModal: React.FC<EditModalProps> = ({
       );
 
       if (response.isSuccess) {
-        toast.success("Cập nhật kết quả khám thành công!");
+        messageApi.success("Cập nhật kết quả khám thành công!");
         form.resetFields();
         onClose();
         onSuccess();
       } else {
-        toast.error(response.message || "Không thể cập nhật kết quả khám");
+        messageApi.error(response.message || "Không thể cập nhật kết quả khám");
       }
     } catch (error) {
       console.error("Form validation error:", error);
-      toast.error("Vui lòng kiểm tra lại thông tin đã nhập");
+      messageApi.error("Vui lòng kiểm tra lại thông tin đã nhập");
     } finally {
       setLoading(false);
     }
@@ -174,6 +175,7 @@ const EditModal: React.FC<EditModalProps> = ({
         </Button>,
       ]}
     >
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"

@@ -22,8 +22,8 @@ import {
   Modal,
   Form,
   InputNumber,
+  message,
 } from "antd";
-import { toast } from "react-toastify";
 import moment from "moment";
 import {
   getAllHealthCheckResults,
@@ -40,6 +40,7 @@ import {
   UndoOutlined,
   FileExcelOutlined,
   AppstoreOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import EditModal from "./EditModal";
@@ -132,7 +133,6 @@ const HealthCheckFilterModal: React.FC<{
                 placeholder="Search by patient"
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 allowClear
                 style={{ width: "100%" }}
               />
@@ -149,7 +149,6 @@ const HealthCheckFilterModal: React.FC<{
                 placeholder="Search by medical staff"
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
-                prefix={<SearchOutlined style={{ color: "blue" }} />}
                 allowClear
                 style={{ width: "100%" }}
               />
@@ -220,6 +219,7 @@ const HealthCheckFilterModal: React.FC<{
 
 export const HealthCheckResultAdjustmentList: React.FC = () => {
   const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
   const [healthCheckResults, setHealthCheckResults] = useState<
     HealthCheckResultsResponseDTO[]
   >([]);
@@ -244,6 +244,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
     { id: string; fullName: string; email: string }[]
   >([]);
   const [codeSearch, setCodeSearch] = useState("");
+  const [healthCheckCodes, setHealthCheckCodes] = useState<string[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
@@ -287,13 +288,13 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         setHealthCheckResults(response.data);
         setTotal(response.totalRecords);
       } else {
-        toast.error(
+        messageApi.error(
           response.message ||
             "Failed to load health check results cancelled for adjustment"
         );
       }
     } catch (error) {
-      toast.error(
+      messageApi.error(
         "Failed to load health check results cancelled for adjustment"
       );
     } finally {
@@ -310,9 +311,42 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
     checkupDateRange,
   ]);
 
+  const fetchHealthCheckCodes = useCallback(async () => {
+    try {
+      const response = await getAllHealthCheckResults(
+        1,
+        1000, // Lấy số lượng lớn để có thể lấy hết mã
+        undefined,
+        undefined,
+        undefined,
+        "CancelledDate",
+        false,
+        "CancelledForAdjustment",
+        undefined,
+        undefined
+      );
+
+      if (response.success) {
+        // Lấy danh sách mã không trùng lặp
+        const uniqueCodes = Array.from(
+          new Set(
+            response.data.map(
+              (result: HealthCheckResultsResponseDTO) =>
+                result.healthCheckResultCode
+            )
+          )
+        );
+        setHealthCheckCodes(uniqueCodes as string[]);
+      }
+    } catch (error) {
+      console.error("Error fetching health check codes:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchHealthCheckResults();
-  }, [fetchHealthCheckResults]);
+    fetchHealthCheckCodes(); // Gọi hàm lấy mã khi component mount
+  }, [fetchHealthCheckResults, fetchHealthCheckCodes]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -351,7 +385,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         );
       } catch (error) {
         console.error("Failed to fetch users:", error);
-        toast.error("Không thể tải danh sách người dùng");
+        messageApi.error("Không thể tải danh sách người dùng");
       }
     };
 
@@ -441,7 +475,11 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Text copyable>{record.healthCheckResultCode}</Text>
+        <Typography.Link
+          onClick={() => router.push(`/health-check-result/${record.id}`)}
+        >
+          {record.healthCheckResultCode}
+        </Typography.Link>
       ),
       visible: columnVisibility.code,
     },
@@ -529,24 +567,34 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Space>
-          <Tooltip title="View Details">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => router.push(`/health-check-result/${record.id}`)}
-            />
-          </Tooltip>
+        <div style={{ textAlign: "center" }}>
+          <Dropdown
+            overlay={
+              <Menu>
+                <Menu.Item
+                  key="view"
+                  icon={<EyeOutlined />}
+                  onClick={() =>
+                    router.push(`/health-check-result/${record.id}`)
+                  }
+                >
+                  View Details
+                </Menu.Item>
 
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<FormOutlined />}
-              onClick={() => handleEdit(record)}
-              className="text-blue-600"
-            />
-          </Tooltip>
-        </Space>
+                <Menu.Item
+                  key="edit"
+                  icon={<FormOutlined style={{ color: "blue" }} />}
+                  onClick={() => handleEdit(record)}
+                >
+                  <span style={{ color: "blue" }}>Edit</span>
+                </Menu.Item>
+              </Menu>
+            }
+            placement="bottomCenter"
+          >
+            <Button icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </div>
       ),
       visible: columnVisibility.actions,
     },
@@ -565,6 +613,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
 
   return (
     <div className="p-6">
+      {contextHolder}
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -601,14 +650,24 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex flex-wrap items-center gap-4">
-            {/* Code Filter */}
-            <Input
+            {/* Thay thế Input bằng Select */}
+            <Select
               placeholder="Search by result code"
-              value={codeSearch}
-              onChange={(e) => setCodeSearch(e.target.value)}
-              prefix={<SearchOutlined style={{ color: "blue" }} />}
-              style={{ width: 200 }}
+              value={codeSearch || undefined}
+              onChange={(value) => setCodeSearch(value)}
               allowClear
+              showSearch
+              style={{ width: 250 }}
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              options={healthCheckCodes.map((code) => ({
+                value: code,
+                label: code,
+              }))}
             />
 
             {/* Filter Button */}
@@ -690,7 +749,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
                             handleColumnVisibilityChange("patient")
                           }
                         >
-                          Patient
+                          User
                         </Checkbox>
                       </div>
                     ),
@@ -806,38 +865,6 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
             </Typography.Text>
           </div>
         </div>
-
-        {/* Applied Filters Display */}
-        {isFilterApplied && (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {userSearch && (
-              <Tag closable onClose={() => setUserSearch("")}>
-                Patient: {userSearch}
-              </Tag>
-            )}
-            {staffSearch && (
-              <Tag closable onClose={() => setStaffSearch("")}>
-                Staff: {staffSearch}
-              </Tag>
-            )}
-            {checkupDateRange[0] && checkupDateRange[1] && (
-              <Tag closable onClose={() => setCheckupDateRange([null, null])}>
-                Checkup Date: {formatDate(checkupDateRange[0]?.toString())} to{" "}
-                {formatDate(checkupDateRange[1]?.toString())}
-              </Tag>
-            )}
-            {sortBy !== "CancelledDate" && (
-              <Tag closable onClose={() => setSortBy("CancelledDate")}>
-                Sort by: {sortBy}
-              </Tag>
-            )}
-            {ascending !== false && (
-              <Tag closable onClose={() => setAscending(false)}>
-                Order: Ascending
-              </Tag>
-            )}
-          </div>
-        )}
       </Card>
 
       {/* Results Table */}

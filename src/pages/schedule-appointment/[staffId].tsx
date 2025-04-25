@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { CalendarOutlined } from "@ant-design/icons";
+import {
+  CalendarOutlined,
+  LeftOutlined,
+  RightOutlined,
+} from "@ant-design/icons";
 import { GetServerSideProps } from "next";
 import { debounce } from "lodash";
 import { v4 as uuidv4 } from "uuid";
@@ -9,7 +13,7 @@ import {
   AppointmentCreateRequestDTO,
   scheduleAppointment,
   getAvailableTimeSlots,
-  getAvailableSlotCount,
+  getAvailableSlotCountWithSchedule,
   validateAppointmentRequest,
   confirmAppointment,
   AvailableOfficersResponseDTO,
@@ -21,7 +25,19 @@ import {
   cancelPresentLockedAppointment,
   cancelExpiredLockedAppointment,
 } from "@/api/appointment-api-fix-signalr";
-import { Button, Spin, Typography, Row, Col, Input, message } from "antd";
+import {
+  Button,
+  Spin,
+  Typography,
+  Row,
+  Col,
+  Input,
+  message,
+  Tag,
+  Card,
+  Space,
+  Alert,
+} from "antd";
 import {
   setupScheduleAppointmentLockedRealtime,
   setupCancelAppointmentRealtime,
@@ -87,6 +103,25 @@ interface StaffWorkSchedule {
   dayOfWeek?: string;
 }
 
+// Biến dates toàn cục
+const generateDateArray = () => {
+  const datesArray = [];
+  const today = moment().startOf("day");
+  const endDate = moment().add(30, "days").startOf("day");
+
+  // Loop through each day in the range
+  let currentDate = today.clone();
+  while (currentDate.isSameOrBefore(endDate)) {
+    // Skip Sundays
+    if (currentDate.day() !== 0) {
+      datesArray.push(currentDate.format("YYYY-MM-DD"));
+    }
+    currentDate.add(1, "days");
+  }
+
+  return datesArray;
+};
+
 const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
   staff,
   token,
@@ -112,9 +147,13 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
   const [appointmentReason, setAppointmentReason] = useState<string>("");
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
-  const [staffWorkSchedules, setStaffWorkSchedules] = useState<StaffWorkSchedule[]>([]);
+  const [staffWorkSchedules, setStaffWorkSchedules] = useState<
+    StaffWorkSchedule[]
+  >([]);
   const [workScheduleLoading, setWorkScheduleLoading] = useState(false);
-  const [availableWorkDates, setAvailableWorkDates] = useState<Set<string>>(new Set());
+  const [availableWorkDates, setAvailableWorkDates] = useState<Set<string>>(
+    new Set()
+  );
 
   const [isConflictModalVisible, setIsConflictModalVisible] = useState(false);
   const [conflictAppointment, setConflictAppointment] =
@@ -127,18 +166,25 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
   const schedulingInProgressRef = useRef(schedulingInProgress);
   const selectedTimeSlotRef = useRef(selectedTimeSlot);
   const appointmentIdRef = useRef(appointmentId);
+
+  // Thêm vào phần đầu của component
+  const [dates] = useState(generateDateArray());
+
   // Fetch available slots
   const fetchAvailableSlots = useCallback(
     debounce(async (date: string) => {
       if (!token || !userId || schedulingInProgress) return;
       setFetchingSlots(true);
       try {
+        // Sử dụng API getAvailableTimeSlots, đã xem xét lịch làm việc ở backend
         const response = await getAvailableTimeSlots(
           staff.staffId,
           date,
           token
         );
         const slotData = response.data?.availableSlots || [];
+
+        // Áp dụng trực tiếp dữ liệu từ API mà không lọc thêm, vì backend đã lọc theo lịch làm việc
         updateSlotsFromResponse(slotData);
 
         const userLockedSlot = slotData.find(
@@ -171,7 +217,121 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
         setFetchingSlots(false);
       }
     }, 50),
-    [staff.staffId, token, userId, schedulingInProgress, selectedTimeSlot, messageApi]
+    [
+      staff.staffId,
+      token,
+      userId,
+      schedulingInProgress,
+      selectedTimeSlot,
+      messageApi,
+    ]
+  );
+
+  // Pre-fetch slots for the first available date when component is loaded
+  useEffect(() => {
+    if (!selectedDate && staffWorkSchedules.length > 0 && !fetchingSlots) {
+      // Find the first available work date
+      const today = moment().format("YYYY-MM-DD");
+      const firstAvailableDate = staffWorkSchedules
+        .filter((s) => s.workDate >= today)
+        .sort((a, b) => moment(a.workDate).diff(moment(b.workDate)))
+        .map((s) => moment(s.workDate).format("YYYY-MM-DD"))[0];
+
+      if (firstAvailableDate) {
+        setSelectedDate(firstAvailableDate);
+      }
+    }
+  }, [staffWorkSchedules, selectedDate, fetchingSlots]);
+
+  // Add a function to filter time slots based on staff work schedule
+  const filterTimeSlotsByShift = useCallback(
+    (date: string, slots: TimeSlotDTO[]): TimeSlotDTO[] => {
+      // Find the work schedule for the selected date
+      const dateSchedule = staffWorkSchedules.find(
+        (schedule) => moment(schedule.workDate).format("YYYY-MM-DD") === date
+      );
+
+      // If no schedule found, mark all slots as unavailable
+      if (!dateSchedule || !dateSchedule.startTime || !dateSchedule.endTime) {
+        return allTimeSlots.map((timeSlot) => ({
+          timeSlot,
+          isAvailable: false, // Đánh dấu tất cả là không khả dụng khi không có lịch làm việc
+          isLocked: false,
+          lockedByCurrentUser: false,
+        }));
+      }
+
+      // Chuyển đổi thời gian thành phút để dễ so sánh
+      const convertTimeToMinutes = (timeStr: string) => {
+        // Handle formats like "9:00 AM" or "1:00 PM"
+        const [timePart, ampm] = timeStr.split(" ");
+        let [hours, minutes] = timePart.split(":").map(Number);
+
+        // Convert 12h to 24h format
+        if (ampm.toUpperCase() === "PM" && hours < 12) {
+          hours += 12;
+        } else if (ampm.toUpperCase() === "AM" && hours === 12) {
+          hours = 0;
+        }
+
+        return hours * 60 + minutes;
+      };
+
+      // Parse time slots to minutes for comparison
+      const parseTimeToMinutes = (timeStr: string) => {
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours * 60 + minutes;
+      };
+
+      // Calculate shift start and end times in minutes
+      const shiftStartMinutes = convertTimeToMinutes(dateSchedule.startTime);
+      const shiftEndMinutes = convertTimeToMinutes(dateSchedule.endTime);
+
+      console.log(
+        `Staff shift time: ${dateSchedule.startTime} - ${dateSchedule.endTime}`
+      );
+      console.log(
+        `Converted shift time (minutes): ${shiftStartMinutes} - ${shiftEndMinutes}`
+      );
+
+      // Đảm bảo tất cả time slots được xử lý, không chỉ những cái từ API
+      const availableSlotsMap = new Map(
+        slots.map((slot) => [slot.timeSlot, slot])
+      );
+
+      // Tạo mảng slot mới dựa trên tất cả các slot có thể
+      return allTimeSlots.map((timeSlot) => {
+        const [slotStart] = timeSlot.split(" - ");
+        const slotEnd = timeSlot.split(" - ")[1];
+
+        const slotStartMinutes = parseTimeToMinutes(slotStart);
+        const slotEndMinutes = parseTimeToMinutes(slotEnd);
+
+        // Check if slot is within work schedule
+        const isWithinShift =
+          slotStartMinutes >= shiftStartMinutes &&
+          slotEndMinutes <= shiftEndMinutes;
+
+        // Lấy thông tin từ API nếu có
+        const slotFromApi = availableSlotsMap.get(timeSlot);
+
+        if (slotFromApi) {
+          return {
+            ...slotFromApi,
+            isAvailable: slotFromApi.isAvailable && isWithinShift, // Kết hợp trạng thái từ API và ràng buộc ca làm việc
+          };
+        } else {
+          // Tạo slot mới nếu không có trong API
+          return {
+            timeSlot,
+            isAvailable: isWithinShift, // Khả dụng chỉ khi trong ca làm việc
+            isLocked: false,
+            lockedByCurrentUser: false,
+          };
+        }
+      });
+    },
+    [staffWorkSchedules, allTimeSlots]
   );
 
   // Fetch slot counts
@@ -180,7 +340,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
       if (!token) return;
       setFetchingSlotCounts(true);
       try {
-        const response = await getAvailableSlotCount(
+        const response = await getAvailableSlotCountWithSchedule(
           staff.staffId,
           date,
           token
@@ -202,7 +362,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
       return (
         slotFromApi || {
           timeSlot,
-          isAvailable: false,
+          isAvailable: false, // Mặc định là không khả dụng nếu không tìm thấy trong API
           isLocked: false,
           lockedByCurrentUser: false,
           isConfirmed: false,
@@ -545,23 +705,62 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
   }, [staff.staffId, token, userId]);
   // [staff.staffId, token, userId, selectedDate, schedulingInProgress, selectedTimeSlot, appointmentId]);
 
-  // Initial data fetching
-  useEffect(() => {
-    const dates = [];
-    let daysAdded = 0;
-    let currentDay = moment();
+  // Fetch staff work schedules for the next 30 days
+  const fetchStaffWorkSchedules = useCallback(async () => {
+    if (!token || workScheduleLoading) return;
 
-    while (daysAdded < 32) {
-      if (currentDay.day() !== 0) {
-        // Exclude Sundays
-        dates.push(currentDay.clone());
-        daysAdded++;
+    setWorkScheduleLoading(true);
+    try {
+      const startDate = moment().format("YYYY-MM-DD");
+      const endDate = moment().add(30, "days").format("YYYY-MM-DD");
+
+      const response = await getStaffSchedulesByDateRange(
+        staff.staffId,
+        startDate,
+        endDate
+      );
+
+      if (response.isSuccess && Array.isArray(response.data)) {
+        setStaffWorkSchedules(response.data);
+
+        // Extract available work dates
+        const workDates = new Set<string>(
+          response.data.map((schedule: StaffWorkSchedule) =>
+            moment(schedule.workDate).format("YYYY-MM-DD")
+          )
+        );
+        setAvailableWorkDates(workDates);
+
+        // Log the available dates for debugging
+        console.log("Available work dates:", Array.from(workDates));
+        console.log("Staff work schedules loaded successfully");
+      } else {
+        console.error(
+          "Failed to fetch staff work schedules:",
+          response.message
+        );
       }
-      currentDay.add(1, "day");
+    } catch (error) {
+      console.error("Error fetching staff work schedules:", error);
+      messageApi.error("Failed to load staff work schedule");
+    } finally {
+      setWorkScheduleLoading(false);
     }
+  }, [staff.staffId, token, messageApi, workScheduleLoading]);
 
-    dates.forEach((date) => fetchAvailableSlotCount(date.format("YYYY-MM-DD")));
-  }, [fetchAvailableSlotCount]);
+  // Sửa useEffect để tránh vòng lặp vô hạn
+  useEffect(() => {
+    // Fetch slot counts for all dates in the range - CHỈ GỌI MỘT LẦN
+    if (!workScheduleLoading && staffWorkSchedules.length > 0) {
+      const availableDates = Array.from(availableWorkDates);
+      availableDates.forEach((date) => fetchAvailableSlotCount(date));
+    }
+  }, [
+    fetchAvailableSlotCount,
+    staffWorkSchedules,
+    availableWorkDates,
+    workScheduleLoading,
+  ]);
 
   // Fetch slots for selected date
   useEffect(() => {
@@ -573,65 +772,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
   // Countdown timer
   const hasHandledExpirationRef = useRef(false);
 
-  // Fix useCountdown
-  const useCountdown = (
-    lockedUntil: moment.Moment | null,
-    appointmentId: string | null,
-    selectedTimeSlot: string | null
-  ) => {
-    const [timeLeft, setTimeLeft] = useState<number | null>(null);
-
-    useEffect(() => {
-      if (
-        !lockedUntil ||
-        !appointmentId ||
-        !selectedTimeSlot ||
-        isConfirmed ||
-        isConfirming
-      ) {
-        setTimeLeft(null);
-        return;
-      }
-
-      hasHandledExpirationRef.current = false;
-      const diff = moment(lockedUntil).diff(moment());
-      if (diff <= 0) {
-        setTimeLeft(null);
-        handleLockExpiration();
-        return;
-      }
-
-      setTimeLeft(Math.ceil(diff / 1000));
-      const interval = setInterval(() => {
-        const diff = moment(lockedUntil).diff(moment());
-        console.log("Countdown tick", {
-          diff,
-          timeLeft,
-          hasHandledExpiration: hasHandledExpirationRef.current,
-        });
-        if (diff <= 0 && !hasHandledExpirationRef.current) {
-          console.log("Triggering expiration");
-          setTimeLeft(null);
-          handleLockExpiration();
-        } else if (diff > 0) {
-          setTimeLeft(Math.ceil(diff / 1000));
-        }
-      }, 1000);
-
-      return () => clearInterval(interval);
-    }, [
-      lockedUntil,
-      appointmentId,
-      selectedTimeSlot,
-      isConfirmed,
-      isConfirming,
-    ]);
-
-    return timeLeft;
-  };
-
-  const timeLeft = useCountdown(lockedUntil, appointmentId, selectedTimeSlot);
-
+  // Modify the timeout notification thresholds
   const handleLockExpiration = useCallback(
     debounce(
       async () => {
@@ -650,6 +791,9 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
           hasHandledExpirationRef.current
         )
           return;
+
+        // Immediately set flag to prevent multiple calls
+        hasHandledExpirationRef.current = true;
 
         setLoading(true);
         try {
@@ -671,9 +815,6 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
               reason: "expiration",
             });
             resetSelectionState();
-            // messageApi.error("Appointment lock expired");
-            // await fetchAvailableSlots(selectedDate);
-            hasHandledExpirationRef.current = true; // Set after successful cancellation
           } else {
             console.error("Failed to cancel expired lock:", response.message);
             messageApi.error(
@@ -681,10 +822,14 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
                 response.message || "Unknown error"
               }`
             );
+            // Reset flag if failed
+            hasHandledExpirationRef.current = false;
           }
         } catch (error) {
           console.error("Lock expiration error:", error);
           messageApi.error("Failed to free expired slot");
+          // Reset flag if failed
+          hasHandledExpirationRef.current = false;
         } finally {
           setLoading(false);
         }
@@ -699,104 +844,139 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
       appointmentId,
       staff.staffId,
       fetchAvailableSlots,
-      messageApi
+      messageApi,
     ]
   );
 
-  // Fetch staff work schedules for the next 30 days
-  const fetchStaffWorkSchedules = useCallback(async () => {
-    if (!token) return;
-    
-    setWorkScheduleLoading(true);
-    try {
-      const startDate = moment().format('YYYY-MM-DD');
-      const endDate = moment().add(30, 'days').format('YYYY-MM-DD');
-      
-      const response = await getStaffSchedulesByDateRange(
-        staff.staffId,
-        startDate,
-        endDate
-      );
-      
-      if (response.isSuccess && Array.isArray(response.data)) {
-        setStaffWorkSchedules(response.data);
-        
-        // Extract available work dates
-        const workDates = new Set<string>(
-          response.data.map((schedule: StaffWorkSchedule) => 
-            moment(schedule.workDate).format('YYYY-MM-DD')
-          )
-        );
-        setAvailableWorkDates(workDates);
-        
-        // Log the available dates for debugging
-        console.log("Available work dates:", Array.from(workDates));
-      } else {
-        console.error("Failed to fetch staff work schedules:", response.message);
-      }
-    } catch (error) {
-      console.error("Error fetching staff work schedules:", error);
-      messageApi.error("Failed to load staff work schedule");
-    } finally {
-      setWorkScheduleLoading(false);
-    }
-  }, [staff.staffId, token, messageApi]);
+  // Fix useCountdown to handle 30-second timeout
+  const useCountdown = (
+    lockedUntil: moment.Moment | null,
+    appointmentId: string | null,
+    selectedTimeSlot: string | null
+  ) => {
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
-  // Load staff work schedules on component mount
+    useEffect(() => {
+      if (
+        !lockedUntil ||
+        !appointmentId ||
+        !selectedTimeSlot ||
+        isConfirmed ||
+        isConfirming
+      ) {
+        setTimeLeft(null);
+        return () => {}; // Đảm bảo cleanup function trống
+      }
+
+      hasHandledExpirationRef.current = false;
+      const now = moment();
+      const diff = moment(lockedUntil).diff(now);
+
+      if (diff <= 0) {
+        setTimeLeft(null);
+        handleLockExpiration();
+        return () => {}; // Đảm bảo cleanup function trống
+      }
+
+      setTimeLeft(Math.ceil(diff / 1000));
+
+      const interval = setInterval(() => {
+        const currentDiff = moment(lockedUntil).diff(moment());
+        if (currentDiff <= 0 && !hasHandledExpirationRef.current) {
+          clearInterval(interval);
+          setTimeLeft(null);
+          handleLockExpiration();
+        } else if (currentDiff > 0) {
+          setTimeLeft(Math.ceil(currentDiff / 1000));
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }, [
+      lockedUntil,
+      appointmentId,
+      selectedTimeSlot,
+      isConfirmed,
+      isConfirming,
+    ]);
+
+    return timeLeft;
+  };
+
+  const timeLeft = useCountdown(lockedUntil, appointmentId, selectedTimeSlot);
+
+  // Update selectedDate ref whenever it changes
   useEffect(() => {
-    fetchStaffWorkSchedules();
-  }, [fetchStaffWorkSchedules]);
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
+
+  // Thêm useEffect riêng để gọi fetchStaffWorkSchedules một lần duy nhất khi component mount
+  useEffect(() => {
+    // Fetch staff work schedules một lần duy nhất khi component mount
+    if (!staffWorkSchedules.length && !workScheduleLoading) {
+      fetchStaffWorkSchedules();
+    }
+  }, [fetchStaffWorkSchedules, staffWorkSchedules.length, workScheduleLoading]); // Dependencies cần thiết
 
   // Check if a date is available based on staff work schedule
-  const isDateAvailable = useCallback((dateStr: string) => {
-    // If we haven't loaded any work schedules yet, consider all dates available
-    if (workScheduleLoading || availableWorkDates.size === 0) {
-      return true;
-    }
-    return availableWorkDates.has(dateStr);
-  }, [availableWorkDates, workScheduleLoading]);
+  const isDateAvailable = (date: string) => {
+    return availableWorkDates.has(date);
+  };
 
   // Modified handleDateChange to check for staff availability
   const handleDateChange = (index: number) => {
-    const dates = [];
-    let daysAdded = 0;
-    let currentDay = moment();
+    const date = dates[index];
 
-    while (daysAdded < 32) {
-      if (currentDay.day() !== 0) { // Skip Sundays
-        dates.push(currentDay.clone());
-        daysAdded++;
-      }
-      currentDay.add(1, "day");
-    }
-
-    const date = dates[index].format("YYYY-MM-DD");
-    
     // Only allow selecting dates when staff is scheduled to work
     if (!isDateAvailable(date)) {
-      messageApi.warning(`${staff.fullName} is not scheduled to work on this day.`);
+      messageApi.warning(
+        `${staff.fullName} is not scheduled to work on this day.`
+      );
       return;
     }
-    
-    if (date === selectedDate) {
-      fetchAvailableSlots(date);
-    } else {
-      setSelectedDate(date);
-      resetSelectionState();
+
+    setSelectedDate(date);
+    setSelectedTimeSlot(null);
+
+    // Reset appointment selection
+    if (appointmentId) {
+      cancelCurrentLock(selectedTimeSlot as string).catch((err) => {
+        console.error("Error cancelling lock:", err);
+      });
+      setAppointmentId(null);
     }
+
+    // Pre-load slots immediately when user selects a date
+    setFetchingSlots(true);
+    fetchAvailableSlots(date);
   };
 
+  // Sửa lại hàm handleTimeSlotSelect để dừng loading và fetchingSlots
   const handleTimeSlotSelect = async (timeSlot: string) => {
     if (!token || !userId) return;
 
-    if (timeSlot === selectedTimeSlot && appointmentId) {
-      await cancelCurrentLock(timeSlot);
-      return;
-    }
+    try {
+      // Set loading để hiển thị trạng thái đang xử lý
+      setLoading(true);
 
-    setIntendedTimeSlot(timeSlot); // Set the intended time slot
-    setSelectedTimeSlot(timeSlot); // Still set selectedTimeSlot for local UI
-    await handleScheduleAppointment(timeSlot);
+      if (timeSlot === selectedTimeSlot && appointmentId) {
+        await cancelCurrentLock(timeSlot);
+        setLoading(false);
+        return;
+      }
+
+      setIntendedTimeSlot(timeSlot);
+      setSelectedTimeSlot(timeSlot);
+
+      await handleScheduleAppointment(timeSlot);
+    } catch (error) {
+      console.error("Error selecting time slot:", error);
+      messageApi.error("Could not reserve this time slot. Please try another one.");
+    } finally {
+      // Đảm bảo tắt tất cả trạng thái loading khi kết thúc
+      setLoading(false);
+      setFetchingSlots(false);
+    }
   };
 
   const cancelCurrentLock = async (timeSlot: string) => {
@@ -833,13 +1013,14 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
     }
   };
 
+  // Sửa hàm handleScheduleAppointment để đảm bảo reset loading
   const handleScheduleAppointment = async (timeSlot: string) => {
     if (!selectedDate || !token || !userId) {
       messageApi.error("Missing required information for scheduling");
+      setLoading(false); // Reset loading nếu có lỗi
       return;
     }
 
-    setLoading(true);
     setSchedulingInProgress(true);
     setSelectedTimeSlot(timeSlot);
     setIsConfirmed(false); // Reset confirmation state
@@ -989,6 +1170,7 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
       setSelectedTimeSlot(null);
     } finally {
       setLoading(false);
+      setFetchingSlots(false);
       setSchedulingInProgress(false);
     }
   };
@@ -1132,7 +1314,9 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
 
   const handleConfirmAppointment = async () => {
     if (!appointmentId || !lockedUntil || !token || !appointmentReason.trim()) {
-      messageApi.error("Missing required information or Reason for appointment");
+      messageApi.error(
+        "Missing required information or Reason for appointment"
+      );
       return;
     }
 
@@ -1206,361 +1390,800 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
     }
   }, [shouldRedirect]);
 
-  const renderTimeSlotButton = useCallback(
-    (slot: TimeSlot, index: string) => {
-      const {
-        timeSlot,
-        isAvailable,
-        isLocked,
-        lockedByCurrentUser,
-        isConfirmed = false,
-      } = slot;
-      const isSelected = selectedTimeSlot === timeSlot;
-      const isHovered = hoveredIndex === index;
-      const isDisabled = !isAvailable && !(lockedByCurrentUser && isSelected);
-
-      const buttonStyle = {
-        width: "100%",
-        height: "48px", // Larger height for better usability
-        borderRadius: "12px", // Consistent with date buttons
-        backgroundColor:
-          isLocked && !lockedByCurrentUser && !isConfirmed
-            ? "#ffbb33" // Warm yellow for locked by others
-            : lockedByCurrentUser
-            ? "#b7eb8f" // Soft green for current user
-            : isConfirmed
-            ? "#f0f0f0" // Light gray for confirmed
-            : isDisabled
-            ? "#f0f0f0" // Light gray for unavailable
-            : isSelected
-            ? "#e6f4ea" // Matching selected date color
-            : isHovered
-            ? "#f5f5f5" // Light gray hover
-            : "#ffffff", // White default
-        border: isSelected
-          ? "2px solid #52c41a" // Green border for selected
-          : isLocked && !lockedByCurrentUser && !isConfirmed
-          ? "2px solidrgb(248, 152, 50)" // Darker orange border for locked by others
-          : "1px solid #d9d9d9", // Default gray border
-        boxShadow:
-          isHovered && !isDisabled ? "0 4px 8px rgba(0, 0, 0, 0.1)" : "none",
-        color: "#333", // High-contrast text
-        fontSize: "14px", // Larger text
-        fontWeight: "500",
-        cursor: isDisabled ? "not-allowed" : "pointer",
-        transition: "all 0.3s ease",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      };
-
+  const renderTimeSlots = () => {
+    if (!selectedDate) {
       return (
-        <Col key={timeSlot} xs={8} sm={6} md={4} lg={3}>
-          <Button
-            type={isSelected ? "primary" : "default"}
-            disabled={loading || isDisabled}
-            onClick={() => !isDisabled && handleTimeSlotSelect(timeSlot)}
-            onMouseEnter={() => !isDisabled && setHoveredIndex(index)}
-            onMouseLeave={() => setHoveredIndex(null)}
-            style={buttonStyle}
-          >
-            {loading && isSelected ? <Spin size="small" /> : timeSlot}
-          </Button>
-        </Col>
+        <div className="flex justify-center">
+          <Text type="secondary">
+            Please select a date to view available time slots
+          </Text>
+        </div>
       );
-    },
-    [selectedTimeSlot, loading, hoveredIndex]
-  );
+    }
+
+    // Vẫn hiển thị UI khi đang fetchingSlots, nhưng thêm trạng thái loading
+    // Filter time slots into morning and afternoon
+    const morningSlots = availableSlots.filter(slot => {
+      const startHour = parseInt(slot.timeSlot.split(':')[0]);
+      return startHour < 12;
+    });
+
+    const afternoonSlots = availableSlots.filter(slot => {
+      const startHour = parseInt(slot.timeSlot.split(':')[0]);
+      return startHour >= 12;
+    });
+
+    return (
+      <div className={`space-y-6 ${fetchingSlots ? 'opacity-60' : ''}`}>
+        {fetchingSlots && (
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-white bg-opacity-50">
+            <Spin size="large" />
+          </div>
+        )}
+        {/* Morning shift */}
+        <div className="bg-blue-50 p-4 rounded-lg relative">
+          <div className="mb-3">
+            <h3 className="text-lg font-semibold text-blue-800 flex items-center">
+              <span className="bg-blue-500 w-4 h-4 rounded-full mr-2"></span>
+              Morning (08:00 - 12:00)
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {morningSlots.length > 0 ? (
+              morningSlots.map((slot) => {
+                const isSelected = selectedTimeSlot === slot.timeSlot;
+                const isUserLocked = slot.lockedByCurrentUser;
+                const isUnavailable = !slot.isAvailable && !isUserLocked;
+                const isLocked = slot.isLocked && !isUserLocked;
+                const isLoading = loading && isSelected;
+
+                // Apply classes based on slot state
+                let buttonClass = "py-2 px-3 border rounded-lg font-medium transition-colors duration-150 w-full text-center";
+                let labelClass = "";
+
+                if (isSelected) {
+                  buttonClass += " bg-blue-500 text-white border-blue-600 hover:bg-blue-600 shadow-md";
+                } else if (isUnavailable) {
+                  buttonClass += " bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60";
+                } else if (isLocked) {
+                  buttonClass += " bg-yellow-50 text-yellow-700 border-yellow-200 cursor-not-allowed";
+                  labelClass = "line-through";
+                } else {
+                  buttonClass += " bg-white text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300";
+                }
+
+                return (
+                  <div key={slot.timeSlot} className="relative">
+                    <button
+                      className={buttonClass}
+                      onClick={() => {
+                        if (!isUnavailable && !isLocked && !loading) {
+                          if (isSelected) {
+                            // Cancel the current selection
+                            cancelCurrentLock(slot.timeSlot);
+                          } else {
+                            // Select this time slot
+                            handleTimeSlotSelect(slot.timeSlot);
+                          }
+                        }
+                      }}
+                      disabled={isUnavailable || isLocked || loading}
+                    >
+                      {isLoading ? <Spin size="small" /> : <span className={labelClass}>{slot.timeSlot}</span>}
+                    </button>
+                    {isLocked && (
+                      <div className="absolute -top-1 -right-1">
+                        <Tag color="orange" className="scale-75">Booked</Tag>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="col-span-full text-center py-3">
+                <Text type="secondary">No available slots in the morning</Text>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Afternoon shift */}
+        <div className="bg-green-50 p-4 rounded-lg relative">
+          <div className="mb-3">
+            <h3 className="text-lg font-semibold text-green-800 flex items-center">
+              <span className="bg-green-500 w-4 h-4 rounded-full mr-2"></span>
+              Afternoon (13:30 - 17:30)
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {afternoonSlots.length > 0 ? (
+              afternoonSlots.map((slot) => {
+                const isSelected = selectedTimeSlot === slot.timeSlot;
+                const isUserLocked = slot.lockedByCurrentUser;
+                const isUnavailable = !slot.isAvailable && !isUserLocked;
+                const isLocked = slot.isLocked && !isUserLocked;
+                const isLoading = loading && isSelected;
+
+                // Apply classes based on slot state
+                let buttonClass = "py-2 px-3 border rounded-lg font-medium transition-colors duration-150 w-full text-center";
+                let labelClass = "";
+
+                if (isSelected) {
+                  buttonClass += " bg-green-500 text-white border-green-600 hover:bg-green-600 shadow-md";
+                } else if (isUnavailable) {
+                  buttonClass += " bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60";
+                } else if (isLocked) {
+                  buttonClass += " bg-yellow-50 text-yellow-700 border-yellow-200 cursor-not-allowed";
+                  labelClass = "line-through";
+                } else {
+                  buttonClass += " bg-white text-green-600 border-green-200 hover:bg-green-50 hover:border-green-300";
+                }
+
+                return (
+                  <div key={slot.timeSlot} className="relative">
+                    <button
+                      className={buttonClass}
+                      onClick={() => {
+                        if (!isUnavailable && !isLocked && !loading) {
+                          if (isSelected) {
+                            // Cancel the current selection
+                            cancelCurrentLock(slot.timeSlot);
+                          } else {
+                            // Select this time slot
+                            handleTimeSlotSelect(slot.timeSlot);
+                          }
+                        }
+                      }}
+                      disabled={isUnavailable || isLocked || loading}
+                    >
+                      {isLoading ? <Spin size="small" /> : <span className={labelClass}>{slot.timeSlot}</span>}
+                    </button>
+                    {isLocked && (
+                      <div className="absolute -top-1 -right-1">
+                        <Tag color="orange" className="scale-75">Booked</Tag>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="col-span-full text-center py-3">
+                <Text type="secondary">No available slots in the afternoon</Text>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Hàm tạo style cho các thẻ ngày
+  const dateCardStyle = (date: string, isAvailable: boolean) => {
+    const isSelected = date === selectedDate;
+    return {
+      width: "90px",
+      minHeight: "85px",
+      border: "1px solid #d9d9d9",
+      borderRadius: "8px",
+      display: "flex",
+      flexDirection: "column" as const,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+      margin: "0 4px",
+      position: "relative" as const,
+      cursor: isAvailable ? "pointer" : "not-allowed",
+      opacity: isAvailable ? 1 : 0.5,
+      backgroundColor: isSelected ? "#e6f7ff" : "#fff",
+      borderColor: isSelected ? "#1890ff" : "#d9d9d9",
+      boxShadow: isSelected ? "0 0 5px rgba(24, 144, 255, 0.5)" : "none",
+    };
+  };
+
+  const renderAppointmentSummary = () => {
+    if (!selectedDate || !selectedTimeSlot) return null;
+
+    return (
+      <Card
+        title="Appointment Summary"
+        style={{ marginTop: "20px", marginBottom: "20px" }}
+        bordered={true}
+      >
+        <Row gutter={[16, 16]}>
+          <Col span={12}>
+            <Typography.Text strong>Healthcare Staff:</Typography.Text>
+            <div>{staff.fullName}</div>
+          </Col>
+          <Col span={12}>
+            <Typography.Text strong>Contact:</Typography.Text>
+            <div>{staff.email}</div>
+          </Col>
+          <Col span={12}>
+            <Typography.Text strong>Date:</Typography.Text>
+            <div>{moment(selectedDate).format("dddd, MMMM Do, YYYY")}</div>
+          </Col>
+          <Col span={12}>
+            <Typography.Text strong>Time:</Typography.Text>
+            <div>{selectedTimeSlot}</div>
+          </Col>
+        </Row>
+      </Card>
+    );
+  };
 
   if (!token || !userId) return null;
 
   return (
-    <div style={{ padding: "24px", width: "100%" }}>
+    <div className="min-h-screen bg-gray-50 pb-20">
       {contextHolder}
-      <div className="flex flex-wrap w-full justify-center">
-        <div className="w-full rounded-3xl bg-white p-6 shadow-xl">
-          <Row
-            gutter={[24, 24]}
-            style={{ marginBottom: "32px", width: "100%", margin: 0 }}
+      <style jsx global>{`
+        .detail-page-header {
+          background: linear-gradient(to right, #f0f7ff, #e6f0ff);
+          border-radius: 16px;
+          padding: 24px;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+          margin-bottom: 24px;
+        }
+
+        .staff-profile-image {
+          width: 280px;
+          height: 280px;
+          border-radius: 12px;
+          object-fit: cover;
+          border: 4px solid white;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+          background-color: #f0f0f0;
+        }
+
+        .staff-name {
+          font-size: 1.8rem;
+          font-weight: 700;
+          color: #2c3e76;
+          margin-bottom: 8px;
+        }
+
+        .staff-title {
+          font-size: 1.1rem;
+          color: #6b7280;
+          margin-bottom: 16px;
+        }
+
+        .staff-info-item {
+          display: flex;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+
+        .staff-info-item svg {
+          margin-right: 8px;
+          color: #3a57b9;
+        }
+
+        .date-selection {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+
+        .date-card {
+          background: white;
+          border-radius: 12px;
+          padding: 16px 8px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border: 2px solid transparent;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .date-card-selected {
+          border-color: #3a57b9;
+          background-color: #edf2fd;
+          box-shadow: 0 4px 12px rgba(58, 87, 185, 0.2);
+          transform: translateY(-2px);
+          position: relative;
+          z-index: 1;
+        }
+
+        .date-card-selected::after {
+          content: "";
+          position: absolute;
+          bottom: -8px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 0;
+          height: 0;
+          border-left: 8px solid transparent;
+          border-right: 8px solid transparent;
+          border-top: 8px solid #edf2fd;
+        }
+
+        .date-card-available {
+          border-color: #e6f7ef;
+        }
+
+        .date-card-unavailable {
+          opacity: 0.7;
+          cursor: not-allowed;
+          background: #f5f5f5;
+          border-color: #e0e0e0;
+        }
+
+        .date-card:hover:not(.date-card-unavailable):not(.date-card-selected) {
+          border-color: #e6effc;
+          transform: translateY(-2px);
+        }
+
+        .date-weekday {
+          font-weight: 600;
+          font-size: 0.9rem;
+          color: #4b5563;
+        }
+
+        .date-day {
+          font-weight: 700;
+          font-size: 1.5rem;
+          color: #1f2937;
+          margin: 4px 0;
+        }
+
+        .date-month {
+          font-size: 0.85rem;
+          color: #6b7280;
+        }
+
+        .slot-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: #f3f4f6;
+          color: #4b5563;
+          border-radius: 12px;
+          padding: 2px 8px;
+          font-size: 0.75rem;
+          margin-top: 6px;
+        }
+
+        .time-slots-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+
+        .time-slot {
+          padding: 12px;
+          border: 1px solid #d9d9d9;
+          border-radius: 8px;
+          text-align: center;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex-wrap: wrap;
+          transition: all 0.3s;
+        }
+
+        .time-slot:hover:not(.time-slot-locked) {
+          background-color: #f0f0f0;
+          transform: translateY(-2px);
+        }
+
+        .time-slot-selected {
+          background-color: #e6f7ff;
+          border-color: #1890ff;
+          box-shadow: 0 0 5px rgba(24, 144, 255, 0.5);
+        }
+
+        .time-slot-locked {
+          opacity: 0.7;
+          background-color: #f5f5f5;
+          border-color: #d9d9d9;
+          pointer-events: none; /* Ngăn cản tương tác dù có set onclick */
+        }
+
+        .reason-textarea {
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+          border-color: #e5e7eb;
+          transition: all 0.3s ease;
+          resize: none;
+        }
+
+        .reason-textarea:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .action-button {
+          height: 48px;
+          border-radius: 12px;
+          font-weight: 500;
+          font-size: 1rem;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          transition: all 0.3s ease;
+        }
+
+        .action-button:hover {
+          transform: translateY(-2px);
+        }
+
+        .primary-button {
+          background: linear-gradient(135deg, #3551a5, #5073e5);
+          border: none;
+        }
+
+        .primary-button:hover {
+          background: linear-gradient(135deg, #2c4586, #4566d8);
+          box-shadow: 0 4px 12px rgba(58, 87, 185, 0.3);
+        }
+
+        .section-title {
+          font-size: 1.3rem;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 16px;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #f3f4f6;
+        }
+
+        .back-link {
+          display: inline-flex;
+          align-items: center;
+          font-weight: 500;
+          color: #4b5563;
+          margin-bottom: 16px;
+          transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+          color: #3b82f6;
+        }
+
+        .back-link svg {
+          margin-right: 8px;
+        }
+
+        @media (max-width: 768px) {
+          .staff-profile-image {
+            width: 120px;
+            height: 120px;
+          }
+
+          .date-selection {
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+          }
+
+          .time-slots-grid {
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+          }
+        }
+
+        .countdown-timer {
+          background-color: #f9f9f9;
+          border-radius: 12px;
+          padding: 12px;
+          display: inline-block;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          border: 1px solid #e6e6e6;
+          margin-bottom: 16px;
+        }
+
+        .countdown-value {
+          font-size: 1.8rem;
+          font-weight: bold;
+          color: #2c3e76;
+          margin-bottom: 4px;
+        }
+
+        .countdown-label {
+          font-size: 0.9rem;
+          color: #666;
+        }
+
+        /* Add countdown animation when time is running low */
+        @keyframes pulse {
+          0% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.05);
+          }
+          100% {
+            transform: scale(1);
+          }
+        }
+
+        .countdown-timer:has(.text-red-500) {
+          animation: pulse 1s infinite;
+          background-color: #fff5f5;
+          border-color: #fed7d7;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+
+        .date-card-selected {
+          transform: translateY(-3px);
+          transition: all 0.3s ease;
+        }
+      `}</style>
+
+      <div className="container mx-auto px-4 py-8">
+        <a href="/schedule-appointment" className="back-link">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            fill="currentColor"
+            viewBox="0 0 16 16"
           >
-            <Col xs={24} sm={12} md={8} lg={6} xl={5}>
-              <div
-                style={{
-                  background: "#fff",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-                  padding: "0",
-                  borderRadius: "8px",
-                  border: "1px solid #e8e8e8",
-                  width: "100%",
-                  height: "280px",
-                  overflow: "hidden",
-                }}
-              >
-                <img
-                  src={staff.imageURL || "/default-doctor-image.png"}
-                  alt={staff.fullName}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    borderRadius: "4px",
-                  }}
-                  onError={(e) =>
-                    (e.currentTarget.src = "/default-doctor-image.png")
+            <path
+              fillRule="evenodd"
+              d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"
+            />
+          </svg>
+          Back to all healthcare staff
+        </a>
+
+        <div className="detail-page-header">
+          <Row gutter={24} align="middle">
+            <Col xs={24} sm={10} md={8} className="text-center">
+              <img
+                src={staff.imageURL || "/images/placeholder.jpg"}
+                alt={staff.fullName}
+                className="staff-profile-image mx-auto"
+              />
+            </Col>
+            <Col xs={24} sm={14} md={16}>
+              <h1 className="staff-name">{staff.fullName}</h1>
+              <p className="staff-title">University Healthcare Officer</p>
+              <p className="text-gray-700 text-sm mt-2">
+                <span className="font-semibold">Role:</span> {staff.fullName}{" "}
+                provides health support services to students and staff,
+                specializing in wellness checks, health advice, and
+                university-specific health programs.
+              </p>
+              <hr className="border-t border-gray-300 my-2" />
+              <p className="text-gray-800 text-sm mb-1">
+                <span className="font-semibold">Email:</span> {staff.email}
+              </p>
+              <p className="text-gray-800 text-sm mb-1">
+                <span className="font-semibold">Phone:</span> {staff.phone}
+              </p>
+              <p className="text-gray-800 text-sm mb-1">
+                <span className="font-semibold">Gender:</span>{" "}
+                {staff.gender || "N/A"}
+              </p>
+              <p className="text-gray-600 text-sm mt-2">
+                Free for university members
+              </p>
+            </Col>
+          </Row>
+        </div>
+
+        {/* Date Selection Section */}
+        <div className="mb-10">
+          <h2 className="section-title">
+            <CalendarOutlined style={{ marginRight: 8 }} />
+            Select Appointment Date
+          </h2>
+
+          {workScheduleLoading ? (
+            <div className="text-center py-8">
+              <Spin size="large" />
+              <Text className="block mt-4">Loading available dates...</Text>
+            </div>
+          ) : (
+            <div className="date-selection">
+              {(() => {
+                const dates = [];
+                const today = moment().startOf("day");
+                // Get dates for a full month (today + 30 days)
+                const endDate = moment().add(30, "days").startOf("day");
+
+                // Loop through each day in the range
+                let currentDate = today.clone();
+                while (currentDate.isSameOrBefore(endDate)) {
+                  // Skip Sundays
+                  if (currentDate.day() !== 0) {
+                    dates.push(currentDate.format("YYYY-MM-DD"));
                   }
-                />
-              </div>
-            </Col>
-            <Col xs={24} sm={12} md={16} lg={18} xl={{ span: 19, flex: "1" }}>
-              <div
-                className="bg-gray-100 shadow-md p-4 rounded-lg border border-gray-200 w-full box-border"
-                style={{
-                  height: "280px",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                }}
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 m-0">
-                      {staff.fullName}
-                    </h2>
-                    <img
-                      src="/verified_icon.svg"
-                      alt="Verified Badge"
-                      className="w-6 h-6"
-                      onError={(e) => (e.currentTarget.style.display = "none")}
-                    />
-                  </div>
-                  <p className="text-gray-600 text-sm mt-2">
-                    University Healthcare Officer
-                  </p>
-                  <p className="text-gray-700 text-sm mt-2">
-                    <span className="font-semibold">Role:</span>{" "}
-                    {staff.fullName} provides health support services to
-                    students and staff, specializing in wellness checks, health
-                    advice, and university-specific health programs.
-                  </p>
-                  <hr className="border-t border-gray-300 my-2" />
-                  <p className="text-gray-800 text-sm mb-1">
-                    <span className="font-semibold">Email:</span> {staff.email}
-                  </p>
-                  <p className="text-gray-800 text-sm mb-1">
-                    <span className="font-semibold">Phone:</span> {staff.phone}
-                  </p>
-                  <p className="text-gray-800 text-sm mb-1">
-                    <span className="font-semibold">Gender:</span>{" "}
-                    {staff.gender || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-sm">
-                    Free for university members
-                  </p>
-                </div>
-              </div>
-            </Col>
-          </Row>
-
-          <Title level={3}>
-            <CalendarOutlined /> Schedule Your Appointment
-          </Title>
-
-          <Row gutter={[12, 12]} style={{ marginBottom: "20px" }}>
-            {(() => {
-              const dates = [];
-              let daysAdded = 0;
-              let currentDay = moment();
-
-              while (daysAdded < 32) {
-                if (currentDay.day() !== 0) {
-                  dates.push(currentDay.clone());
-                  daysAdded++;
+                  currentDate.add(1, "days");
                 }
-                currentDay.add(1, "day");
-              }
 
-              return dates.map((date, index) => {
-                const dateStr = date.format("YYYY-MM-DD");
-                const isSelected = selectedDate === dateStr;
-                const slotCount = slotCounts[dateStr] || 0;
-                const isFullyBooked = slotCount === 0;
-                const isHovered = hoveredIndex === index.toString();
-                const isAvailable = isDateAvailable(dateStr);
-                const isSunday = date.day() === 0;
+                return dates.map((date, index) => {
+                  const isAvailable = isDateAvailable(date);
+                  const hasSlots =
+                    slotCounts[date] !== null && (slotCounts[date] ?? 0) > 0;
+                  const isSelected = selectedDate === date;
+                  const isCurrentDateHovered = hoveredIndex === date;
 
-                return (
-                  <Col key={dateStr} xs={8} sm={6} md={4} lg={3}>
-                    <Button
-                      type={isSelected ? "primary" : "default"}
-                      onClick={() => !isSunday && isAvailable && handleDateChange(index)}
-                      onMouseEnter={() => setHoveredIndex(index.toString())}
-                      onMouseLeave={() => setHoveredIndex(null)}
-                      disabled={!isAvailable || isSunday || workScheduleLoading}
-                      style={{
-                        width: "100%",
-                        height: "80px", // Larger height for better touch/click area
-                        borderRadius: "12px", // Softer corners
-                        backgroundColor: isSelected
-                          ? "#e6f4ea" // Soft green for selected
-                          : isAvailable 
-                            ? (isHovered ? "#f5f5f5" : "#ffffff") // Light gray for hover, white default
-                            : "#f5f5f5", // Light gray for unavailable
-                        border: isSelected
-                          ? "2px solid #28c41a" // Green border for selected
-                          : "1px solid #d9d9d9", // Subtle default border
-                        boxShadow: isHovered && isAvailable
-                          ? "0 4px 8px rgba(0, 0, 0, 0.1)"
-                          : "none", // Shadow on hover
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        padding: "10px",
-                        transition: "all 0.3s ease",
-                        opacity: isAvailable ? 1 : 0.5, // Reduced opacity for unavailable dates
-                      }}
+                  return (
+                    <div
+                      key={index}
+                      style={dateCardStyle(date, isAvailable && hasSlots)}
+                      onClick={() =>
+                        isAvailable && hasSlots && handleDateChange(index)
+                      }
+                      className={
+                        date === selectedDate ? "date-card-selected" : ""
+                      }
                     >
-                      <span
-                        style={{
-                          fontSize: "14px",
-                          fontWeight: "600",
-                          color: isAvailable ? "#333" : "#999",
-                        }}
-                      >
-                        {date.format("ddd, DD-MM")}
-                      </span>
-                      {workScheduleLoading ? (
-                        <Spin size="small" style={{ marginTop: "4px" }} />
-                      ) : !isAvailable ? (
-                        <span
+                      {!isAvailable && (
+                        <div
                           style={{
-                            fontSize: "12px",
-                            color: "#ff4d4f",
-                            marginTop: "4px",
+                            position: "absolute",
+                            top: "4px",
+                            right: "4px",
+                            width: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            backgroundColor: "#d1d1d1",
                           }}
-                        >
-                          Unavailable
-                        </span>
-                      ) : fetchingSlotCounts ? (
-                        <Spin size="small" style={{ marginTop: "4px" }} />
-                      ) : !isFullyBooked ? (
-                        <span
-                          style={{
-                            fontSize: "12px",
-                            color: "#28c41a",
-                            marginTop: "4px",
-                          }}
-                        >
-                          {slotCount} slots
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            fontSize: "12px",
-                            color: "#f5222d",
-                            marginTop: "4px",
-                          }}
-                        >
-                          Fully Booked
-                        </span>
+                        />
                       )}
-                    </Button>
-                  </Col>
-                );
-              });
-            })()}
-          </Row>
-
-          {selectedDate && (
-            <>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: "16px",
-                }}
-              >
-                <span style={{ marginRight: "8px" }}>🌞 Morning</span>
-                <div style={{ flex: 1, borderBottom: "2px solid #d9d9d9" }} />
-              </div>
-              <Row gutter={[8, 8]}>
-                {fetchingSlots ? (
-                  <Col span={24}>
-                    <div style={{ textAlign: "center", padding: "20px" }}>
-                      <Spin tip="Loading slots..." />
+                      <div className="date-weekday">
+                        {moment(date).format("ddd")}
+                      </div>
+                      <div className="date-day">
+                        {moment(date).format("DD")}
+                      </div>
+                      <div className="date-month">
+                        {moment(date).format("MMM YYYY")}
+                      </div>
+                      {fetchingSlotCounts ? (
+                        <div className="slot-badge">Loading...</div>
+                      ) : (
+                        <div
+                          className="slot-badge"
+                          style={{
+                            backgroundColor: !isAvailable
+                              ? "#f0f0f0"
+                              : hasSlots
+                              ? "#e6f7ef"
+                              : "#fff2f0",
+                          }}
+                        >
+                          {!isAvailable
+                            ? "Unavailable"
+                            : slotCounts[date] === null
+                            ? "Checking..."
+                            : (slotCounts[date] || 0) > 0
+                            ? `${slotCounts[date]} slots`
+                            : "No slots"}
+                        </div>
+                      )}
                     </div>
-                  </Col>
-                ) : (
-                  availableSlots
-                    .filter((slot) => slot.timeSlot < "12:00")
-                    .map((slot, index) =>
-                      renderTimeSlotButton(slot, `morning-${index}`)
-                    )
-                )}
-              </Row>
+                  );
+                });
+              })()}
+            </div>
+          )}
+        </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: "16px",
-                }}
-              >
-                <span style={{ marginRight: "8px" }}>🌅 Afternoon</span>
-                <div style={{ flex: 1, borderBottom: "2px solid #d9d9d9" }} />
-              </div>
-              <Row gutter={[8, 8]}>
-                {fetchingSlots ? (
-                  <Col span={24}>
-                    <div style={{ textAlign: "center", padding: "20px" }}>
-                      <Spin tip="Loading slots..." />
+        {/* Time Slots Section */}
+        <Card
+          title="Select Time Slot"
+          style={{ width: "100%" }}
+          extra={
+            availableSlots.length > 0 && (
+              <Typography.Text type="secondary">
+                {availableSlots.filter((slot) => slot.isAvailable).length} slot
+                {availableSlots.filter((slot) => slot.isAvailable).length !== 1
+                  ? "s"
+                  : ""}{" "}
+                available
+              </Typography.Text>
+            )
+          }
+        >
+          {renderTimeSlots()}
+        </Card>
+
+        {/* Appointment Reason */}
+        {selectedTimeSlot && (
+          <>
+            {renderAppointmentSummary()}
+
+            <Card title="Appointment Reason" style={{ marginBottom: "20px" }}>
+              <TextArea
+                placeholder="Please briefly describe the reason for your appointment..."
+                value={appointmentReason}
+                onChange={(e) => setAppointmentReason(e.target.value)}
+                rows={4}
+                className="reason-textarea"
+                disabled={isConfirmed}
+                style={{ marginBottom: "15px" }}
+              />
+
+              {timeLeft !== null && !isConfirmed && !isConfirming && (
+                <Alert
+                  message={
+                    <div style={{ textAlign: "center" }}>
+                      <Typography.Title level={4} style={{ margin: 0 }}>
+                        {timeLeft}
+                      </Typography.Title>
+                      <Typography.Text>
+                        {timeLeft <= 5 ? (
+                          <span
+                            style={{ color: "#f5222d", fontWeight: "bold" }}
+                          >
+                            Seconds left to confirm!
+                          </span>
+                        ) : (
+                          <span>Seconds left to confirm</span>
+                        )}
+                      </Typography.Text>
                     </div>
-                  </Col>
-                ) : (
-                  availableSlots
-                    .filter((slot) => slot.timeSlot >= "13:00")
-                    .map((slot, index) =>
-                      renderTimeSlotButton(slot, `afternoon-${index}`)
-                    )
-                )}
-              </Row>
-
-              <div style={{ marginBottom: "16px" }}>
-                <Text>Reason for Appointment:</Text>
-                <TextArea
-                  value={appointmentReason}
-                  onChange={(e) => setAppointmentReason(e.target.value)}
-                  placeholder="Enter the reason for your appointment"
-                  rows={3}
-                  style={{ marginTop: "8px" }}
+                  }
+                  type={timeLeft <= 5 ? "error" : "info"}
+                  showIcon
+                  style={{ marginBottom: "15px" }}
                 />
-              </div>
+              )}
 
-              {appointmentId && lockedUntil && !isConfirmed && (
-                <div style={{ marginTop: "16px", textAlign: "center" }}>
-                  <Text>
-                    Confirm within{" "}
-                    {timeLeft !== null
-                      ? `2:00`
-                      : "expired"}
-                  </Text>
-                  <br />
+              <Row gutter={16} justify="end">
+                <Col>
+                  <Button
+                    onClick={() => resetSelectionState()}
+                    danger
+                    style={{ width: 120 }}
+                    disabled={isConfirming || isConfirmed}
+                  >
+                    Cancel
+                  </Button>
+                </Col>
+                <Col>
                   <Button
                     type="primary"
                     onClick={handleConfirmAppointment}
-                    disabled={loading || isConfirming || timeLeft === null}
-                    style={{ marginTop: "8px", borderRadius: "8px" }}
+                    loading={isConfirming}
+                    disabled={
+                      !appointmentId ||
+                      appointmentReason.trim().length < 3 ||
+                      isConfirmed
+                    }
+                    style={{ width: 200 }}
                   >
-                    {loading || isConfirming ? <Spin /> : "Confirm Appointment"}
+                    {isConfirmed
+                      ? "Appointment Confirmed"
+                      : "Confirm Appointment"}
                   </Button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+                </Col>
+              </Row>
+            </Card>
+          </>
+        )}
+
+        {isConfirmed && (
+          <div className="text-center bg-green-50 p-8 rounded-xl border border-green-200 mb-10">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="mx-auto h-16 w-16 text-green-500 mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <Title level={3} style={{ color: "#065f46" }}>
+              Appointment Confirmed!
+            </Title>
+            <Text>
+              Your appointment has been successfully scheduled. Please check
+              your email for confirmation details.
+            </Text>
+          </div>
+        )}
       </div>
+
+      {/* Conflict Modal */}
       <ConflictModal
         open={isConflictModalVisible}
         existingAppointment={conflictAppointment}
@@ -1569,8 +2192,8 @@ const ScheduleAppointment: React.FC<ScheduleAppointmentProps> = ({
         newDate={selectedDate}
         newTimeSlot={intendedTimeSlot}
         loading={conflictLoading}
-        onConfirm={handleConflictConfirm}
         onCancel={handleConflictCancel}
+        onConfirm={handleConflictConfirm}
       />
     </div>
   );

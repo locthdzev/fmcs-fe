@@ -12,6 +12,7 @@ import {
   Space,
   Spin,
   message,
+  AutoComplete,
 } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import moment from "moment";
@@ -412,7 +413,25 @@ const CreateModal: React.FC<CreateModalProps> = ({
                     label="Dosage"
                     rules={[{ required: true, message: "Please enter dosage" }]}
                   >
-                    <Input placeholder="e.g. 1 tablet twice daily" />
+                    <AutoComplete
+                      placeholder="Select or enter dosage instructions"
+                      options={[
+                        { value: '1 tablet once daily' },
+                        { value: '1 tablet twice daily' },
+                        { value: '1 tablet three times daily' },
+                        { value: '2 tablets once daily' },
+                        { value: '2 tablets twice daily' },
+                        { value: '1 tablet every 8 hours' },
+                        { value: '1-2 tablets as needed for pain' },
+                        { value: '5ml three times daily' },
+                        { value: '10ml twice daily' },
+                        { value: 'Apply to affected area twice daily' },
+                        { value: 'Apply 1 patch every 12 hours' },
+                      ]}
+                      filterOption={(inputValue, option) =>
+                        option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                      }
+                    />
                   </Form.Item>
 
                   <Form.Item
