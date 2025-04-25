@@ -91,38 +91,32 @@ const ManagerHomePage: React.FC = () => {
     {
       title: "Staff Management",
       icon: <TeamOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/staff",
+      path: "/user",
       description: "Manage healthcare and canteen staff",
     },
     {
-      title: "Reports & Analytics",
+      title: "Statistics Dashboard",
       icon: <AreaChartOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/reports",
-      description: "View system reports and analytics",
+      path: "/statistics/user",
+      description: "View system statistics and analytics",
     },
     {
-      title: "Health Services",
+      title: "Drug & Inventory",
       icon: <MedicineBoxOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/health-services",
-      description: "Manage healthcare related services",
+      path: "/drug",
+      description: "Manage drugs and inventory records",
     },
     {
-      title: "Schedule Management",
-      icon: <ScheduleOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/schedule",
-      description: "View and manage schedules",
-    },
-    {
-      title: "Notifications",
-      icon: <BellOutlined style={{ fontSize: "24px" }} />,
-      path: "/notification",
-      description: "View and manage notifications",
-    },
-    {
-      title: "Survey Results",
+      title: "Health Records",
       icon: <SolutionOutlined style={{ fontSize: "24px" }} />,
-      path: "/dashboard/survey-results",
-      description: "View survey results and feedback",
+      path: "/health-check-result",
+      description: "View patient health records and history",
+    },
+    {
+      title: "Schedule & Shifts",
+      icon: <ScheduleOutlined style={{ fontSize: "24px" }} />,
+      path: "/schedule",
+      description: "Organize staff schedules and shifts",
     },
   ];
 
@@ -368,7 +362,11 @@ const ManagerHomePage: React.FC = () => {
                     padding: "12px 16px",
                     borderRadius: "6px",
                     boxShadow: "0 2px 0 rgba(0,0,0,0.02)",
+                    transition: "all 0.3s",
+                    background: "#f9f9f9",
+                    border: "1px solid #f0f0f0",
                   }}
+                  className="quick-access-button"
                 >
                   <div style={{ textAlign: "left", marginLeft: "10px" }}>
                     <div style={{ fontWeight: "bold" }}>{item.title}</div>

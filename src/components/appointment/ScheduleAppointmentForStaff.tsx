@@ -9,8 +9,8 @@ import {
   Button,
   Spin,
   Typography,
+  message,
 } from "antd";
-import { toast } from "react-toastify";
 import moment from "moment-timezone";
 import Cookies from "js-cookie";
 import {
@@ -54,6 +54,7 @@ const ScheduleAppointmentForStaff: React.FC<
   ScheduleAppointmentForStaffProps
 > = ({ visible, onClose, staffId }) => {
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<TimeSlotDTO[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -68,7 +69,7 @@ const ScheduleAppointmentForStaff: React.FC<
         setAvailableSlots(response.data?.availableSlots || []);
       } catch (error: any) {
         console.error("Failed to fetch slots:", error);
-        toast.error("Failed to load available slots.");
+        messageApi.error("Failed to load available slots.");
       } finally {
         setLoading(false);
       }
@@ -89,7 +90,7 @@ const ScheduleAppointmentForStaff: React.FC<
 
   const onFinish = async (values: any) => {
     if (!token) {
-      toast.error("Authentication token missing.");
+      messageApi.error("Authentication token missing.");
       return;
     }
 
@@ -117,17 +118,17 @@ const ScheduleAppointmentForStaff: React.FC<
 
       const response = await scheduleAppointment(request, token);
       if (response.isSuccess) {
-        toast.success("Appointment scheduled successfully!");
+        messageApi.success("Appointment scheduled successfully!");
         form.resetFields();
         onClose();
       } else {
-        toast.error(
+        messageApi.error(
           `Failed to schedule: ${response.message || "Unknown error"}`
         );
       }
     } catch (error: any) {
       console.error("Error scheduling appointment:", error);
-      toast.error("Failed to schedule appointment.");
+      messageApi.error("Failed to schedule appointment.");
     } finally {
       setLoading(false);
     }
@@ -141,6 +142,7 @@ const ScheduleAppointmentForStaff: React.FC<
       footer={null}
       width={600}
     >
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"

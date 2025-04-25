@@ -22,8 +22,8 @@ import {
   Modal,
   Form,
   InputNumber,
+  message,
 } from "antd";
-import { toast } from "react-toastify";
 import moment from "moment";
 import {
   getAllHealthCheckResults,
@@ -133,7 +133,6 @@ const HealthCheckFilterModal: React.FC<{
                 placeholder="Search by patient"
                 value={localFilters.userSearch}
                 onChange={(e) => updateFilter("userSearch", e.target.value)}
-               
                 allowClear
                 style={{ width: "100%" }}
               />
@@ -150,7 +149,6 @@ const HealthCheckFilterModal: React.FC<{
                 placeholder="Search by medical staff"
                 value={localFilters.staffSearch}
                 onChange={(e) => updateFilter("staffSearch", e.target.value)}
-               
                 allowClear
                 style={{ width: "100%" }}
               />
@@ -221,6 +219,7 @@ const HealthCheckFilterModal: React.FC<{
 
 export const HealthCheckResultAdjustmentList: React.FC = () => {
   const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
   const [healthCheckResults, setHealthCheckResults] = useState<
     HealthCheckResultsResponseDTO[]
   >([]);
@@ -289,13 +288,13 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         setHealthCheckResults(response.data);
         setTotal(response.totalRecords);
       } else {
-        toast.error(
+        messageApi.error(
           response.message ||
             "Failed to load health check results cancelled for adjustment"
         );
       }
     } catch (error) {
-      toast.error(
+      messageApi.error(
         "Failed to load health check results cancelled for adjustment"
       );
     } finally {
@@ -332,7 +331,8 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         const uniqueCodes = Array.from(
           new Set(
             response.data.map(
-              (result: HealthCheckResultsResponseDTO) => result.healthCheckResultCode
+              (result: HealthCheckResultsResponseDTO) =>
+                result.healthCheckResultCode
             )
           )
         );
@@ -385,7 +385,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         );
       } catch (error) {
         console.error("Failed to fetch users:", error);
-        toast.error("Không thể tải danh sách người dùng");
+        messageApi.error("Không thể tải danh sách người dùng");
       }
     };
 
@@ -475,7 +475,9 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
         </span>
       ),
       render: (record: HealthCheckResultsResponseDTO) => (
-        <Typography.Link onClick={() => router.push(`/health-check-result/${record.id}`)}>
+        <Typography.Link
+          onClick={() => router.push(`/health-check-result/${record.id}`)}
+        >
           {record.healthCheckResultCode}
         </Typography.Link>
       ),
@@ -572,11 +574,13 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
                 <Menu.Item
                   key="view"
                   icon={<EyeOutlined />}
-                  onClick={() => router.push(`/health-check-result/${record.id}`)}
+                  onClick={() =>
+                    router.push(`/health-check-result/${record.id}`)
+                  }
                 >
                   View Details
                 </Menu.Item>
-                
+
                 <Menu.Item
                   key="edit"
                   icon={<FormOutlined style={{ color: "blue" }} />}
@@ -609,6 +613,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
 
   return (
     <div className="p-6">
+      {contextHolder}
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -648,7 +653,6 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
             {/* Thay thế Input bằng Select */}
             <Select
               placeholder="Search by result code"
-             
               value={codeSearch || undefined}
               onChange={(value) => setCodeSearch(value)}
               allowClear
@@ -656,11 +660,13 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
               style={{ width: 250 }}
               optionFilterProp="children"
               filterOption={(input, option) =>
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
               }
-              options={healthCheckCodes.map(code => ({
+              options={healthCheckCodes.map((code) => ({
                 value: code,
-                label: code
+                label: code,
               }))}
             />
 
@@ -743,7 +749,7 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
                             handleColumnVisibilityChange("patient")
                           }
                         >
-                          Patient
+                          User
                         </Checkbox>
                       </div>
                     ),
@@ -859,8 +865,6 @@ export const HealthCheckResultAdjustmentList: React.FC = () => {
             </Typography.Text>
           </div>
         </div>
-
-      
       </Card>
 
       {/* Results Table */}

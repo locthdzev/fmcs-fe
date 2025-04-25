@@ -13,8 +13,11 @@ import {
   message,
   Tooltip,
 } from "antd";
-import { toast } from "react-toastify";
-import { PlusOutlined, MinusCircleOutlined, UserOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  MinusCircleOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import moment from "moment";
 import { HealthCheckResultsCreateRequestDTO } from "@/api/healthcheckresult";
 import { createHealthCheckResult } from "@/api/healthcheckresult";
@@ -38,6 +41,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
   staffOptions,
 }) => {
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [followUpRequired, setFollowUpRequired] = useState(false);
 
@@ -66,16 +70,18 @@ const CreateModal: React.FC<CreateModalProps> = ({
       const response = await createHealthCheckResult(requestData);
 
       if (response.isSuccess) {
-        toast.success("Health check result created successfully!");
+        messageApi.success("Health check result created successfully!");
         form.resetFields();
         onClose();
         onSuccess();
       } else {
-        toast.error(response.message || "Unable to create health check result");
+        messageApi.error(
+          response.message || "Unable to create health check result"
+        );
       }
     } catch (error) {
       console.error("Form validation error:", error);
-      toast.error("Please check the information you entered");
+      messageApi.error("Please check the information you entered");
     } finally {
       setLoading(false);
     }
@@ -87,13 +93,19 @@ const CreateModal: React.FC<CreateModalProps> = ({
   };
 
   // Custom render for Select options
-  const renderUserOption = (user: { id: string; fullName: string; email: string }) => ({
+  const renderUserOption = (user: {
+    id: string;
+    fullName: string;
+    email: string;
+  }) => ({
     value: user.id,
     label: (
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div><strong>{user.fullName}</strong></div>
-        <div style={{ fontSize: '12px', color: '#888' }}>{user.email}</div>
-        <div style={{ fontSize: '11px', color: '#aaa' }}>ID: {user.id}</div>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <div>
+          <strong>{user.fullName}</strong>
+        </div>
+        <div style={{ fontSize: "12px", color: "#888" }}>{user.email}</div>
+        <div style={{ fontSize: "11px", color: "#aaa" }}>ID: {user.id}</div>
       </div>
     ),
   });
@@ -118,6 +130,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
         </Button>,
       ]}
     >
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"
@@ -129,34 +142,44 @@ const CreateModal: React.FC<CreateModalProps> = ({
         <Typography.Title level={5}>Basic Information</Typography.Title>
         <Form.Item
           name="userId"
-          label="Patient"
+          label="User"
           rules={[{ required: true, message: "Please select a patient" }]}
         >
           <Select
             showSearch
-            placeholder="Select patient"
+            placeholder="Select user"
             optionFilterProp="label"
             optionLabelProp="label"
             filterOption={(input, option) => {
-              const optionData = userOptions.find(u => u.id === option?.value);
+              const optionData = userOptions.find(
+                (u) => u.id === option?.value
+              );
               if (!optionData) return false;
-              
+
               const fullName = optionData.fullName.toLowerCase();
               const email = optionData.email.toLowerCase();
               const id = optionData.id.toLowerCase();
               const searchValue = input.toLowerCase();
-              
-              return fullName.includes(searchValue) || 
-                     email.includes(searchValue) ||
-                     id.includes(searchValue);
+
+              return (
+                fullName.includes(searchValue) ||
+                email.includes(searchValue) ||
+                id.includes(searchValue)
+              );
             }}
-            options={userOptions.map(user => ({
+            options={userOptions.map((user) => ({
               value: user.id,
               label: `${user.fullName} (${user.email})`,
             }))}
-            dropdownRender={menu => (
+            dropdownRender={(menu) => (
               <div>
-                <div style={{ padding: '8px', fontSize: '12px', borderBottom: '1px solid #eee' }}>
+                <div
+                  style={{
+                    padding: "8px",
+                    fontSize: "12px",
+                    borderBottom: "1px solid #eee",
+                  }}
+                >
                   <Tooltip title="Search by name, email or ID">
                     <UserOutlined /> Total {userOptions.length} patients
                   </Tooltip>
@@ -179,10 +202,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
           />
         </Form.Item>
 
-        <Form.Item
-          name="followUpRequired"
-          valuePropName="checked"
-        >
+        <Form.Item name="followUpRequired" valuePropName="checked">
           <Checkbox onChange={(e) => setFollowUpRequired(e.target.checked)}>
             Follow-up Required
           </Checkbox>
@@ -241,10 +261,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
                       },
                     ]}
                   >
-                    <TextArea
-                      rows={2}
-                      placeholder="Enter symptoms"
-                    />
+                    <TextArea rows={2} placeholder="Enter symptoms" />
                   </Form.Item>
 
                   <Form.Item
@@ -263,7 +280,10 @@ const CreateModal: React.FC<CreateModalProps> = ({
                     name={[name, "recommendations"]}
                     label="Recommendations"
                     rules={[
-                      { required: true, message: "Please enter recommendations" },
+                      {
+                        required: true,
+                        message: "Please enter recommendations",
+                      },
                     ]}
                   >
                     <TextArea rows={3} placeholder="Enter recommendations" />
@@ -288,4 +308,4 @@ const CreateModal: React.FC<CreateModalProps> = ({
   );
 };
 
-export default CreateModal; 
+export default CreateModal;

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";import {
+import React, { useState, useEffect } from "react";
+import {
   Card,
   Typography,
   Tag,
@@ -23,11 +24,9 @@ import {
   updateBatchNumber,
   updateBatchNumberStatus,
   getPrescriptionsByBatchNumberId,
-  PrescriptionDTO
+  PrescriptionDTO,
 } from "@/api/batchnumber";
-import {
-  getInventoryRecordsByBatchId,
-} from "@/api/inventoryrecord";
+import { getInventoryRecordsByBatchId } from "@/api/inventoryrecord";
 import {
   getGroupedInventoryHistories,
   InventoryHistoryResponseDTO,
@@ -44,7 +43,10 @@ import {
   FormOutlined as AntFormOutlined,
   ExportOutlined,
 } from "@ant-design/icons";
-import { PencilSquareIcon as HeroPencilIcon, ClockIcon as HeroClockIcon } from "@heroicons/react/24/outline";
+import {
+  PencilSquareIcon as HeroPencilIcon,
+  ClockIcon as HeroClockIcon,
+} from "@heroicons/react/24/outline";
 import { useRouter } from "next/router";
 import { Chip } from "@heroui/react";
 import { exportToExcel } from "@/api/export";
@@ -56,12 +58,14 @@ interface BatchNumberDetailProps {
   id: string;
 }
 
-export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
-  id,
-}) => {
+export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({ id }) => {
   const router = useRouter();
-  const [batchNumber, setBatchNumber] = useState<BatchNumberResponseDTO | null>(null);
-  const [inventoryHistories, setInventoryHistories] = useState<InventoryHistoryResponseDTO[]>([]);
+  const [batchNumber, setBatchNumber] = useState<BatchNumberResponseDTO | null>(
+    null
+  );
+  const [inventoryHistories, setInventoryHistories] = useState<
+    InventoryHistoryResponseDTO[]
+  >([]);
   const [prescriptions, setPrescriptions] = useState<PrescriptionDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -121,32 +125,32 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
       console.log("Fetching inventory records for batch ID:", id);
       const records = await getInventoryRecordsByBatchId(id);
       console.log("Inventory records result:", records);
-      
+
       if (records && records.length > 0) {
         // Use the batch code to get grouped inventory histories
         const batchCode = batchNumber?.batchCode;
         console.log("Using batch code for history search:", batchCode);
-        
+
         if (!batchCode) {
           console.warn("Batch code is undefined, can't fetch histories");
           setLoading(false);
           return;
         }
-        
+
         const response = await getGroupedInventoryHistories(
-          1, 
-          100, 
-          undefined, 
-          undefined, 
-          undefined, 
-          undefined, 
-          "ChangeDate", 
-          false, 
+          1,
+          100,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          "ChangeDate",
+          false,
           batchCode
         );
-        
+
         console.log("Grouped inventory histories response:", response);
-        
+
         if (response.success && response.data && response.data.items) {
           // Extract all histories from all groups
           const allHistories: InventoryHistoryResponseDTO[] = [];
@@ -155,16 +159,21 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
               allHistories.push(...group.histories);
             }
           });
-          
+
           // Sort histories by date (newest first)
-          allHistories.sort((a, b) => 
-            new Date(b.changeDate).getTime() - new Date(a.changeDate).getTime()
+          allHistories.sort(
+            (a, b) =>
+              new Date(b.changeDate).getTime() -
+              new Date(a.changeDate).getTime()
           );
-          
+
           console.log("Processed history items:", allHistories.length);
           setInventoryHistories(allHistories);
         } else {
-          console.warn("No inventory history items found in response", response);
+          console.warn(
+            "No inventory history items found in response",
+            response
+          );
         }
       } else {
         console.warn("No inventory records found for batch ID:", id);
@@ -191,11 +200,14 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
       console.log("Fetching prescriptions for batch ID:", id);
       const response = await getPrescriptionsByBatchNumberId(id);
       console.log("Prescriptions response:", response);
-      
+
       if (response.isSuccess && response.data) {
         setPrescriptions(response.data);
       } else {
-        console.warn("No prescription data returned or request failed:", response);
+        console.warn(
+          "No prescription data returned or request failed:",
+          response
+        );
       }
     } catch (error) {
       console.error("Error fetching prescriptions:", error);
@@ -208,7 +220,7 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
 
   const handleToggleStatus = async (checked: boolean) => {
     if (!batchNumber) return;
-    
+
     if (!batchNumber.manufacturingDate || !batchNumber.expiryDate) {
       messageApi.error({
         content: "Please update Manufacturing Date and Expiry Date first.",
@@ -378,11 +390,11 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
           disabled={!canEditBatchNumber(batchNumber.status)}
           onClick={() => {
             form.setFieldsValue({
-              manufacturingDate: batchNumber.manufacturingDate 
-                ? dayjs(batchNumber.manufacturingDate) 
+              manufacturingDate: batchNumber.manufacturingDate
+                ? dayjs(batchNumber.manufacturingDate)
                 : null,
-              expiryDate: batchNumber.expiryDate 
-                ? dayjs(batchNumber.expiryDate) 
+              expiryDate: batchNumber.expiryDate
+                ? dayjs(batchNumber.expiryDate)
                 : null,
             });
             setEditModalVisible(true);
@@ -425,7 +437,9 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
           >
             Back
           </Button>
-          <BatchNumberIcon style={{ fontSize: "24px", width: "24px", height: "24px" }} />
+          <BatchNumberIcon
+            style={{ fontSize: "24px", width: "24px", height: "24px" }}
+          />
           <h3 className="text-xl font-bold">Batch Number Details</h3>
         </div>
         <div>{renderActionButtons()}</div>
@@ -448,9 +462,7 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
             </div>
             <div>
               <Text strong>Supplier:</Text>
-              <Text className="ml-2">
-                {batchNumber.supplier?.supplierName}
-              </Text>
+              <Text className="ml-2">{batchNumber.supplier?.supplierName}</Text>
             </div>
             <div>
               <Text strong>Status:</Text>
@@ -461,7 +473,9 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
                   size="sm"
                   variant="flat"
                 >
-                  {batchNumber.status === "NearExpiry" ? "Near Expiry" : batchNumber.status}
+                  {batchNumber.status === "NearExpiry"
+                    ? "Near Expiry"
+                    : batchNumber.status}
                 </Chip>
               </span>
             </div>
@@ -487,9 +501,7 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
           </div>
         </Card>
 
-        <Card
-          title={<span style={{ fontWeight: "bold" }}>Batch Details</span>}
-        >
+        <Card title={<span style={{ fontWeight: "bold" }}>Batch Details</span>}>
           <div className="space-y-4">
             <div>
               <Text strong>Manufacturing Date:</Text>
@@ -507,11 +519,15 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
             </div>
             <div>
               <Text strong>Created At:</Text>
-              <Text className="ml-2">{formatDateTime(batchNumber.createdAt)}</Text>
+              <Text className="ml-2">
+                {formatDateTime(batchNumber.createdAt)}
+              </Text>
             </div>
             <div>
               <Text strong>Created By:</Text>
-              <Text className="ml-2">{batchNumber.createdBy?.userName || 'Unknown'}</Text>
+              <Text className="ml-2">
+                {batchNumber.createdBy?.userName || "Unknown"}
+              </Text>
             </div>
           </div>
         </Card>
@@ -519,7 +535,11 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
 
       {/* Add Prescriptions Card */}
       <Card
-        title={<span style={{ fontWeight: "bold" }}>Prescriptions Using This Batch</span>}
+        title={
+          <span style={{ fontWeight: "bold" }}>
+            Prescriptions Using This Batch
+          </span>
+        }
         className="mb-8"
       >
         {prescriptions.length > 0 ? (
@@ -527,25 +547,46 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
             <table className="w-full min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Prescription Code
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Patient
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    User
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Doctor
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Healthcare Staff
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Quantity Used
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Date
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Status
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Actions
                   </th>
                 </tr>
@@ -557,31 +598,41 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
                       {prescription.prescriptionCode}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {prescription.patientName || '-'}
+                      {prescription.patientName || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {prescription.staffName || '-'}
+                      {prescription.staffName || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {prescription.totalQuantityUsed || '-'}
+                      {prescription.totalQuantityUsed || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {prescription.createdAt ? formatDateTime(prescription.createdAt) : '-'}
+                      {prescription.createdAt
+                        ? formatDateTime(prescription.createdAt)
+                        : "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Chip
                         className="capitalize"
-                        color={prescription.status === "Completed" ? "success" : prescription.status === "Pending" ? "warning" : "default"}
+                        color={
+                          prescription.status === "Completed"
+                            ? "success"
+                            : prescription.status === "Pending"
+                            ? "warning"
+                            : "default"
+                        }
                         size="sm"
                         variant="flat"
                       >
-                        {prescription.status || 'Unknown'}
+                        {prescription.status || "Unknown"}
                       </Chip>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <Button
                         type="link"
-                        onClick={() => router.push(`/prescription/${prescription.id}`)}
+                        onClick={() =>
+                          router.push(`/prescription/${prescription.id}`)
+                        }
                         style={{ padding: 0, margin: 0 }}
                       >
                         View Details
@@ -598,7 +649,7 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
           </div>
         )}
       </Card>
-      
+
       {/* Edit Modal */}
       <Modal
         title="Edit Batch Number"
@@ -631,4 +682,3 @@ export const BatchNumberDetail: React.FC<BatchNumberDetailProps> = ({
 };
 
 export default BatchNumberDetail;
-
