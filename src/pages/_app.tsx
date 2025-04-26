@@ -38,7 +38,7 @@ function MyApp({ Component, pageProps }: AppProps) {
   }, []);
 
   return (
-    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+    <GoogleOAuthProvider clientId="1055516626870-153athu5ua5on6b4gbg50ntr9qru1dr4.apps.googleusercontent.com">
       <HeroUIProvider>
         <ConfigProvider>
           <AntdApp>
