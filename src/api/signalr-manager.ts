@@ -1,7 +1,8 @@
 import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from "@microsoft/signalr";
 import Cookies from "js-cookie";
 
-const HUB_URL = "http://localhost:5104/appointmentHub";
+// Remove hardcoded URL
+// const HUB_URL = "http://localhost:5104/appointmentHub";
 
 interface SignalRConfig {
   url?: string;
@@ -20,7 +21,7 @@ class SignalRManager {
   private maxRetries: number;
 
   private constructor(config: SignalRConfig = {}) {
-    this.url = config.url || HUB_URL;
+    this.url = config.url || "/appointmentHub";
     this.reconnectDelays = config.reconnectDelays || [0, 1000, 5000, 10000];
     this.maxRetries = config.maxRetries || 3;
     this.initializeConnection();

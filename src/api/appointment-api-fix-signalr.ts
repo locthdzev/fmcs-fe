@@ -4,8 +4,6 @@ import https from "https";
 import Cookies from "js-cookie";
 import jwtDecode from "jwt-decode";
 
-const API_BASE_URL = "http://localhost:5104/api/appointment-management";
-
 // Response DTOs from AppointmentService
 export interface ResultDTO<T = any> {
   isSuccess: boolean;
@@ -198,7 +196,7 @@ export const getAppointmentsByUserId = async (
       sortBy,
       ascending,
     });
-    const response = await api.get(`${API_BASE_URL}/appointments/user/${userId}`, {
+    const response = await api.get(`/appointment-management/appointments/user/${userId}`, {
       params: { page, pageSize, sortBy, ascending },
     });
     console.log("API response:", response.data);
@@ -234,13 +232,10 @@ export const cancelLockedAppointment = async (
 ): Promise<ResultDTO<null>> => {
   try {
     console.log(`Canceling lock for userId: ${userId}`);
-    const response = await axios.post(
-      `${API_BASE_URL}/appointments/cancel-lock`,
-      { userId },
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-      }
+    const authToken = token || Cookies.get("token");
+    const response = await api.post(
+      `/appointment-management/appointments/cancel-lock`,
+      { userId }
     );
     return response.data;
   } catch (error: any) {
@@ -268,7 +263,7 @@ export const cancelPreviousLockedAppointment = async (
   try {
     console.log(`Canceling previous lock for sessionId: ${request.sessionId}`);
     const response = await axios.post(
-      `${API_BASE_URL}/appointments/cancel-previous-lock`,
+      `/appointment-management/appointments/cancel-previous-lock`,
       request,
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -301,7 +296,7 @@ export const cancelPresentLockedAppointment = async (
   try {
     console.log("Canceling present locked appointment");
     const response = await axios.post(
-      `${API_BASE_URL}/appointments/cancel-present-lock`,
+      `/appointment-management/appointments/cancel-present-lock`,
       {},
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -335,7 +330,7 @@ export const getOverlappingAppointments = async (
   token?: string
 ): Promise<ResultDTO<AppointmentResponseDTO[]>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/appointments/overlapping`, {
+    const response = await axios.get(`/appointment-management/appointments/overlapping`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -379,7 +374,7 @@ export const getAppointment = async (
   token?: string
 ): Promise<ResultDTO<AppointmentResponseDTO>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/appointments/${id}`, {
+    const response = await axios.get(`/appointment-management/appointments/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -410,7 +405,7 @@ export const getAppointment = async (
 
 export const getAppointmentStatistics = async (token: string): Promise<ResultDTO<AppointmentStatisticsDTO>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/statistics`, {
+    const response = await axios.get(`/appointment-management/statistics`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -434,7 +429,7 @@ export const scheduleAppointment = async (
   token?: string
 ): Promise<ResultDTO<AppointmentResponseDTO | AppointmentConflictResponseDTO>> => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/appointments/schedule`, request, {
+    const response = await axios.post(`/appointment-management/appointments/schedule`, request, {
       headers: { Authorization: `Bearer ${token}` },
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });
@@ -468,7 +463,7 @@ export const scheduleAppointmentForHealthcareStaff = async (
   }
 
   try {
-    const response = await axios.post(`${API_BASE_URL}/appointments/staff-schedule`, request, {
+    const response = await axios.post(`/appointment-management/appointments/staff-schedule`, request, {
       headers: { Authorization: `Bearer ${authToken}` },
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });
@@ -508,7 +503,7 @@ export const updateAppointmentByStaff = async (
 ): Promise<ResultDTO<AppointmentResponseDTO>> => {
   try {
     const response = await axios.put(
-      `${API_BASE_URL}/appointments/${id}/staff-update`,
+      `/appointment-management/appointments/${id}/staff-update`,
       data,
       {
         headers: {
@@ -558,7 +553,7 @@ export const confirmAppointment = async (
   reason?: string
 ): Promise<ResultDTO<AppointmentResponseDTO>> => {
   const response = await axios.put(
-    `${API_BASE_URL}/appointments/${id}/confirm`,
+    `/appointment-management/appointments/${id}/confirm`,
     { reason },
     {
       headers: { Authorization: `Bearer ${token}` }
@@ -575,7 +570,7 @@ export const validateAppointmentRequest = async (
   token?: string
 ): Promise<ResultDTO<AppointmentConflictResponseDTO>> => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/appointments/validate-appointment`, request, {
+    const response = await axios.post(`/appointment-management/appointments/validate-appointment`, request, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -625,7 +620,7 @@ export const getAvailableTimeSlots = async (
   token?: string
 ): Promise<ResultDTO<AvailableTimeSlotsResponseDTO>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/appointments/available-time-slots/${staffId}/${date}`, {
+    const response = await axios.get(`/appointment-management/appointments/available-time-slots/${staffId}/${date}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -648,7 +643,7 @@ export const getAvailableSlotCount = async (
   token?: string
 ): Promise<ResultDTO<number>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/appointments/available-slot-count/${staffId}/${date}`, {
+    const response = await axios.get(`/appointment-management/appointments/available-slot-count/${staffId}/${date}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -677,7 +672,7 @@ export const getAvailableSlotCountWithSchedule = async (
   token?: string
 ): Promise<ResultDTO<number>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/appointments/available-slot-count-with-schedule/${staffId}/${date}`, {
+    const response = await axios.get(`/appointment-management/appointments/available-slot-count-with-schedule/${staffId}/${date}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -722,7 +717,7 @@ export const updateAppointmentByHealthcareStaff = async (
 
   try {
     const response = await axios.put(
-      `${API_BASE_URL}/appointments/${request.id}/staff-update`,
+      `/appointment-management/appointments/${request.id}/staff-update`,
       request,
       {
         headers: {
@@ -759,7 +754,7 @@ export const cancelAppointment = async (id: string, token?: string): Promise<Res
   try {
     console.log(`Canceling appointment with ID: ${id}`);
     const response = await axios.put(
-      `${API_BASE_URL}/appointments/${id}/cancel`,
+      `/appointment-management/appointments/${id}/cancel`,
       {},
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -801,7 +796,7 @@ export const getAppointmentsByStaffId = async (
       sortBy,
       ascending,
     });
-    const response = await axios.get(`${API_BASE_URL}/appointments/staff/${staffId}`, {
+    const response = await axios.get(`/appointment-management/appointments/staff/${staffId}`, {
       headers: {
         Authorization: `Bearer ${token || Cookies.get("token")}`,
       },
@@ -846,7 +841,7 @@ export const cancelAppointmentForStaff = async (
 
   try {
     const response = await axios.put(
-      `${API_BASE_URL}/appointments/${id}/staff-cancel`,
+      `/appointment-management/appointments/${id}/staff-cancel`,
       {},
       {
         headers: {
@@ -929,7 +924,7 @@ export const updateUserAppointmentStatusToNormal = async (
 
   try {
     const response = await axios.put(
-      `${API_BASE_URL}/appointments/users/${email}/reset-user-appointmentstatus`,
+      `/appointment-management/appointments/users/${email}/reset-user-appointmentstatus`,
       {},
       {
         headers: {
@@ -973,7 +968,7 @@ export const getAvailableStaff = async (
 
 export const getUnavailableTimeSlots = async (request: UnavailableTimeSlotsRequestDTO, token?: string): Promise<ResultDTO<UnavailableTimeSlotDTO[]>> => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/appointments/unavailable-timeslots`, request, {
+    const response = await axios.post(`/appointment-management/appointments/unavailable-timeslots`, request, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -1047,7 +1042,7 @@ export const exportAppointmentsToExcel = async (
 export const getAllHealthcareStaff = async (): Promise<ResultDTO<AvailableOfficersResponseDTO[]>> => {
   const token = typeof window !== "undefined" ? Cookies.get("token") : null;
   try {
-    const response = await axios.get(`${API_BASE_URL}/healthcare-staff`, {
+    const response = await axios.get(`/appointment-management/healthcare-staff`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -1069,7 +1064,7 @@ export const cancelExpiredLockedAppointment = async (
     console.log(`Canceling expired locked appointment for AppointmentId: ${appointmentId}`);
     const request: CancelExpiredLockRequestDTO = { appointmentId };
     const response = await axios.post(
-      `${API_BASE_URL}/appointments/cancel-expired-locks`,
+      `/appointment-management/appointments/cancel-expired-locks`,
       request,
       {
         headers: {
@@ -1110,7 +1105,7 @@ export const getHealthcareStaffById = async (
   token?: string
 ): Promise<ResultDTO<AvailableOfficersResponseDTO>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/healthcare-staff/${staffId}`, {
+    const response = await axios.get(`/appointment-management/healthcare-staff/${staffId}`, {
       headers: { Authorization: `Bearer ${token}` },
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });

@@ -1,4 +1,5 @@
 import api from "./customize-axios";
+import Cookies from "js-cookie";
 
 export interface DrugResponse {
   id: string;
@@ -344,110 +345,43 @@ export const exportDrugsToExcel = async (
   updatedEndDate?: string
 ) => {
   try {
-    // For "Export All", we ignore all filters except sorting
-    if (exportAllPages) {
-      drugCodeSearch = undefined;
-      nameSearch = undefined;
-      manufacturerSearch = undefined;
-      descriptionSearch = undefined;
-      drugGroupId = undefined;
-      minPrice = undefined;
-      maxPrice = undefined;
-      status = undefined;
-      createdStartDate = undefined;
-      createdEndDate = undefined;
-      updatedStartDate = undefined;
-      updatedEndDate = undefined;
-    }
-
-    console.log("Export config:", config);
-    console.log("Export params:", {
-      exportAllPages,
-      page,
-      pageSize,
-      drugCodeSearch,
-      nameSearch,
-      manufacturerSearch,
-      descriptionSearch,
-      drugGroupId,
-      minPrice,
-      maxPrice,
-      sortBy,
-      ascending,
-      status,
-      createdStartDate,
-      createdEndDate,
-      updatedStartDate,
-      updatedEndDate
-    });
-    
-    // Set an extremely large pageSize to ensure all records are returned
-    const exportPageSize = 1000000; // One million should cover any reasonable number of records
-    
-    // Use a simplified approach with direct body parameters
-    const exportRequest = {
-      ...config,
-      exportOptions: {
-        page: 1,
-        pageSize: exportPageSize,
-        drugCodeSearch,
-        nameSearch,
-        manufacturerSearch,
-        descriptionSearch,
-        drugGroupId,
-        minPrice,
-        maxPrice,
-        sortBy: sortBy || "CreatedAt", // Default to CreatedAt for consistency
-        ascending,
-        status: status ? status.replace(/,/g, ",") : undefined,
-        createdStartDate,
-        createdEndDate,
-        updatedStartDate,
-        updatedEndDate,
-        exportAllPages: true
-      }
-    };
-      
-    console.log("Export request:", JSON.stringify(exportRequest, null, 2));
-    
-    const response = await api.post("/drug-management/drugs/export-excel", exportRequest);
-    console.log("Export response:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Export error:", error);
-    
-    // Try direct axios as fallback
+    console.log("Attempting to export drugs to Excel");
+    const token = Cookies.get("token");
     try {
-      const axios = require('axios');
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-      
       const exportRequest = {
-        ...config,
-        exportOptions: {
-          page: 1,
-          pageSize: 1000000,
-          sortBy: sortBy || "CreatedAt",
+        exportConfig: config,
+        filterParams: {
+          page,
+          pageSize,
+          drugCodeSearch,
+          nameSearch,
+          manufacturerSearch,
+          descriptionSearch,
+          drugGroupId,
+          minPrice,
+          maxPrice,
+          createdStartDate,
+          createdEndDate,
+          updatedStartDate,
+          updatedEndDate,
+          sortBy,
           ascending,
           exportAllPages: true
         }
       };
       
-      const fullUrl = `http://localhost:5104/api/drug-management/drugs/export-excel`;
-      console.log("Trying direct URL:", fullUrl);
+      // Use API instance for the request
+      const response = await api.post(`/drug-management/drugs/export-excel`, exportRequest);
       
-      const directResponse = await axios.post(fullUrl, exportRequest, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : undefined
-        }
-      });
-      
-      console.log("Export response (direct axios):", directResponse.data);
-      return directResponse.data;
+      console.log("Export response:", response.data);
+      return response.data;
     } catch (directError) {
       console.error("Export failed with direct axios:", directError);
       throw directError;
     }
+  } catch (error) {
+    console.error("Failed to export drugs:", error);
+    throw error;
   }
 };
 

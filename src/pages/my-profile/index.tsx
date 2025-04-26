@@ -168,9 +168,9 @@ export default function UserProfilePage() {
       return false;
     }
 
-    const isLt2M = file.size / 1024 / 1024 < 2;
+    const isLt2M = file.size / 1024 / 1024 < 10;
     if (!isLt2M) {
-      messageApi.error("Image must be smaller than 2MB!");
+      messageApi.error("Image must be smaller than 10MB!");
       return false;
     }
 

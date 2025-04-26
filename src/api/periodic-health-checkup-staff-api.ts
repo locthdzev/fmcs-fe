@@ -1,9 +1,7 @@
+import api from "./customize-axios";
 import axios from "axios";
 import Cookies from "js-cookie";
 import https from "https";
-
-// Base URL for Periodic Health Checkup Staff API
-const API_BASE_URL = "http://localhost:5104/api/periodic-health-checkups-details-staff-management";
 
 // Reusing existing ResultDTO and PagedResultDTO
 export interface ResultDTO<T = any> {
@@ -200,13 +198,9 @@ export const getAllStaffHealthCheckups = async (
   token?: string
 ): Promise<PagedResultDTO<PeriodicHealthCheckupsDetailsStaffResponseDTO>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/details-staff`, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+    const response = await api.get(`/periodic-health-checkups-details-staff-management/details-staff`, {
       params: { page, pageSize, search, sortBy, ascending },
     });
-    console.log('Staff Health Checkups Raw Response:', response.data);
-    console.log('ENT Exam in first record:', response.data.data[0]?.entexam);
     if (!response.data.isSuccess) {
       throw new Error(response.data.message || "Failed to fetch staff health checkups");
     }
@@ -231,10 +225,7 @@ export const getStaffHealthCheckupById = async (
   token?: string
 ): Promise<ResultDTO<PeriodicHealthCheckupsDetailsStaffResponseDTO>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/details-staff/${id}`, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    const response = await api.get(`/periodic-health-checkups-details-staff-management/details-staff/${id}`);
     console.log('Staff Health Checkup by ID Raw Response:', response.data);
     console.log('ENT Exam:', response.data.data?.entexam);
     if (!response.data.isSuccess) {
@@ -262,12 +253,8 @@ export const getStaffHealthCheckupsByPeriodicId = async (
   token?: string
 ): Promise<ResultDTO<PeriodicHealthCheckupsDetailsStaffResponseDTO[]>> => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/details-staff/by-periodic-health-checkup/${periodicHealthCheckUpId}`,
-      {
-        headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-      }
+    const response = await api.get(
+      `/periodic-health-checkups-details-staff-management/details-staff/by-periodic-health-checkup/${periodicHealthCheckUpId}`
     );
     if (!response.data.isSuccess) {
       throw new Error(response.data.message || "Failed to fetch staff health checkups by periodic ID");
@@ -297,10 +284,8 @@ export const createStaffHealthCheckup = async (
   signal?: AbortSignal
 ): Promise<ResultDTO<PeriodicHealthCheckupsDetailsStaffResponseDTO>> => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/details-staff`, request, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-      signal, // Add signal for cancellation
+    const response = await api.post(`/periodic-health-checkups-details-staff-management/details-staff`, request, {
+      signal, // Add cancellation support
     });
     if (!response.data.isSuccess) {
       throw new Error(response.data.message || "Failed to create staff health checkup");
@@ -337,10 +322,7 @@ export const updateStaffHealthCheckup = async (
 ): Promise<ResultDTO<PeriodicHealthCheckupsDetailsStaffResponseDTO>> => {
   try {
     console.log("Calling updateStaffHealthCheckup with ID:", id, "and data:", request);
-    const response = await axios.put(`${API_BASE_URL}/details-staff/${id}`, request, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    const response = await api.put(`/periodic-health-checkups-details-staff-management/details-staff/${id}`, request);
     console.log("Raw API response:", response.data);
     if (!response.data.isSuccess) {
       throw new Error(response.data.message || "Failed to update staff health checkup");
@@ -358,7 +340,7 @@ export const updateStaffHealthCheckup = async (
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw error; // Re-throw to ensure it’s caught in handleSubmit
+    throw error; // Re-throw to ensure it's caught in handleSubmit
   }
 };
 
@@ -367,10 +349,7 @@ export const deleteStaffHealthCheckup = async (
   token?: string
 ): Promise<ResultDTO<null>> => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/details-staff/${id}`, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    const response = await api.delete(`/periodic-health-checkups-details-staff-management/details-staff/${id}`);
     if (!response.data.isSuccess) {
       throw new Error(response.data.message || "Failed to delete staff health checkup");
     }
@@ -396,18 +375,10 @@ export const getStaffHealthCheckupByEmail = async (
   token?: string
 ): Promise<ResultDTO<UserResponseDTO>> => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/details-staff/by-email/${encodeURIComponent(email)}`,
-      {
-        headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-      }
-    );
-    
+    const response = await api.get(`/periodic-health-checkups-details-staff-management/details-staff/email/${email}`);
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to fetch user by email");
+      throw new Error(response.data.message || "Failed to fetch staff by email");
     }
-    
     return response.data;
   } catch (error: any) {
     console.error("Error in getStaffHealthCheckupByEmail:", error.response?.data || error.message);
@@ -417,12 +388,12 @@ export const getStaffHealthCheckupByEmail = async (
         isSuccess: false,
         code: error.response.status,
         data: null,
-        message: errorData.message || "Failed to fetch user by email",
+        message: errorData.message || "Failed to fetch staff by email",
         responseFailed: errorData.responseFailed || undefined,
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to fetch user by email: ${error.message}`
+      error.response?.data?.message || `Failed to fetch staff by email: ${error.message}`
     );
   }
 };
@@ -437,21 +408,21 @@ export const exportStaffHealthCheckupsToExcel = async (
   token?: string
 ): Promise<void> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/details-staff/export`, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+    const response = await api.get(`/periodic-health-checkups-details-staff-management/details-staff/export-excel`, {
       params: { page, pageSize, search, sortBy, ascending },
-      responseType: "blob",
+      responseType: 'blob',
     });
+    
+    // Handle downloading the file
     const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
-    link.setAttribute("download", "staff_health_checkups.xlsx");
+    link.setAttribute('download', `staff-health-checkups-${new Date().toISOString().split('T')[0]}.xlsx`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   } catch (error: any) {
-    console.error("Error in exportStaffHealthCheckupsToExcel:", error.response?.data || error.message);
-    throw new Error(error.response?.data?.message || "Failed to export staff health checkups to Excel");
+    console.error("Error exporting staff health checkups:", error);
+    throw error;
   }
 };

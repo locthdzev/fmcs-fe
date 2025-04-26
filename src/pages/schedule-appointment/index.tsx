@@ -344,19 +344,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 const getAllHealthcareStaffWithToken = async (
   token: string
 ): Promise<ResultDTO<AvailableOfficersResponseDTO[]>> => {
-  const axios = (await import("axios")).default;
-  const https = (await import("https")).default;
-
-  const response = await axios.get(
-    "http://localhost:5104/api/appointment-management/healthcare-staff",
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      httpsAgent: new https.Agent({
-        rejectUnauthorized: false,
-      }),
-    }
+  const api = (await import("../../api/customize-axios")).default;
+  
+  const response = await api.get(
+    "/appointment-management/healthcare-staff"
   );
 
   if (!response.data.isSuccess) {

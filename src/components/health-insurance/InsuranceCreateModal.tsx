@@ -160,9 +160,9 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
     if (!isImage) {
       messageApi.error("You can only upload image files!");
     }
-    const isLt2M = (file.size || 0) / 1024 / 1024 < 2;
+    const isLt2M = (file.size || 0) / 1024 / 1024 < 10;
     if (!isLt2M) {
-      messageApi.error("Image must be smaller than 2MB!");
+      messageApi.error("Image must be smaller than 10MB!");
     }
     return isImage && isLt2M;
   };
@@ -239,12 +239,14 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
                   <Input placeholder="Enter health insurance number" />
                 </Form.Item>
               </Col>
-              
+
               <Col span={12}>
                 <Form.Item
                   name="fullName"
                   label="Full Name"
-                  rules={[{ required: true, message: "Please input full name" }]}
+                  rules={[
+                    { required: true, message: "Please input full name" },
+                  ]}
                 >
                   <Input placeholder="Enter full name" />
                 </Form.Item>
@@ -263,7 +265,7 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
                   <DatePicker style={{ width: "100%" }} />
                 </Form.Item>
               </Col>
-              
+
               <Col span={8}>
                 <Form.Item
                   name="gender"
@@ -281,7 +283,9 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
                 <Form.Item
                   name="issueDate"
                   label="Issue Date"
-                  rules={[{ required: true, message: "Please select issue date" }]}
+                  rules={[
+                    { required: true, message: "Please select issue date" },
+                  ]}
                 >
                   <DatePicker style={{ width: "100%" }} />
                 </Form.Item>
@@ -311,7 +315,7 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
                   <Input placeholder="Enter healthcare provider name" />
                 </Form.Item>
               </Col>
-              
+
               <Col span={12}>
                 <Form.Item
                   name="healthcareProviderCode"
@@ -334,13 +338,16 @@ const InsuranceCreateModal: React.FC<InsuranceCreateModalProps> = ({
                   name="validFrom"
                   label="Valid From"
                   rules={[
-                    { required: true, message: "Please select valid from date" },
+                    {
+                      required: true,
+                      message: "Please select valid from date",
+                    },
                   ]}
                 >
                   <DatePicker style={{ width: "100%" }} />
                 </Form.Item>
               </Col>
-              
+
               <Col span={12}>
                 <Form.Item
                   name="validTo"

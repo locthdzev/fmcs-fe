@@ -347,9 +347,9 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({ id }) => {
         messageApi.error("You can only upload JPG/PNG file!");
         return Upload.LIST_IGNORE;
       }
-      const isLt2M = file.size / 1024 / 1024 < 2;
+      const isLt2M = file.size / 1024 / 1024 < 10;
       if (!isLt2M) {
-        messageApi.error("Image must be smaller than 2MB!");
+        messageApi.error("Image must be smaller than 10MB!");
         return Upload.LIST_IGNORE;
       }
 

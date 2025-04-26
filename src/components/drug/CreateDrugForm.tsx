@@ -7,7 +7,7 @@ import {
   Spin,
   Select,
   Upload,
-  Space
+  Space,
 } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
 import { createDrug } from "@/api/drug";
@@ -43,11 +43,11 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
       try {
         const response = await getDrugGroups();
         // Check if the response is an object with data property
-        if (response && typeof response === 'object') {
+        if (response && typeof response === "object") {
           // Check if response has a data property that is an array
           if (response.data && Array.isArray(response.data)) {
             setDrugGroups(response.data);
-          } 
+          }
           // Check if response itself is an array
           else if (Array.isArray(response)) {
             setDrugGroups(response);
@@ -55,12 +55,11 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           // Check if items property exists and is an array (common pagination structure)
           else if (response.items && Array.isArray(response.items)) {
             setDrugGroups(response.items);
-          }
-          else {
+          } else {
             console.error("Unexpected response format:", response);
             messageApi.error({
               content: "Failed to load drug groups: Unexpected data format",
-              duration: 10
+              duration: 10,
             });
             setDrugGroups([]);
           }
@@ -68,7 +67,7 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           console.error("Invalid response:", response);
           messageApi.error({
             content: "Failed to load drug groups: Invalid response",
-            duration: 10
+            duration: 10,
           });
           setDrugGroups([]);
         }
@@ -76,7 +75,7 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
         console.error("Error fetching drug groups:", error);
         messageApi.error({
           content: "Failed to load drug groups",
-          duration: 10
+          duration: 10,
         });
         setDrugGroups([]);
       }
@@ -91,14 +90,14 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
 
       const formDataToSend = new FormData();
       Object.entries(values).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && key !== 'imageFile') {
+        if (value !== undefined && value !== null && key !== "imageFile") {
           formDataToSend.append(key, value as string);
         }
       });
 
       formDataToSend.append("status", "Active");
       formDataToSend.append("createdAt", new Date().toISOString());
-      
+
       // Thêm ImageUrl vào FormData - trường không thể thiếu khi gửi lên server
       formDataToSend.append("ImageUrl", "");
 
@@ -109,9 +108,9 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           hasOriginFileObj: !!fileList[0].originFileObj,
           fileType: fileList[0].type,
           fileSize: fileList[0].size,
-          fileKeys: Object.keys(fileList[0])
+          fileKeys: Object.keys(fileList[0]),
         });
-        
+
         // Kiểm tra xem file có originFileObj không
         if (fileList[0].originFileObj) {
           console.log("Adding file from originFileObj");
@@ -120,7 +119,7 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           console.warn("File selected but no originFileObj found");
           messageApi.warning({
             content: "Could not process the selected file",
-            duration: 10
+            duration: 10,
           });
         }
       } else {
@@ -131,9 +130,15 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
       console.log("FormData entries to be sent:");
       for (let pair of formDataToSend.entries()) {
         const value = pair[1];
-        console.log(`${pair[0]}: ${value instanceof File ? 
-          `File (${(value as File).name}, ${(value as File).type}, ${(value as File).size} bytes)` : 
-          value}`);
+        console.log(
+          `${pair[0]}: ${
+            value instanceof File
+              ? `File (${(value as File).name}, ${(value as File).type}, ${
+                  (value as File).size
+                } bytes)`
+              : value
+          }`
+        );
       }
 
       // Use promise chaining for better error handling
@@ -142,7 +147,7 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
           setLoading(false);
           messageApi.success({
             content: "Drug created successfully",
-            duration: 10
+            duration: 10,
           });
           onCreate();
           onClose();
@@ -150,19 +155,18 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
         .catch((error: any) => {
           setLoading(false);
           console.error("Drug creation error:", error);
-          
+
           // Display the error message from the API
           messageApi.error({
             content: error.message || "Failed to create drug",
-            duration: 10
+            duration: 10,
           });
         });
-
     } catch (errorInfo) {
       console.error("Form validation failed:", errorInfo);
       messageApi.error({
         content: "Please check the form for errors",
-        duration: 10
+        duration: 10,
       });
     }
   };
@@ -174,42 +178,43 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
 
   const uploadProps: UploadProps = {
     beforeUpload: (file) => {
-      const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+      const isJpgOrPng =
+        file.type === "image/jpeg" || file.type === "image/png";
       if (!isJpgOrPng) {
         messageApi.error({
-          content: 'You can only upload JPG/PNG file!',
-          duration: 10
+          content: "You can only upload JPG/PNG file!",
+          duration: 10,
         });
         return Upload.LIST_IGNORE;
       }
-      const isLt2M = file.size / 1024 / 1024 < 2;
+      const isLt2M = file.size / 1024 / 1024 < 10;
       if (!isLt2M) {
         messageApi.error({
-          content: 'Image must be smaller than 2MB!',
-          duration: 10
+          content: "Image must be smaller than 10MB!",
+          duration: 10,
         });
         return Upload.LIST_IGNORE;
       }
-      
+
       // Tạo một file mới từ file ban đầu để đảm bảo nó có thể được sử dụng
       const newFile = new File([file], file.name, { type: file.type });
-      
+
       // Tạo đối tượng upload file
       const uploadFile = {
         uid: Date.now().toString(),
         name: newFile.name,
         size: newFile.size,
         type: newFile.type,
-        originFileObj: newFile  // Thêm trường originFileObj
+        originFileObj: newFile, // Thêm trường originFileObj
       } as UploadFile;
-      
+
       console.log("File selected for upload:", {
         name: uploadFile.name,
         type: uploadFile.type,
         size: uploadFile.size,
-        hasOriginFileObj: !!uploadFile.originFileObj
+        hasOriginFileObj: !!uploadFile.originFileObj,
       });
-      
+
       setFileList([uploadFile]);
       return false; // Prevent auto upload
     },
@@ -280,11 +285,7 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
             label="Price"
             rules={[{ required: true, message: "Please enter price" }]}
           >
-            <Input 
-              type="number" 
-              placeholder="Enter price" 
-              suffix="VND"
-            />
+            <Input type="number" placeholder="Enter price" suffix="VND" />
           </Form.Item>
 
           <Form.Item
@@ -295,25 +296,25 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
             <Input placeholder="Enter manufacturer" />
           </Form.Item>
 
-          <Form.Item
-            name="description"
-            label="Description"
-          >
+          <Form.Item name="description" label="Description">
             <TextArea rows={3} placeholder="Enter description" />
           </Form.Item>
 
           <Form.Item label="Drug Image">
-            <Dragger 
-              {...uploadProps} 
-              name="imageFile" 
+            <Dragger
+              {...uploadProps}
+              name="imageFile"
               accept="image/png,image/jpeg"
             >
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>
-              <p className="ant-upload-text">Click or drag file to this area to upload</p>
+              <p className="ant-upload-text">
+                Click or drag file to this area to upload
+              </p>
               <p className="ant-upload-hint">
-                Support for a single image upload. Please upload JPG/PNG file only.
+                Support for a single image upload. Please upload JPG/PNG file
+                only.
               </p>
             </Dragger>
           </Form.Item>
@@ -323,7 +324,12 @@ export const CreateDrugForm: React.FC<CreateDrugFormProps> = ({
               <Button key="reset" htmlType="button" onClick={handleReset}>
                 Reset
               </Button>
-              <Button key="submit" type="primary" htmlType="submit" loading={loading}>
+              <Button
+                key="submit"
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+              >
                 Create
               </Button>
             </div>
