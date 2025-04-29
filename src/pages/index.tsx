@@ -7,6 +7,7 @@ import Cookies from "js-cookie";
 import { ImagesSlider } from "@/components/ui/images-slider";
 import { motion } from "framer-motion";
 import { message, Alert } from "antd";
+import StyledGoogleButton from "@/components/auth/StyledGoogleButton";
 
 export default function Login() {
   console.log("Login");
@@ -218,19 +219,6 @@ export default function Login() {
                 transform: translateY(-5px);
               }
             }
-            
-            .google-login-button {
-              width: 100% !important;
-              max-width: 100% !important;
-              justify-content: center !important;
-            }
-            .nsm7Bb-HzV7m-LgbsSe {
-              width: 100% !important;
-              max-width: 100% !important;
-              justify-content: center !important;
-              border-radius: 0.5rem !important;
-              padding: 0.75rem 1rem !important;
-            }
           `}</style>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="relative">
@@ -365,69 +353,7 @@ export default function Login() {
             </button>
           </form>{" "}
           <div className="text-black text-center my-4 text-gray-500">Or</div>
-          
-          {/* Custom Google Button */}
-          <div className="w-full flex justify-center items-center">
-            <div 
-              style={{
-                width: '100%',
-                height: '48px', /* Chiều cao cố định */
-                position: 'relative',
-                overflow: 'hidden',
-                borderRadius: '0.5rem',
-                backgroundColor: 'black',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {/* Lớp giả với nội dung hiển thị */}
-              <div 
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 1,
-                  color: 'white',
-                  pointerEvents: 'none' /* Để click xuyên qua đến button thật */
-                }}
-              >
-                <img 
-                  src="https://developers.google.com/identity/images/g-logo.png"
-                  alt="Google" 
-                  style={{width: '20px', height: '20px', marginRight: '10px'}}
-                />
-                <span>Sign in with Google</span>
-              </div>
-              
-              {/* Button thật của Google nhưng với opacity thấp */}
-              <div style={{position: 'absolute', width: '100%', height: '100%', opacity: 0, zIndex: 2}}>
-                <GoogleLogin
-                  onSuccess={handleGoogleLogin}
-                  onError={() => {
-                    messageApi.error({
-                      content: "Google login failed.",
-                      duration: 5,
-                    });
-                  }}
-                  useOneTap
-                  theme="filled_black"
-                  text="signin_with"
-                  locale="en"
-                  type="standard"
-                  size="large"
-                  width="100%"
-                  shape="rectangular"
-                />
-              </div>
-            </div>
-          </div>
-          
+          <StyledGoogleButton onSuccess={handleGoogleLogin} />
           <div className="flex flex-row items-center justify-between self-stretch shrink-0 h-6 relative mt-6">
             <div className="flex flex-row gap-1 items-center justify-start shrink-0 relative">
               <div
