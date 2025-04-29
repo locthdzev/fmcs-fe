@@ -1,5 +1,5 @@
-import { GoogleLogin } from "@react-oauth/google";
-import { useContext, useState, useEffect } from "react";
+import { GoogleLogin, googleLogout } from "@react-oauth/google";
+import { useContext, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import { login, loginWithGoogle } from "@/api/auth";
 import { UserContext } from "@/context/UserContext";
@@ -19,6 +19,7 @@ export default function Login() {
   const router = useRouter();
   const context = useContext(UserContext);
   const [messageApi, contextHolder] = message.useMessage();
+  const googleLoginRef = useRef<HTMLDivElement>(null);
 
   const { loginContext } = context || {};
 
@@ -123,6 +124,17 @@ export default function Login() {
     "../login-5.jpeg",
     "../login-6.jpg",
   ];
+
+  // Function to trigger Google login programmatically
+  const triggerGoogleLogin = () => {
+    // Find and click the Google login button
+    if (googleLoginRef.current) {
+      const googleLoginButton = googleLoginRef.current.querySelector('button');
+      if (googleLoginButton) {
+        googleLoginButton.click();
+      }
+    }
+  };
 
   return (
     <div className="flex flex-col md:flex-row h-screen">
@@ -365,23 +377,40 @@ export default function Login() {
             </button>
           </form>{" "}
           <div className="text-black text-center my-4 text-gray-500">Or</div>
-          <div className="w-full">
-            <GoogleLogin
-              onSuccess={handleGoogleLogin}
-              onError={() => {
-                messageApi.error({
-                  content: "Google login failed.",
-                  duration: 5,
-                });
-              }}
-              theme="filled_black"
-              text="signin_with"
-              locale="en"
-              useOneTap
-              width="100%"
-              size="large"
-            />
+          
+          {/* Hidden original Google button */}
+          <div className="hidden">
+            <div ref={googleLoginRef}>
+              <GoogleLogin
+                onSuccess={handleGoogleLogin}
+                onError={() => {
+                  messageApi.error({
+                    content: "Google login failed.",
+                    duration: 5,
+                  });
+                }}
+                useOneTap
+                theme="filled_black"
+                text="signin_with"
+                locale="en"
+              />
+            </div>
           </div>
+          
+          {/* Custom styled button that matches Sign In button */}
+          <button
+            type="button"
+            onClick={triggerGoogleLogin}
+            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
+          >
+            <img 
+              src="https://developers.google.com/identity/images/g-logo.png" 
+              alt="Google logo" 
+              className="w-5 h-5 mr-2"
+            />
+            Sign in with Google
+          </button>
+          
           <div className="flex flex-row items-center justify-between self-stretch shrink-0 h-6 relative mt-6">
             <div className="flex flex-row gap-1 items-center justify-start shrink-0 relative">
               <div
