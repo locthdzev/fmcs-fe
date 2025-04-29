@@ -2,12 +2,15 @@ import api, { setupSignalRConnection } from "./customize-axios";
 import axios from "axios";
 import https from "https";
 import Cookies from "js-cookie";
-import { HubConnectionBuilder, HubConnection, HubConnectionState } from "@microsoft/signalr";
+import {
+  HubConnectionBuilder,
+  HubConnection,
+  HubConnectionState,
+} from "@microsoft/signalr";
 import jwtDecode from "jwt-decode";
 import { Typography } from "antd";
 
-// Remove hardcoded base URL
-// const API_BASE_URL = "http://localhost:5104/api/appointment-management";
+const API_BASE_URL = "https://api.truongvu.id.vn/api/appointment-management";
 
 // Response DTOs from AppointmentService
 export interface ResultDTO<T = any> {
@@ -95,7 +98,7 @@ export interface AppointmentCreateRequestDTO {
 }
 
 export interface AppointmentCreateRequestForstaffDTO {
-  userId?: string|null;
+  userId?: string | null;
   staffId: string;
   email?: string;
   appointmentDate: string; // ISO string (e.g., "2025-03-15T10:00:00Z")
@@ -221,10 +224,24 @@ export const getAllAppointments = async (
   endDate?: string
 ): Promise<PagedResultDTO<AppointmentResponseDTO>> => {
   const response = await api.get("/appointment-management/appointments", {
-    params: { page, pageSize, search, sortBy, ascending, userId, staffId, status, startDate, endDate },
+    params: {
+      page,
+      pageSize,
+      search,
+      sortBy,
+      ascending,
+      userId,
+      staffId,
+      status,
+      startDate,
+      endDate,
+    },
   });
   if (!response.data.isSuccess) {
-    throw new Error(response.data.message || `Failed to fetch appointments (Code: ${response.data.code})`);
+    throw new Error(
+      response.data.message ||
+        `Failed to fetch appointments (Code: ${response.data.code})`
+    );
   }
   return response.data;
 };
@@ -243,21 +260,28 @@ export const getAppointmentsByUserId = async (
       sortBy,
       ascending,
     });
-    const response = await api.get(`/appointment-management/appointments/user/${userId}`, {
-      params: { page, pageSize, sortBy, ascending },
-    });
+    const response = await api.get(
+      `${API_BASE_URL}/appointments/user/${userId}`,
+      {
+        params: { page, pageSize, sortBy, ascending },
+      }
+    );
     console.log("API response:", response.data);
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to fetch appointments from server");
+      throw new Error(
+        response.data.message || "Failed to fetch appointments from server"
+      );
     }
     return response.data;
   } catch (error: any) {
     console.error("Error in getAppointmentsByUserId:", {
       message: error.message,
-      response: error.response ? {
-        status: error.response.status,
-        data: error.response.data,
-      } : "No response",
+      response: error.response
+        ? {
+            status: error.response.status,
+            data: error.response.data,
+          }
+        : "No response",
       request: error.request ? error.request : "No request",
     });
     // Return a consistent PagedResultDTO structure
@@ -268,7 +292,10 @@ export const getAppointmentsByUserId = async (
       totalRecords: 0,
       page,
       pageSize,
-      message: error.response?.data?.message || error.message || "Failed to fetch appointments",
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch appointments",
       responseFailed: error.response?.data?.responseFailed || "Unknown error",
     };
   }
@@ -281,7 +308,7 @@ export const cancelLockedAppointment = async (
   try {
     console.log(`Canceling lock for userId: ${userId}`); // Log the request
     const response = await axios.post(
-      `/appointment-management/appointments/cancel-lock`,
+      `${API_BASE_URL}/appointments/cancel-lock`,
       { userId },
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -291,7 +318,10 @@ export const cancelLockedAppointment = async (
     return response.data;
     console.log("CancelLockedAppointment response:", response.data); // Log server response
   } catch (error: any) {
-    console.error("Failed to cancel lock:", error.response?.data || error.message);
+    console.error(
+      "Failed to cancel lock:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -303,12 +333,11 @@ export const cancelLockedAppointment = async (
       };
     }
     throw new Error(
-      
-      error.response?.data?.message || `Failed to cancel locked appointment: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to cancel locked appointment: ${error.message}`
     );
   }
 };
-
 
 export const cancelPreviousLockedAppointment = async (
   request: CancelPreviousLockRequestDTO,
@@ -317,7 +346,7 @@ export const cancelPreviousLockedAppointment = async (
   try {
     console.log(`Canceling previous lock for sessionId: ${request.sessionId}`);
     const response = await axios.post(
-      `/appointment-management/appointments/cancel-previous-lock`,
+      `${API_BASE_URL}/appointments/cancel-previous-lock`,
       request,
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -327,23 +356,27 @@ export const cancelPreviousLockedAppointment = async (
     console.log("CancelPreviousLockedAppointment response:", response.data);
     return response.data;
   } catch (error: any) {
-    console.error("Failed to cancel previous lock:", error.response?.data || error.message);
+    console.error(
+      "Failed to cancel previous lock:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
         isSuccess: false,
         code: error.response.status,
         data: null,
-        message: errorData.message || "Failed to cancel previous locked appointment",
+        message:
+          errorData.message || "Failed to cancel previous locked appointment",
         responseFailed: errorData.responseFailed || undefined,
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to cancel previous locked appointment: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to cancel previous locked appointment: ${error.message}`
     );
   }
 };
-
 
 export const cancelPresentLockedAppointment = async (
   token?: string
@@ -351,7 +384,7 @@ export const cancelPresentLockedAppointment = async (
   try {
     console.log("Canceling present locked appointment");
     const response = await axios.post(
-      `/appointment-management/appointments/cancel-present-lock`,
+      `${API_BASE_URL}/appointments/cancel-present-lock`,
       {}, // Empty body since UserId comes from token
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -361,19 +394,24 @@ export const cancelPresentLockedAppointment = async (
     console.log("CancelPresentLockedAppointment response:", response.data);
     return response.data;
   } catch (error: any) {
-    console.error("Failed to cancel present lock:", error.response?.data || error.message);
+    console.error(
+      "Failed to cancel present lock:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
         isSuccess: false,
         code: error.response.status,
         data: null,
-        message: errorData.message || "Failed to cancel present locked appointment",
+        message:
+          errorData.message || "Failed to cancel present locked appointment",
         responseFailed: errorData.responseFailed || undefined,
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to cancel present locked appointment: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to cancel present locked appointment: ${error.message}`
     );
   }
 };
@@ -381,46 +419,55 @@ export const cancelPresentLockedAppointment = async (
 // Add this after getHealthcareStaffById and before SignalR setups
 export const getOverlappingAppointments = async (
   userId: string,
-  startDateTime: string, 
-  endDateTime: string, 
+  startDateTime: string,
+  endDateTime: string,
   token?: string
 ): Promise<ResultDTO<AppointmentResponseDTO[]>> => {
   try {
-    const response = await axios.get(`/appointment-management/appointments/overlapping`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      httpsAgent: new https.Agent({
-        rejectUnauthorized: false, // Disable certificate verification (dev only)
-      }),
-      params: {
-        userId,
-        startDateTime,
-        endDateTime,
-      },
-    });
+    const response = await axios.get(
+      `${API_BASE_URL}/appointments/overlapping`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: false, // Disable certificate verification (dev only)
+        }),
+        params: {
+          userId,
+          startDateTime,
+          endDateTime,
+        },
+      }
+    );
 
     if (!response.data.isSuccess) {
       throw new Error(
-        response.data.message || `Failed to fetch overlapping appointments (Code: ${response.data.code})`
+        response.data.message ||
+          `Failed to fetch overlapping appointments (Code: ${response.data.code})`
       );
     }
 
     return response.data;
   } catch (error: any) {
-    console.error("Failed to fetch overlapping appointments:", error.response?.data || error.message);
+    console.error(
+      "Failed to fetch overlapping appointments:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
         isSuccess: false,
         code: error.response.status,
         data: null,
-        message: errorData.message || "Failed to fetch overlapping appointments",
+        message:
+          errorData.message || "Failed to fetch overlapping appointments",
         responseFailed: errorData.responseFailed || undefined,
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to fetch overlapping appointments: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to fetch overlapping appointments: ${error.message}`
     );
   }
 };
@@ -430,7 +477,7 @@ export const getAppointment = async (
   token?: string
 ): Promise<ResultDTO<AppointmentResponseDTO>> => {
   try {
-    const response = await axios.get(`/appointment-management/appointments/${id}`, {
+    const response = await axios.get(`${API_BASE_URL}/appointments/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -440,7 +487,10 @@ export const getAppointment = async (
     });
 
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || `Failed to fetch appointment (Code: ${response.data.code})`);
+      throw new Error(
+        response.data.message ||
+          `Failed to fetch appointment (Code: ${response.data.code})`
+      );
     }
 
     return response.data;
@@ -455,13 +505,18 @@ export const getAppointment = async (
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw new Error(error.response?.data?.message || `Failed to fetch appointment: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to fetch appointment: ${error.message}`
+    );
   }
 };
 
-export const getAppointmentStatistics = async (token: string): Promise<ResultDTO<AppointmentStatisticsDTO>> => {
+export const getAppointmentStatistics = async (
+  token: string
+): Promise<ResultDTO<AppointmentStatisticsDTO>> => {
   try {
-    const response = await axios.get(`/appointment-management/statistics`, {
+    const response = await axios.get(`${API_BASE_URL}/statistics`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -471,12 +526,18 @@ export const getAppointmentStatistics = async (token: string): Promise<ResultDTO
     });
 
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || `Failed to fetch statistics (Code: ${response.data.code})`);
+      throw new Error(
+        response.data.message ||
+          `Failed to fetch statistics (Code: ${response.data.code})`
+      );
     }
 
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || `Failed to fetch appointment statistics: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to fetch appointment statistics: ${error.message}`
+    );
   }
 };
 
@@ -491,7 +552,7 @@ export const getFilteredAppointmentStatistics = async (
       throw new Error("Authentication token is missing.");
     }
 
-    const response = await axios.get(`/appointment-management/statistics/filtered`, {
+    const response = await axios.get(`${API_BASE_URL}/statistics/filtered`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
@@ -512,24 +573,33 @@ export const getFilteredAppointmentStatistics = async (
     });
 
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || `Failed to fetch filtered statistics (Code: ${response.data.code})`);
+      throw new Error(
+        response.data.message ||
+          `Failed to fetch filtered statistics (Code: ${response.data.code})`
+      );
     }
 
     return response.data;
   } catch (error: any) {
-    console.error("Failed to fetch filtered appointment statistics:", error.response?.data || error.message);
+    console.error(
+      "Failed to fetch filtered appointment statistics:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
         isSuccess: false,
         code: error.response.status,
         data: null,
-        message: errorData.message || "Failed to fetch filtered appointment statistics",
+        message:
+          errorData.message ||
+          "Failed to fetch filtered appointment statistics",
         responseFailed: errorData.responseFailed || undefined,
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to fetch filtered appointment statistics: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to fetch filtered appointment statistics: ${error.message}`
     );
   }
 };
@@ -545,7 +615,7 @@ export const exportAppointmentStatistics = async (
       throw new Error("Authentication token is missing.");
     }
 
-    const response = await axios.get(`/appointment-management/statistics/export`, {
+    const response = await axios.get(`${API_BASE_URL}/statistics/export`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
@@ -572,9 +642,13 @@ export const exportAppointmentStatistics = async (
 
     return response.data;
   } catch (error: any) {
-    console.error("Failed to export appointment statistics:", error.response?.data || error.message);
+    console.error(
+      "Failed to export appointment statistics:",
+      error.response?.data || error.message
+    );
     throw new Error(
-      error.response?.data?.message || `Failed to export appointment statistics: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to export appointment statistics: ${error.message}`
     );
   }
 };
@@ -584,12 +658,18 @@ export const exportAppointmentStatistics = async (
 export const scheduleAppointment = async (
   request: AppointmentCreateRequestDTO,
   token?: string
-): Promise<ResultDTO<AppointmentResponseDTO | AppointmentConflictResponseDTO>> => {
+): Promise<
+  ResultDTO<AppointmentResponseDTO | AppointmentConflictResponseDTO>
+> => {
   try {
-    const response = await axios.post(`/appointment-management/appointments/schedule`, request, {
-      headers: { Authorization: `Bearer ${token}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    const response = await axios.post(
+      `${API_BASE_URL}/appointments/schedule`,
+      request,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      }
+    );
 
     return response.data;
   } catch (error: any) {
@@ -599,13 +679,16 @@ export const scheduleAppointment = async (
       return {
         isSuccess: false,
         code: error.response.status,
-        data: errorData.data || { existingAppointmentId: errorData.existingAppointmentId }, // Try to extract conflict data
+        data: errorData.data || {
+          existingAppointmentId: errorData.existingAppointmentId,
+        }, // Try to extract conflict data
         message: errorData.message || "Failed to schedule appointment",
         responseFailed: errorData.responseFailed || undefined,
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to schedule appointment: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to schedule appointment: ${error.message}`
     );
   }
 };
@@ -613,17 +696,23 @@ export const scheduleAppointment = async (
 export const scheduleAppointmentForHealthcareStaff = async (
   request: AppointmentCreateRequestForstaffDTO,
   token?: string
-): Promise<ResultDTO<AppointmentResponseDTO | AppointmentConflictResponseDTO>> => {
+): Promise<
+  ResultDTO<AppointmentResponseDTO | AppointmentConflictResponseDTO>
+> => {
   const authToken = token || Cookies.get("token");
   if (!authToken) {
     throw new Error("Authentication token is missing.");
   }
 
   try {
-    const response = await axios.post(`/appointment-management/appointments/staff-schedule`, request, {
-      headers: { Authorization: `Bearer ${authToken}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    const response = await axios.post(
+      `${API_BASE_URL}/appointments/staff-schedule`,
+      request,
+      {
+        headers: { Authorization: `Bearer ${authToken}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      }
+    );
 
     return response.data;
   } catch (error: any) {
@@ -635,8 +724,12 @@ export const scheduleAppointmentForHealthcareStaff = async (
         return {
           isSuccess: false,
           code: 409,
-          data: errorData.data || { existingAppointmentId: errorData.existingAppointmentId },
-          message: errorData.message || "Failed to schedule appointment due to a conflict",
+          data: errorData.data || {
+            existingAppointmentId: errorData.existingAppointmentId,
+          },
+          message:
+            errorData.message ||
+            "Failed to schedule appointment due to a conflict",
           responseFailed: errorData.responseFailed || undefined,
         };
       }
@@ -649,7 +742,8 @@ export const scheduleAppointmentForHealthcareStaff = async (
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to schedule appointment for staff: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to schedule appointment for staff: ${error.message}`
     );
   }
 };
@@ -662,7 +756,7 @@ export const updateAppointmentByStaff = async (
 ): Promise<ResultDTO<AppointmentResponseDTO>> => {
   try {
     const response = await axios.put(
-      `/appointment-management/appointments/${id}/staff-update`,
+      `${API_BASE_URL}/appointments/${id}/staff-update`,
       data,
       {
         headers: {
@@ -694,7 +788,9 @@ export const updateAppointmentByStaff = async (
         isSuccess: false,
         code: error.response.status,
         data: null,
-        message: errorData.message || `Failed to update appointment (Status: ${error.response.status})`,
+        message:
+          errorData.message ||
+          `Failed to update appointment (Status: ${error.response.status})`,
         responseFailed: errorData.responseFailed || undefined,
       };
     }
@@ -704,7 +800,9 @@ export const updateAppointmentByStaff = async (
       isSuccess: false,
       code: 0, // No HTTP status code available
       data: null,
-      message: error.message || "An unexpected error occurred while updating the appointment",
+      message:
+        error.message ||
+        "An unexpected error occurred while updating the appointment",
       responseFailed: "Network or client-side error",
     };
   }
@@ -716,14 +814,17 @@ export const confirmAppointment = async (
   reason?: string
 ): Promise<ResultDTO<AppointmentResponseDTO>> => {
   const response = await axios.put(
-    `/appointment-management/appointments/${id}/confirm`,
+    `${API_BASE_URL}/appointments/${id}/confirm`,
     { reason }, // Include reason in the request body
     {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     }
   );
   if (!response.data.isSuccess) {
-    throw new Error(response.data.message || `Failed to confirm appointment (Code: ${response.data.code})`);
+    throw new Error(
+      response.data.message ||
+        `Failed to confirm appointment (Code: ${response.data.code})`
+    );
   }
   return response.data;
 };
@@ -734,14 +835,18 @@ export const validateAppointmentRequest = async (
   token?: string
 ): Promise<ResultDTO<AppointmentConflictResponseDTO>> => {
   try {
-    const response = await axios.post(`/appointment-management/appointments/validate-appointment`, request, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      httpsAgent: new https.Agent({
-        rejectUnauthorized: false,
-      }),
-    });
+    const response = await axios.post(
+      `${API_BASE_URL}/appointments/validate-appointment`,
+      request,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: false,
+        }),
+      }
+    );
     return response.data; // Return data directly if successful
   } catch (error: any) {
     if (error.response) {
@@ -749,8 +854,12 @@ export const validateAppointmentRequest = async (
         return {
           isSuccess: false,
           code: 409,
-          message: error.response.data.message || "Conflict occurred, please check your appointment.",
-          data: error.response.data.data || { existingAppointmentId: error.response.data.existingAppointmentId }, // Extract inner data
+          message:
+            error.response.data.message ||
+            "Conflict occurred, please check your appointment.",
+          data: error.response.data.data || {
+            existingAppointmentId: error.response.data.existingAppointmentId,
+          }, // Extract inner data
         };
       } else {
         return {
@@ -793,20 +902,28 @@ export const getAvailableTimeSlots = async (
   token?: string
 ): Promise<ResultDTO<AvailableTimeSlotsResponseDTO>> => {
   try {
-    const response = await axios.get(`/appointment-management/appointments/available-time-slots/${staffId}/${date}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      httpsAgent: new https.Agent({
-        rejectUnauthorized: false,
-      }),
-      params: {
-        userId: token ? jwtDecode<{ sub?: string; id?: string; userid?: string }>(token)?.sub || null : null, // Optional: pass userId from token
-      },
-    });
+    const response = await axios.get(
+      `${API_BASE_URL}/appointments/available-time-slots/${staffId}/${date}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: false,
+        }),
+        params: {
+          userId: token
+            ? jwtDecode<{ sub?: string; id?: string; userid?: string }>(token)
+                ?.sub || null
+            : null, // Optional: pass userId from token
+        },
+      }
+    );
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to fetch available time slots");
+    throw new Error(
+      error.response?.data?.message || "Failed to fetch available time slots"
+    );
   }
 };
 
@@ -817,14 +934,17 @@ export const getAvailableSlotCount = async (
   token?: string
 ): Promise<ResultDTO<number>> => {
   try {
-    const response = await axios.get(`/appointment-management/appointments/available-slot-count/${staffId}/${date}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      httpsAgent: new https.Agent({
-        rejectUnauthorized: false, // Make sure this is required for your environment (disable in production)
-      }),
-    });
+    const response = await axios.get(
+      `${API_BASE_URL}/appointments/available-slot-count/${staffId}/${date}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: false, // Make sure this is required for your environment (disable in production)
+        }),
+      }
+    );
 
     // Return the response data
     return response.data;
@@ -832,28 +952,36 @@ export const getAvailableSlotCount = async (
     // Check if error is related to the response from the server
     if (error.response) {
       // Server responded with a status code that falls out of range of 2xx
-      console.error('Error response:', error.response); // Log the full error response for debugging
-      throw new Error(error.response?.data?.message || `Error: ${error.response?.statusText || 'Unknown error'}`);
+      console.error("Error response:", error.response); // Log the full error response for debugging
+      throw new Error(
+        error.response?.data?.message ||
+          `Error: ${error.response?.statusText || "Unknown error"}`
+      );
     } else if (error.request) {
       // No response was received
-      console.error('Error request:', error.request); // Log the request object for debugging
-      throw new Error('No response received from the server.');
+      console.error("Error request:", error.request); // Log the request object for debugging
+      throw new Error("No response received from the server.");
     } else {
       // Some other error occurred (e.g., setting up the request)
-      console.error('Error:', error.message); // Log the error message for debugging
+      console.error("Error:", error.message); // Log the error message for debugging
       throw new Error(`Failed to fetch available slot count: ${error.message}`);
     }
   }
 };
 
-
 export const updateAppointmentByUser = async (
   id: string,
   data: AppointmentUpdateRequestDTO
 ): Promise<ResultDTO<AppointmentResponseDTO>> => {
-  const response = await api.put(`/appointment-management/appointments/${id}/user-update`, data);
+  const response = await api.put(
+    `/appointment-management/appointments/${id}/user-update`,
+    data
+  );
   if (!response.data.isSuccess) {
-    throw new Error(response.data.message || `Failed to update appointment (Code: ${response.data.code})`);
+    throw new Error(
+      response.data.message ||
+        `Failed to update appointment (Code: ${response.data.code})`
+    );
   }
   return response.data;
 };
@@ -869,7 +997,7 @@ export const updateAppointmentByHealthcareStaff = async (
 
   try {
     const response = await axios.put(
-      `/appointment-management/appointments/${request.id}/staff-update`,
+      `${API_BASE_URL}/appointments/${request.id}/staff-update`,
       request,
       {
         headers: {
@@ -881,11 +1009,17 @@ export const updateAppointmentByHealthcareStaff = async (
     );
 
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || `Failed to update appointment (Code: ${response.data.code})`);
+      throw new Error(
+        response.data.message ||
+          `Failed to update appointment (Code: ${response.data.code})`
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Failed to update appointment by staff:", error.response?.data || error.message);
+    console.error(
+      "Failed to update appointment by staff:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -897,16 +1031,20 @@ export const updateAppointmentByHealthcareStaff = async (
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to update appointment by staff: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to update appointment by staff: ${error.message}`
     );
   }
 };
 
-export const cancelAppointment = async (id: string, token?: string): Promise<ResultDTO<AppointmentResponseDTO>> => {
+export const cancelAppointment = async (
+  id: string,
+  token?: string
+): Promise<ResultDTO<AppointmentResponseDTO>> => {
   try {
     console.log(`Canceling appointment with ID: ${id}`);
     const response = await axios.put(
-      `/appointment-management/appointments/${id}/cancel`,
+      `${API_BASE_URL}/appointments/${id}/cancel`,
       {}, // No body required since the ID is in the URL
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -916,7 +1054,10 @@ export const cancelAppointment = async (id: string, token?: string): Promise<Res
     console.log("CancelAppointment response:", response.data);
     return response.data;
   } catch (error: any) {
-    console.error("Failed to cancel appointment:", error.response?.data || error.message);
+    console.error(
+      "Failed to cancel appointment:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -928,11 +1069,11 @@ export const cancelAppointment = async (id: string, token?: string): Promise<Res
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to cancel appointment: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to cancel appointment: ${error.message}`
     );
   }
 };
-
 
 export const getAppointmentsByStaffId = async (
   staffId: string,
@@ -949,25 +1090,32 @@ export const getAppointmentsByStaffId = async (
       sortBy,
       ascending,
     });
-    const response = await axios.get(`/appointment-management/appointments/staff/${staffId}`, {
-      headers: {
-        Authorization: `Bearer ${token || Cookies.get("token")}`,
-      },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-      params: { page, pageSize, sortBy, ascending },
-    });
+    const response = await axios.get(
+      `${API_BASE_URL}/appointments/staff/${staffId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token || Cookies.get("token")}`,
+        },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+        params: { page, pageSize, sortBy, ascending },
+      }
+    );
     console.log("API response:", response.data);
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to fetch appointments from server");
+      throw new Error(
+        response.data.message || "Failed to fetch appointments from server"
+      );
     }
     return response.data;
   } catch (error: any) {
     console.error("Error in getAppointmentsByStaffId:", {
       message: error.message,
-      response: error.response ? {
-        status: error.response.status,
-        data: error.response.data,
-      } : "No response",
+      response: error.response
+        ? {
+            status: error.response.status,
+            data: error.response.data,
+          }
+        : "No response",
       request: error.request ? error.request : "No request",
     });
     // Return a consistent PagedResultDTO structure
@@ -978,7 +1126,10 @@ export const getAppointmentsByStaffId = async (
       totalRecords: 0,
       page,
       pageSize,
-      message: error.response?.data?.message || error.message || "Failed to fetch appointments",
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch appointments",
       responseFailed: error.response?.data?.responseFailed || "Unknown error",
     };
   }
@@ -995,7 +1146,7 @@ export const cancelAppointmentForStaff = async (
 
   try {
     const response = await axios.put(
-      `/appointment-management/appointments/${id}/staff-cancel`,
+      `${API_BASE_URL}/appointments/${id}/staff-cancel`,
       {}, // No body required for this PUT request
       {
         headers: {
@@ -1006,11 +1157,17 @@ export const cancelAppointmentForStaff = async (
     );
 
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || `Failed to cancel appointment for staff (Code: ${response.data.code})`);
+      throw new Error(
+        response.data.message ||
+          `Failed to cancel appointment for staff (Code: ${response.data.code})`
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Failed to cancel appointment for staff:", error.response?.data || error.message);
+    console.error(
+      "Failed to cancel appointment for staff:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -1022,19 +1179,27 @@ export const cancelAppointmentForStaff = async (
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to cancel appointment for staff: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to cancel appointment for staff: ${error.message}`
     );
   }
 };
 
-export const confirmAbsence = async (appointmentId: string): Promise<ResultDTO<AppointmentResponseDTO>> => {
+export const confirmAbsence = async (
+  appointmentId: string
+): Promise<ResultDTO<AppointmentResponseDTO>> => {
   try {
     console.log(`Confirming absence for appointment ID: ${appointmentId}`);
-    const response = await api.put(`/appointment-management/appointments/${appointmentId}/absence`);
+    const response = await api.put(
+      `/appointment-management/appointments/${appointmentId}/absence`
+    );
     console.log("ConfirmAbsence response:", response.data);
     return response.data;
   } catch (error: any) {
-    console.error("Failed to confirm absence:", error.response?.data || error.message);
+    console.error(
+      "Failed to confirm absence:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -1046,23 +1211,38 @@ export const confirmAbsence = async (appointmentId: string): Promise<ResultDTO<A
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to confirm absence: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to confirm absence: ${error.message}`
     );
   }
 };
 
-export const confirmAttendance = async (id: string): Promise<ResultDTO<AppointmentResponseDTO>> => {
-  const response = await api.put(`/appointment-management/appointments/${id}/attendance`);
+export const confirmAttendance = async (
+  id: string
+): Promise<ResultDTO<AppointmentResponseDTO>> => {
+  const response = await api.put(
+    `/appointment-management/appointments/${id}/attendance`
+  );
   if (!response.data.isSuccess) {
-    throw new Error(response.data.message || `Failed to confirm attendance (Code: ${response.data.code})`);
+    throw new Error(
+      response.data.message ||
+        `Failed to confirm attendance (Code: ${response.data.code})`
+    );
   }
   return response.data;
 };
 
-export const confirmCompletion = async (id: string): Promise<ResultDTO<AppointmentResponseDTO>> => {
-  const response = await api.put(`/appointment-management/appointments/${id}/completion`);
+export const confirmCompletion = async (
+  id: string
+): Promise<ResultDTO<AppointmentResponseDTO>> => {
+  const response = await api.put(
+    `/appointment-management/appointments/${id}/completion`
+  );
   if (!response.data.isSuccess) {
-    throw new Error(response.data.message || `Failed to confirm completion (Code: ${response.data.code})`);
+    throw new Error(
+      response.data.message ||
+        `Failed to confirm completion (Code: ${response.data.code})`
+    );
   }
   return response.data;
 };
@@ -1078,7 +1258,7 @@ export const updateUserAppointmentStatusToNormal = async (
 
   try {
     const response = await axios.put(
-      `/appointment-management/appointments/users/${email}/reset-user-appointmentstatus`,
+      `${API_BASE_URL}/appointments/users/${email}/reset-user-appointmentstatus`,
       {}, // No body required for this PUT request
       {
         headers: {
@@ -1089,11 +1269,17 @@ export const updateUserAppointmentStatusToNormal = async (
     );
 
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || `Failed to reset user appointment status (Code: ${response.data.code})`);
+      throw new Error(
+        response.data.message ||
+          `Failed to reset user appointment status (Code: ${response.data.code})`
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Failed to reset user appointment status:", error.response?.data || error.message);
+    console.error(
+      "Failed to reset user appointment status:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -1105,7 +1291,8 @@ export const updateUserAppointmentStatusToNormal = async (
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to reset user appointment status: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to reset user appointment status: ${error.message}`
     );
   }
 };
@@ -1113,58 +1300,95 @@ export const updateUserAppointmentStatusToNormal = async (
 export const getAvailableStaff = async (
   data: AppointmentAvailabilityCheckRequestDTO
 ): Promise<ResultDTO<AvailableOfficersResponseDTO[]>> => {
-  const response = await api.post("/appointment-management/appointments/available-staff", data);
+  const response = await api.post(
+    "/appointment-management/appointments/available-staff",
+    data
+  );
   if (!response.data.isSuccess) {
-    throw new Error(response.data.message || `Failed to fetch available staff (Code: ${response.data.code})`);
+    throw new Error(
+      response.data.message ||
+        `Failed to fetch available staff (Code: ${response.data.code})`
+    );
   }
   return response.data;
 };
 
 // Updated: Fixed URL to match new backend route
-export const getUnavailableTimeSlots = async (request: UnavailableTimeSlotsRequestDTO, token?: string): Promise<ResultDTO<UnavailableTimeSlotDTO[]>> => {
+export const getUnavailableTimeSlots = async (
+  request: UnavailableTimeSlotsRequestDTO,
+  token?: string
+): Promise<ResultDTO<UnavailableTimeSlotDTO[]>> => {
   try {
-    const response = await axios.post(`/appointment-management/appointments/unavailable-timeslots`, request, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      httpsAgent: new https.Agent({
-        rejectUnauthorized: false,
-      }),
-    });
+    const response = await axios.post(
+      `${API_BASE_URL}/appointments/unavailable-timeslots`,
+      request,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: false,
+        }),
+      }
+    );
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to fetch unavailable time slots");
+    throw new Error(
+      error.response?.data?.message || "Failed to fetch unavailable time slots"
+    );
   }
 };
 
 export const autoResetAppointmentStatus = async (): Promise<ResultDTO<any>> => {
-  const response = await api.post("/appointment-management/appointments/reset-status");
+  const response = await api.post(
+    "/appointment-management/appointments/reset-status"
+  );
   if (!response.data.isSuccess) {
-    throw new Error(response.data.message || `Failed to reset appointment status (Code: ${response.data.code})`);
+    throw new Error(
+      response.data.message ||
+        `Failed to reset appointment status (Code: ${response.data.code})`
+    );
   }
   return response.data;
 };
 
 export const sendAppointmentReminders = async (): Promise<ResultDTO<any>> => {
-  const response = await api.post("/appointment-management/appointments/send-reminders");
+  const response = await api.post(
+    "/appointment-management/appointments/send-reminders"
+  );
   if (!response.data.isSuccess) {
-    throw new Error(response.data.message || `Failed to send reminders (Code: ${response.data.code})`);
+    throw new Error(
+      response.data.message ||
+        `Failed to send reminders (Code: ${response.data.code})`
+    );
   }
   return response.data;
 };
 
 export const checkMissedAppointments = async (): Promise<ResultDTO<any>> => {
-  const response = await api.post("/appointment-management/appointments/check-missed");
+  const response = await api.post(
+    "/appointment-management/appointments/check-missed"
+  );
   if (!response.data.isSuccess) {
-    throw new Error(response.data.message || `Failed to check missed appointments (Code: ${response.data.code})`);
+    throw new Error(
+      response.data.message ||
+        `Failed to check missed appointments (Code: ${response.data.code})`
+    );
   }
   return response.data;
 };
 
-export const cleanupExpiredLockedAppointments = async (): Promise<ResultDTO<any>> => {
-  const response = await api.post("/appointment-management/appointments/cleanup-expired");
+export const cleanupExpiredLockedAppointments = async (): Promise<
+  ResultDTO<any>
+> => {
+  const response = await api.post(
+    "/appointment-management/appointments/cleanup-expired"
+  );
   if (!response.data.isSuccess) {
-    throw new Error(response.data.message || `Failed to cleanup expired appointments (Code: ${response.data.code})`);
+    throw new Error(
+      response.data.message ||
+        `Failed to cleanup expired appointments (Code: ${response.data.code})`
+    );
   }
   return response.data;
 };
@@ -1181,10 +1405,24 @@ export const exportAppointmentsToExcel = async (
   startDate?: string,
   endDate?: string
 ): Promise<void> => {
-  const response = await api.get("/appointment-management/appointments/export", {
-    params: { page, pageSize, search, sortBy, ascending, userId, staffId, status, startDate, endDate },
-    responseType: "blob",
-  });
+  const response = await api.get(
+    "/appointment-management/appointments/export",
+    {
+      params: {
+        page,
+        pageSize,
+        search,
+        sortBy,
+        ascending,
+        userId,
+        staffId,
+        status,
+        startDate,
+        endDate,
+      },
+      responseType: "blob",
+    }
+  );
   const url = window.URL.createObjectURL(new Blob([response.data]));
   const link = document.createElement("a");
   link.href = url;
@@ -1194,10 +1432,12 @@ export const exportAppointmentsToExcel = async (
   document.body.removeChild(link);
 };
 
-export const getAllHealthcareStaff = async (): Promise<ResultDTO<AvailableOfficersResponseDTO[]>> => {
+export const getAllHealthcareStaff = async (): Promise<
+  ResultDTO<AvailableOfficersResponseDTO[]>
+> => {
   const token = typeof window !== "undefined" ? Cookies.get("token") : null;
   try {
-    const response = await axios.get(`/appointment-management/healthcare-staff`, {
+    const response = await axios.get(`${API_BASE_URL}/healthcare-staff`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -1207,7 +1447,9 @@ export const getAllHealthcareStaff = async (): Promise<ResultDTO<AvailableOffice
     });
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to fetch healthcare staff");
+    throw new Error(
+      error.response?.data?.message || "Failed to fetch healthcare staff"
+    );
   }
 };
 
@@ -1216,10 +1458,13 @@ export const getHealthcareStaffById = async (
   token?: string
 ): Promise<ResultDTO<AvailableOfficersResponseDTO>> => {
   try {
-    const response = await axios.get(`/appointment-management/healthcare-staff/${staffId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    const response = await axios.get(
+      `${API_BASE_URL}/healthcare-staff/${staffId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      }
+    );
     // Ensure response.data.data is mapped correctly if nested
     const staffData = response.data.data || response.data; // Adjust based on actual response
     return {
@@ -1235,46 +1480,122 @@ export const getHealthcareStaffById = async (
       },
     };
   } catch (error: any) {
-    console.error("getHealthcareStaffById error:", error.response?.data || error.message);
-    throw new Error(error.response?.data?.message || "Failed to fetch healthcare staff");
+    console.error(
+      "getHealthcareStaffById error:",
+      error.response?.data || error.message
+    );
+    throw new Error(
+      error.response?.data?.message || "Failed to fetch healthcare staff"
+    );
   }
 };
 
 // SignalR Setup for Appointments
 export const setupStudentAppointmentRealTime = (
   userId: string,
-  onUpdate: (data: { appointmentId: string; status: string; eventType: string }) => void,
+  onUpdate: (data: {
+    appointmentId: string;
+    status: string;
+    eventType: string;
+  }) => void,
   onError?: (error: Error) => void
 ): HubConnection => {
-  const token = Cookies.get("token");
-  if (!token) {
-    console.warn("No token available for SignalR connection");
-    throw new Error("Authentication required for real-time updates");
+  if (typeof window === "undefined") {
+    console.log("SignalR setup skipped on server-side");
+    return { stop: () => Promise.resolve() } as HubConnection;
   }
 
-  // Use setupSignalRConnection from customize-axios
-  const connection = setupSignalRConnection(
-    "/appointmentHub",
-    (data) => {
-      console.log("Appointment update received:", data);
-      onUpdate(data);
+  const token = Cookies.get("token");
+  if (!token) {
+    throw new Error("Authentication token is missing.");
+  }
+
+  const connection = new HubConnectionBuilder()
+    .withUrl("https://api.truongvu.id.vn/appointmentHub", {
+      accessTokenFactory: () => token,
+    })
+    .withAutomaticReconnect([0, 1000, 5000, 10000])
+    .build();
+
+  connection.on(
+    "ReceiveSlotLocked",
+    (data: { appointmentId: string; status: string }) => {
+      console.log("Student: Slot locked", data);
+      onUpdate({
+        appointmentId: data.appointmentId,
+        status: data.status,
+        eventType: "SlotLocked",
+      });
     }
   );
+
+  connection.on(
+    "ReceiveAppointmentConfirmed",
+    (data: { appointmentId: string; status: string }) => {
+      console.log("Student: Appointment confirmed", data);
+      onUpdate({
+        appointmentId: data.appointmentId,
+        status: data.status,
+        eventType: "Confirmed",
+      });
+    }
+  );
+
+  connection.on(
+    "ReceiveSlotReleased",
+    (data: { appointmentId: string; status: string }) => {
+      console.log("Student: Slot released", data);
+      onUpdate({
+        appointmentId: data.appointmentId,
+        status: data.status,
+        eventType: "Released",
+      });
+    }
+  );
+
+  const startConnection = async () => {
+    if (connection.state === HubConnectionState.Disconnected) {
+      try {
+        await connection.start();
+        console.log(`SignalR: Connected to /appointmentHub for user ${userId}`);
+        await connection.invoke("SubscribeToUserUpdates", userId);
+        console.log(`SignalR: Subscribed to User_${userId} group`);
+      } catch (err) {
+        console.error("SignalR: Connection failed:", err);
+        onError?.(err as Error);
+        setTimeout(startConnection, 2000);
+      }
+    }
+  };
+
+  startConnection();
+
+  connection.onreconnecting((err) => console.log("SignalR Reconnecting:", err));
+  connection.onreconnected(() => {
+    console.log("SignalR Reconnected");
+    connection
+      .invoke("SubscribeToUserUpdates", userId)
+      .catch((err) => console.error("SignalR: Resubscription failed:", err));
+  });
+  connection.onclose((err) => console.log("SignalR Connection Closed:", err));
 
   return connection;
 };
 
-
 export const setupAppointmentRealTime = (
-callback: (data: { appointmentId: string; status: string }) => void,
-eventHandlers: { [key: string]: (data: any) => void } = {}
+  callback: (data: { appointmentId: string; status: string }) => void,
+  eventHandlers: { [key: string]: (data: any) => void } = {}
 ) => {
   if (typeof window === "undefined") {
     console.log("SignalR setup skipped on server-side");
     return { stop: () => Promise.resolve() } as HubConnection;
   }
 
-  const connection = setupSignalRConnection("/appointmentHub", callback, eventHandlers);
+  const connection = setupSignalRConnection(
+    "/appointmentHub",
+    callback,
+    eventHandlers
+  );
 
   // Keep slot-related handlers
   connection.on("ReceiveSlotCountUpdate", (data: number) => {
@@ -1282,19 +1603,30 @@ eventHandlers: { [key: string]: (data: any) => void } = {}
     eventHandlers["ReceiveSlotCountUpdate"]?.(data);
   });
 
-  connection.on("ReceiveAvailableSlotsUpdate", (data: { staffId: string; date: string; slots: TimeSlotDTO[] }) => {
-    console.log("SignalR: Available slots updated", data);
-    eventHandlers["ReceiveAvailableSlotsUpdate"]?.(data);
-  });
+  connection.on(
+    "ReceiveAvailableSlotsUpdate",
+    (data: { staffId: string; date: string; slots: TimeSlotDTO[] }) => {
+      console.log("SignalR: Available slots updated", data);
+      eventHandlers["ReceiveAvailableSlotsUpdate"]?.(data);
+    }
+  );
 
-  connection.on("ReceivePersonalSlotsUpdate", (data: { staffId: string; date: string; slots: TimeSlotDTO[] }) => {
-    console.log("SignalR: Personal slots updated", data);
-    eventHandlers["ReceivePersonalSlotsUpdate"]?.(data);
-  });
+  connection.on(
+    "ReceivePersonalSlotsUpdate",
+    (data: { staffId: string; date: string; slots: TimeSlotDTO[] }) => {
+      console.log("SignalR: Personal slots updated", data);
+      eventHandlers["ReceivePersonalSlotsUpdate"]?.(data);
+    }
+  );
 
   const token = Cookies.get("token");
   if (token) {
-    const decodedToken = jwtDecode<{ sub?: string; id?: string; userid?: string; role?: string }>(token);
+    const decodedToken = jwtDecode<{
+      sub?: string;
+      id?: string;
+      userid?: string;
+      role?: string;
+    }>(token);
     const userId = decodedToken.sub || decodedToken.id || decodedToken.userid;
     const role = decodedToken.role;
 
@@ -1322,7 +1654,9 @@ eventHandlers: { [key: string]: (data: any) => void } = {}
       if (connection.state === HubConnectionState.Disconnected) {
         try {
           await connection.start();
-          console.log("SignalR: Connected to /appointmentHub (no group subscription)");
+          console.log(
+            "SignalR: Connected to /appointmentHub (no group subscription)"
+          );
         } catch (err) {
           console.error("SignalR: Connection failed:", err);
           setTimeout(startConnection, 2000);
@@ -1333,14 +1667,18 @@ eventHandlers: { [key: string]: (data: any) => void } = {}
   }
 
   connection.onreconnecting((err) => console.log("SignalR Reconnecting:", err));
-  connection.onreconnected(() => console.log("SignalR Reconnected to /appointmentHub"));
+  connection.onreconnected(() =>
+    console.log("SignalR Reconnected to /appointmentHub")
+  );
   connection.onclose((err) => console.log("SignalR Connection Closed:", err));
 
   return connection;
 };
 
 // SignalR Setup for Healthcare Staff Updates
-export const setupHealthcareStaffRealTime = (onUpdate: (staff: AvailableOfficersResponseDTO[]) => void) => {
+export const setupHealthcareStaffRealTime = (
+  onUpdate: (staff: AvailableOfficersResponseDTO[]) => void
+) => {
   if (typeof window === "undefined") return () => {};
 
   const token = Cookies.get("token");
@@ -1350,20 +1688,26 @@ export const setupHealthcareStaffRealTime = (onUpdate: (staff: AvailableOfficers
   }
 
   const connection = new HubConnectionBuilder()
-    .withUrl("/appointmentHub", {
+    .withUrl("https://api.truongvu.id.vn/appointmentHub", {
       accessTokenFactory: () => token,
     })
     .withAutomaticReconnect([0, 2000, 5000, 10000])
     .build();
 
-  connection.on("ReceiveHealthcareStaffUpdate", (staffData: AvailableOfficersResponseDTO[] | null) => {
-    console.log("SignalR: Received healthcare staff update", staffData);
-    if (staffData && Array.isArray(staffData) && staffData.length > 0) {
-      onUpdate(staffData); // Only update if data is valid and non-empty
-    } else {
-      console.warn("SignalR: Received empty or invalid staff update, ignoring", staffData);
+  connection.on(
+    "ReceiveHealthcareStaffUpdate",
+    (staffData: AvailableOfficersResponseDTO[] | null) => {
+      console.log("SignalR: Received healthcare staff update", staffData);
+      if (staffData && Array.isArray(staffData) && staffData.length > 0) {
+        onUpdate(staffData); // Only update if data is valid and non-empty
+      } else {
+        console.warn(
+          "SignalR: Received empty or invalid staff update, ignoring",
+          staffData
+        );
+      }
     }
-  });
+  );
 
   const startConnection = () => {
     setTimeout(() => {
@@ -1379,17 +1723,28 @@ export const setupHealthcareStaffRealTime = (onUpdate: (staff: AvailableOfficers
 
   startConnection();
 
-  connection.onreconnecting((error?: Error) => console.log("SignalR Reconnecting:", error));
-  connection.onreconnected(() => console.log("SignalR Reconnected to /appointmentHub"));
-  connection.onclose((error?: Error) => console.log("SignalR Connection Closed:", error));
+  connection.onreconnecting((error?: Error) =>
+    console.log("SignalR Reconnecting:", error)
+  );
+  connection.onreconnected(() =>
+    console.log("SignalR Reconnected to /appointmentHub")
+  );
+  connection.onclose((error?: Error) =>
+    console.log("SignalR Connection Closed:", error)
+  );
 
-  return () => connection.stop().then(() => console.log("SignalR Disconnected"));
+  return () =>
+    connection.stop().then(() => console.log("SignalR Disconnected"));
 };
-
 
 export const setupConfirmAppointmentRealtime = (
   staffId: string,
-  onAppointmentConfirmed: (data: { staffId: string; date: string; timeSlot: string; appointmentId: string }) => void,
+  onAppointmentConfirmed: (data: {
+    staffId: string;
+    date: string;
+    timeSlot: string;
+    appointmentId: string;
+  }) => void,
   onError?: (error: Error) => void
 ): HubConnection => {
   if (typeof window === "undefined") {
@@ -1404,27 +1759,45 @@ export const setupConfirmAppointmentRealtime = (
   }
 
   const connection = new HubConnectionBuilder()
-    .withUrl("/appointmentHub", {
-      accessTokenFactory: () => token,
-    })
+    .withUrl(
+      `${API_BASE_URL.replace(
+        "/api/appointment-management",
+        ""
+      )}/appointmentHub`,
+      {
+        accessTokenFactory: () => token,
+      }
+    )
     .withAutomaticReconnect([0, 1000, 5000, 10000])
     .build();
 
   // Handle appointment confirmed event
-  connection.on("ReceiveAppointmentConfirmed", (data: { staffId: string; date: string; timeSlot: string; appointmentId: string }) => {
-    console.log("SignalR: Appointment confirmed received", data);
-    if (data.staffId === staffId) {
-      onAppointmentConfirmed(data);
+  connection.on(
+    "ReceiveAppointmentConfirmed",
+    (data: {
+      staffId: string;
+      date: string;
+      timeSlot: string;
+      appointmentId: string;
+    }) => {
+      console.log("SignalR: Appointment confirmed received", data);
+      if (data.staffId === staffId) {
+        onAppointmentConfirmed(data);
+      }
     }
-  });
+  );
 
   const startConnection = async () => {
     if (connection.state === HubConnectionState.Disconnected) {
       try {
         await connection.start();
-        console.log(`SignalR: Connected to /appointmentHub for confirmation (Staff_${staffId})`);
+        console.log(
+          `SignalR: Connected to /appointmentHub for confirmation (Staff_${staffId})`
+        );
         await connection.invoke("SubscribeToStaffUpdates", staffId);
-        console.log(`SignalR: Subscribed to Staff_${staffId} for appointment confirmation updates`);
+        console.log(
+          `SignalR: Subscribed to Staff_${staffId} for appointment confirmation updates`
+        );
       } catch (err) {
         console.error("SignalR: Connection failed for confirmation:", err);
         onError?.(err as Error);
@@ -1435,22 +1808,31 @@ export const setupConfirmAppointmentRealtime = (
 
   startConnection();
 
-  connection.onreconnecting((err) => console.log("SignalR Reconnecting (Confirm):", err));
+  connection.onreconnecting((err) =>
+    console.log("SignalR Reconnecting (Confirm):", err)
+  );
   connection.onreconnected(() => {
     console.log("SignalR Reconnected (Confirm)");
-    connection.invoke("SubscribeToStaffUpdates", staffId).catch((err) =>
-      console.error("SignalR: Resubscription failed:", err)
-    );
+    connection
+      .invoke("SubscribeToStaffUpdates", staffId)
+      .catch((err) => console.error("SignalR: Resubscription failed:", err));
   });
-  connection.onclose((err) => console.log("SignalR Connection Closed (Confirm):", err));
+  connection.onclose((err) =>
+    console.log("SignalR Connection Closed (Confirm):", err)
+  );
 
   return connection;
 };
 
-
 export const setupScheduleAppointmentLockedRealtime = (
   staffId: string,
-  onSlotLocked: (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; lockedUntil: string }) => void,
+  onSlotLocked: (data: {
+    staffId: string;
+    date: string;
+    timeSlot: string;
+    appointmentId: string;
+    lockedUntil: string;
+  }) => void,
   onError?: (error: Error) => void
 ): HubConnection => {
   if (typeof window === "undefined") {
@@ -1465,28 +1847,46 @@ export const setupScheduleAppointmentLockedRealtime = (
   }
 
   const connection = new HubConnectionBuilder()
-    .withUrl("/appointmentHub", {
-      accessTokenFactory: () => token,
-      
-    })
+    .withUrl(
+      `${API_BASE_URL.replace(
+        "/api/appointment-management",
+        ""
+      )}/appointmentHub`,
+      {
+        accessTokenFactory: () => token,
+      }
+    )
     .withAutomaticReconnect([0, 1000, 5000, 10000])
     .build();
 
   // Handle slot locked event
-  connection.on("ReceiveSlotLocked", (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; lockedUntil: string }) => {
-    console.log("SignalR: Slot locked received", data);
-    if (data.staffId === staffId) {
-      onSlotLocked(data);
+  connection.on(
+    "ReceiveSlotLocked",
+    (data: {
+      staffId: string;
+      date: string;
+      timeSlot: string;
+      appointmentId: string;
+      lockedUntil: string;
+    }) => {
+      console.log("SignalR: Slot locked received", data);
+      if (data.staffId === staffId) {
+        onSlotLocked(data);
+      }
     }
-  });
+  );
 
   const startConnection = async () => {
     if (connection.state === HubConnectionState.Disconnected) {
       try {
         await connection.start();
-        console.log(`SignalR: Connected to /appointmentHub for scheduling (Staff_${staffId})`);
+        console.log(
+          `SignalR: Connected to /appointmentHub for scheduling (Staff_${staffId})`
+        );
         await connection.invoke("SubscribeToStaffUpdates", staffId);
-        console.log(`SignalR: Subscribed to Staff_${staffId} for slot locking updates`);
+        console.log(
+          `SignalR: Subscribed to Staff_${staffId} for slot locking updates`
+        );
       } catch (err) {
         console.error("SignalR: Connection failed for scheduling:", err);
         onError?.(err as Error);
@@ -1497,22 +1897,32 @@ export const setupScheduleAppointmentLockedRealtime = (
 
   startConnection();
 
-  connection.onreconnecting((err) => console.log("SignalR Reconnecting (Schedule):", err));
+  connection.onreconnecting((err) =>
+    console.log("SignalR Reconnecting (Schedule):", err)
+  );
   connection.onreconnected(() => {
     console.log("SignalR Reconnected (Schedule)");
-    connection.invoke("SubscribeToStaffUpdates", staffId).catch((err) =>
-      console.error("SignalR: Resubscription failed:", err)
-    );
+    connection
+      .invoke("SubscribeToStaffUpdates", staffId)
+      .catch((err) => console.error("SignalR: Resubscription failed:", err));
   });
-  connection.onclose((err) => console.log("SignalR Connection Closed (Schedule):", err));
+  connection.onclose((err) =>
+    console.log("SignalR Connection Closed (Schedule):", err)
+  );
 
   return connection;
 };
 
 export const setupCancelAppointmentRealtime = (
-staffId: string,
-onSlotReleased: (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; userId: string }) => void,
-onError?: (error: Error) => void
+  staffId: string,
+  onSlotReleased: (data: {
+    staffId: string;
+    date: string;
+    timeSlot: string;
+    appointmentId: string;
+    userId: string;
+  }) => void,
+  onError?: (error: Error) => void
 ): HubConnection => {
   if (typeof window === "undefined") {
     console.log("SignalR setup skipped on server-side");
@@ -1526,27 +1936,46 @@ onError?: (error: Error) => void
   }
 
   const connection = new HubConnectionBuilder()
-    .withUrl("/appointmentHub", {
-      accessTokenFactory: () => token,
-    })
+    .withUrl(
+      `${API_BASE_URL.replace(
+        "/api/appointment-management",
+        ""
+      )}/appointmentHub`,
+      {
+        accessTokenFactory: () => token,
+      }
+    )
     .withAutomaticReconnect([0, 1000, 5000, 10000])
     .build();
 
   // Handle slot released event
-  connection.on("ReceiveSlotReleased", (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; userId: string }) => {
-    console.log("SignalR: Slot released received", data);
-    if (data.staffId === staffId) {
-      onSlotReleased(data);
+  connection.on(
+    "ReceiveSlotReleased",
+    (data: {
+      staffId: string;
+      date: string;
+      timeSlot: string;
+      appointmentId: string;
+      userId: string;
+    }) => {
+      console.log("SignalR: Slot released received", data);
+      if (data.staffId === staffId) {
+        onSlotReleased(data);
+      }
     }
-  });
+  );
 
   const startConnection = async () => {
     if (connection.state === HubConnectionState.Disconnected) {
       try {
         await connection.start();
-        console.log(`SignalR: Connected to /appointmentHub for cancellation (Staff_${staffId})`);
+        console.log(
+          `SignalR: Connected to /appointmentHub for cancellation (Staff_${staffId})`
+        );
         await connection.invoke("SubscribeToStaffUpdates", staffId);
-        console.log(`SignalR: Subscribed to Staff_${staffId} for slot release updates`);
+        console.log(
+          `SignalR: Subscribed to Staff_${staffId} for slot release updates`
+        );
       } catch (err) {
         console.error("SignalR: Connection failed for cancellation:", err);
         onError?.(err as Error);
@@ -1557,24 +1986,33 @@ onError?: (error: Error) => void
 
   startConnection();
 
-  connection.onreconnecting((err) => console.log("SignalR Reconnecting (Cancel):", err));
+  connection.onreconnecting((err) =>
+    console.log("SignalR Reconnecting (Cancel):", err)
+  );
   connection.onreconnected(() => {
     console.log("SignalR Reconnected (Cancel)");
-    connection.invoke("SubscribeToStaffUpdates", staffId).catch((err) =>
-      console.error("SignalR: Resubscription failed:", err)
-    );
+    connection
+      .invoke("SubscribeToStaffUpdates", staffId)
+      .catch((err) => console.error("SignalR: Resubscription failed:", err));
   });
-  connection.onclose((err) => console.log("SignalR Connection Closed (Cancel):", err));
+  connection.onclose((err) =>
+    console.log("SignalR Connection Closed (Cancel):", err)
+  );
 
   return connection;
 };
 
-  
 //    CancelPreviousLockedAppointmentRealtime
 
 export const setupCancelPreviousLockedAppointmentRealtime = (
   staffId: string,
-  onPreviousSlotReleased: (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; userId: string }) => void,
+  onPreviousSlotReleased: (data: {
+    staffId: string;
+    date: string;
+    timeSlot: string;
+    appointmentId: string;
+    userId: string;
+  }) => void,
   onError?: (error: Error) => void
 ): HubConnection => {
   if (typeof window === "undefined") {
@@ -1589,29 +2027,51 @@ export const setupCancelPreviousLockedAppointmentRealtime = (
   }
 
   const connection = new HubConnectionBuilder()
-    .withUrl("/appointmentHub", {
-      accessTokenFactory: () => token,
-    })
+    .withUrl(
+      `${API_BASE_URL.replace(
+        "/api/appointment-management",
+        ""
+      )}/appointmentHub`,
+      {
+        accessTokenFactory: () => token,
+      }
+    )
     .withAutomaticReconnect([0, 1000, 5000, 10000])
     .build();
 
   // Handle previous slot released event
-  connection.on("ReceivePreviousSlotReleased", (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; userId: string }) => {
-    console.log("SignalR: Previous slot released received", data);
-    if (data.staffId === staffId) {
-      onPreviousSlotReleased(data);
+  connection.on(
+    "ReceivePreviousSlotReleased",
+    (data: {
+      staffId: string;
+      date: string;
+      timeSlot: string;
+      appointmentId: string;
+      userId: string;
+    }) => {
+      console.log("SignalR: Previous slot released received", data);
+      if (data.staffId === staffId) {
+        onPreviousSlotReleased(data);
+      }
     }
-  });
+  );
 
   const startConnection = async () => {
     if (connection.state === HubConnectionState.Disconnected) {
       try {
         await connection.start();
-        console.log(`SignalR: Connected to /appointmentHub for previous lock cancellation (Staff_${staffId})`);
+        console.log(
+          `SignalR: Connected to /appointmentHub for previous lock cancellation (Staff_${staffId})`
+        );
         await connection.invoke("SubscribeToStaffUpdates", staffId);
-        console.log(`SignalR: Subscribed to Staff_${staffId} for previous slot release updates`);
+        console.log(
+          `SignalR: Subscribed to Staff_${staffId} for previous slot release updates`
+        );
       } catch (err) {
-        console.error("SignalR: Connection failed for previous lock cancellation:", err);
+        console.error(
+          "SignalR: Connection failed for previous lock cancellation:",
+          err
+        );
         onError?.(err as Error);
         setTimeout(startConnection, 2000); // Retry after 2 seconds
       }
@@ -1620,24 +2080,33 @@ export const setupCancelPreviousLockedAppointmentRealtime = (
 
   startConnection();
 
-  connection.onreconnecting((err) => console.log("SignalR Reconnecting (Previous Lock Cancel):", err));
+  connection.onreconnecting((err) =>
+    console.log("SignalR Reconnecting (Previous Lock Cancel):", err)
+  );
   connection.onreconnected(() => {
     console.log("SignalR Reconnected (Previous Lock Cancel)");
-    connection.invoke("SubscribeToStaffUpdates", staffId).catch((err) =>
-      console.error("SignalR: Resubscription failed:", err)
-    );
+    connection
+      .invoke("SubscribeToStaffUpdates", staffId)
+      .catch((err) => console.error("SignalR: Resubscription failed:", err));
   });
-  connection.onclose((err) => console.log("SignalR Connection Closed (Previous Lock Cancel):", err));
+  connection.onclose((err) =>
+    console.log("SignalR Connection Closed (Previous Lock Cancel):", err)
+  );
 
   return connection;
 };
-
 
 //    CancelPreviousLockedAppointmentRealtime
 
 export const setupCancelPresentLockedAppointmentRealtime = (
   staffId: string,
-  onPresentSlotReleased: (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; userId: string }) => void,
+  onPresentSlotReleased: (data: {
+    staffId: string;
+    date: string;
+    timeSlot: string;
+    appointmentId: string;
+    userId: string;
+  }) => void,
   onError?: (error: Error) => void
 ): HubConnection => {
   if (typeof window === "undefined") {
@@ -1652,29 +2121,51 @@ export const setupCancelPresentLockedAppointmentRealtime = (
   }
 
   const connection = new HubConnectionBuilder()
-    .withUrl("/appointmentHub", {
-      accessTokenFactory: () => token,
-    })
+    .withUrl(
+      `${API_BASE_URL.replace(
+        "/api/appointment-management",
+        ""
+      )}/appointmentHub`,
+      {
+        accessTokenFactory: () => token,
+      }
+    )
     .withAutomaticReconnect([0, 1000, 5000, 10000])
     .build();
 
   // Handle present slot released event
-  connection.on("ReceiveSlotReleased", (data: { staffId: string; date: string; timeSlot: string; appointmentId: string; userId: string }) => {
-    console.log("SignalR: Present slot released received", data);
-    if (data.staffId === staffId) {
-      onPresentSlotReleased(data);
+  connection.on(
+    "ReceiveSlotReleased",
+    (data: {
+      staffId: string;
+      date: string;
+      timeSlot: string;
+      appointmentId: string;
+      userId: string;
+    }) => {
+      console.log("SignalR: Present slot released received", data);
+      if (data.staffId === staffId) {
+        onPresentSlotReleased(data);
+      }
     }
-  });
+  );
 
   const startConnection = async () => {
     if (connection.state === HubConnectionState.Disconnected) {
       try {
         await connection.start();
-        console.log(`SignalR: Connected to /appointmentHub for present lock cancellation (Staff_${staffId})`);
+        console.log(
+          `SignalR: Connected to /appointmentHub for present lock cancellation (Staff_${staffId})`
+        );
         await connection.invoke("SubscribeToStaffUpdates", staffId);
-        console.log(`SignalR: Subscribed to Staff_${staffId} for present slot release updates`);
+        console.log(
+          `SignalR: Subscribed to Staff_${staffId} for present slot release updates`
+        );
       } catch (err) {
-        console.error("SignalR: Connection failed for present lock cancellation:", err);
+        console.error(
+          "SignalR: Connection failed for present lock cancellation:",
+          err
+        );
         onError?.(err as Error);
         setTimeout(startConnection, 2000); // Retry after 2 seconds
       }
@@ -1683,14 +2174,18 @@ export const setupCancelPresentLockedAppointmentRealtime = (
 
   startConnection();
 
-  connection.onreconnecting((err) => console.log("SignalR Reconnecting (Present Lock Cancel):", err));
+  connection.onreconnecting((err) =>
+    console.log("SignalR Reconnecting (Present Lock Cancel):", err)
+  );
   connection.onreconnected(() => {
     console.log("SignalR Reconnected (Present Lock Cancel)");
-    connection.invoke("SubscribeToStaffUpdates", staffId).catch((err) =>
-      console.error("SignalR: Resubscription failed:", err)
-    );
+    connection
+      .invoke("SubscribeToStaffUpdates", staffId)
+      .catch((err) => console.error("SignalR: Resubscription failed:", err));
   });
-  connection.onclose((err) => console.log("SignalR Connection Closed (Present Lock Cancel):", err));
+  connection.onclose((err) =>
+    console.log("SignalR Connection Closed (Present Lock Cancel):", err)
+  );
 
   return connection;
 };
