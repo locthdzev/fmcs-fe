@@ -218,6 +218,19 @@ export default function Login() {
                 transform: translateY(-5px);
               }
             }
+            
+            .google-login-button {
+              width: 100% !important;
+              max-width: 100% !important;
+              justify-content: center !important;
+            }
+            .nsm7Bb-HzV7m-LgbsSe {
+              width: 100% !important;
+              max-width: 100% !important;
+              justify-content: center !important;
+              border-radius: 0.5rem !important;
+              padding: 0.75rem 1rem !important;
+            }
           `}</style>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="relative">
@@ -352,20 +365,23 @@ export default function Login() {
             </button>
           </form>{" "}
           <div className="text-black text-center my-4 text-gray-500">Or</div>
-          <GoogleLogin
-            onSuccess={handleGoogleLogin}
-            onError={() => {
-              messageApi.error({
-                content: "Google login failed.",
-                duration: 5,
-              });
-            }}
-            containerProps={{ className: "w-full" }}
-            theme="filled_black"
-            text="signin_with"
-            locale="en"
-            useOneTap
-          />
+          <div className="w-full">
+            <GoogleLogin
+              onSuccess={handleGoogleLogin}
+              onError={() => {
+                messageApi.error({
+                  content: "Google login failed.",
+                  duration: 5,
+                });
+              }}
+              theme="filled_black"
+              text="signin_with"
+              locale="en"
+              useOneTap
+              width="100%"
+              size="large"
+            />
+          </div>
           <div className="flex flex-row items-center justify-between self-stretch shrink-0 h-6 relative mt-6">
             <div className="flex flex-row gap-1 items-center justify-start shrink-0 relative">
               <div
