@@ -152,7 +152,7 @@ export const setupSignalRConnection = (
   }
 
   const connection = new HubConnectionBuilder()
-    .withUrl(`https://api.truongvu.id.vn${endpoint}`, {
+    .withUrl(`http://118.69.53.27/fmcsapi${endpoint}`, {
       accessTokenFactory: () => token,
     })
     .withAutomaticReconnect([0, 2000, 5000, 10000])
