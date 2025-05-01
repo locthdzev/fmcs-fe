@@ -29,10 +29,10 @@ COPY --from=builder /app/package.json ./package.json
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=3333
+ENV PORT=8888
 
 # Expose port
-EXPOSE 3333
+EXPOSE 8888
 
 # Start the application
 CMD ["npm", "run", "start"] 
