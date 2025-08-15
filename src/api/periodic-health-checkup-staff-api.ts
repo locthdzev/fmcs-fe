@@ -3,7 +3,8 @@ import Cookies from "js-cookie";
 import https from "https";
 
 // Base URL for Periodic Health Checkup Staff API
-const API_BASE_URL = "http://localhost:5104/api/periodic-health-checkups-details-staff-management";
+const API_BASE_URL =
+  "https://api.truongvu.id.vn/api/periodic-health-checkups-details-staff-management";
 
 // Reusing existing ResultDTO and PagedResultDTO
 export interface ResultDTO<T = any> {
@@ -205,14 +206,19 @@ export const getAllStaffHealthCheckups = async (
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
       params: { page, pageSize, search, sortBy, ascending },
     });
-    console.log('Staff Health Checkups Raw Response:', response.data);
-    console.log('ENT Exam in first record:', response.data.data[0]?.entexam);
+    console.log("Staff Health Checkups Raw Response:", response.data);
+    console.log("ENT Exam in first record:", response.data.data[0]?.entexam);
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to fetch staff health checkups");
+      throw new Error(
+        response.data.message || "Failed to fetch staff health checkups"
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Error in getAllStaffHealthCheckups:", error.response?.data || error.message);
+    console.error(
+      "Error in getAllStaffHealthCheckups:",
+      error.response?.data || error.message
+    );
     return {
       isSuccess: false,
       code: error.response?.status || 500,
@@ -220,7 +226,10 @@ export const getAllStaffHealthCheckups = async (
       totalRecords: 0,
       page,
       pageSize,
-      message: error.response?.data?.message || error.message || "Failed to fetch staff health checkups",
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch staff health checkups",
       responseFailed: error.response?.data?.responseFailed || "Unknown error",
     };
   }
@@ -235,14 +244,19 @@ export const getStaffHealthCheckupById = async (
       headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });
-    console.log('Staff Health Checkup by ID Raw Response:', response.data);
-    console.log('ENT Exam:', response.data.data?.entexam);
+    console.log("Staff Health Checkup by ID Raw Response:", response.data);
+    console.log("ENT Exam:", response.data.data?.entexam);
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to fetch staff health checkup");
+      throw new Error(
+        response.data.message || "Failed to fetch staff health checkup"
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Error in getStaffHealthCheckupById:", error.response?.data || error.message);
+    console.error(
+      "Error in getStaffHealthCheckupById:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -253,7 +267,10 @@ export const getStaffHealthCheckupById = async (
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw new Error(error.response?.data?.message || `Failed to fetch staff health checkup: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to fetch staff health checkup: ${error.message}`
+    );
   }
 };
 
@@ -270,23 +287,32 @@ export const getStaffHealthCheckupsByPeriodicId = async (
       }
     );
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to fetch staff health checkups by periodic ID");
+      throw new Error(
+        response.data.message ||
+          "Failed to fetch staff health checkups by periodic ID"
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Error in getStaffHealthCheckupsByPeriodicId:", error.response?.data || error.message);
+    console.error(
+      "Error in getStaffHealthCheckupsByPeriodicId:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
         isSuccess: false,
         code: error.response.status,
         data: null,
-        message: errorData.message || "Failed to fetch staff health checkups by periodic ID",
+        message:
+          errorData.message ||
+          "Failed to fetch staff health checkups by periodic ID",
         responseFailed: errorData.responseFailed || undefined,
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to fetch staff health checkups by periodic ID: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to fetch staff health checkups by periodic ID: ${error.message}`
     );
   }
 };
@@ -297,13 +323,19 @@ export const createStaffHealthCheckup = async (
   signal?: AbortSignal
 ): Promise<ResultDTO<PeriodicHealthCheckupsDetailsStaffResponseDTO>> => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/details-staff`, request, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-      signal, // Add signal for cancellation
-    });
+    const response = await axios.post(
+      `${API_BASE_URL}/details-staff`,
+      request,
+      {
+        headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+        signal, // Add signal for cancellation
+      }
+    );
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to create staff health checkup");
+      throw new Error(
+        response.data.message || "Failed to create staff health checkup"
+      );
     }
     return response.data;
   } catch (error: any) {
@@ -315,7 +347,10 @@ export const createStaffHealthCheckup = async (
         message: "Request was cancelled",
       };
     }
-    console.error("Error in createStaffHealthCheckup:", error.response?.data || error.message);
+    console.error(
+      "Error in createStaffHealthCheckup:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -326,7 +361,10 @@ export const createStaffHealthCheckup = async (
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw new Error(error.response?.data?.message || `Failed to create staff health checkup: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to create staff health checkup: ${error.message}`
+    );
   }
 };
 
@@ -336,18 +374,32 @@ export const updateStaffHealthCheckup = async (
   token?: string
 ): Promise<ResultDTO<PeriodicHealthCheckupsDetailsStaffResponseDTO>> => {
   try {
-    console.log("Calling updateStaffHealthCheckup with ID:", id, "and data:", request);
-    const response = await axios.put(`${API_BASE_URL}/details-staff/${id}`, request, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    console.log(
+      "Calling updateStaffHealthCheckup with ID:",
+      id,
+      "and data:",
+      request
+    );
+    const response = await axios.put(
+      `${API_BASE_URL}/details-staff/${id}`,
+      request,
+      {
+        headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      }
+    );
     console.log("Raw API response:", response.data);
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to update staff health checkup");
+      throw new Error(
+        response.data.message || "Failed to update staff health checkup"
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Error in updateStaffHealthCheckup:", error.response?.data || error.message);
+    console.error(
+      "Error in updateStaffHealthCheckup:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -372,11 +424,16 @@ export const deleteStaffHealthCheckup = async (
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to delete staff health checkup");
+      throw new Error(
+        response.data.message || "Failed to delete staff health checkup"
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Error in deleteStaffHealthCheckup:", error.response?.data || error.message);
+    console.error(
+      "Error in deleteStaffHealthCheckup:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -387,7 +444,10 @@ export const deleteStaffHealthCheckup = async (
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw new Error(error.response?.data?.message || `Failed to delete staff health checkup: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to delete staff health checkup: ${error.message}`
+    );
   }
 };
 
@@ -403,14 +463,17 @@ export const getStaffHealthCheckupByEmail = async (
         httpsAgent: new https.Agent({ rejectUnauthorized: false }),
       }
     );
-    
+
     if (!response.data.isSuccess) {
       throw new Error(response.data.message || "Failed to fetch user by email");
     }
-    
+
     return response.data;
   } catch (error: any) {
-    console.error("Error in getStaffHealthCheckupByEmail:", error.response?.data || error.message);
+    console.error(
+      "Error in getStaffHealthCheckupByEmail:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -422,7 +485,8 @@ export const getStaffHealthCheckupByEmail = async (
       };
     }
     throw new Error(
-      error.response?.data?.message || `Failed to fetch user by email: ${error.message}`
+      error.response?.data?.message ||
+        `Failed to fetch user by email: ${error.message}`
     );
   }
 };
@@ -451,7 +515,13 @@ export const exportStaffHealthCheckupsToExcel = async (
     link.click();
     document.body.removeChild(link);
   } catch (error: any) {
-    console.error("Error in exportStaffHealthCheckupsToExcel:", error.response?.data || error.message);
-    throw new Error(error.response?.data?.message || "Failed to export staff health checkups to Excel");
+    console.error(
+      "Error in exportStaffHealthCheckupsToExcel:",
+      error.response?.data || error.message
+    );
+    throw new Error(
+      error.response?.data?.message ||
+        "Failed to export staff health checkups to Excel"
+    );
   }
 };

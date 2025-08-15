@@ -9,16 +9,22 @@ import { UserContext, UserProvider } from "@/context/UserContext";
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import { HeroUIProvider } from "@heroui/react";
-import Chatbot from "@/components/chatbot.tsx";
+import Chatbot from "@/components/chatbot";
 import { ChatbotProvider } from "@/context/ChatbotContext";
-import { SurveyRequiredProvider } from '@/context/SurveyRequiredContext';
+import { SurveyRequiredProvider } from "@/context/SurveyRequiredContext";
 import { App as AntdApp, ConfigProvider } from "antd";
 
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
   const getHighestRole = (roles: string[]) => {
-    const roleHierarchy = ["Admin", "Manager", "Healthcare Staff", "Canteen Staff", "User"];
+    const roleHierarchy = [
+      "Admin",
+      "Manager",
+      "Healthcare Staff",
+      "Canteen Staff",
+      "User",
+    ];
     for (const role of roleHierarchy) {
       if (roles.includes(role)) {
         return role;
@@ -32,7 +38,7 @@ function MyApp({ Component, pageProps }: AppProps) {
   }, []);
 
   return (
-    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+    <GoogleOAuthProvider clientId="1055516626870-153athu5ua5on6b4gbg50ntr9qru1dr4.apps.googleusercontent.com">
       <HeroUIProvider>
         <ConfigProvider>
           <AntdApp>
@@ -44,7 +50,10 @@ function MyApp({ Component, pageProps }: AppProps) {
                       const user = context?.user;
 
                       // Kiểm tra nếu đang ở trang login, recover password hoặc reset password
-                      const isAuthPage = router.pathname === "/" || router.pathname.includes("/auth/recover-password") || router.pathname.includes("/auth/reset-password");
+                      const isAuthPage =
+                        router.pathname === "/" ||
+                        router.pathname.includes("/auth/recover-password") ||
+                        router.pathname.includes("/auth/reset-password");
 
                       // Nếu chưa đăng nhập hoặc đang ở trang auth, không hiển thị Sidebar và Header
                       if (!user?.auth || isAuthPage) {

@@ -13,10 +13,10 @@ import {
   PeriodicHealthCheckupRequestDTO, 
   createPeriodicHealthCheckup 
 } from "@/api/periodic-health-checkup-api";
-import * as XLSX from "xlsx";
 import dayjs from "dayjs";
 import { RcFile } from "antd/es/upload/interface";
 import ExcelJS from "exceljs";
+import { Workbook } from "exceljs";
 
 const { Title } = Typography;
 const { Dragger } = Upload;
@@ -410,12 +410,22 @@ noCell.font = { name: "Calibri", size: 10, bold: true };
 
   const parseExcel = async (file: File): Promise<StaffHealthCheckupWithEmail[]> => {
     const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheetName = workbook.SheetNames[0];
-    if (!sheetName) throw new Error("No sheets found in Excel file");
+    
+    // Thay thế XLSX bằng ExcelJS
+    const workbook = new Workbook();
+    await workbook.xlsx.load(data);
+    
+    // Lấy sheet đầu tiên
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) throw new Error("No sheets found in Excel file");
   
-    const sheet = workbook.Sheets[sheetName];
-    const jsonData: ExcelRow[] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    // Đọc dữ liệu từ worksheet
+    const jsonData: ExcelRow[] = [];
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      const rowValues = row.values as any[];
+      // ExcelJS sử dụng index 1-based, cần chuyển về mảng bình thường
+      jsonData.push(Array.isArray(rowValues) ? rowValues.slice(1) : []);
+    });
   
     let headerRowIndex = -1;
     for (let i = 0; i < jsonData.length; i++) {
@@ -428,7 +438,7 @@ noCell.font = { name: "Calibri", size: 10, bold: true };
     if (headerRowIndex === -1 || headerRowIndex + 1 >= jsonData.length) {
       throw new Error("No valid header row or data rows found in Excel file");
     }
-  
+    
     const rawHeaders = jsonData[headerRowIndex] as string[];
     const headers = Array(58).fill('');
     rawHeaders.slice(1).forEach((header, index) => {

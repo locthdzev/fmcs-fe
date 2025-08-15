@@ -671,9 +671,16 @@ export const HealthCheckResultWaitingForApprovalList: React.FC = () => {
                 <Menu.Item
                   key="approve"
                   icon={<CheckCircleOutlined style={{ color: "green" }} />}
-                  onClick={() => handleApprove(record.id)}
                 >
-                  <span style={{ color: "green" }}>Approve</span>
+                  <Popconfirm
+                    title="Are you sure you want to approve this health check result?"
+                    onConfirm={() => handleApprove(record.id)}
+                    okText="Confirm"
+                    cancelText="Cancel"
+                    placement="topLeft"
+                  >
+                    <div style={{ width: "100%", color: "green" }}>Approve</div>
+                  </Popconfirm>
                 </Menu.Item>
 
                 <Menu.Item

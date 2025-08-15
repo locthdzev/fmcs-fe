@@ -97,7 +97,7 @@ export const login = async (
 };
 
 export const loginWithGoogle = async (
-  idToken: GoogleLoginRequest
+  idToken: string
 ): Promise<GoogleLoginResponse> => {
   try {
     const response = await api.post<GoogleLoginResponse>("/auth/login-google", {

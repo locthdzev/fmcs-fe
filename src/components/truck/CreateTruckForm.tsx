@@ -7,7 +7,7 @@ import {
   Spin,
   Select,
   Upload,
-  Space
+  Space,
 } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
 import { createTruck } from "@/api/truck";
@@ -34,7 +34,7 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
     try {
       const values = await form.validateFields();
       setLoading(true);
-      
+
       // Log debugging information
       console.log("File list:", fileList);
       console.log("File list length:", fileList.length);
@@ -45,10 +45,10 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
 
       // Create FormData for the request
       const formDataToSend = new FormData();
-      
+
       // Add all form values except imageFile (handled separately)
       Object.entries(values).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && key !== 'imageFile') {
+        if (value !== undefined && value !== null && key !== "imageFile") {
           formDataToSend.append(key, value as string);
         }
       });
@@ -56,7 +56,7 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
       // Add standard fields
       formDataToSend.append("createdAt", new Date().toISOString());
       formDataToSend.append("status", "Active");
-      
+
       // Important: Always append truckImage field with empty string
       formDataToSend.append("truckImage", "");
 
@@ -67,17 +67,26 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
         console.log("File type:", fileList[0].type);
         console.log("File size:", fileList[0].size, "bytes");
       } else {
-        console.log("No file selected for upload or originFileObj is undefined");
+        console.log(
+          "No file selected for upload or originFileObj is undefined"
+        );
         console.log("fileList details:", JSON.stringify(fileList, null, 2));
       }
 
       // Log the FormData content
       let formDataContent = "";
       for (const [key, value] of formDataToSend.entries()) {
-        formDataContent += `${key}: ${value instanceof File ? `File (${value.name}, ${value.size} bytes)` : value}\n`;
+        formDataContent += `${key}: ${
+          value instanceof File
+            ? `File (${value.name}, ${value.size} bytes)`
+            : value
+        }\n`;
       }
       console.log("FormData contents:\n", formDataContent);
-      console.log("FormData contains imageFile:", formDataToSend.has("imageFile"));
+      console.log(
+        "FormData contains imageFile:",
+        formDataToSend.has("imageFile")
+      );
 
       // Create the truck with the FormData
       try {
@@ -85,10 +94,10 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
         messageApi.success("Truck created successfully", 5);
         form.resetFields();
         setFileList([]);
-        if (typeof onCreate === 'function') {
+        if (typeof onCreate === "function") {
           onCreate();
         }
-        if (typeof onClose === 'function') {
+        if (typeof onClose === "function") {
           onClose();
         }
       } catch (error: any) {
@@ -97,7 +106,10 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
       }
     } catch (errorInfo) {
       console.error("Form validation failed:", errorInfo);
-      messageApi.error("Failed to validate form. Please check your input and try again.", 5);
+      messageApi.error(
+        "Failed to validate form. Please check your input and try again.",
+        5
+      );
     } finally {
       setLoading(false);
     }
@@ -110,27 +122,28 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
 
   const uploadProps: UploadProps = {
     beforeUpload: (file) => {
-      const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+      const isJpgOrPng =
+        file.type === "image/jpeg" || file.type === "image/png";
       if (!isJpgOrPng) {
-        messageApi.error('You can only upload JPG/PNG file!');
+        messageApi.error("You can only upload JPG/PNG file!");
         return Upload.LIST_IGNORE;
       }
-      const isLt2M = file.size / 1024 / 1024 < 2;
+      const isLt2M = file.size / 1024 / 1024 < 10;
       if (!isLt2M) {
-        messageApi.error('Image must be smaller than 2MB!');
+        messageApi.error("Image must be smaller than 10MB!");
         return Upload.LIST_IGNORE;
       }
-      
+
       // Create a new file list with the new file
       const newFile = {
         ...file,
         uid: file.uid,
         name: file.name,
-        status: 'done',
+        status: "done",
         url: URL.createObjectURL(file),
         originFileObj: file,
       } as UploadFile;
-      
+
       setFileList([newFile]);
       return false; // Prevent auto upload
     },
@@ -167,16 +180,16 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
             label="Driver Contact"
             rules={[
               { required: true, message: "Please enter driver contact" },
-              { pattern: /^[\d\s-]+$/, message: "Please enter a valid contact number" }
+              {
+                pattern: /^[\d\s-]+$/,
+                message: "Please enter a valid contact number",
+              },
             ]}
           >
             <Input placeholder="Enter driver contact" />
           </Form.Item>
 
-          <Form.Item
-            name="description"
-            label="Description"
-          >
+          <Form.Item name="description" label="Description">
             <TextArea rows={3} placeholder="Enter description" />
           </Form.Item>
 
@@ -185,37 +198,36 @@ export const CreateTruckForm: React.FC<CreateTruckFormProps> = ({
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>
-              <p className="ant-upload-text">Click or drag file to this area to upload</p>
+              <p className="ant-upload-text">
+                Click or drag file to this area to upload
+              </p>
               <p className="ant-upload-hint">
-                Support for a single image upload. Please upload JPG/PNG file only.
+                Support for a single image upload. Please upload JPG/PNG file
+                only.
               </p>
             </Dragger>
           </Form.Item>
 
           <Form.Item>
             <div className="flex justify-end gap-2 mt-4">
-              <Button 
-                key="reset" 
-                htmlType="button" 
-                onClick={handleReset}
-              >
+              <Button key="reset" htmlType="button" onClick={handleReset}>
                 Reset
               </Button>
-              <Button 
-                key="cancel" 
-                htmlType="button" 
+              <Button
+                key="cancel"
+                htmlType="button"
                 onClick={() => {
-                  if (typeof onClose === 'function') {
+                  if (typeof onClose === "function") {
                     onClose();
                   }
                 }}
               >
                 Cancel
               </Button>
-              <Button 
-                key="submit" 
-                type="primary" 
-                htmlType="submit" 
+              <Button
+                key="submit"
+                type="primary"
+                htmlType="submit"
                 loading={loading}
               >
                 Create

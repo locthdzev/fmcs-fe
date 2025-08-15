@@ -7,6 +7,7 @@ import Cookies from "js-cookie";
 import { ImagesSlider } from "@/components/ui/images-slider";
 import { motion } from "framer-motion";
 import { message, Alert } from "antd";
+import StyledGoogleButton from "@/components/auth/StyledGoogleButton";
 
 export default function Login() {
   console.log("Login");
@@ -352,20 +353,7 @@ export default function Login() {
             </button>
           </form>{" "}
           <div className="text-black text-center my-4 text-gray-500">Or</div>
-          <GoogleLogin
-            onSuccess={handleGoogleLogin}
-            onError={() => {
-              messageApi.error({
-                content: "Google login failed.",
-                duration: 5,
-              });
-            }}
-            containerProps={{ className: "w-full" }}
-            theme="filled_black"
-            text="signin_with"
-            locale="en"
-            useOneTap
-          />
+          <StyledGoogleButton onSuccess={handleGoogleLogin} />
           <div className="flex flex-row items-center justify-between self-stretch shrink-0 h-6 relative mt-6">
             <div className="flex flex-row gap-1 items-center justify-start shrink-0 relative">
               <div

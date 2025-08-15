@@ -144,7 +144,7 @@ export function InventoryHistoryList() {
         changeEndDate,
         userSearch,
         sortBy,
-        ascending,
+        false, // Always set ascending to false to get newest first
         batchCodeSearch,
         drugNameSearch
       );
@@ -164,26 +164,24 @@ export function InventoryHistoryList() {
           status: group.inventoryRecord.status,
         }));
 
-        // Additional sort to ensure groups with most recent action are at top
+        // Always sort to ensure groups with most recent action are at top
         groups = groups.sort((a, b) => {
           // Find the most recent action date in each group
           const aLatestDate =
             a.histories.length > 0
-              ? Math.max(
+              ? new Date(Math.max(
                   ...a.histories.map((h) => new Date(h.changeDate).getTime())
-                )
+                )).getTime()
               : 0;
           const bLatestDate =
             b.histories.length > 0
-              ? Math.max(
+              ? new Date(Math.max(
                   ...b.histories.map((h) => new Date(h.changeDate).getTime())
-                )
+                )).getTime()
               : 0;
 
-          // Sort by the ascending parameter
-          return ascending
-            ? aLatestDate - bLatestDate
-            : bLatestDate - aLatestDate;
+          // Sort by most recent date (newest first)
+          return bLatestDate - aLatestDate;
         });
 
         setResultGroups(groups);
@@ -337,7 +335,7 @@ export function InventoryHistoryList() {
         undefined, // endChangeDate
         undefined, // userSearch
         "ChangeDate", // sortBy
-        false, // ascending
+        false, // always use false for ascending to get newest first
         undefined, // batchCodeSearch
         undefined // drugNameSearch
       );
@@ -668,10 +666,8 @@ export function InventoryHistoryList() {
                       mode="left"
                       items={group.histories
                         .sort((a, b) => {
-                          const comparison =
-                            dayjs(a.changeDate).unix() -
-                            dayjs(b.changeDate).unix();
-                          return ascending ? comparison : -comparison;
+                          // Always sort most recent action at top (descending)
+                          return dayjs(b.changeDate).unix() - dayjs(a.changeDate).unix();
                         })
                         .map((history) => ({
                           color: getChangeTypeColor(history.changeType),

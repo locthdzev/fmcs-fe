@@ -5,7 +5,8 @@ import { PeriodicHealthCheckupsDetailsStudentResponseDTO } from "./periodic-heal
 import { PeriodicHealthCheckupsDetailsStaffResponseDTO } from "./periodic-health-checkup-staff-api";
 
 // Base URL for Periodic Health Checkup API
-const API_BASE_URL = "http://localhost:5104/api/periodic-health-checkups-management";
+const API_BASE_URL =
+  "https://api.truongvu.id.vn/api/periodic-health-checkups-management";
 
 // Reusing existing ResultDTO
 export interface ResultDTO<T = any> {
@@ -89,7 +90,10 @@ export interface PeriodicHealthCheckupFilterRequestDTO {
 
 interface HealthCheckupResponse {
   checkup: PeriodicHealthCheckupDetailedResponseDTO;
-  details: PeriodicHealthCheckupsDetailsStudentResponseDTO | PeriodicHealthCheckupsDetailsStaffResponseDTO | null;
+  details:
+    | PeriodicHealthCheckupsDetailsStudentResponseDTO
+    | PeriodicHealthCheckupsDetailsStaffResponseDTO
+    | null;
 }
 
 // API Functions
@@ -102,11 +106,16 @@ export const getAllHealthCheckups = async (
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to fetch health checkups");
+      throw new Error(
+        response.data.message || "Failed to fetch health checkups"
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Error in getAllHealthCheckups:", error.response?.data || error.message);
+    console.error(
+      "Error in getAllHealthCheckups:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -117,7 +126,10 @@ export const getAllHealthCheckups = async (
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw new Error(error.response?.data?.message || `Failed to fetch health checkups: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to fetch health checkups: ${error.message}`
+    );
   }
 };
 
@@ -126,16 +138,24 @@ export const getHealthCheckupById = async (
   token?: string
 ): Promise<ResultDTO<PeriodicHealthCheckupResponseDTO>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/periodichealthcheckups/${id}`, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    const response = await axios.get(
+      `${API_BASE_URL}/periodichealthcheckups/${id}`,
+      {
+        headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      }
+    );
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to fetch health checkup");
+      throw new Error(
+        response.data.message || "Failed to fetch health checkup"
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Error in getHealthCheckupById:", error.response?.data || error.message);
+    console.error(
+      "Error in getHealthCheckupById:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -146,7 +166,10 @@ export const getHealthCheckupById = async (
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw new Error(error.response?.data?.message || `Failed to fetch health checkup: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to fetch health checkup: ${error.message}`
+    );
   }
 };
 
@@ -155,16 +178,25 @@ export const filterHealthCheckups = async (
   token?: string
 ): Promise<ResultDTO<PeriodicHealthCheckupResponseDTO[]>> => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/periodichealthcheckups/filter`, filter, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    const response = await axios.post(
+      `${API_BASE_URL}/periodichealthcheckups/filter`,
+      filter,
+      {
+        headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      }
+    );
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to filter health checkups");
+      throw new Error(
+        response.data.message || "Failed to filter health checkups"
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Error in filterHealthCheckups:", error.response?.data || error.message);
+    console.error(
+      "Error in filterHealthCheckups:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -175,7 +207,10 @@ export const filterHealthCheckups = async (
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw new Error(error.response?.data?.message || `Failed to filter health checkups: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to filter health checkups: ${error.message}`
+    );
   }
 };
 
@@ -185,20 +220,29 @@ export const createPeriodicHealthCheckup = async (
   signal?: AbortSignal
 ): Promise<ResultDTO<PeriodicHealthCheckupResponseDTO>> => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/periodichealthcheckups`, request, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-      signal, // Add cancellation support
-    });
+    const response = await axios.post(
+      `${API_BASE_URL}/periodichealthcheckups`,
+      request,
+      {
+        headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+        signal, // Add cancellation support
+      }
+    );
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to create health checkup");
+      throw new Error(
+        response.data.message || "Failed to create health checkup"
+      );
     }
     return response.data;
   } catch (error: any) {
     if (axios.isCancel(error)) {
       throw new Error("Request cancelled");
     }
-    console.error("Error in createPeriodicHealthCheckup:", error.response?.data || error.message);
+    console.error(
+      "Error in createPeriodicHealthCheckup:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -209,7 +253,10 @@ export const createPeriodicHealthCheckup = async (
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw new Error(error.response?.data?.message || `Failed to create health checkup: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to create health checkup: ${error.message}`
+    );
   }
 };
 
@@ -219,16 +266,25 @@ export const updateHealthCheckup = async (
   token?: string
 ): Promise<ResultDTO<PeriodicHealthCheckupResponseDTO>> => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/periodichealthcheckups/${id}`, request, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    const response = await axios.put(
+      `${API_BASE_URL}/periodichealthcheckups/${id}`,
+      request,
+      {
+        headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      }
+    );
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to update health checkup");
+      throw new Error(
+        response.data.message || "Failed to update health checkup"
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Error in updateHealthCheckup:", error.response?.data || error.message);
+    console.error(
+      "Error in updateHealthCheckup:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -239,7 +295,10 @@ export const updateHealthCheckup = async (
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw new Error(error.response?.data?.message || `Failed to update health checkup: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to update health checkup: ${error.message}`
+    );
   }
 };
 
@@ -250,16 +309,24 @@ export const getHealthCheckupByCheckupIdUserIdStaffId = async (
   token?: string
 ): Promise<ResultDTO<PeriodicHealthCheckupResponseDTO>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/periodichealthcheckups/${checkupId}/user/${userId}/staff/${staffId}`, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    const response = await axios.get(
+      `${API_BASE_URL}/periodichealthcheckups/${checkupId}/user/${userId}/staff/${staffId}`,
+      {
+        headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      }
+    );
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to fetch health checkup");
+      throw new Error(
+        response.data.message || "Failed to fetch health checkup"
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Error in getHealthCheckupByCheckupIdUserIdStaffId:", error.response?.data || error.message);
+    console.error(
+      "Error in getHealthCheckupByCheckupIdUserIdStaffId:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -270,7 +337,10 @@ export const getHealthCheckupByCheckupIdUserIdStaffId = async (
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw new Error(error.response?.data?.message || `Failed to fetch health checkup: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to fetch health checkup: ${error.message}`
+    );
   }
 };
 
@@ -279,27 +349,39 @@ export const getHealthCheckupByCheckupId = async (
   token?: string
 ): Promise<ResultDTO<PeriodicHealthCheckupDetailedResponseDTO>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/periodichealthcheckups/by-checkup/${checkupId}`, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    const response = await axios.get(
+      `${API_BASE_URL}/periodichealthcheckups/by-checkup/${checkupId}`,
+      {
+        headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      }
+    );
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to fetch health checkup by checkup ID");
+      throw new Error(
+        response.data.message || "Failed to fetch health checkup by checkup ID"
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Error in getHealthCheckupByCheckupId:", error.response?.data || error.message);
+    console.error(
+      "Error in getHealthCheckupByCheckupId:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
         isSuccess: false,
         code: error.response.status,
         data: null,
-        message: errorData.message || "Failed to fetch health checkup by checkup ID",
+        message:
+          errorData.message || "Failed to fetch health checkup by checkup ID",
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw new Error(error.response?.data?.message || `Failed to fetch health checkup by checkup ID: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to fetch health checkup by checkup ID: ${error.message}`
+    );
   }
 };
 
@@ -308,27 +390,39 @@ export const getHealthCheckupsByUserId = async (
   token?: string
 ): Promise<ResultDTO<HealthCheckupResponse[]>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/periodichealthcheckups/by-user/${userId}`, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    const response = await axios.get(
+      `${API_BASE_URL}/periodichealthcheckups/by-user/${userId}`,
+      {
+        headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      }
+    );
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to fetch health checkups by user ID");
+      throw new Error(
+        response.data.message || "Failed to fetch health checkups by user ID"
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Error in getHealthCheckupsByUserId:", error.response?.data || error.message);
+    console.error(
+      "Error in getHealthCheckupsByUserId:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
         isSuccess: false,
         code: error.response.status,
         data: null,
-        message: errorData.message || "Failed to fetch health checkups by user ID",
+        message:
+          errorData.message || "Failed to fetch health checkups by user ID",
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw new Error(error.response?.data?.message || `Failed to fetch health checkups by user ID: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to fetch health checkups by user ID: ${error.message}`
+    );
   }
 };
 
@@ -337,16 +431,24 @@ export const deleteHealthCheckup = async (
   token?: string
 ): Promise<ResultDTO<null>> => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/periodichealthcheckups/${id}`, {
-      headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
+    const response = await axios.delete(
+      `${API_BASE_URL}/periodichealthcheckups/${id}`,
+      {
+        headers: { Authorization: `Bearer ${token || Cookies.get("token")}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      }
+    );
     if (!response.data.isSuccess) {
-      throw new Error(response.data.message || "Failed to delete health checkup");
+      throw new Error(
+        response.data.message || "Failed to delete health checkup"
+      );
     }
     return response.data;
   } catch (error: any) {
-    console.error("Error in deleteHealthCheckup:", error.response?.data || error.message);
+    console.error(
+      "Error in deleteHealthCheckup:",
+      error.response?.data || error.message
+    );
     if (error.response) {
       const errorData = error.response.data;
       return {
@@ -357,6 +459,9 @@ export const deleteHealthCheckup = async (
         responseFailed: errorData.responseFailed || undefined,
       };
     }
-    throw new Error(error.response?.data?.message || `Failed to delete health checkup: ${error.message}`);
+    throw new Error(
+      error.response?.data?.message ||
+        `Failed to delete health checkup: ${error.message}`
+    );
   }
 };

@@ -1,7 +1,12 @@
-import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from "@microsoft/signalr";
+import {
+  HubConnection,
+  HubConnectionBuilder,
+  HubConnectionState,
+  LogLevel,
+} from "@microsoft/signalr";
 import Cookies from "js-cookie";
 
-const HUB_URL = "http://localhost:5104/appointmentHub";
+const HUB_URL = "https://api.truongvu.id.vn/appointmentHub";
 
 interface SignalRConfig {
   url?: string;
@@ -42,16 +47,23 @@ class SignalRManager {
 
     const token = Cookies.get("token");
     if (!token) {
-      console.warn("No token available for SignalR connection; initialization deferred.");
+      console.warn(
+        "No token available for SignalR connection; initialization deferred."
+      );
       return;
     }
 
-    if (this.connection && this.connection.state !== HubConnectionState.Disconnected) {
+    if (
+      this.connection &&
+      this.connection.state !== HubConnectionState.Disconnected
+    ) {
       return; // Avoid re-initializing an active connection
     }
 
     this.connection = new HubConnectionBuilder()
-      .withUrl(this.url, { accessTokenFactory: () => Cookies.get("token") || "" })
+      .withUrl(this.url, {
+        accessTokenFactory: () => Cookies.get("token") || "",
+      })
       .configureLogging(LogLevel.Information)
       .withAutomaticReconnect(this.reconnectDelays)
       .build();
@@ -60,7 +72,9 @@ class SignalRManager {
       console.log("SignalR Connection Closed:", err);
       this.flushBuffer();
     });
-    this.connection.onreconnecting((err) => console.log("SignalR Reconnecting:", err));
+    this.connection.onreconnecting((err) =>
+      console.log("SignalR Reconnecting:", err)
+    );
     this.connection.onreconnected(() => {
       console.log("SignalR Reconnected");
       this.resubscribeToGroups();
@@ -71,7 +85,10 @@ class SignalRManager {
   }
 
   private async startConnection() {
-    if (!this.connection || this.connection.state !== HubConnectionState.Disconnected) {
+    if (
+      !this.connection ||
+      this.connection.state !== HubConnectionState.Disconnected
+    ) {
       return;
     }
 
@@ -158,7 +175,9 @@ class SignalRManager {
     return this.connection.invoke(methodName, ...args);
   }
 
-  public async subscribeToGroup(groupName: string): Promise<() => Promise<void>> {
+  public async subscribeToGroup(
+    groupName: string
+  ): Promise<() => Promise<void>> {
     if (!this.connection || this.subscribedGroups.has(groupName)) {
       return async () => {}; // Return no-op cleanup if already subscribed or no connection
     }
@@ -174,7 +193,10 @@ class SignalRManager {
   private async subscribeWithRetry(groupName: string): Promise<void> {
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        if (!this.connection || this.connection.state !== HubConnectionState.Connected) {
+        if (
+          !this.connection ||
+          this.connection.state !== HubConnectionState.Connected
+        ) {
           throw new Error("Connection not ready");
         }
         if (groupName.startsWith("Staff_")) {
@@ -189,9 +211,14 @@ class SignalRManager {
         this.subscribedGroups.add(groupName);
         return;
       } catch (err) {
-        console.error(`SignalR: Attempt ${attempt} failed to subscribe to ${groupName}:`, err);
+        console.error(
+          `SignalR: Attempt ${attempt} failed to subscribe to ${groupName}:`,
+          err
+        );
         if (attempt === this.maxRetries) throw err;
-        await new Promise(resolve => setTimeout(resolve, this.reconnectDelays[attempt - 1] || 1000));
+        await new Promise((resolve) =>
+          setTimeout(resolve, this.reconnectDelays[attempt - 1] || 1000)
+        );
       }
     }
   }
@@ -215,7 +242,11 @@ class SignalRManager {
   }
 
   private async resubscribeToGroups() {
-    if (!this.connection || this.connection.state !== HubConnectionState.Connected) return;
+    if (
+      !this.connection ||
+      this.connection.state !== HubConnectionState.Connected
+    )
+      return;
 
     for (const groupName of this.subscribedGroups) {
       await this.subscribeWithRetry(groupName);
@@ -228,12 +259,16 @@ class SignalRManager {
   }
 
   private async flushBuffer() {
-    if (!this.connection || this.connection.state !== HubConnectionState.Connected) return;
+    if (
+      !this.connection ||
+      this.connection.state !== HubConnectionState.Connected
+    )
+      return;
 
     while (this.eventBuffer.length > 0) {
       const { eventName, data } = this.eventBuffer.shift()!;
       if (this.eventHandlers[eventName]) {
-        this.eventHandlers[eventName].forEach(handler => handler(data));
+        this.eventHandlers[eventName].forEach((handler) => handler(data));
       }
     }
   }
@@ -263,7 +298,10 @@ class SignalRManager {
   }
 
   public async stop() {
-    if (this.connection && this.connection.state !== HubConnectionState.Disconnected) {
+    if (
+      this.connection &&
+      this.connection.state !== HubConnectionState.Disconnected
+    ) {
       await this.connection.stop();
       console.log("SignalR: Disconnected");
       this.subscribedGroups.clear();

@@ -1200,9 +1200,16 @@ export function HealthCheckResultManagement() {
                   <Menu.Item
                     key="approve"
                     icon={<CheckCircleOutlined style={{ color: "green" }} />}
-                    onClick={() => handleApprove(record.id)}
                   >
-                    <span style={{ color: "green" }}>Approve</span>
+                    <Popconfirm
+                      title="Are you sure you want to approve this health check result?"
+                      onConfirm={() => handleApprove(record.id)}
+                      okText="Confirm"
+                      cancelText="Cancel"
+                      placement="topLeft"
+                    >
+                      <div style={{ width: "100%", color: "green" }}>Approve</div>
+                    </Popconfirm>
                   </Menu.Item>
                 )}
 
@@ -1210,9 +1217,16 @@ export function HealthCheckResultManagement() {
                   <Menu.Item
                     key="complete"
                     icon={<CheckSquareOutlined style={{ color: "green" }} />}
-                    onClick={() => handleComplete(record.id)}
                   >
-                    <span style={{ color: "green" }}>Complete</span>
+                    <Popconfirm
+                      title="Are you sure you want to complete this health check result?"
+                      onConfirm={() => handleComplete(record.id)}
+                      okText="Confirm"
+                      cancelText="Cancel"
+                      placement="topLeft"
+                    >
+                      <div style={{ width: "100%", color: "green" }}>Complete</div>
+                    </Popconfirm>
                   </Menu.Item>
                 )}
 
@@ -1301,9 +1315,16 @@ export function HealthCheckResultManagement() {
                   <Menu.Item
                     key="restore"
                     icon={<UndoOutlined style={{ color: "green" }} />}
-                    onClick={() => handleRestore(record.id)}
                   >
-                    <span style={{ color: "green" }}>Restore</span>
+                    <Popconfirm
+                      title="Are you sure you want to restore this health check result?"
+                      onConfirm={() => handleRestore(record.id)}
+                      okText="Confirm"
+                      cancelText="Cancel"
+                      placement="topLeft"
+                    >
+                      <div style={{ width: "100%", color: "green" }}>Restore</div>
+                    </Popconfirm>
                   </Menu.Item>
                 )}
               </Menu>

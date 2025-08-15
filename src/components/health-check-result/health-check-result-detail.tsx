@@ -299,23 +299,35 @@ export const HealthCheckResultDetail: React.FC<
     return (
       <Space wrap>
         {healthCheckResult.status === "Pending" && (
-          <Button
-            type="primary"
-            icon={<CheckCircleOutlined />}
-            onClick={handleApprove}
+          <Popconfirm
+            title="Are you sure you want to approve this health check result?"
+            onConfirm={handleApprove}
+            okText="Confirm"
+            cancelText="Cancel"
           >
-            Approve
-          </Button>
+            <Button
+              type="primary"
+              icon={<CheckCircleOutlined />}
+            >
+              Approve
+            </Button>
+          </Popconfirm>
         )}
 
         {healthCheckResult.status === "Approved" && (
-          <Button
-            type="primary"
-            icon={<CheckSquareOutlined />}
-            onClick={handleComplete}
+          <Popconfirm
+            title="Are you sure you want to complete this health check result?"
+            onConfirm={handleComplete}
+            okText="Confirm"
+            cancelText="Cancel"
           >
-            Complete
-          </Button>
+            <Button
+              type="primary"
+              icon={<CheckSquareOutlined />}
+            >
+              Complete
+            </Button>
+          </Popconfirm>
         )}
 
         {(healthCheckResult.status === "Pending" ||
@@ -380,21 +392,33 @@ export const HealthCheckResultDetail: React.FC<
           <>
             {healthCheckResult.followUpRequired &&
             healthCheckResult.followUpDate ? (
-              <Button
-                danger
-                icon={<CalendarOutlined />}
-                onClick={handleCancelFollowUp}
+              <Popconfirm
+                title="Are you sure you want to cancel the follow-up?"
+                onConfirm={handleCancelFollowUp}
+                okText="Confirm"
+                cancelText="Cancel"
               >
-                Cancel Follow-up
-              </Button>
+                <Button
+                  danger
+                  icon={<CalendarOutlined />}
+                >
+                  Cancel Follow-up
+                </Button>
+              </Popconfirm>
             ) : (
-              <Button
-                type="default"
-                icon={<CalendarOutlined />}
-                onClick={() => setShowFollowUpModal(true)}
+              <Popconfirm
+                title="Are you sure you want to schedule a follow-up?"
+                onConfirm={() => setShowFollowUpModal(true)}
+                okText="Confirm"
+                cancelText="Cancel"
               >
-                Schedule Follow-up
-              </Button>
+                <Button
+                  type="default"
+                  icon={<CalendarOutlined />}
+                >
+                  Schedule Follow-up
+                </Button>
+              </Popconfirm>
             )}
           </>
         )}

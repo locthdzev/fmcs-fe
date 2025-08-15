@@ -361,7 +361,7 @@ export function AppointmentManagementForStudent() {
   };
 
   const redirectToStaffSchedule = () => {
-    router.push("http://localhost:3333/schedule-appointment"); // Adjust URL as needed
+    router.push("https://fmcs.io.vn/schedule-appointment"); // Adjust URL as needed
   };
 
   const handleExport = () => {

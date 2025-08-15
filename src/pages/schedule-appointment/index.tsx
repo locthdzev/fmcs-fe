@@ -14,18 +14,15 @@ import moment from "moment";
 const { Title, Text } = Typography;
 
 interface AppointmentIndexPageProps {
-  initialStaffList: AvailableOfficersResponseDTO[];
   token: string | null;
 }
 
 const AppointmentIndexPage: React.FC<AppointmentIndexPageProps> = ({
-  initialStaffList,
   token,
 }) => {
   const [messageApi, contextHolder] = message.useMessage();
-  const [staffList, setStaffList] =
-    useState<AvailableOfficersResponseDTO[]>(initialStaffList);
-  const [loading, setLoading] = useState(false);
+  const [staffList, setStaffList] = useState<AvailableOfficersResponseDTO[]>([]);
+  const [loading, setLoading] = useState(true);
   // Use the current date instead of a fixed reference date
   const currentDate = moment();
 
@@ -321,50 +318,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     };
   }
 
-  try {
-    const response = await getAllHealthcareStaffWithToken(token);
-    const staffList = response.data || [];
-
-    return {
-      props: {
-        initialStaffList: staffList,
-        token,
-      },
-    };
-  } catch (error) {
-    return {
-      redirect: {
-        destination: "/",
-        permanent: false,
-      },
-    };
-  }
-};
-
-const getAllHealthcareStaffWithToken = async (
-  token: string
-): Promise<ResultDTO<AvailableOfficersResponseDTO[]>> => {
-  const axios = (await import("axios")).default;
-  const https = (await import("https")).default;
-
-  const response = await axios.get(
-    "http://localhost:5104/api/appointment-management/healthcare-staff",
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      httpsAgent: new https.Agent({
-        rejectUnauthorized: false,
-      }),
-    }
-  );
-
-  if (!response.data.isSuccess) {
-    throw new Error(
-      response.data.message || "Failed to fetch healthcare staff"
-    );
-  }
-  return response.data;
+  return {
+    props: {
+      token,
+    },
+  };
 };
 
 export default AppointmentIndexPage;

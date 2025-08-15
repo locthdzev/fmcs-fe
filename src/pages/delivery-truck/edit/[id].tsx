@@ -11,14 +11,29 @@ const TruckEditPage = () => {
     return <div>Loading...</div>;
   }
 
+  // Hàm xử lý khi đóng form
+  const handleClose = () => {
+    router.push(`/delivery-truck/${id}`); // Chuyển hướng về trang chi tiết hoặc danh sách
+  };
+
+  // Hàm xử lý khi cập nhật thành công
+  const handleUpdate = () => {
+    // Có thể thêm logic như refresh hoặc thông báo
+    router.push(`/delivery-truck/${id}?refresh=${Date.now()}`); // Chuyển hướng với cache-busting
+  };
+
   return (
     <>
       <Head>
         <title>Edit Truck</title>
       </Head>
-      <TruckEditForm truckId={id} />
+      <TruckEditForm
+        truckId={id}
+        onClose={handleClose}
+        onUpdate={handleUpdate}
+      />
     </>
   );
 };
 
-export default TruckEditPage; 
+export default TruckEditPage;
